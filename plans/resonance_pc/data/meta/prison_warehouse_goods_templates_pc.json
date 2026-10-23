@@ -1,0 +1,6812 @@
+{
+  "schema_version": 1,
+  "status": "native_generated_screenshot_calibrated_subset",
+  "reference_client": [
+    1280,
+    720
+  ],
+  "icon_size": [
+    84,
+    84
+  ],
+  "crop": [
+    8,
+    24,
+    68,
+    42
+  ],
+  "template_size": [
+    68,
+    42
+  ],
+  "rendering": {
+    "source": "native_transparent_sprite",
+    "resample": "bilinear",
+    "mask": "native_alpha_ge_250_eroded_3x3",
+    "use_grayscale": false
+  },
+  "match": {
+    "method": "TM_CCOEFF_NORMED",
+    "threshold": 0.81,
+    "threshold_status": "calibrated_on_supplied_screenshots_only",
+    "preprocess": "none",
+    "use_grayscale": false,
+    "require_mask": true,
+    "min_margin": 0.1,
+    "search_crop_xywh": [
+      6,
+      22,
+      72,
+      46
+    ]
+  },
+  "source_hashes": {
+    "il2cpp_data/Metadata/global-metadata.dat": "84c24d58e5656de4d339c4a607f942f519add796806f9739b1225e38bda85a73",
+    "plan/products.json": "404f6342677959e8d573cae81c55d66beed60d7d3aa15b27138f33965e80dbfe",
+    "plan/trade_product_templates.json": "c263450f0e2876df0e612c14637091dc7d5b7321eaf7fc861324e9d5d384ec28",
+    "Patch/Asset/item/goods/small.asset": "627281022046c4c64d4d5f51e191764839ae06730618aefcfa2ae6f42c9c8b7f",
+    "Patch/Asset/item/goods/wulinyuan.asset": "1930b57fc326f7817637c1ada1da41cae038d99a5c05e670e79f29de777ec774"
+  },
+  "products": {
+    "1": {
+      "name": "发动机",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/qichefadongji",
+      "image": "templates/workshop/warehouse/goods/1.png",
+      "mask": "templates/workshop/warehouse/goods/1.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8652732708433460819,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "2": {
+      "name": "弹丸加速装置",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qiangxie",
+      "image": "templates/workshop/warehouse/goods/2.png",
+      "mask": "templates/workshop/warehouse/goods/2.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7752522244364536815
+    },
+    "3": {
+      "name": "家电",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jiadian",
+      "image": "templates/workshop/warehouse/goods/3.png",
+      "mask": "templates/workshop/warehouse/goods/3.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2484624449217083820
+    },
+    "4": {
+      "name": "纯棉布料",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/chunmianbuliao",
+      "image": "templates/workshop/warehouse/goods/4.png",
+      "mask": "templates/workshop/warehouse/goods/4.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 989003695744261544
+    },
+    "5": {
+      "name": "汽配零件",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qipeilingjian",
+      "image": "templates/workshop/warehouse/goods/5.png",
+      "mask": "templates/workshop/warehouse/goods/5.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3618436519123996038
+    },
+    "6": {
+      "name": "红茶",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/hongcha",
+      "image": "templates/workshop/warehouse/goods/6.png",
+      "mask": "templates/workshop/warehouse/goods/6.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1317364870553354701
+    },
+    "7": {
+      "name": "高档餐具",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/gaodangcanju",
+      "image": "templates/workshop/warehouse/goods/7.png",
+      "mask": "templates/workshop/warehouse/goods/7.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1206067569916240491,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "8": {
+      "name": "沃德烤鸡",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wodekaoji",
+      "image": "templates/workshop/warehouse/goods/8.png",
+      "mask": "templates/workshop/warehouse/goods/8.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8482844998286799578
+    },
+    "9": {
+      "name": "罐头",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/guantou",
+      "image": "templates/workshop/warehouse/goods/9.png",
+      "mask": "templates/workshop/warehouse/goods/9.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 622154370973895780
+    },
+    "10": {
+      "name": "沃德山泉",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wodeshanquan",
+      "image": "templates/workshop/warehouse/goods/10.png",
+      "mask": "templates/workshop/warehouse/goods/10.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1364662493825528859
+    },
+    "11": {
+      "name": "钛钢轨条",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/taigangguitiao",
+      "image": "templates/workshop/warehouse/goods/11.png",
+      "mask": "templates/workshop/warehouse/goods/11.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2118988739982330251
+    },
+    "12": {
+      "name": "修格里严选礼包",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/Xiugelilibao",
+      "image": "templates/workshop/warehouse/goods/12.png",
+      "mask": "templates/workshop/warehouse/goods/12.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7737530327373399569
+    },
+    "13": {
+      "name": "年货大礼包",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/Nianhuolibao",
+      "image": "templates/workshop/warehouse/goods/13.png",
+      "mask": "templates/workshop/warehouse/goods/13.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5073910122171778595
+    },
+    "14": {
+      "name": "防弹背心",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/fangdanbeixin",
+      "image": "templates/workshop/warehouse/goods/14.png",
+      "mask": "templates/workshop/warehouse/goods/14.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1900446245529100307
+    },
+    "15": {
+      "name": "炮弹",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/paodan",
+      "image": "templates/workshop/warehouse/goods/15.png",
+      "mask": "templates/workshop/warehouse/goods/15.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -9205507440919639446
+    },
+    "16": {
+      "name": "精钢",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinggang",
+      "image": "templates/workshop/warehouse/goods/16.png",
+      "mask": "templates/workshop/warehouse/goods/16.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1119742354775179403
+    },
+    "17": {
+      "name": "塑胶炸药",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/sujiaozhadan",
+      "image": "templates/workshop/warehouse/goods/17.png",
+      "mask": "templates/workshop/warehouse/goods/17.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6060780898544618969
+    },
+    "18": {
+      "name": "子弹",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/zidan",
+      "image": "templates/workshop/warehouse/goods/18.png",
+      "mask": "templates/workshop/warehouse/goods/18.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1332825810947557755,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "19": {
+      "name": "汽油",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qiyou",
+      "image": "templates/workshop/warehouse/goods/19.png",
+      "mask": "templates/workshop/warehouse/goods/19.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3738196044593492177
+    },
+    "20": {
+      "name": "靛红五月军用食品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wucanrou",
+      "image": "templates/workshop/warehouse/goods/20.png",
+      "mask": "templates/workshop/warehouse/goods/20.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8446690658443353875
+    },
+    "21": {
+      "name": "桦石发财树",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huashifacaishu",
+      "image": "templates/workshop/warehouse/goods/21.png",
+      "mask": "templates/workshop/warehouse/goods/21.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -6485772558952577400
+    },
+    "22": {
+      "name": "石墨烯",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shimoxi",
+      "image": "templates/workshop/warehouse/goods/22.png",
+      "mask": "templates/workshop/warehouse/goods/22.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6302431449004664705
+    },
+    "23": {
+      "name": "人工晶花",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/rengongjinghua",
+      "image": "templates/workshop/warehouse/goods/23.png",
+      "mask": "templates/workshop/warehouse/goods/23.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1661131091856438044
+    },
+    "24": {
+      "name": "电子配件",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/dianzipeijian",
+      "image": "templates/workshop/warehouse/goods/24.png",
+      "mask": "templates/workshop/warehouse/goods/24.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -6581050642662255560
+    },
+    "25": {
+      "name": "航天纪念品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/hangtianjinianpin",
+      "image": "templates/workshop/warehouse/goods/25.png",
+      "mask": "templates/workshop/warehouse/goods/25.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2352787712896670657
+    },
+    "26": {
+      "name": "斑节虾",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/banjiexia",
+      "image": "templates/workshop/warehouse/goods/26.png",
+      "mask": "templates/workshop/warehouse/goods/26.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1797985288055890197
+    },
+    "27": {
+      "name": "纯棉T恤",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/Tshirt",
+      "image": "templates/workshop/warehouse/goods/27.png",
+      "mask": "templates/workshop/warehouse/goods/27.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 252120356901255257
+    },
+    "28": {
+      "name": "坚果",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jianguo",
+      "image": "templates/workshop/warehouse/goods/28.png",
+      "mask": "templates/workshop/warehouse/goods/28.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 831204607081729941
+    },
+    "29": {
+      "name": "啤酒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/pijiu",
+      "image": "templates/workshop/warehouse/goods/29.png",
+      "mask": "templates/workshop/warehouse/goods/29.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 666632151209318005
+    },
+    "30": {
+      "name": "海盐",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/haiyan",
+      "image": "templates/workshop/warehouse/goods/30.png",
+      "mask": "templates/workshop/warehouse/goods/30.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8125408356978180410
+    },
+    "31": {
+      "name": "游戏机",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/youxiji",
+      "image": "templates/workshop/warehouse/goods/31.png",
+      "mask": "templates/workshop/warehouse/goods/31.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 31377394825354970,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "32": {
+      "name": "银矿石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yinkuangshi",
+      "image": "templates/workshop/warehouse/goods/32.png",
+      "mask": "templates/workshop/warehouse/goods/32.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5851211743219577918
+    },
+    "33": {
+      "name": "花呢上衣",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/huaneshangyi",
+      "image": "templates/workshop/warehouse/goods/33.png",
+      "mask": "templates/workshop/warehouse/goods/33.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1630002498563012532,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "34": {
+      "name": "扬声器",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yangshengqi",
+      "image": "templates/workshop/warehouse/goods/34.png",
+      "mask": "templates/workshop/warehouse/goods/34.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2347196035632001753
+    },
+    "35": {
+      "name": "游戏卡带",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/youxikadai",
+      "image": "templates/workshop/warehouse/goods/35.png",
+      "mask": "templates/workshop/warehouse/goods/35.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4284444793584849459
+    },
+    "36": {
+      "name": "录像带",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/luxiangdai",
+      "image": "templates/workshop/warehouse/goods/36.png",
+      "mask": "templates/workshop/warehouse/goods/36.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1045638926985913259
+    },
+    "37": {
+      "name": "荧光棒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yingguangbang",
+      "image": "templates/workshop/warehouse/goods/37.png",
+      "mask": "templates/workshop/warehouse/goods/37.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3160638846502648885
+    },
+    "38": {
+      "name": "火车玩具",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wanjuhuoche",
+      "image": "templates/workshop/warehouse/goods/38.png",
+      "mask": "templates/workshop/warehouse/goods/38.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6002354480225894800
+    },
+    "39": {
+      "name": "录音带",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/cidai",
+      "image": "templates/workshop/warehouse/goods/39.png",
+      "mask": "templates/workshop/warehouse/goods/39.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5366869252032748023
+    },
+    "40": {
+      "name": "金制列车工艺品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinzhilieche",
+      "image": "templates/workshop/warehouse/goods/40.png",
+      "mask": "templates/workshop/warehouse/goods/40.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6071326325472129801
+    },
+    "41": {
+      "name": "银制列车工艺品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yinzhilieche",
+      "image": "templates/workshop/warehouse/goods/41.png",
+      "mask": "templates/workshop/warehouse/goods/41.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3160603387473654792
+    },
+    "42": {
+      "name": "花呢",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huane",
+      "image": "templates/workshop/warehouse/goods/42.png",
+      "mask": "templates/workshop/warehouse/goods/42.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7501192761873230716
+    },
+    "43": {
+      "name": "火澄石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huochengshi",
+      "image": "templates/workshop/warehouse/goods/43.png",
+      "mask": "templates/workshop/warehouse/goods/43.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4707131989192018023
+    },
+    "44": {
+      "name": "负片炮弹",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/fupianpaodan",
+      "image": "templates/workshop/warehouse/goods/44.png",
+      "mask": "templates/workshop/warehouse/goods/44.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -6358005491286439205
+    },
+    "45": {
+      "name": "阿妮塔202军用无人机",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/anitajunyongwurenji",
+      "image": "templates/workshop/warehouse/goods/45.png",
+      "mask": "templates/workshop/warehouse/goods/45.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2822499426415863626
+    },
+    "46": {
+      "name": "抗污染防护服",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/kangwiranfanghufu",
+      "image": "templates/workshop/warehouse/goods/46.png",
+      "mask": "templates/workshop/warehouse/goods/46.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1214554459917775296,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "47": {
+      "name": "钛合金",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/taihejin",
+      "image": "templates/workshop/warehouse/goods/47.png",
+      "mask": "templates/workshop/warehouse/goods/47.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3109594691203815869
+    },
+    "48": {
+      "name": "碳纤维",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/tanxianwei",
+      "image": "templates/workshop/warehouse/goods/48.png",
+      "mask": "templates/workshop/warehouse/goods/48.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5655890830870471615
+    },
+    "49": {
+      "name": "形态共振瞄准器",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xingtaigongzhenmiaozhunqi",
+      "image": "templates/workshop/warehouse/goods/49.png",
+      "mask": "templates/workshop/warehouse/goods/49.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -9209918230541449032
+    },
+    "50": {
+      "name": "高导磁硅钢片",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/gaodaociguigangpian",
+      "image": "templates/workshop/warehouse/goods/50.png",
+      "mask": "templates/workshop/warehouse/goods/50.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2346635470363098287,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "51": {
+      "name": "黄铜线圈",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/huangtongxianquan",
+      "image": "templates/workshop/warehouse/goods/51.png",
+      "mask": "templates/workshop/warehouse/goods/51.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1743546391396025155,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "52": {
+      "name": "阿妮塔小型桦树发电机",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huashifadianji",
+      "image": "templates/workshop/warehouse/goods/52.png",
+      "mask": "templates/workshop/warehouse/goods/52.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 235334035856125676
+    },
+    "53": {
+      "name": "石墨烯电池",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shimoxidianchi",
+      "image": "templates/workshop/warehouse/goods/53.png",
+      "mask": "templates/workshop/warehouse/goods/53.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7505163039460361745
+    },
+    "54": {
+      "name": "阿妮塔101民用无人机",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wurenji",
+      "image": "templates/workshop/warehouse/goods/54.png",
+      "mask": "templates/workshop/warehouse/goods/54.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3501935688923217050
+    },
+    "55": {
+      "name": "家用太阳能电池组",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/taiyannengdianchi",
+      "image": "templates/workshop/warehouse/goods/55.png",
+      "mask": "templates/workshop/warehouse/goods/55.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5280775140300957750
+    },
+    "56": {
+      "name": "锂电池",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/lidianchi",
+      "image": "templates/workshop/warehouse/goods/56.png",
+      "mask": "templates/workshop/warehouse/goods/56.mask.png",
+      "native_size": [
+        180,
+        179
+      ],
+      "native_sprite_path_id": -2184322936384420957
+    },
+    "57": {
+      "name": "无纺布",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wufangbu",
+      "image": "templates/workshop/warehouse/goods/57.png",
+      "mask": "templates/workshop/warehouse/goods/57.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5104946094028139567
+    },
+    "58": {
+      "name": "充电电池",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/chongdiandianchi",
+      "image": "templates/workshop/warehouse/goods/58.png",
+      "mask": "templates/workshop/warehouse/goods/58.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5569210102348324445,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "59": {
+      "name": "阿妮塔连体衣",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/anitaliantiyi",
+      "image": "templates/workshop/warehouse/goods/59.png",
+      "mask": "templates/workshop/warehouse/goods/59.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1935432475799325545
+    },
+    "60": {
+      "name": "琥珀",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/hupo",
+      "image": "templates/workshop/warehouse/goods/60.png",
+      "mask": "templates/workshop/warehouse/goods/60.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8559196607664433008
+    },
+    "61": {
+      "name": "孔雀石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/kongqueshi",
+      "image": "templates/workshop/warehouse/goods/61.png",
+      "mask": "templates/workshop/warehouse/goods/61.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5381780245276739008
+    },
+    "62": {
+      "name": "绿松石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/lvsongshi",
+      "image": "templates/workshop/warehouse/goods/62.png",
+      "mask": "templates/workshop/warehouse/goods/62.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1953482664544669705
+    },
+    "63": {
+      "name": "棉花",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/mianhua",
+      "image": "templates/workshop/warehouse/goods/63.png",
+      "mask": "templates/workshop/warehouse/goods/63.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2480369063532555753
+    },
+    "64": {
+      "name": "铅矿石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qiankuangshi",
+      "image": "templates/workshop/warehouse/goods/64.png",
+      "mask": "templates/workshop/warehouse/goods/64.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2686425151653908384
+    },
+    "65": {
+      "name": "石墨",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shimo",
+      "image": "templates/workshop/warehouse/goods/65.png",
+      "mask": "templates/workshop/warehouse/goods/65.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6584503669058248337
+    },
+    "66": {
+      "name": "土豆",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/tudou",
+      "image": "templates/workshop/warehouse/goods/66.png",
+      "mask": "templates/workshop/warehouse/goods/66.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 9184643190454868522
+    },
+    "67": {
+      "name": "宝石工艺品",
+      "supported": false,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/baoshigongyiping",
+      "reason": "configured_native_sprite_not_found"
+    },
+    "68": {
+      "name": "图形加速卡",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xianka",
+      "image": "templates/workshop/warehouse/goods/68.png",
+      "mask": "templates/workshop/warehouse/goods/68.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5449451913137858610
+    },
+    "69": {
+      "name": "钛矿石",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/taikuangshi",
+      "image": "templates/workshop/warehouse/goods/69.png",
+      "mask": "templates/workshop/warehouse/goods/69.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3318421847997669941,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "70": {
+      "name": "铁轨用特种钢材",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/teshugangcai",
+      "image": "templates/workshop/warehouse/goods/70.png",
+      "mask": "templates/workshop/warehouse/goods/70.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -6411026986178552434
+    },
+    "71": {
+      "name": "曼德工具箱",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/mandegongjuxiang",
+      "image": "templates/workshop/warehouse/goods/71.png",
+      "mask": "templates/workshop/warehouse/goods/71.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4315669117721588246
+    },
+    "72": {
+      "name": "黄铜",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huangtong",
+      "image": "templates/workshop/warehouse/goods/72.png",
+      "mask": "templates/workshop/warehouse/goods/72.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8489152208702447490
+    },
+    "73": {
+      "name": "钢筋混凝土轨枕",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/guizhen",
+      "image": "templates/workshop/warehouse/goods/73.png",
+      "mask": "templates/workshop/warehouse/goods/73.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1402121556301537487,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "74": {
+      "name": "建材",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jiancai",
+      "image": "templates/workshop/warehouse/goods/74.png",
+      "mask": "templates/workshop/warehouse/goods/74.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8045413315126112901
+    },
+    "75": {
+      "name": "铁矿石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/tiekuangshi",
+      "image": "templates/workshop/warehouse/goods/75.png",
+      "mask": "templates/workshop/warehouse/goods/75.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3011761795612684491
+    },
+    "76": {
+      "name": "石材",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/shicai",
+      "image": "templates/workshop/warehouse/goods/76.png",
+      "mask": "templates/workshop/warehouse/goods/76.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -745333797770309629,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "77": {
+      "name": "砂石",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/shashi",
+      "image": "templates/workshop/warehouse/goods/77.png",
+      "mask": "templates/workshop/warehouse/goods/77.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4446023738883035086,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "78": {
+      "name": "沙金",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinsha",
+      "image": "templates/workshop/warehouse/goods/78.png",
+      "mask": "templates/workshop/warehouse/goods/78.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -9045141690066334100
+    },
+    "79": {
+      "name": "青金石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qingjinshi",
+      "image": "templates/workshop/warehouse/goods/79.png",
+      "mask": "templates/workshop/warehouse/goods/79.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3782678380577253932
+    },
+    "80": {
+      "name": "玛瑙",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/manao",
+      "image": "templates/workshop/warehouse/goods/80.png",
+      "mask": "templates/workshop/warehouse/goods/80.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 232194770502835224
+    },
+    "81": {
+      "name": "漆黑矿渣",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/kuangzha",
+      "image": "templates/workshop/warehouse/goods/81.png",
+      "mask": "templates/workshop/warehouse/goods/81.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8954244040796291787
+    },
+    "82": {
+      "name": "牛仔裤",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/niuzaiku",
+      "image": "templates/workshop/warehouse/goods/82.png",
+      "mask": "templates/workshop/warehouse/goods/82.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6760094503883606749
+    },
+    "83": {
+      "name": "石英砂",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shiyingsha",
+      "image": "templates/workshop/warehouse/goods/83.png",
+      "mask": "templates/workshop/warehouse/goods/83.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -9177546983887612864
+    },
+    "84": {
+      "name": "纯金线材",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/chunjinxiancai",
+      "image": "templates/workshop/warehouse/goods/84.png",
+      "mask": "templates/workshop/warehouse/goods/84.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3277419125390053844
+    },
+    "85": {
+      "name": "金箔",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinbo",
+      "image": "templates/workshop/warehouse/goods/85.png",
+      "mask": "templates/workshop/warehouse/goods/85.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8321261587318649821
+    },
+    "86": {
+      "name": "航天半导体",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/hangtianbandaoti",
+      "image": "templates/workshop/warehouse/goods/86.png",
+      "mask": "templates/workshop/warehouse/goods/86.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3478241716263614375
+    },
+    "87": {
+      "name": "太阳电池阵",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/taiyangdianchizhen",
+      "image": "templates/workshop/warehouse/goods/87.png",
+      "mask": "templates/workshop/warehouse/goods/87.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8295542257048197707
+    },
+    "88": {
+      "name": "蜂窝防热烧蚀材料",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/fengwokangshaoshicailiao",
+      "image": "templates/workshop/warehouse/goods/88.png",
+      "mask": "templates/workshop/warehouse/goods/88.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1503932206959039459
+    },
+    "89": {
+      "name": "高导热陶瓷",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/gaodaoretaoci",
+      "image": "templates/workshop/warehouse/goods/89.png",
+      "mask": "templates/workshop/warehouse/goods/89.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3965106563779541778
+    },
+    "90": {
+      "name": "镍基高温合金",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/niejigaowenhejin",
+      "image": "templates/workshop/warehouse/goods/90.png",
+      "mask": "templates/workshop/warehouse/goods/90.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3948076226651764695
+    },
+    "91": {
+      "name": "液氧甲烷燃料",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qingyangjiawanranliao",
+      "image": "templates/workshop/warehouse/goods/91.png",
+      "mask": "templates/workshop/warehouse/goods/91.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1403815681169437012
+    },
+    "92": {
+      "name": "无刷电机",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/wushuadianji",
+      "image": "templates/workshop/warehouse/goods/92.png",
+      "mask": "templates/workshop/warehouse/goods/92.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -304226016724813897
+    },
+    "93": {
+      "name": "火箭拼装玩具",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/huojianpinzhuangwanju",
+      "image": "templates/workshop/warehouse/goods/93.png",
+      "mask": "templates/workshop/warehouse/goods/93.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8820208768887801854,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "94": {
+      "name": "珍珠",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/zhenzhu",
+      "image": "templates/workshop/warehouse/goods/94.png",
+      "mask": "templates/workshop/warehouse/goods/94.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7032252352702226266
+    },
+    "95": {
+      "name": "蕾丝连衣裙",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/leisilianyiqun",
+      "image": "templates/workshop/warehouse/goods/95.png",
+      "mask": "templates/workshop/warehouse/goods/95.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6494403225837700215
+    },
+    "96": {
+      "name": "单晶硅",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/danjinggui",
+      "image": "templates/workshop/warehouse/goods/96.png",
+      "mask": "templates/workshop/warehouse/goods/96.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4109499778743384609
+    },
+    "97": {
+      "name": "大龙虾",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/dalongxia",
+      "image": "templates/workshop/warehouse/goods/97.png",
+      "mask": "templates/workshop/warehouse/goods/97.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7015361474245201024
+    },
+    "98": {
+      "name": "学会书籍",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/xuehuishuji",
+      "image": "templates/workshop/warehouse/goods/98.png",
+      "mask": "templates/workshop/warehouse/goods/98.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3111548763599793514,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "99": {
+      "name": "行李箱包",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xinglixiangbao",
+      "image": "templates/workshop/warehouse/goods/99.png",
+      "mask": "templates/workshop/warehouse/goods/99.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1327770746206320608
+    },
+    "100": {
+      "name": "户外用品",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/huwaiyongpin",
+      "image": "templates/workshop/warehouse/goods/100.png",
+      "mask": "templates/workshop/warehouse/goods/100.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2007790785192154328,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "101": {
+      "name": "带鱼",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/daiyu",
+      "image": "templates/workshop/warehouse/goods/101.png",
+      "mask": "templates/workshop/warehouse/goods/101.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8794452348825059347
+    },
+    "102": {
+      "name": "鱿鱼",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/youyu",
+      "image": "templates/workshop/warehouse/goods/102.png",
+      "mask": "templates/workshop/warehouse/goods/102.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3752844284889566334,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "103": {
+      "name": "海角辣椒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/lajiao",
+      "image": "templates/workshop/warehouse/goods/103.png",
+      "mask": "templates/workshop/warehouse/goods/103.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2277961163742427520
+    },
+    "104": {
+      "name": "海角水产礼盒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/Shuichanlibao",
+      "image": "templates/workshop/warehouse/goods/104.png",
+      "mask": "templates/workshop/warehouse/goods/104.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1071187744638703042
+    },
+    "105": {
+      "name": "蕾丝花边",
+      "supported": false,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/leisihuabian",
+      "reason": "Native icon has too little opaque foreground inside the warehouse crop"
+    },
+    "106": {
+      "name": "法兰绒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/falanrong",
+      "image": "templates/workshop/warehouse/goods/106.png",
+      "mask": "templates/workshop/warehouse/goods/106.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1269087339145797979
+    },
+    "107": {
+      "name": "亚麻",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yama",
+      "image": "templates/workshop/warehouse/goods/107.png",
+      "mask": "templates/workshop/warehouse/goods/107.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3608376738413224692
+    },
+    "108": {
+      "name": "缝纫工具包",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/fengrengongjubao",
+      "image": "templates/workshop/warehouse/goods/108.png",
+      "mask": "templates/workshop/warehouse/goods/108.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7567091435839114166
+    },
+    "109": {
+      "name": "尼龙",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/nilong",
+      "image": "templates/workshop/warehouse/goods/109.png",
+      "mask": "templates/workshop/warehouse/goods/109.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 174618168840794096,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "110": {
+      "name": "绣线",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xiuxian",
+      "image": "templates/workshop/warehouse/goods/110.png",
+      "mask": "templates/workshop/warehouse/goods/110.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8600152970907995522
+    },
+    "111": {
+      "name": "牛仔布",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/niuzaibu",
+      "image": "templates/workshop/warehouse/goods/111.png",
+      "mask": "templates/workshop/warehouse/goods/111.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1841470819332469063
+    },
+    "112": {
+      "name": "绵羊",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/mianyang",
+      "image": "templates/workshop/warehouse/goods/112.png",
+      "mask": "templates/workshop/warehouse/goods/112.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4306966703937256185
+    },
+    "113": {
+      "name": "涤纶",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/dilun",
+      "image": "templates/workshop/warehouse/goods/113.png",
+      "mask": "templates/workshop/warehouse/goods/113.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6669736081126757551,
+      "calibrated_sides": [
+        "product_warehouse",
+        "raw_warehouse",
+        "train"
+      ]
+    },
+    "114": {
+      "name": "鸭",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yazi",
+      "image": "templates/workshop/warehouse/goods/114.png",
+      "mask": "templates/workshop/warehouse/goods/114.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1388870701169414982
+    },
+    "115": {
+      "name": "肥皂",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/feizao",
+      "image": "templates/workshop/warehouse/goods/115.png",
+      "mask": "templates/workshop/warehouse/goods/115.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5207430777181756422
+    },
+    "116": {
+      "name": "手工编织地毯",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shougongbianzhiditan",
+      "image": "templates/workshop/warehouse/goods/116.png",
+      "mask": "templates/workshop/warehouse/goods/116.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8401431734070303509
+    },
+    "117": {
+      "name": "羽绒服",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yurongfu",
+      "image": "templates/workshop/warehouse/goods/117.png",
+      "mask": "templates/workshop/warehouse/goods/117.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7246030898137719753
+    },
+    "118": {
+      "name": "蚕丝",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/cansi",
+      "image": "templates/workshop/warehouse/goods/118.png",
+      "mask": "templates/workshop/warehouse/goods/118.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -193286221724918852
+    },
+    "119": {
+      "name": "金丝",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinsi",
+      "image": "templates/workshop/warehouse/goods/119.png",
+      "mask": "templates/workshop/warehouse/goods/119.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -920231094247903511
+    },
+    "120": {
+      "name": "羊毛",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yangmao",
+      "image": "templates/workshop/warehouse/goods/120.png",
+      "mask": "templates/workshop/warehouse/goods/120.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4832566855679724851
+    },
+    "121": {
+      "name": "法兰绒睡衣",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/falanrongshuiyi",
+      "image": "templates/workshop/warehouse/goods/121.png",
+      "mask": "templates/workshop/warehouse/goods/121.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -9215533987301439792
+    },
+    "122": {
+      "name": "羊毛布料",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yangmaobuliao",
+      "image": "templates/workshop/warehouse/goods/122.png",
+      "mask": "templates/workshop/warehouse/goods/122.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5791881398017526783
+    },
+    "123": {
+      "name": "西服面料",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xifubuliao",
+      "image": "templates/workshop/warehouse/goods/123.png",
+      "mask": "templates/workshop/warehouse/goods/123.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8421623444466498293
+    },
+    "124": {
+      "name": "太空棉",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/taikongmian",
+      "image": "templates/workshop/warehouse/goods/124.png",
+      "mask": "templates/workshop/warehouse/goods/124.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7461677131262985090
+    },
+    "125": {
+      "name": "羊绒衫",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yangrongshan",
+      "image": "templates/workshop/warehouse/goods/125.png",
+      "mask": "templates/workshop/warehouse/goods/125.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1277032136578633830
+    },
+    "126": {
+      "name": "羊绒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yangrong",
+      "image": "templates/workshop/warehouse/goods/126.png",
+      "mask": "templates/workshop/warehouse/goods/126.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8785899078900988444
+    },
+    "127": {
+      "name": "锦缎",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinduan",
+      "image": "templates/workshop/warehouse/goods/127.png",
+      "mask": "templates/workshop/warehouse/goods/127.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5843018009891122570
+    },
+    "128": {
+      "name": "法兰绒靠垫",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/falanrongkaodian",
+      "image": "templates/workshop/warehouse/goods/128.png",
+      "mask": "templates/workshop/warehouse/goods/128.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4315589082042626177
+    },
+    "129": {
+      "name": "西服",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xifu",
+      "image": "templates/workshop/warehouse/goods/129.png",
+      "mask": "templates/workshop/warehouse/goods/129.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2808314453078472823
+    },
+    "130": {
+      "name": "雪纺",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xuefang",
+      "image": "templates/workshop/warehouse/goods/130.png",
+      "mask": "templates/workshop/warehouse/goods/130.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6205466611767300482
+    },
+    "131": {
+      "name": "高级女装",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/gaojinvzhuang",
+      "image": "templates/workshop/warehouse/goods/131.png",
+      "mask": "templates/workshop/warehouse/goods/131.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 9025528025252217898
+    },
+    "132": {
+      "name": "灯芯绒休闲裤",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/dengxinrongxiuxianku",
+      "image": "templates/workshop/warehouse/goods/132.png",
+      "mask": "templates/workshop/warehouse/goods/132.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7278754946363711893
+    },
+    "133": {
+      "name": "雪金锦袍",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qipao",
+      "image": "templates/workshop/warehouse/goods/133.png",
+      "mask": "templates/workshop/warehouse/goods/133.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7277839943122156091
+    },
+    "134": {
+      "name": "真丝羽绒枕头",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/zhenzhiyurongzhentou",
+      "image": "templates/workshop/warehouse/goods/134.png",
+      "mask": "templates/workshop/warehouse/goods/134.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6117207432786199916
+    },
+    "135": {
+      "name": "冲锋衣",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/chongfengyi",
+      "image": "templates/workshop/warehouse/goods/135.png",
+      "mask": "templates/workshop/warehouse/goods/135.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -966139343553098959
+    },
+    "136": {
+      "name": "灯芯绒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/dengxinrong",
+      "image": "templates/workshop/warehouse/goods/136.png",
+      "mask": "templates/workshop/warehouse/goods/136.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -407853536517918877
+    },
+    "137": {
+      "name": "天鹅绒椅披",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/tianerongyipi",
+      "image": "templates/workshop/warehouse/goods/137.png",
+      "mask": "templates/workshop/warehouse/goods/137.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8834828086733448764
+    },
+    "138": {
+      "name": "尼龙晴雨伞",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yusan_blue",
+      "image": "templates/workshop/warehouse/goods/138.png",
+      "mask": "templates/workshop/warehouse/goods/138.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3496760666411032306
+    },
+    "139": {
+      "name": "天鹅绒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/tianerong",
+      "image": "templates/workshop/warehouse/goods/139.png",
+      "mask": "templates/workshop/warehouse/goods/139.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1867348136393622968
+    },
+    "140": {
+      "name": "真丝睡衣",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/zhensishuiyi",
+      "image": "templates/workshop/warehouse/goods/140.png",
+      "mask": "templates/workshop/warehouse/goods/140.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2735994260670003517
+    },
+    "141": {
+      "name": "棉花枕头",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/mianhuazhentou",
+      "image": "templates/workshop/warehouse/goods/141.png",
+      "mask": "templates/workshop/warehouse/goods/141.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8585991791111067612
+    },
+    "142": {
+      "name": "丝绸布料",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/sichoubuliao",
+      "image": "templates/workshop/warehouse/goods/142.png",
+      "mask": "templates/workshop/warehouse/goods/142.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4558746447136028285
+    },
+    "143": {
+      "name": "织锦缎",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/zhijinduan",
+      "image": "templates/workshop/warehouse/goods/143.png",
+      "mask": "templates/workshop/warehouse/goods/143.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -9074691730245805369
+    },
+    "144": {
+      "name": "宇航服",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yuhangfu",
+      "image": "templates/workshop/warehouse/goods/144.png",
+      "mask": "templates/workshop/warehouse/goods/144.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -602793475106169472
+    },
+    "145": {
+      "name": "鱼肝油",
+      "supported": false,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yuganyou",
+      "reason": "Native icon has too little opaque foreground inside the warehouse crop"
+    },
+    "146": {
+      "name": "学会纪念品",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/xuehuijinianpin",
+      "image": "templates/workshop/warehouse/goods/146.png",
+      "mask": "templates/workshop/warehouse/goods/146.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4284263623079739402,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "147": {
+      "name": "帝王蟹",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/diwangxie",
+      "image": "templates/workshop/warehouse/goods/147.png",
+      "mask": "templates/workshop/warehouse/goods/147.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1720579955000421694
+    },
+    "148": {
+      "name": "芳纶纤维",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/fanglunxianwei",
+      "image": "templates/workshop/warehouse/goods/148.png",
+      "mask": "templates/workshop/warehouse/goods/148.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2042827381808825251
+    },
+    "149": {
+      "name": "水银",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/shuiyin",
+      "image": "templates/workshop/warehouse/goods/149.png",
+      "mask": "templates/workshop/warehouse/goods/149.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1074182288094012208,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "150": {
+      "name": "香薰蜡烛",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xiangxunlazhu",
+      "image": "templates/workshop/warehouse/goods/150.png",
+      "mask": "templates/workshop/warehouse/goods/150.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1824056958874376629
+    },
+    "151": {
+      "name": "山羊",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shanyang",
+      "image": "templates/workshop/warehouse/goods/151.png",
+      "mask": "templates/workshop/warehouse/goods/151.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3429772058450610910
+    },
+    "152": {
+      "name": "马鲛鱼",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/majiaoyu",
+      "image": "templates/workshop/warehouse/goods/152.png",
+      "mask": "templates/workshop/warehouse/goods/152.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4358731211343776896
+    },
+    "153": {
+      "name": "贻贝",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/taibei",
+      "image": "templates/workshop/warehouse/goods/153.png",
+      "mask": "templates/workshop/warehouse/goods/153.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6861162858626129564
+    },
+    "154": {
+      "name": "水产甄选礼盒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/Shuichanzhenxuanlibao",
+      "image": "templates/workshop/warehouse/goods/154.png",
+      "mask": "templates/workshop/warehouse/goods/154.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2738280929034129999
+    },
+    "155": {
+      "name": "碳纤维索",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/tanxianweisuo",
+      "image": "templates/workshop/warehouse/goods/155.png",
+      "mask": "templates/workshop/warehouse/goods/155.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3619881953306488172,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "156": {
+      "name": "复合钢索",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/fuhegangsuo",
+      "image": "templates/workshop/warehouse/goods/156.png",
+      "mask": "templates/workshop/warehouse/goods/156.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4586014976940551894
+    },
+    "157": {
+      "name": "玄武岩纤维",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xuanwuyanxianwei",
+      "image": "templates/workshop/warehouse/goods/157.png",
+      "mask": "templates/workshop/warehouse/goods/157.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -940822010844308375
+    },
+    "158": {
+      "name": "象拔蚌",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/xiangbabang",
+      "image": "templates/workshop/warehouse/goods/158.png",
+      "mask": "templates/workshop/warehouse/goods/158.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5942865246578993076,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "159": {
+      "name": "索具",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/suoju",
+      "image": "templates/workshop/warehouse/goods/159.png",
+      "mask": "templates/workshop/warehouse/goods/159.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3038643473746670778
+    },
+    "160": {
+      "name": "陨铁矿",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yuntieshi",
+      "image": "templates/workshop/warehouse/goods/160.png",
+      "mask": "templates/workshop/warehouse/goods/160.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7297836084125392896
+    },
+    "161": {
+      "name": "玄武岩",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xuanwuyan",
+      "image": "templates/workshop/warehouse/goods/161.png",
+      "mask": "templates/workshop/warehouse/goods/161.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3009367894143450303
+    },
+    "162": {
+      "name": "竹荚鱼",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/zhujiayu",
+      "image": "templates/workshop/warehouse/goods/162.png",
+      "mask": "templates/workshop/warehouse/goods/162.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2784794628763263559
+    },
+    "163": {
+      "name": "扇贝",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shanbei",
+      "image": "templates/workshop/warehouse/goods/163.png",
+      "mask": "templates/workshop/warehouse/goods/163.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2972577142039090711
+    },
+    "164": {
+      "name": "水泥",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shuini",
+      "image": "templates/workshop/warehouse/goods/164.png",
+      "mask": "templates/workshop/warehouse/goods/164.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2211756166770666183
+    },
+    "165": {
+      "name": "岚心锦服",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/lanxinjinfu",
+      "image": "templates/workshop/warehouse/goods/165.png",
+      "mask": "templates/workshop/warehouse/goods/165.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1601147690700386722
+    },
+    "166": {
+      "name": "黑毛牛排",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/heimaoniupai",
+      "image": "templates/workshop/warehouse/goods/166.png",
+      "mask": "templates/workshop/warehouse/goods/166.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2179648583653047940
+    },
+    "167": {
+      "name": "金箔酒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jinbojiu",
+      "image": "templates/workshop/warehouse/goods/167.png",
+      "mask": "templates/workshop/warehouse/goods/167.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -460998506945286939
+    },
+    "168": {
+      "name": "刀具",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/daoju",
+      "image": "templates/workshop/warehouse/goods/168.png",
+      "mask": "templates/workshop/warehouse/goods/168.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4081073466274767757
+    },
+    "169": {
+      "name": "随身听",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/bianxieshouluji",
+      "image": "templates/workshop/warehouse/goods/169.png",
+      "mask": "templates/workshop/warehouse/goods/169.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 310149958940139596
+    },
+    "170": {
+      "name": "折扇",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/zheshan",
+      "image": "templates/workshop/warehouse/goods/170.png",
+      "mask": "templates/workshop/warehouse/goods/170.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6439224600192736881,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "171": {
+      "name": "画材",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huacai",
+      "image": "templates/workshop/warehouse/goods/171.png",
+      "mask": "templates/workshop/warehouse/goods/171.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2508204882091865625
+    },
+    "172": {
+      "name": "纳豆",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/nadou",
+      "image": "templates/workshop/warehouse/goods/172.png",
+      "mask": "templates/workshop/warehouse/goods/172.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7331906745318330252
+    },
+    "173": {
+      "name": "杯面",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/beimian",
+      "image": "templates/workshop/warehouse/goods/173.png",
+      "mask": "templates/workshop/warehouse/goods/173.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8411989996473803872,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "174": {
+      "name": "岚心锦",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/lanxinjin",
+      "image": "templates/workshop/warehouse/goods/174.png",
+      "mask": "templates/workshop/warehouse/goods/174.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1392597811893071153
+    },
+    "175": {
+      "name": "碳钢匕首",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/tangangbishou",
+      "image": "templates/workshop/warehouse/goods/175.png",
+      "mask": "templates/workshop/warehouse/goods/175.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -6277657031315632394
+    },
+    "176": {
+      "name": "鹅绒被",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/erongbei",
+      "image": "templates/workshop/warehouse/goods/176.png",
+      "mask": "templates/workshop/warehouse/goods/176.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3644108220816827027
+    },
+    "177": {
+      "name": "羽绒睡袋",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yurongshuidai",
+      "image": "templates/workshop/warehouse/goods/177.png",
+      "mask": "templates/workshop/warehouse/goods/177.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2600565247547104551
+    },
+    "178": {
+      "name": "鹅绒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/erong",
+      "image": "templates/workshop/warehouse/goods/178.png",
+      "mask": "templates/workshop/warehouse/goods/178.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1204711201634218178
+    },
+    "179": {
+      "name": "牛",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/niu",
+      "image": "templates/workshop/warehouse/goods/179.png",
+      "mask": "templates/workshop/warehouse/goods/179.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2625413376798690679
+    },
+    "180": {
+      "name": "羽绒",
+      "supported": false,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yumao",
+      "reason": "Native icon has too little opaque foreground inside the warehouse crop"
+    },
+    "181": {
+      "name": "鹅",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/e",
+      "image": "templates/workshop/warehouse/goods/181.png",
+      "mask": "templates/workshop/warehouse/goods/181.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7121833390273256811
+    },
+    "182": {
+      "name": "全合成基础油",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/hcjcy180",
+      "image": "templates/workshop/warehouse/goods/182.png",
+      "mask": "templates/workshop/warehouse/goods/182.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 312099533249326013
+    },
+    "183": {
+      "name": "石油",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/shiyou",
+      "image": "templates/workshop/warehouse/goods/183.png",
+      "mask": "templates/workshop/warehouse/goods/183.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1934573021247381967,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "184": {
+      "name": "石蜡",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/shila",
+      "image": "templates/workshop/warehouse/goods/184.png",
+      "mask": "templates/workshop/warehouse/goods/184.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5867635964106503830,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "185": {
+      "name": "硅矿石",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/guikuangshi",
+      "image": "templates/workshop/warehouse/goods/185.png",
+      "mask": "templates/workshop/warehouse/goods/185.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5311406316986557711
+    },
+    "186": {
+      "name": "黄铁矿",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huangtiekuang",
+      "image": "templates/workshop/warehouse/goods/186.png",
+      "mask": "templates/workshop/warehouse/goods/186.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4964228349083203669
+    },
+    "187": {
+      "name": "石灰岩",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shihuiyan",
+      "image": "templates/workshop/warehouse/goods/187.png",
+      "mask": "templates/workshop/warehouse/goods/187.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5365751730770829063
+    },
+    "188": {
+      "name": "限定公仔",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xiandinggongzai_luleidi",
+      "image": "templates/workshop/warehouse/goods/188.png",
+      "mask": "templates/workshop/warehouse/goods/188.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2780325873469030739
+    },
+    "189": {
+      "name": "游乐城主题配饰",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/youlechengzhutipeishi",
+      "image": "templates/workshop/warehouse/goods/189.png",
+      "mask": "templates/workshop/warehouse/goods/189.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -474975422063162253
+    },
+    "190": {
+      "name": "限定典藏游戏卡带",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/juebanyouxikadai",
+      "image": "templates/workshop/warehouse/goods/190.png",
+      "mask": "templates/workshop/warehouse/goods/190.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6896287134400973978
+    },
+    "191": {
+      "name": "游乐城纪念唱片",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xiandingchangpian",
+      "image": "templates/workshop/warehouse/goods/191.png",
+      "mask": "templates/workshop/warehouse/goods/191.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8329097563197225474
+    },
+    "192": {
+      "name": "纪念卫衣",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/xiandingweiyi",
+      "image": "templates/workshop/warehouse/goods/192.png",
+      "mask": "templates/workshop/warehouse/goods/192.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -6423930298663312993
+    },
+    "193": {
+      "name": "城堡摆件",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/chengbaobaijian",
+      "image": "templates/workshop/warehouse/goods/193.png",
+      "mask": "templates/workshop/warehouse/goods/193.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 1893100636984782612
+    },
+    "194": {
+      "name": "毛绒玩具",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/maorongwanju",
+      "image": "templates/workshop/warehouse/goods/194.png",
+      "mask": "templates/workshop/warehouse/goods/194.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7715518760315308,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "195": {
+      "name": "游乐城纪念徽章",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/youlechengjinianhuizhang",
+      "image": "templates/workshop/warehouse/goods/195.png",
+      "mask": "templates/workshop/warehouse/goods/195.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 7058043715094791841
+    },
+    "196": {
+      "name": "游乐城纪念文具",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/youlechengjinianwenju",
+      "image": "templates/workshop/warehouse/goods/196.png",
+      "mask": "templates/workshop/warehouse/goods/196.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6821954807550883631
+    },
+    "197": {
+      "name": "鱼子酱",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/yuzijiang",
+      "image": "templates/workshop/warehouse/goods/197.png",
+      "mask": "templates/workshop/warehouse/goods/197.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8586861824620091734
+    },
+    "198": {
+      "name": "高端护肤品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/gaoduanhufupin",
+      "image": "templates/workshop/warehouse/goods/198.png",
+      "mask": "templates/workshop/warehouse/goods/198.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5107089140721067848
+    },
+    "199": {
+      "name": "火腿",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huotui",
+      "image": "templates/workshop/warehouse/goods/199.png",
+      "mask": "templates/workshop/warehouse/goods/199.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -5812852441479990132
+    },
+    "200": {
+      "name": "轻奢女装",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/qingshenvzhuang",
+      "image": "templates/workshop/warehouse/goods/200.png",
+      "mask": "templates/workshop/warehouse/goods/200.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2521803124092449087
+    },
+    "201": {
+      "name": "香水",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/xiangshui",
+      "image": "templates/workshop/warehouse/goods/201.png",
+      "mask": "templates/workshop/warehouse/goods/201.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4799927610781734923,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "202": {
+      "name": "水晶工艺品",
+      "supported": true,
+      "screenshot_calibrated": true,
+      "source": "Item/Goods/Small/shuijinggongyipin",
+      "image": "templates/workshop/warehouse/goods/202.png",
+      "mask": "templates/workshop/warehouse/goods/202.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6100251194753226017,
+      "calibrated_sides": [
+        "train"
+      ]
+    },
+    "203": {
+      "name": "白兰地",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/bailandi",
+      "image": "templates/workshop/warehouse/goods/203.png",
+      "mask": "templates/workshop/warehouse/goods/203.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6437998965578078405
+    },
+    "204": {
+      "name": "化妆品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/huazhuangpin",
+      "image": "templates/workshop/warehouse/goods/204.png",
+      "mask": "templates/workshop/warehouse/goods/204.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 904505061888913517
+    },
+    "205": {
+      "name": "橄榄油",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/ganlanyou",
+      "image": "templates/workshop/warehouse/goods/205.png",
+      "mask": "templates/workshop/warehouse/goods/205.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3305776553343347703
+    },
+    "206": {
+      "name": "日化用品",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/rihuayongpin",
+      "image": "templates/workshop/warehouse/goods/206.png",
+      "mask": "templates/workshop/warehouse/goods/206.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7459429630073439850
+    },
+    "207": {
+      "name": "西大陆甄选礼盒",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/Xidalulibao",
+      "image": "templates/workshop/warehouse/goods/207.png",
+      "mask": "templates/workshop/warehouse/goods/207.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 4769895782523006330
+    },
+    "208": {
+      "name": "黑胡桃木座钟",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/heihutaozhong180",
+      "image": "templates/workshop/warehouse/goods/208.png",
+      "mask": "templates/workshop/warehouse/goods/208.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7053671022732045603
+    },
+    "209": {
+      "name": "高山云杉",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/gaoshanyunshan180",
+      "image": "templates/workshop/warehouse/goods/209.png",
+      "mask": "templates/workshop/warehouse/goods/209.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 5549401973970958780
+    },
+    "210": {
+      "name": "精钢伐木斧",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/famufu180",
+      "image": "templates/workshop/warehouse/goods/210.png",
+      "mask": "templates/workshop/warehouse/goods/210.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3229927674276711578
+    },
+    "211": {
+      "name": "胡桃木",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/hutaomu180",
+      "image": "templates/workshop/warehouse/goods/211.png",
+      "mask": "templates/workshop/warehouse/goods/211.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 6066470653130362643
+    },
+    "212": {
+      "name": "烟熏橡木",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/sucaiyanxunxiangmu180",
+      "image": "templates/workshop/warehouse/goods/212.png",
+      "mask": "templates/workshop/warehouse/goods/212.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7703278859397277659
+    },
+    "213": {
+      "name": "白蜡木",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/bailamu180",
+      "image": "templates/workshop/warehouse/goods/213.png",
+      "mask": "templates/workshop/warehouse/goods/213.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4420099870610928013
+    },
+    "214": {
+      "name": "精密木构件",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/jingmimugoujian180",
+      "image": "templates/workshop/warehouse/goods/214.png",
+      "mask": "templates/workshop/warehouse/goods/214.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2137026005220723312
+    },
+    "215": {
+      "name": "树脂",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shuzhi",
+      "image": "templates/workshop/warehouse/goods/215.png",
+      "mask": "templates/workshop/warehouse/goods/215.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 2153000878339560086
+    },
+    "216": {
+      "name": "优质松木",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/youzhisongmu180",
+      "image": "templates/workshop/warehouse/goods/216.png",
+      "mask": "templates/workshop/warehouse/goods/216.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4698787321969899878
+    },
+    "217": {
+      "name": "树脂复合木板",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/shuzhifuhemuban180",
+      "image": "templates/workshop/warehouse/goods/217.png",
+      "mask": "templates/workshop/warehouse/goods/217.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3017586590005649683
+    },
+    "218": {
+      "name": "松香",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/Small/songxiang180",
+      "image": "templates/workshop/warehouse/goods/218.png",
+      "mask": "templates/workshop/warehouse/goods/218.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -8242841357098988821
+    },
+    "219": {
+      "name": "明前龙井",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/mqlj180",
+      "image": "templates/workshop/warehouse/goods/219.png",
+      "mask": "templates/workshop/warehouse/goods/219.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -7772989170698079558
+    },
+    "220": {
+      "name": "家用机器人",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/jqr180",
+      "image": "templates/workshop/warehouse/goods/220.png",
+      "mask": "templates/workshop/warehouse/goods/220.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3005489241249914356
+    },
+    "221": {
+      "name": "龙井茶",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/lj180",
+      "image": "templates/workshop/warehouse/goods/221.png",
+      "mask": "templates/workshop/warehouse/goods/221.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -4766492376495943599
+    },
+    "222": {
+      "name": "武林丝绸",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/wlsc180",
+      "image": "templates/workshop/warehouse/goods/222.png",
+      "mask": "templates/workshop/warehouse/goods/222.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1560999985397457795
+    },
+    "223": {
+      "name": "羽纸扇",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/yzs180",
+      "image": "templates/workshop/warehouse/goods/223.png",
+      "mask": "templates/workshop/warehouse/goods/223.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3088093341774127540
+    },
+    "224": {
+      "name": "临安山核桃",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/sht180",
+      "image": "templates/workshop/warehouse/goods/224.png",
+      "mask": "templates/workshop/warehouse/goods/224.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 8119732083823986710
+    },
+    "225": {
+      "name": "西湖醋鱼",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/xhcy180",
+      "image": "templates/workshop/warehouse/goods/225.png",
+      "mask": "templates/workshop/warehouse/goods/225.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 3512279668739639823
+    },
+    "226": {
+      "name": "西湖藕粉",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/of180",
+      "image": "templates/workshop/warehouse/goods/226.png",
+      "mask": "templates/workshop/warehouse/goods/226.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": 933548967478005943
+    },
+    "227": {
+      "name": "叫化童鸡",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/jhj180",
+      "image": "templates/workshop/warehouse/goods/227.png",
+      "mask": "templates/workshop/warehouse/goods/227.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -3212610220469752490
+    },
+    "228": {
+      "name": "杭白菊",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/hbj180",
+      "image": "templates/workshop/warehouse/goods/228.png",
+      "mask": "templates/workshop/warehouse/goods/228.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -2167508312778225267
+    },
+    "229": {
+      "name": "笋干",
+      "supported": true,
+      "screenshot_calibrated": false,
+      "source": "Item/Goods/wulinyuan/sg180",
+      "image": "templates/workshop/warehouse/goods/229.png",
+      "mask": "templates/workshop/warehouse/goods/229.mask.png",
+      "native_size": [
+        180,
+        180
+      ],
+      "native_sprite_path_id": -1946021110998235009
+    }
+  },
+  "assets": {
+    "templates/workshop/warehouse/goods/1.png": {
+      "sha256": "8f6fe040bb8a0ea0b781eada62569331852aa3909ead95931438515e71ed6a17",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/1.mask.png": {
+      "sha256": "a53fb1211a3d4dbddee74c5503ae9e0986d51af861425772796f6e60e95d0378",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/2.png": {
+      "sha256": "62aa220e17a605279c65da91a6d4b29e1ca2978d12fe9746b97432f4d14dcd09",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/2.mask.png": {
+      "sha256": "1e267d4487d203b1a279d8ba07f3ca9ac9b2bf56778dc1dd690046aa5fe7c7a1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/3.png": {
+      "sha256": "6d2c824692493646a7b9c5cee9ad4406e346a4a20f15b14f536445885d041d22",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/3.mask.png": {
+      "sha256": "d0dd3843f305c884d942f8d1b03373c99385452961933ff392f7a96da9ee41fe",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/4.png": {
+      "sha256": "a22f311c7f4a14a9905ae351a3768ff46e4b6b086e4104310ad0b89f5f374265",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/4.mask.png": {
+      "sha256": "2ebfc39df89153c241e31d7de122ee5fc650c16d0d463e05c03dc4e7741f4e3b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/5.png": {
+      "sha256": "15680a93e8566c919cf762357d0d5bd0a6dfcbf7357a64f8e9e88976174d1e96",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/5.mask.png": {
+      "sha256": "867d159d28f38b0a618c9307ec799b149e80ff4f9010260cff23644fc4d7dd4e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/6.png": {
+      "sha256": "78c35ae5abe34f83ff9f38a70916c8ab9faf34fa07678c2779725837435ad84f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/6.mask.png": {
+      "sha256": "6e5406fd6cf87649ea8f889d93250387eb2915fbd9cc608c7bff30cbebfa5370",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/7.png": {
+      "sha256": "78ec61e10dd74269bc2cb6ea62e425a385979586f6fc6db5b75b4eaa010e28e7",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/7.mask.png": {
+      "sha256": "16c6bf947539c9448da3f8b2d5bb87c13ec936287657598857103b4a03c6ea1f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/8.png": {
+      "sha256": "cd6d730fb24131266d5e825ab648d3471d1bdc760e4e9a98db3d303f9f46ba3a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/8.mask.png": {
+      "sha256": "50f8cab2c9f8f625c784142ced55a24a61164da99e2d779f5cc432d4acf95187",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/9.png": {
+      "sha256": "760231ca757b90edb9be47934e772b3e8fa21c4bedd124e0e1a2249688d00545",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/9.mask.png": {
+      "sha256": "605406f99c80413a53969add9924a8035a496f9f67ddf9bb033665a836c99588",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/10.png": {
+      "sha256": "b08397b81c298ee5c9ec28f9fe4d33247e00713180ce6bb5dec305e009efb4e0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/10.mask.png": {
+      "sha256": "7973c73975463841f697f653d066ba5b086275b8cc01fcf0a1dfdb5ca1903ae2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/11.png": {
+      "sha256": "7d6eec50e87e6b1e8f30318d072b99b573e1c639475ad0d2ba02eccdb6f64dda",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/11.mask.png": {
+      "sha256": "ab3bd71710efb650919d911beba16323c586f9b8c03af57741847a207d2e0f10",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/12.png": {
+      "sha256": "914dfdb0b311f4a6b979034d2a2f08228ff7ce9555051beeb63adc30d130750d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/12.mask.png": {
+      "sha256": "81b1769c92c452dcfd080fabbb146f8d82def8b637dea948a03c382cd0915d29",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/13.png": {
+      "sha256": "ad569e0b3afdd159ac9aeea0df4e17ab34ea276448c7eb7cf3572dc445d86c74",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/13.mask.png": {
+      "sha256": "f3f16ee0584a4c20a49ae02e5007be9aac3c0a52098003ea1bfbc86ff9f65cb7",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/14.png": {
+      "sha256": "9bb006649db7fcfedf77e2643e37752d4c6284dedcee2c3e7e69d09c35c738e7",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/14.mask.png": {
+      "sha256": "5561b10f2f3f65604b31a50cb3240ddac2649c2067f6fa36fb413f34ae7800a5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/15.png": {
+      "sha256": "227092b1ad82f1e117ae71e5ab6b20c8c7f0d67ce0f7917e5b035992b454168c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/15.mask.png": {
+      "sha256": "4f93f72ee63897510ca649e706c484e825e080c0c1a0750da3fe18e916b97644",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/16.png": {
+      "sha256": "1d1b7453be8da866e5267e28619c886749b1482bd00a582c1da917b0e0570203",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/16.mask.png": {
+      "sha256": "2931a41d6028efe8ee11ecb94700b0fe0d70a2576a5a96770cfb44c30003ecd8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/17.png": {
+      "sha256": "ae20ef7d8667719f467ae4a397e55082d8fa39ae205cb7f71f05c498af83e81c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/17.mask.png": {
+      "sha256": "082819ffce11e51d71ee76f2afb1c504cf01ff7dbeee6b372aad7671618e382d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/18.png": {
+      "sha256": "cb7f6c46eff5e4b1c8b329538806f12c95bd5785fa46efc58784c0be388117af",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/18.mask.png": {
+      "sha256": "d6c22fdbaaebd004e17ca4de7f404bd2227fc8fd3256e64ad747b093734a391d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/19.png": {
+      "sha256": "7e8189487a68ca7f16dceb0cbc993d45f275e4037a6823860c3ceeccdc3d087b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/19.mask.png": {
+      "sha256": "6067aaba1c7bb0cd934d13fc35669f3dfa37ffe9309e724114d01e5718f36504",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/20.png": {
+      "sha256": "f9997e2f3d2b68237900e5976ae2bba7d817604c7ffd55073315e67bcaa8a823",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/20.mask.png": {
+      "sha256": "891627416627f33e6fb6a5491513cdb16a85fcb5afa3034497a38b360973f8f6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/21.png": {
+      "sha256": "017f5454a02c5f326fd280b9bcd7b10c77c86e271d881aaf0a954c6e870a833a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/21.mask.png": {
+      "sha256": "8e2741354a74dc42031b8585b61438fef675f4b6d58114d83f6c526503a66bff",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/22.png": {
+      "sha256": "a2fc2ed1efdda91f7762f680f900475ce48e4a1981f276483929f5367465b3ac",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/22.mask.png": {
+      "sha256": "9214a7f42f4340ede9b0610cf8e6b21baa6afb2fee85ec074d59c2e5e32b2b02",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/23.png": {
+      "sha256": "a81cde2a7d0425f6ad453a2ba88caf8e0a2bda315d7e93a60ab5c89a7451fef2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/23.mask.png": {
+      "sha256": "525617b8dcf2e017db1635851d0fe17626ce01838e05de673a3717b73e9388f2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/24.png": {
+      "sha256": "6c8f0b67d7d79ad66d8bc703cddf94d6ee20cc2e0d7b2f66d521e8fb69b7cd42",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/24.mask.png": {
+      "sha256": "63f3a4ed3ee8004de14f2f7418920ccfa4412fefc588c660aa8c22c31188d222",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/25.png": {
+      "sha256": "f74e0a5f343e883a72acd43dd90433ad0ef19d7cce57753d70452215ae24f476",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/25.mask.png": {
+      "sha256": "c1bdb06e3e484344ffa6c1eb25d34d64c6b68ee8e4ecd0cbb14d34338882ee5e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/26.png": {
+      "sha256": "cc7d6dd7dd5119686b9558a3e1000d50f8ea65929955c3c014f5355437c77165",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/26.mask.png": {
+      "sha256": "7718db8572bc9f7db49f9a6cac92d786c43f4ce94cab0b6fa78acf6c8bc814f9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/27.png": {
+      "sha256": "ceea8f48e6601633cbafedc71ab7caa0ebe504eeda53c2ef7e7b70046c2a1392",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/27.mask.png": {
+      "sha256": "a397d3b6738ff34a33797e8937e7f6c2907ebca3cdbf6fd98a20f542dec1365c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/28.png": {
+      "sha256": "91d172312583b256f249e7306d6554e87e0c7ae0280724111992f76a1b5f4548",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/28.mask.png": {
+      "sha256": "7a287ade128b91124d46e585044dc523fa3470932d1b571bbf9c2a980ccad15e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/29.png": {
+      "sha256": "62f97e696ec843d02ced951ee3dd4a365f4e03406f1520d155ec07b3e36ea828",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/29.mask.png": {
+      "sha256": "b86b61984a91986e4997e88e5499bcde08fcc2844a3ce29ecdc600e982444de0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/30.png": {
+      "sha256": "8e710dfe6dfe7c30959429013bf7dfedf3f9ac30cb403e2a1e5a96817cbd5968",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/30.mask.png": {
+      "sha256": "fca51a84df57d7bec9a0dbffe97cd8035f3b48367930d685cc8ac51e5617eea2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/31.png": {
+      "sha256": "58576aea8a75eacbee91ded33e5e737da04ee542794cd04feb2d766738a4d6b6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/31.mask.png": {
+      "sha256": "0028329d5a59c9e16809b0b90b914ff10978f017e07ac0cca4fe06bdcc717cc6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/32.png": {
+      "sha256": "2698fa849f9e0f63983b16c33fef260a4b40fcbd43fe60cbe9c475fe85264ff5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/32.mask.png": {
+      "sha256": "886fce320d8dc52913e63d923a397eaff879d6e33e6c517ee030c4f121e9b773",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/33.png": {
+      "sha256": "b7ac2161afdc5d4a44e02648203b95f3d5b9b88e50c8197f59cbedecab75d413",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/33.mask.png": {
+      "sha256": "5e1b132ec36c9b80767b77f65feb5ed43c7c8cded8d2e13062f19297b7a059d0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/34.png": {
+      "sha256": "8410aea538044c1dd1fb2cbef29a1a660f3f8e81ae765fb7b7ab6f5d0325d0d1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/34.mask.png": {
+      "sha256": "93a83dbb0f81e55e69c719c918658ec4ec93ad9ce15c7963c0da97b48dcd5d81",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/35.png": {
+      "sha256": "de79fd4dcb29cd8d9b19c12b1b984519a15d15fbfef851642323e9e255ca561b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/35.mask.png": {
+      "sha256": "2a8d8c7bea987bf246b7ba363132b62e9b45997dcc0239c3135dd1a98aacd06c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/36.png": {
+      "sha256": "0787a89dfc47d1b842a87cbb070f9458db8fd4c7780dceaa37314dc1586f4d3c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/36.mask.png": {
+      "sha256": "df945dfc68a9547f258315b578473a047b0884051aeaba350411b900204e1604",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/37.png": {
+      "sha256": "63b67820219d1688f3b61777f5cb020fdf86bb4e4faca18fefdcf3be9d14dae3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/37.mask.png": {
+      "sha256": "83ce0077bfb223c8e2c056c92ea76d757a88a1c47c691ff8e519e6bd5a447ebd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/38.png": {
+      "sha256": "3184e381adaf839e72cb022c51172df1dce4069e685b9ebbc6da1f01321f3276",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/38.mask.png": {
+      "sha256": "820f66ae93519aec7a669a5ed13b7d9bfd8c4f4598d765eec2c757178f222dcc",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/39.png": {
+      "sha256": "821e79b041a7c9ee45140d16dbc762133d4d3b5b9a682a20878a15eeb1c27509",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/39.mask.png": {
+      "sha256": "98b3f0851684c9b3c257de90b2daf5582e0f6215f52d1db54da0d673af9d95ab",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/40.png": {
+      "sha256": "a7a863eb7d9868e08a9b899bd3d7b81e295dc0a731fdd6f8ea91b265cd3e5774",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/40.mask.png": {
+      "sha256": "b07b73388e55cd046701578d8b929a3dbc47d78e0118a26bee7ceac67cacba21",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/41.png": {
+      "sha256": "3c721cd969f674836490707030d5f3763ae654126c50b54ea0c29fb5ecb0a883",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/41.mask.png": {
+      "sha256": "a4463b39bf835f8aa64f79b2a8d1a137971b2a747e8419df9576c5ce690470c3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/42.png": {
+      "sha256": "b0ed6d82c88e753f633a7c2e4fdc23d4433078c0af9fdd3c8a3d74a981756953",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/42.mask.png": {
+      "sha256": "d1f38aa7af2bab9372d6228e3972864165b7d452fe25dfa9c36f9b3689ca2d27",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/43.png": {
+      "sha256": "34520a6c37834a5490385197d2520cc7a65e1cafe8809e6e7939933b6bf91b26",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/43.mask.png": {
+      "sha256": "f5714fd4467a5c245cad59a921ead2e156863a089b95f8a32f8a4a0655ba166e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/44.png": {
+      "sha256": "18006ee43d279e632577c1f53891da33bd21ceac08789f77cb2634bd8db7833c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/44.mask.png": {
+      "sha256": "047747493ead10a97f06bc4f3f0da7c8b89d2622629f115994c483dc4a253758",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/45.png": {
+      "sha256": "12fc33c3de564781c463d6fb8112fa1e732fcec55f99323e169ce2538fd96cd2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/45.mask.png": {
+      "sha256": "178d3be5a57b5e375f5fbbc7d93f8eb3d47699fd1ae4596e0908574b3f7cc8a9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/46.png": {
+      "sha256": "fb466870003f4b447ed238c469cd9a1945f67fded8ec1ccb8defeb0525cc560f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/46.mask.png": {
+      "sha256": "ef802fa61b56b16370b7a96389f8dcb956b8e2f9d79b4c3842179cd6497e1f8b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/47.png": {
+      "sha256": "b86f7c65f3663ac2bdda2e928ea730ac3bbcfc6c0d8653fb51134041d4a293ad",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/47.mask.png": {
+      "sha256": "b3546e3bf8811f9cbae08c5add8dbdec178a45941780c6c993a31d52db53b6b7",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/48.png": {
+      "sha256": "fb375d5e3ebd4ef799cfa3d3003b5211ad716a45b57029487a1dab914dc2e36a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/48.mask.png": {
+      "sha256": "4c30f3711e708bdbecf83405ae04213094740af33bd522f2baa7f396a96a0bc2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/49.png": {
+      "sha256": "7588783d5df738759917f226a713d17cc6ef5b365eff8efa4d02efd9afeae6ef",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/49.mask.png": {
+      "sha256": "5df68928cf5dfd2efa55dcf9ae7ada0a5911f464a7d0711443cd3e89572e9f25",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/50.png": {
+      "sha256": "c1a427532bf1422390318a7a452d4cdd09b1bc78bc3a77c7eff9946ebe1e4a9e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/50.mask.png": {
+      "sha256": "8fdad0fa33717552b5f6c3505443204b29f63120525f15629e7480b2d67fa3a2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/51.png": {
+      "sha256": "31e9f5249aa5123290bd70ab143b533879250e7e5a16f3cdf880bb5828bdc46f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/51.mask.png": {
+      "sha256": "200085a579090fb6397f3563a87c337883be06d3b3d33ba3d16920a5b9dd2aa0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/52.png": {
+      "sha256": "2c4aee623251f4ec8a81a0c7ead2c68495a9e0a18c9310b48e7a9c6fd95805b3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/52.mask.png": {
+      "sha256": "3a9c11b2acbefd276eb22443c1d6d032406f45d268b0eb8e812664d6bb6b1829",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/53.png": {
+      "sha256": "3b5d2f5bedd11a243ebe6296165c091c39d7b39e08155f3266ef9062edcac798",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/53.mask.png": {
+      "sha256": "31e85998256e468bd53d0b7cd3bb97f0c96bca5660162c88a9a379885760f6f3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/54.png": {
+      "sha256": "c21e6b42027b282229c82559ff2d4a8f172a8752242caf7e999b606df0d6c9c0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/54.mask.png": {
+      "sha256": "2909657afcb58e5daedac538ed316dc113f96d0a33774188a9458697d358c2a0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/55.png": {
+      "sha256": "a082b94bb5273dc24fc75f20f89666cfe5f4087a45ab72cc65d481ce9d19e4f9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/55.mask.png": {
+      "sha256": "896edfb0950a39de8d0913bfa7df69e36540c87c9442112f91a6f9e60162dcaa",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/56.png": {
+      "sha256": "a94b84e613c89266e79abc5cc23ff6e6f127d748098f58e7117d14f67d435070",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/56.mask.png": {
+      "sha256": "f10a21a575c0e9624e9948d7db9d52bd96a1eede16bfaf5a47cf3a48e524aa17",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/57.png": {
+      "sha256": "3f87ef301d85cd1f1b7628ca294ab141a1700e71011a16a56169df8b9deb8264",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/57.mask.png": {
+      "sha256": "ee0cfee0136915731409f0d971a00d292ebda1a089e52015ef6adffaaa8874fb",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/58.png": {
+      "sha256": "4ec1ddf27a94e09309c63fd7e667345760f31a7beb19a82f0967bd46a17733b6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/58.mask.png": {
+      "sha256": "2e2d9f7cb2c3d0cf44ea5099768e7a02d74a82d8656c0da1c460bddb39dc723e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/59.png": {
+      "sha256": "ff5034e8ae71189c7090f0ab766cd3297be1d7f0e3100855d80098e3c5dd8ba1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/59.mask.png": {
+      "sha256": "21d8b73b6f754290993194182b7021bc0fefa0dff03684777be747c91f5e688c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/60.png": {
+      "sha256": "0304755d89997f9fc5a8d2d35a68f5f3555fdb9afd26ede475a987d9a243a617",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/60.mask.png": {
+      "sha256": "b7fd3ffa94c5bb86d5808003c2069f643c6e0b8cc419bf1409ef5bdf9850cac5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/61.png": {
+      "sha256": "b1b536c75f334679223345e5b070b921a05e226e9b93a0e8e39ec3cfab15b10b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/61.mask.png": {
+      "sha256": "f1af9ce48f6febd3a73a65905e97bb070d978af9b738fb058d51cedcede49eae",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/62.png": {
+      "sha256": "cee5d137de2d9e7156b97b21666b5e36dcc0b4aa7cbf616b80d2e8186ab985c8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/62.mask.png": {
+      "sha256": "fa128c2bf66bd64588b04a5116fa2b1c12618e999e239470d5665c084d9aa3b6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/63.png": {
+      "sha256": "997749cb40769a8deec6aa42af5f47d20a300636bccb8aed80afe82ecf72235a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/63.mask.png": {
+      "sha256": "7b7991e8ace5cc67c8ab8d41e1e9f02941ef1fac548bf02d5989305dd47adbd2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/64.png": {
+      "sha256": "7f68c603806d4bedcc9d1b879f7e9a942c600986f3bd95b31a171c11dc4c3c8b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/64.mask.png": {
+      "sha256": "ba3677ec3e1a483b0cbe9300f8d4607877ff44b8b4adb4212138378205afe131",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/65.png": {
+      "sha256": "69804442483a3d289c764075e2393ba2eab77bb9555be50b850f6c0d608e566e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/65.mask.png": {
+      "sha256": "ef1493b5ac28206fb0f64133cfe0ae1d6fecb021a3dfae250cd499de36ffb9b4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/66.png": {
+      "sha256": "f14500ecaffe5e553eb7a8baddb7d2487e7dcf4b479dc8650899b13144a90120",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/66.mask.png": {
+      "sha256": "d28d9d3d5bcb03cbc351462345a106709fb3b3a6caa92c30f309429340559433",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/68.png": {
+      "sha256": "d3a0a74108be71fafa04a157307d242d03bc5d58eb1ab19402295c9d173ff3e2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/68.mask.png": {
+      "sha256": "b79e3e5cac8031e91eedf9c2c3893d138df29a237b69dbfcbbc031f7e441a923",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/69.png": {
+      "sha256": "f109e138342f1d57ac27031bc6b2f338be3dc9092fd6be77cd33132bf9deeb14",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/69.mask.png": {
+      "sha256": "ce38b806c8daf37a9cc42b80968fd765e9312d1da6390d3e358733c4c37d54fa",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/70.png": {
+      "sha256": "df6560ace6f8e46b195a9394eca244cfbdfaa3d48d56ad0101affb146a6d6cd6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/70.mask.png": {
+      "sha256": "2ac16c72f734bab07731a05648c103a275e5bd94550024c915013d8f192e3b25",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/71.png": {
+      "sha256": "14e3d86c0c8e46305d76d39ba33bc26b8a152627878c3bacc449d0b48784cd83",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/71.mask.png": {
+      "sha256": "5404e2f96825ff6dfe76658b68e6bb4e67b6f092265e52c9b5580addd81da8ff",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/72.png": {
+      "sha256": "617823c64afc55845429bbeb0e9fa5716f83ea96c507a0e396e66c8dcf1de95f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/72.mask.png": {
+      "sha256": "56290d8dfd4eefba2c036efaa0e611c506362d350f4d7c7e2842b9de5be343a6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/73.png": {
+      "sha256": "976339493d0d3df6c6aca9530f8162f397c3a6e3007dce5e0604c38513009c33",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/73.mask.png": {
+      "sha256": "706e9dd57729b6e8770b30b52a114e6ca607180c4293e99feb77ce7d668186ad",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/74.png": {
+      "sha256": "3feb3ef352980346bda0eaa1f4b24fa3c085f33a31389ff30e323fec4361803f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/74.mask.png": {
+      "sha256": "013728be22559b066337f5947a88c6481f741e62f1677cf41064eaaa62e27eed",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/75.png": {
+      "sha256": "379be9ed93686c91ecbda7e04c103c4c6aafa252527bc17482f4c7884d5bd2db",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/75.mask.png": {
+      "sha256": "699d25d9ab554a44cb69efa614c9f8ffd30470fc80a34f14f070f0be4f7d56fe",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/76.png": {
+      "sha256": "4a7d469c878be64196067489a3a1505ab8be148e12a02f877ab47e68b27d285d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/76.mask.png": {
+      "sha256": "4a8b1a2c181a9c56d48233cc3d55fd65c627d000f412308d50d41553e64ad58d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/77.png": {
+      "sha256": "df0f296558ddd1844d543a33dedf1de2ee80a23f842c7006adbafbfb4e72748d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/77.mask.png": {
+      "sha256": "b070afaf45f71e8271118585c9b559a535b1a8d825b71e5b9a61fc6c12b1fcdd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/78.png": {
+      "sha256": "d47d308942093cb323ae0e8e0d9678888ce615b772b8c353562e19a9a493adc6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/78.mask.png": {
+      "sha256": "e2e5f7447208a35b3b468488fbce403819e89c487a5f51dc70fa61eb5124f33d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/79.png": {
+      "sha256": "05c127be0778a3843c9eece417c14e63916cee467eb838bd597d9b7ca12ad7a0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/79.mask.png": {
+      "sha256": "74e494f1d1a3486c3fd67e40e341a882c98d9ef61998a86db0486cbad3273b5e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/80.png": {
+      "sha256": "5aa9ef57fa2923c2b33faa5a89295980f1c69b81ac5fda1c0209237de9e7a56d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/80.mask.png": {
+      "sha256": "0f5ccc6df5648da7110eb47d7ca2191559606a7d995b3b3e0b55ae873a5db6ad",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/81.png": {
+      "sha256": "0701383edec61f752b3bd74c3afcf5dbc2ffce9d9445ab4f7e38de5c9c13db07",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/81.mask.png": {
+      "sha256": "7729619a6e42a6d81f246dad7442f9efae26ee8f63b1129e14292be98ca48bbf",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/82.png": {
+      "sha256": "4cba60924c50acd96fc28b264c03e847a067985a0cd298b1edc8908e1e9abd22",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/82.mask.png": {
+      "sha256": "8832b83971d21a012a52a925b5929b5dca9fd636f625ae71ee0974184d40a71f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/83.png": {
+      "sha256": "5724dfd6cca0210f7ec5171c6e9d544b0b9ce2fadd6b5439d588878344299cd2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/83.mask.png": {
+      "sha256": "355dee77009989a7f13dad1d3e2d05ac7ae178dc60fd28c07530c515b2c42f33",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/84.png": {
+      "sha256": "bbb0ee213710cf7da2a983ec4e8b5ea5b43e831272b061b4a40696c1fe502106",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/84.mask.png": {
+      "sha256": "7dad4618f5fbd4a7fd6083565921eb656218106c00eedb380b1589ef22c2531f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/85.png": {
+      "sha256": "9b32e2466fce96eb5bfba48936046ecbc7fb38eb5c296041b1b2f5fd01f7071d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/85.mask.png": {
+      "sha256": "c67e887d6342e3bf2fa0f3de236c55584f13eae37c0dda5613732b21b50f2ad0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/86.png": {
+      "sha256": "58bd27d45b733c1e6f23aa3c07952a9ca1c9fbff1d6f069f5cacd97dd9197b5b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/86.mask.png": {
+      "sha256": "667c95bde7cf74918b462454750047c4e6ca6af4e802261a4f6d4d5733642f1d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/87.png": {
+      "sha256": "9e2d6ada6a1b01e8d15038f4fc534151297140bec0b19c275b6eb5b23fea7a69",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/87.mask.png": {
+      "sha256": "4d8ad3aa640334565e2f27596efc2595453d1cbbe5c07b358ccdd05a5cb7155e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/88.png": {
+      "sha256": "79c80ab3ffddb6d705ea2cafd624a37d2507b64a74249da2c6b64d68cd8ca329",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/88.mask.png": {
+      "sha256": "129a073294a0c2501b68464c9bcfb48b94e728e43338b3ded7676b502d617673",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/89.png": {
+      "sha256": "5a36a11f29b9f2a0d35f2f8bb97e8e054304e8957323a92cb041f1d09e27a3dc",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/89.mask.png": {
+      "sha256": "3745f1d3edcb5a8bb51c410b9a3442b065dee1715bd8eabdbb2fba8a439b0296",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/90.png": {
+      "sha256": "b80e735d441f23af27436f69b9ae058cacd5ad1edf01aff5a20ae0daa7f7e846",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/90.mask.png": {
+      "sha256": "b4c5e91d10f213581b6982eb7aaad6200a9f957f11e3f0c503c8d180a99bd149",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/91.png": {
+      "sha256": "a13c2db479feee7aff21b32d6691ff2ce1bce175e503385ab0a33d30fa0272f6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/91.mask.png": {
+      "sha256": "b33a1c1afaff8c68cf51121d54b9edd653cd577da8a67330bedb854f07221a12",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/92.png": {
+      "sha256": "84935caf61350943a74cd3c731e9e5b7ca4c5231a72784c2b826170b817664af",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/92.mask.png": {
+      "sha256": "641a1a86d61ed1d98a97cd1f1bc848ea0eddffe75f1b878b5180d8d5c3e06263",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/93.png": {
+      "sha256": "557b51618664f4ad8a864e095c4d91fac9869435c95586f53a8471a9e2edaad9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/93.mask.png": {
+      "sha256": "a51b311b73d3e27806ac18093210fb798491a44fb253577f473cfe6cd6720042",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/94.png": {
+      "sha256": "520ca6dcc22d607ded0471072f6253ad3625a60ca277a14ef1375446cb44cbe2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/94.mask.png": {
+      "sha256": "e051ce492ae3e093f5982fc94965caa70511af725cf7f627b04827f6cdbf4df5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/95.png": {
+      "sha256": "095aa4e5da067d565bb4560851ff6f052337f37c1d87800cadaa8a9b42fc172e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/95.mask.png": {
+      "sha256": "4de859537b9e031b91ee0524751625d60070b9f8962461a2494324c63251508b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/96.png": {
+      "sha256": "de86701d26e9626ea15fe58f2ce59ff2c77b261912195f15ed8b69043ed80e64",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/96.mask.png": {
+      "sha256": "025542b7ed7f0e7236c2d0c3c5c1340799bba69263f5f854f347e7baf6ec8449",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/97.png": {
+      "sha256": "0d6d6126ade64e9e0e464b24b30b8fa404398a381638da88cedbdbe6f560f108",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/97.mask.png": {
+      "sha256": "4936b4fc0ea8a78f96d20bfe4851f5e0bacb95c2385382503e2dc1035426b944",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/98.png": {
+      "sha256": "cfd82da078759780ab602ba7be348d5b2f65d2bfa0aac708d06a94102ba79c8a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/98.mask.png": {
+      "sha256": "687ca6971e6162e6c5d44a3a4996bc79e600988c4625ed23b5fc25356349ec6a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/99.png": {
+      "sha256": "15f2744355c075cc64461b8867e9bb43955001165ca30d0861ada4fe0531164b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/99.mask.png": {
+      "sha256": "21b018a948aa97413f39d2700ae815ffd156c7d7199c79089e7ac29673e6f5b8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/100.png": {
+      "sha256": "30c81a2dee24c94d6c2573d51720c827e8c7e1845c87829e98f805635a551263",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/100.mask.png": {
+      "sha256": "7cc00c968c13d3d97b66fb70974a6da4ee78f8c4c0b2e7c2c69e2089fa11f66c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/101.png": {
+      "sha256": "d6430a86c8070f38c2cfea75dcc4ba7cd3b8697f5bcc23d0e98b40890b901385",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/101.mask.png": {
+      "sha256": "d82d6f5f801a519a78194783f0ab7c5b494176cb5db95bf96a5af0b23b11554c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/102.png": {
+      "sha256": "d30558603a0aa4681c02e3fb414c75382c6992dc7b528bd1e2130729b62a1233",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/102.mask.png": {
+      "sha256": "886671c0716c2b82d189f6f1efa9c19a7c2b37ee14909708abaacbfad30cdf17",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/103.png": {
+      "sha256": "5e10bb7d016d4edb4021808165677935e1996e8c04160287026424fc1fc27681",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/103.mask.png": {
+      "sha256": "9b8969eff598feb74d8bf2b3db2d3947b1abb89afe7e975030403b60b9f5cf68",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/104.png": {
+      "sha256": "6ae74d67a5ebf297ec85df2334379dcea3d6ca8626f036abb04087f2b8a4db8f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/104.mask.png": {
+      "sha256": "34ed61460f2ad7e7b390dea80c3447b175b7b94c8a91927c8cb485e13e96d6c6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/106.png": {
+      "sha256": "4e6a720e6ed0ca9898b91c2f6103f4b8935281a08cdb20108332cab9ae67c5d5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/106.mask.png": {
+      "sha256": "1c4c69e79262474a8b41a6e7f0122edca258928403ced31f7dc994a26e835c5f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/107.png": {
+      "sha256": "c404b6bef6f738bdfea5f46299eab05c08073fd020bc052ab7143281acb42bb3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/107.mask.png": {
+      "sha256": "87b8bc2656e01d2324ea7b24433061d64e881c40ac5e15d5e991213a49e20f44",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/108.png": {
+      "sha256": "f4dbc63a2fd0b036e9250154ddf81adcc894753534aa52767c381aa7bbf883c1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/108.mask.png": {
+      "sha256": "2986c0b7c1dbe4b534a2bdf7cb9f3517024c18a2ff090ba5fb2cabdabafee179",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/109.png": {
+      "sha256": "5bb26c32223c6b43191e11dec6d9cebc97faa72bb1bcfcc6f9fc97b1c4663a9c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/109.mask.png": {
+      "sha256": "ad2c8770b750f7b3d75cc38ec39c54566c87485aacf4ae9ba863f8adc2de01d1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/110.png": {
+      "sha256": "46d301fa5c268debfe284592cbfb789399df99aa299a07c83bd75219bb0d65cd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/110.mask.png": {
+      "sha256": "b0d7390477ab80373323c3ccd60022f6611cbf65292ab3dc1fc68a24df77a75b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/111.png": {
+      "sha256": "d83520307881de4502ef631720f5ac2d51b3a668b40c8323b0f9f8287f8e139f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/111.mask.png": {
+      "sha256": "158f339b85de3c9e87f0d9eb7c9e710fae69d96dafbb5372d2f13db6a91c0cfd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/112.png": {
+      "sha256": "dd551c3e786446e33fea40b3ec1040ac030a18d049f35fb6f4d0add8791059b2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/112.mask.png": {
+      "sha256": "c5e2dbda188df0a9eff96c1f43e882b94fc3b7c4934196ea5828212cb4edf95c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/113.png": {
+      "sha256": "41dcee1c4ba338bf5fb7121303c7d923343058fb86a36ea1e9f2d8c1ef85aab2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/113.mask.png": {
+      "sha256": "f5053405c500990be43bec7b9ac587ab82917588022cf7dc6464b22d0de950db",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/114.png": {
+      "sha256": "40fe1ea8113f4a7029972ce46579a68485719bcbb39758c03fe8da580fa31bbb",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/114.mask.png": {
+      "sha256": "aed46c005b89ba9a3c167c80732eae39f3d92e9613528f5456c6fedc1b75dff4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/115.png": {
+      "sha256": "6b438db5f61cd4afb12a1e20330627fcad719683d100ae7dd4c5050aef44af15",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/115.mask.png": {
+      "sha256": "37062fd786b6b72fca34a5d9ec80ac9851d79c7e360674dc09ec0d2e37690532",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/116.png": {
+      "sha256": "f990b9310cfcfb614bcee9640d0e084bd709149540b81f64ae75be9466e66d79",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/116.mask.png": {
+      "sha256": "abf8b2cb55b78f0cdeb11007d0022b24059593a237c0845a0bf2296390c6a13b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/117.png": {
+      "sha256": "870b07ffb4ae7c664e645b1f4fdb5088539fe6519b202af00260afd1540e7978",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/117.mask.png": {
+      "sha256": "07490e1915785dc2f3f11a52f6136fba6e6b2184e814e33ebd5e9c0f4d434fa8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/118.png": {
+      "sha256": "e799ca3f0f0218a106b86d72c7d26c4e00f084ab19dca95ca106cac430d70d02",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/118.mask.png": {
+      "sha256": "097af16766d47ac5b25e422c880e8770986ec9ea3fd52f58ae8160e838ee784e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/119.png": {
+      "sha256": "e6ad54d23dd116a08b9ad8bd8304070d746258cfa0cf21ab2be67ce784df2e90",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/119.mask.png": {
+      "sha256": "d3f3f8bda51c2f0ad8d4a3075c3b6952fededb11029367ffe063cbf0febd1dd4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/120.png": {
+      "sha256": "8fbbc043753bd9ac06418afdbec9f00b056cd2d4a099d060041907a45dc9071e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/120.mask.png": {
+      "sha256": "e6be1de58e4dae794eb3d9d581090ca440f17e83aa07ddfc7ba36b99d8ab0f76",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/121.png": {
+      "sha256": "9186b333d35a69e2a6e900833b26941660ef9561569d7378861b3c10bdbcae45",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/121.mask.png": {
+      "sha256": "8cb3576130e4140d48b5b08996a18923f8111ae61eccfbdeb2eb576331e4b249",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/122.png": {
+      "sha256": "7267db349479fc780b58081c61c46d4c7f2ae7a953ac2f97ef1ed28a0cdb96c6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/122.mask.png": {
+      "sha256": "ae3f7e418082f674c3e011177bb06b183e6612353251afe6a1426d9b491f002b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/123.png": {
+      "sha256": "29ba67adddb1af3f6477ad91a4647ac41ca552ad3e1d878307c95b81261f8391",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/123.mask.png": {
+      "sha256": "3cdd02da4f1c5db0ade8e8a190ad782805a8b2290711ba1d932629d680764600",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/124.png": {
+      "sha256": "11d80225267be27390eeab1e791bdcd6e9f84257fc6e4076be1240b19797e895",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/124.mask.png": {
+      "sha256": "2ba3d0892c6a6ae66f5e6df43972b1bf7b0f46333003745c18cbeddf24779c64",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/125.png": {
+      "sha256": "07d4a3f7abdd38c10fba877dcdaa2ae024ac713d53dc586cfbec613daebaba05",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/125.mask.png": {
+      "sha256": "322fa40e6e7f8d8e4010207ba08eb74035fbf8620c4ffa77807ee26ca06a5f99",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/126.png": {
+      "sha256": "04d3e78b7104d96892c5954c26afa9bba386843b7b85b812c2513b2d23eabc2f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/126.mask.png": {
+      "sha256": "7518fa5ece35e8102305adc0478ae8336de7cd66d44e76c89c87b244d30e35fa",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/127.png": {
+      "sha256": "32ece25088bc4cc8e23c0bafe9752be9a39e54dc392e07a26884a9b176446bc8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/127.mask.png": {
+      "sha256": "9ea91e75973134b1d40c4d3efd0bed9544695436a5cc2e3b2a1cf53c3749cd52",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/128.png": {
+      "sha256": "d66ca0d90325d3e5f830192b4dd2bf1d9a6b42b3a94faaf45d5e67d82c14b001",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/128.mask.png": {
+      "sha256": "1593b4f552723ecbea53dcb4813e23decee67ed13b4f6351f34fc3f0210dbef1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/129.png": {
+      "sha256": "f0597bda0d1a9ddf6ca94b583ea3b1f6eba8c268eed4c9cdfe491d58d7d1ab6d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/129.mask.png": {
+      "sha256": "a0b516e731d25e4b991ae9dae435dab1e5b421c9b9edf1db2953a299697861d9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/130.png": {
+      "sha256": "75e201449b14a9cb45045016bd8ae907f7d0635647332224d264f9041978f96a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/130.mask.png": {
+      "sha256": "e84f0b43c2f2a17006b1d0d392a48ec47791d8b876ab46c4638a4c17d3129c74",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/131.png": {
+      "sha256": "d32ba9d8b94b3697ad602e891f0fdefeb678bc0e6a306d66f1f4160b22cac207",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/131.mask.png": {
+      "sha256": "7f26bbd7e2c2a806390235392190ad0555a2efc033dc80df2d9308dcf48f67e8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/132.png": {
+      "sha256": "c515e0a5a759e461de7fc40e0ffaf7d5c9cbb66df24546797c7ab30b1c0d875a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/132.mask.png": {
+      "sha256": "709784fdb727929e21a371985fe829de5b3137fe391f58f1cffced89391bad48",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/133.png": {
+      "sha256": "c62e97139bd67ec3b1ae05fc6c31c131d16521e92e270e3bbc95891755939faf",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/133.mask.png": {
+      "sha256": "65199949bff85bcde3a97ac90c333e1a6e1bcb240663a5097ec0b43ccaa3f2be",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/134.png": {
+      "sha256": "9315072b46c6d65c6647af2f96a9f2e630ed1306dae274993ad279bfb101220f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/134.mask.png": {
+      "sha256": "0611b1f8ebb01cfd4f18804ff2984cb60e1e095e13b23fbe460b8a5a4bfd3c2b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/135.png": {
+      "sha256": "a1699e93a752102bbdd015f3f13e7b96c1ff193957e49b2bf25374286845ebea",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/135.mask.png": {
+      "sha256": "4d306d5c2008b774fd6afd962f1894c803293b03c26356d17be8b02ccf72cf4e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/136.png": {
+      "sha256": "18cf5136c93d047e0f049ecc9b0c3c167d952241bd8f5c7181bfbe8a611005f6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/136.mask.png": {
+      "sha256": "a7cfb92ed035367984bb421d8319e8512daf456530bf175a54ac47e92c8e2a85",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/137.png": {
+      "sha256": "b87d8c4ba089cacdea9c8f6eb55e8253f17a82701284599244c462c800215bc8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/137.mask.png": {
+      "sha256": "a7110aa73798318157a03b802603d2a682879e782610aa3df28d69c20bc3eb7f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/138.png": {
+      "sha256": "f0d4b9c9f6e380512cfef0f223c5a586e29cdb68f623c0d4ed628050b4664a2b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/138.mask.png": {
+      "sha256": "b07b0be89664173440a87cd653fdb2d7a7dd8093283c5a650acb8af7838a61f3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/139.png": {
+      "sha256": "8610b58b22f3826d379089f8e06c7414ec84d0d768ce0663145f94c90f949acd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/139.mask.png": {
+      "sha256": "fcb3b98a02198502afbb37637615160f12a9629900b2ebe09559753ba662c88a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/140.png": {
+      "sha256": "542cb5eda5b6c129b80b7f48d0b6339497cdabc1a099b283c0cfa872972342cc",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/140.mask.png": {
+      "sha256": "6f76d16b65e854909f0c19affebac9d2dbc8cb50b873dac99a593159044ec3dd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/141.png": {
+      "sha256": "c077fabc39c26b2a887e4d57cc0999daa87b6f83ad3b81ab3636a3656ad090f3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/141.mask.png": {
+      "sha256": "c384792c8765374ce7e3e780e88617514e2aac4f719a35d6879b3c49ba593827",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/142.png": {
+      "sha256": "1db795645b26354d6e52e56889da43e9d8a0442020cd68931cd221cabb4d0457",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/142.mask.png": {
+      "sha256": "ffce89166bd1998fd6f3a77f1789f91e9363271ca130cc409d8e40c0b6e12373",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/143.png": {
+      "sha256": "4db27ee88290d79ee66ab46d94af939e9fbde46805ae85df92a7721ebeadefcf",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/143.mask.png": {
+      "sha256": "422e24321589a8228cd4e762598d0642de92189f2fc25e32b6c4418a236004da",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/144.png": {
+      "sha256": "63c2098757664add5aaeac699a1d780ba6d7bf30eb0edca73af7c1e5130844e3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/144.mask.png": {
+      "sha256": "296dace1c24166dfdf8188dfbaaa73045024185a4fd361417687717c50b2dc20",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/146.png": {
+      "sha256": "7f9b99aa901a14a65aeb7e6d886eab21b3399de677850e0f22635e466919885d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/146.mask.png": {
+      "sha256": "a1c83863eab8f4641cffbd0adf634ddac5fad2333bd82dbbf51858c5d894051b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/147.png": {
+      "sha256": "8e4a3147383b3b19c17b56710d639ac5bdd166bcb10f75624ac2b14b29ebeb70",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/147.mask.png": {
+      "sha256": "1c7894c938636292c3bfd18cb7bf976dee60fc4d1e9fb3e27ba5139ebb4dbda5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/148.png": {
+      "sha256": "de9756c8fd982f6adf77e8e53e7d664c6b32321091b5d5ef61eb38c13f522430",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/148.mask.png": {
+      "sha256": "e3ad8027e82bff54d7e8e021827fb494e3278bc36d5f23d14d98ad0f6e2c0eaf",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/149.png": {
+      "sha256": "a1ada7956debd77a513deae16d0c360c28ecaa6d3a6798ca6c24055f6c6586ed",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/149.mask.png": {
+      "sha256": "b9ae084b82557c3693be481d0b449b9432cb67731cfc65cad2480d539183ac74",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/150.png": {
+      "sha256": "72e046b98fa9f811d7f76a4a3335dcfb59405a931efbd183d383a35a3bd353f1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/150.mask.png": {
+      "sha256": "f336cf550d3791af1982111aeebdd3f2e75d1e150ceb4305df2c8893eda9638c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/151.png": {
+      "sha256": "918658596af8d61bdeb28fde83e4546dae61508962a5ff777555fe3fbc7efb85",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/151.mask.png": {
+      "sha256": "641d54dfc02d921fa99e5e2d6a4197a93f2d66cfce60fa47cd64afad63d7a5b4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/152.png": {
+      "sha256": "10d9552cd4be7f4a58f9e9c38569372730361cd4a98234b74048558fc3421dce",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/152.mask.png": {
+      "sha256": "e901e8b2e07673c42ab63a14fd14dd7b50e795987e89c713179faec4d45e6de5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/153.png": {
+      "sha256": "6444dd33a681902b329d203b40ac1ce4a8833e8fa9f865a9c2a27ad4f7712a24",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/153.mask.png": {
+      "sha256": "1953326974c6a88ece80a6214b51bf5cee1251fa0848848eccaaa625c440dfdd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/154.png": {
+      "sha256": "32039ed1878bd4afc9ffbd60d11339b9c4657a1c3e964094c0aaf38fef770771",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/154.mask.png": {
+      "sha256": "e3662202dffd9697159b53de56a7fceaea6eb079d38fb456e9dd28f87176efcf",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/155.png": {
+      "sha256": "0691044477a14d634178585469303ece568b185125fab1e097f064f6698aab39",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/155.mask.png": {
+      "sha256": "f97d8ec55c9325ea5473953ade44c71f424e1d155a3fb43bb8f3bdd908158a90",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/156.png": {
+      "sha256": "fe2ced099d7db4f537df41791152f118d301155df56bb363b1f559da9066f4e0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/156.mask.png": {
+      "sha256": "7b52a44352b4fea608707362071cf4dd78adfb4abb4f090a69c3b2fad29999ed",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/157.png": {
+      "sha256": "d85e263bd45077feb53b6a5a2e18a7a8603c994e91583dabfac16c2cb8b756fb",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/157.mask.png": {
+      "sha256": "69cf39d69d68d9b2d7ec1980afa02369c92152af8b5c60acbb96c6d78423aafa",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/158.png": {
+      "sha256": "4da1931a52f5614963f70c0f5ae6533b45289b81bde019e8f79bda12886d2199",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/158.mask.png": {
+      "sha256": "bccb33b13539a6bed2066affb4f15692425a41822d2b5a1c04ad1c6fce2625db",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/159.png": {
+      "sha256": "4075f27481e61d5a8d076d9f80f29a370cd5e56bfa5e5c1c8a9cf7bc1d379b89",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/159.mask.png": {
+      "sha256": "a81bca481cd166a54255e9ebf38b39bf161eb244c527b054b819aa7f4315bf41",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/160.png": {
+      "sha256": "f7133ec6837264f74a1be894762558510df88007039b2ac63b5d176bbf1d698e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/160.mask.png": {
+      "sha256": "d736eba60347346bf5e67983338df221a9de95a815df13f515eddcfba1467d7b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/161.png": {
+      "sha256": "ac20f3a40418358f69f37b50b5ac6b6b08bd38cdd1d24114dd7071535696d383",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/161.mask.png": {
+      "sha256": "f5aade75f9ad467e802afa99a9ad9607bf861be5e240f05660655610e002d697",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/162.png": {
+      "sha256": "de2be20c0ba283d0c93be007bb1c6b764a6b05ca7531ec48285acbfd766f425b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/162.mask.png": {
+      "sha256": "6a621cbd0c030080e938b9b3954bc65311cc5c8b1048efdbcfb184f2a6d2c8e3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/163.png": {
+      "sha256": "4a18bb7ad9e72986ca9835e2d9d13ee2266a91211e8d520b625b33ff65b82012",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/163.mask.png": {
+      "sha256": "d22546b12367e9cf69af1a60981c9158bd211c77b1079aff42d64e1ee2c572fe",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/164.png": {
+      "sha256": "ad18d4af71a1bc32b071ad3b43163f5c54f39fb7a337e383f59a325fbf0a7170",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/164.mask.png": {
+      "sha256": "d9ef2012b73c8c2c72e32db3c88b21163fa0dfa3beaca3af3824c824c7c597f4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/165.png": {
+      "sha256": "3f1453eff1153414ed54607a0c4bad791e8ab18fa744f0ea166f3b9fcc740a4d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/165.mask.png": {
+      "sha256": "548f69fabb463f8c29578ade9b7b1cec8c2497faa0c817dcc0243c8ee454328b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/166.png": {
+      "sha256": "454caddaad6c1763ac3c44b3c7ff6049eb1f898a1a890cf97145c5127558323e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/166.mask.png": {
+      "sha256": "07bf573ef5dbdb3392bee22d10fb3af5097c7cd63fa5ddfeef3bd6a3ce464e14",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/167.png": {
+      "sha256": "01f9dee9e25195a30be476be3db9334fa384826f5cd2f3a284b73fa1d19e5105",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/167.mask.png": {
+      "sha256": "8c624e7b9a8f82f50b07eabf1f2460835f8d4744525bcbe0d578b5f368ebba49",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/168.png": {
+      "sha256": "a74731192e4a31952dcfa9c583065dc2d984ef32760de931d0dbc2809144bcbb",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/168.mask.png": {
+      "sha256": "26d6b0d4ae6945dbf05de16cb41df887c4ae857e823382b1707322413274d7a8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/169.png": {
+      "sha256": "9560c88113491eed564d2d58643300032b71a86ac702ee449c5ac964c4a72408",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/169.mask.png": {
+      "sha256": "9a73a6a7fc2ccf1122a7fc17ebe45d837fddb689991dc6c89ef2bcc98362bcef",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/170.png": {
+      "sha256": "4c806e953bea53e4b51bf18ff2d9568ddc005d13d7017b02586e47187679e3c9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/170.mask.png": {
+      "sha256": "b48e34961abe70989a358f2a4856b83e85bc41753b3adfde1f1281ce206303b9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/171.png": {
+      "sha256": "d3a9d81c0f2ebab3c4a6a198c493d9645530b1cfd8202635455f9d53ed97a1ff",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/171.mask.png": {
+      "sha256": "a1b3759447c42d57f0cce93e14bbd8f196d5501eaec4ca22e46b8c26124f6f52",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/172.png": {
+      "sha256": "5d3d35c4e9459815189bdd6ce4c13f1d4c7f42b16be7580197f831cc96dc067a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/172.mask.png": {
+      "sha256": "b727bdc507156a9866c518926ddb9b2789c8a650f3d748eb1634090efbaf83d6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/173.png": {
+      "sha256": "8d4baeca232d3d4b32862860475e2304d7dfc0624f5491f0f06ed7bff26af753",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/173.mask.png": {
+      "sha256": "893e77065fdec91cf4c6df2c00f69e2ca8b18502602c184fefa8d6bfc6166f2d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/174.png": {
+      "sha256": "ff7524688353e9352c3e9ee9692cdb97db931d2426e426c22e64d0a5fe6d3c4e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/174.mask.png": {
+      "sha256": "8854c60fdd2092fec40174e228a40e917ab6f15fccf74f6e86127f003846eb91",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/175.png": {
+      "sha256": "8556896065b232cd9eb9c3c2d112c683c16bbc7adf5f6b95541f78430c28ad9b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/175.mask.png": {
+      "sha256": "e6be49043176b91c25a9231dddda3dab31f5d7ad4e9790384f6b317a0c4a9c92",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/176.png": {
+      "sha256": "0fd50fdc72957accf4b0adbdb9bbcc556db29872a99c0e247d674aa25e8ca725",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/176.mask.png": {
+      "sha256": "6908bd890ce03c7f7d4315549d890b0b709a7095d741f82f587414791cea12a5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/177.png": {
+      "sha256": "65a80b849a9a5406934869b62547cd34c9a6026906ca7cda3ac04719988dc282",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/177.mask.png": {
+      "sha256": "10d6b0065f6e0e31fae514171f5866b6739cc4d89360c95729ab594971f67d5d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/178.png": {
+      "sha256": "3485db648e12029839a6f094c71912feab6377d501ea1db488786fab0c047d8d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/178.mask.png": {
+      "sha256": "d4b519911f6859899a2ff18560a9bf9aa8fd75b3ba9e24fb49573b825823e8b0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/179.png": {
+      "sha256": "71a4d997a2d8a0e9836db4e9761a1ad804caceae1f9580967a6df2417f3a29ca",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/179.mask.png": {
+      "sha256": "ad9065e32c24e0c7ab729aabd891afbf497267dff2636c23563ec1fa313cc34a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/181.png": {
+      "sha256": "c544b709635fc35ca824ecd767d3e1b0f831f7c897dc0f8434c3936e42fa8888",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/181.mask.png": {
+      "sha256": "3052bdd6bf270d8a0743bc6ee7fb98a843016fc4a7701afcf1628809bc890f02",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/182.png": {
+      "sha256": "1aee52ed4c7fd7837061576aba13633214dd7ee976ccadd4952a8e4d27b49e32",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/182.mask.png": {
+      "sha256": "64278dd062d5eb59af82907bc105b715b916f1313c040dcbc22a83db75eb0b0b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/183.png": {
+      "sha256": "9737fe5a99e6a1131dd5aa63b5dd5ab568348ba368dfb759937c8b85afdbae33",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/183.mask.png": {
+      "sha256": "d66f0eb9c526a3837fdf53be1fce0ad097e85a5d47e0dfce0e682717b0da8d5c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/184.png": {
+      "sha256": "d6a9451a42aed0590208db537d580d6b6b6ac6f107fbd35a55b72fbb6f0ca94c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/184.mask.png": {
+      "sha256": "71e9e14122fe22f7ebf7b3eaa5574cf55e35e186261137052bac5c9c17f1d210",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/185.png": {
+      "sha256": "d543ea05aafc31915f72fb67ea677ef3961c37328d0fb4cff389efa69164aa69",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/185.mask.png": {
+      "sha256": "b4f7edfb1e53cbdd37e9c9fe99bb5009e30fd8bbe45f1c3d6264411ef642f6f8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/186.png": {
+      "sha256": "64162166548f6e41063042840fd8655c25c8a2de9d6dfa8d9d575709cb139a14",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/186.mask.png": {
+      "sha256": "d2819ec924fc4cc9362c6a9ea8fd8bd44fcbcde3fb3b29d96a888c05c1a4f4cd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/187.png": {
+      "sha256": "684f8d0f3844192c08bf00c4fe175d05fdc476ce6cbf130e9b2dc33a7b826ff1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/187.mask.png": {
+      "sha256": "f01007103176ef2869fc6adecba638f268edcf6d136d75650cfb3c1cf822c641",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/188.png": {
+      "sha256": "4a34ef7144b484a2454e6cbd926e7ed93d9d7689cd5e8fe70752e37c2389f5fa",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/188.mask.png": {
+      "sha256": "0c9468be3c3409ba874b5d6c791d7853f8041c49b5c989c7942c90e92e0ba3a3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/189.png": {
+      "sha256": "7830b7e95087be6890490557f66d59b1fd170b445d81b5e47e17a4deed49512a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/189.mask.png": {
+      "sha256": "9bf48a0c60c2f0cffc9b698708312b93749ee26b1e6d5db49697ef04f764d294",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/190.png": {
+      "sha256": "5846ab8718bd3a1321537020ab50ae563c170561723ff23d2e697f300006a84a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/190.mask.png": {
+      "sha256": "c3935d8f0ca7c65a29ab2c648aa9fa6caa48e6955db303f1f5de8ffff15930ed",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/191.png": {
+      "sha256": "33ac713c2a8abea3e29b6cde07b52901be3f9969c5c55efa2cf2dc1a5ab38ae4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/191.mask.png": {
+      "sha256": "1fd1bf6361b82a6fe32dd91f04077ded8d4d932aeb58bce6a438727c36f97e91",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/192.png": {
+      "sha256": "79c161eeac279ae89e19682d13308e5014b366b4a98240e2a666617876d67ff5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/192.mask.png": {
+      "sha256": "63a42d77f9507d13f4f958910c2fa78b0d1190708bb2401321addb717d5d610c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/193.png": {
+      "sha256": "d9d5a732515d5607d76a7a4d5280cadea6fe7b8c02dae34c386cb2556d8bd6fd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/193.mask.png": {
+      "sha256": "eb04041791c1b043f97adb4a9a447374c2d9b12b87fd762ac3e10137203c34fa",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/194.png": {
+      "sha256": "208c08edf0cd50624363f318018cf3720efece4ca26df86d6aab86210d599f82",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/194.mask.png": {
+      "sha256": "8363f897461279d0c68fda914d6108e9b467886afa600b0e9643e75514ea6fd1",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/195.png": {
+      "sha256": "a5685a223cd6d97fc064ba610fabe83dbbecef92ca959a6b376f0d745968aeb2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/195.mask.png": {
+      "sha256": "29fc64ac892aa95186b33ebee4ed3a2f3f66f23a0c5fd5e7cc05345614528a32",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/196.png": {
+      "sha256": "66d81a6e465e602db0d18813ef763a605e33c60ce177f262c6e4798d3e0a9c3f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/196.mask.png": {
+      "sha256": "3a182d1c2ed655991637108ebd288f4b8f73dd6b85f73a1d3dd3a09e0b0baa25",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/197.png": {
+      "sha256": "8a8108fcdf13f1260603b0268432f08edb3083d9837a95cc712b158197cee6bc",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/197.mask.png": {
+      "sha256": "92a7bc464490bb95c7a55044999a2e48ca8f312ab15d1f9f8cd7101aa9fdfb5e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/198.png": {
+      "sha256": "c15d4fcc316c53c978bfb03107e05f3ff29747217a534580daad488665158b75",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/198.mask.png": {
+      "sha256": "a6164aa544000948ed475c284c23cdba433595bc2e4b0004e489cc0977290b58",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/199.png": {
+      "sha256": "f408bcdf3d8961ee41d6a63767782c6eb5a2f8904a10c50b1958ed628ffb2d6c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/199.mask.png": {
+      "sha256": "db4c968cad87b40df38bda83efc61d28f8ebb628a6f694d079d7f0e02d2802d4",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/200.png": {
+      "sha256": "de0a22153e7ec5739ee652359f27124c4eea424884a699a95906032d2da040bf",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/200.mask.png": {
+      "sha256": "32d8913b388fb3cc9e4c58a5793d29f1af750e8632574019bb0f9369bfe6dfa5",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/201.png": {
+      "sha256": "df4b93b05163f168ddf1753dfd63fe55d81379cfca6e1da053dfccbd618668c7",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/201.mask.png": {
+      "sha256": "bece14d2bc258a879f5d44d906cc3253febcde36c15cd1f85b23b9bd253b673a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/202.png": {
+      "sha256": "1a9ae3868c005b4c5fef35c582addb0a1cc5d39c1bcabc6c3c13d597546c5348",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/202.mask.png": {
+      "sha256": "1e2e33572c2d2560fadbc82da40e580b30333a1e4e9f83011c03910eda05e8f9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/203.png": {
+      "sha256": "56c4f67fc82d6a96f3d8bb14eddc4e49e8184979bdf0c9962275d42c93ba4378",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/203.mask.png": {
+      "sha256": "87d234f4593a116fdcff79eb7bc4bbc57fe3e0012c08b7810b8b8636dd7e795d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/204.png": {
+      "sha256": "f32af9ffb254076329fa79cf5e80c499a58766a81be6a658f3095615bf5ffc28",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/204.mask.png": {
+      "sha256": "e5068c90aa28feccd65b836152f0bb5be29ae0f4162a22a75796aa9fe59c512c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/205.png": {
+      "sha256": "35565e064a3c84eb1b4d46137034ba8f13064bf8d24ee6d8c3e60cefb59238d9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/205.mask.png": {
+      "sha256": "94cc9d63b4bb24c7ebc0ac353b6082b6095b4274bddff395b705fd8d31e5549d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/206.png": {
+      "sha256": "21ba8f1132325ef3300d63ab5f1e77c4f57b3cf48723a8826c37556af6611e54",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/206.mask.png": {
+      "sha256": "1cfbb7285afe574b1bda3cb603e8486e6f0ad74ba5fef370df3e10d9fe15046a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/207.png": {
+      "sha256": "9f6b645fc1cb294b26ae495df542211ac1731e8781320e07f4c0133971f3604c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/207.mask.png": {
+      "sha256": "72dc4dca3b570da7ea99c33ca73dfb2cd886e12344d4763aa6ddfc3a1bb7f3e0",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/208.png": {
+      "sha256": "97fcbe913d76b3cdafb3f448baf37ebc98c9dfef3d499071dddae9d3761b9567",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/208.mask.png": {
+      "sha256": "8952c8b5619fec6c92df8527777973056a60611b876541270ad7521c0cfc5ed8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/209.png": {
+      "sha256": "adbcb04ba1c4b4589523a5c006ed1dd8e8b8165ad79afce895e7e90e004db6dd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/209.mask.png": {
+      "sha256": "6bc6470c93c3667b498f4833c9e825ee0d1ef3c4ca22536e289fe159e7900ea9",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/210.png": {
+      "sha256": "5fc90409076eeb4152b70d159304ba44cf252ff1eb04fbb8bcbb12a4f279f80a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/210.mask.png": {
+      "sha256": "7c99eb5031c2d673ba76b95a808ccde8846924194e2955ef9ee1f10373fc7e13",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/211.png": {
+      "sha256": "3dd783f829cea4637ac7515e2935a40d4d96ef2e31b121b1ba208c1be6d12300",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/211.mask.png": {
+      "sha256": "626c1d59aebdf3a144a4a3cfa6aee43830f27e90cb36641746e42e8068b8938d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/212.png": {
+      "sha256": "552a5bd930170b09ececb726636f21765296fe81828f8d5ba622da86c32aac91",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/212.mask.png": {
+      "sha256": "626c1d59aebdf3a144a4a3cfa6aee43830f27e90cb36641746e42e8068b8938d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/213.png": {
+      "sha256": "7802d03e300e462e5c150297553e8ddc435af2cf4d65963aa545b8bf9fe613cb",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/213.mask.png": {
+      "sha256": "626c1d59aebdf3a144a4a3cfa6aee43830f27e90cb36641746e42e8068b8938d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/214.png": {
+      "sha256": "11074bd2922575e732e1b60dcf12d3d4291454ea2357c27558abad1fe12a47b8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/214.mask.png": {
+      "sha256": "ea6309e8930dfd4b18b9a1c7586c58e367261a180b997e5a85be1050f95d2e0f",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/215.png": {
+      "sha256": "ac56e7d6f84f8dc85fba73cf15dc8585f566e3102f352398e2b3cf01b7467354",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/215.mask.png": {
+      "sha256": "464e6514be60b2e89384a4ffd8bd077093389f9ffc6beb35066f085f14e548c3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/216.png": {
+      "sha256": "ecb003eeb2119ab237fcda1828013a3ae4e517a7b46844acc7fb57686e9145d2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/216.mask.png": {
+      "sha256": "626c1d59aebdf3a144a4a3cfa6aee43830f27e90cb36641746e42e8068b8938d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/217.png": {
+      "sha256": "f4648bce0d4f22f973be1e138bb84d3daa442588e1c72ebf3bc1853d6db9896c",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/217.mask.png": {
+      "sha256": "65f4aceaff849961f6076918b875c463f1beed893cc2f07b91d935f9125f5885",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/218.png": {
+      "sha256": "6c1f75ad8fa601a7f9a6ab0bfc01c557b2f18ca46d060d47f92c533abd766647",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/218.mask.png": {
+      "sha256": "c2c64ed8edf56c9692b445d6a6a9bc820abe618dbd49a4af9210b153b2278f4e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/219.png": {
+      "sha256": "ff240a4e25b2c5a09de1564626fea1dee81592d485571e9e8ea0d5cbc57ffdc8",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/219.mask.png": {
+      "sha256": "8962c990230c686551ee91fb54de3a247a190da5731c1d27d5185a4d9d0acdad",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/220.png": {
+      "sha256": "04deb6affd5943a5c50a28245f143401369a22b4ce42ccb8b36bf779be259071",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/220.mask.png": {
+      "sha256": "1bd5455cf7a992ee90a6b75838c88c34e8fb66b14132176b36c525c0582677d3",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/221.png": {
+      "sha256": "c34b9b5a57d20acceda6e388bf05c3e6deb111f9906574702d8da4b21c1c5132",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/221.mask.png": {
+      "sha256": "e1f1a397ec818866bf8fb6e859b1e31475d71ffd86dd58c98b0987d3455b4f6d",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/222.png": {
+      "sha256": "74d3fc55c712c8d92b4efadcbdd95fbac1b9302058c0e26edc2ef259c4412d84",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/222.mask.png": {
+      "sha256": "c3896bac9b20d4d970595033b88ba41ac7489b837f2751c49e96aef6039d0955",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/223.png": {
+      "sha256": "e068cc9f746d51f6a36d12ef786aa94715407beccff1d8ac8ede22d41df7b139",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/223.mask.png": {
+      "sha256": "1cfacdd60bda7a08fd3a166d18ed7c879ae5a2b67485b92fa069dbfabc65a785",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/224.png": {
+      "sha256": "4db41e3c1a99fdca1278f05320b7f48693f16af0859f0decf47e5cbf92ead842",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/224.mask.png": {
+      "sha256": "ba0cf723a1d2f373c8b8deeb7b5003fd527d2c530022a160c005acad072990dd",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/225.png": {
+      "sha256": "7de9a83457bf1c1bcb6dba46dabe9d21dda0311dcf2591ae383eb60540ac9250",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/225.mask.png": {
+      "sha256": "48f477dc6dbf98738bd6d775ab257b52a9e635d1e2cae8c1f351c1fe58e2eeee",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/226.png": {
+      "sha256": "68cce7e5104e1661784444d1acc12f3e19e7fa0812e2833e62894b9397a90431",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/226.mask.png": {
+      "sha256": "65329148f2f9b2656ab8fb9393c7c4d23bebf18e79b894b74d86d980988a1c2e",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/227.png": {
+      "sha256": "941d5ecae6f18942c7c2f607c36ea2a1ce5ddaf8d3b6b67ae3a22a8b5081bce6",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/227.mask.png": {
+      "sha256": "c1781390ab675c48636518fbd2805600edbc8e7a56f0c9a757a29a9f0ad62a9b",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/228.png": {
+      "sha256": "d712e24f5bf14a19dae9adfdfccc5e8dd6215c7377452471425eda709bfbe948",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/228.mask.png": {
+      "sha256": "35eed9f3f76c85c3b68b7ca2ad7fedeb84cab2b5df636b92d0b44dc5e8532db2",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    },
+    "templates/workshop/warehouse/goods/229.png": {
+      "sha256": "0874a449ac8a84a38f4c656c4644d69d416b8d67280f4b4e0d9c1cbe224e7077",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "RGB"
+    },
+    "templates/workshop/warehouse/goods/229.mask.png": {
+      "sha256": "a9c143736f36725fd403026eed3c3497b6391a4be0ca27e5035a5ae9c0bd332a",
+      "size": [
+        68,
+        42
+      ],
+      "mode": "L"
+    }
+  },
+  "calibration": {
+    "scope": "supplied_screenshot_tile_calibration_only",
+    "sources": [
+      {
+        "file": "overview.png",
+        "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/overview.png",
+        "source_kind": "repository_file",
+        "durable": true,
+        "sha256": "fdaf1e5b89fddc2f12341277db7b1a7d0d6351347d92655767ae2e819e35104f",
+        "client_crop_xyxy": [
+          1,
+          31,
+          1281,
+          751
+        ],
+        "role": "overview_no_goods"
+      },
+      {
+        "file": "warehouse_before.png",
+        "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_before.png",
+        "source_kind": "repository_file",
+        "durable": true,
+        "sha256": "95ac2d5a1bc4164bba7c19b1ac217d2e1c4054c87641bcfc67d098579db7b851",
+        "client_crop_xyxy": [
+          1,
+          31,
+          1281,
+          751
+        ],
+        "role": "warehouse_goods_screenshot"
+      },
+      {
+        "file": "warehouse_connected.png",
+        "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_connected.png",
+        "source_kind": "repository_file",
+        "durable": true,
+        "sha256": "5cb3c666688eead957ca558a4b519d8b6ef915c11cb1d7cd932d1c2b5432df76",
+        "client_crop_xyxy": [
+          1,
+          31,
+          1281,
+          751
+        ],
+        "role": "warehouse_goods_screenshot"
+      },
+      {
+        "file": "warehouse_after.png",
+        "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_after.png",
+        "source_kind": "repository_file",
+        "durable": true,
+        "sha256": "0f079e7f56b8a5832d589cda000b452346083214f02f47d76bf98e6fd5f08b62",
+        "client_crop_xyxy": [
+          1,
+          31,
+          1281,
+          751
+        ],
+        "role": "warehouse_goods_screenshot"
+      }
+    ],
+    "positive_samples": 72,
+    "negative_samples": 8,
+    "correct_samples": 80,
+    "lowest_positive_score": 0.8229473829269409,
+    "highest_competing_score": 0.7907846570014954,
+    "lowest_positive_margin": 0.1892632246017456,
+    "calibrated_product_ids": [
+      "1",
+      "7",
+      "18",
+      "31",
+      "33",
+      "46",
+      "50",
+      "51",
+      "58",
+      "69",
+      "73",
+      "76",
+      "77",
+      "93",
+      "98",
+      "100",
+      "102",
+      "109",
+      "113",
+      "146",
+      "149",
+      "155",
+      "158",
+      "170",
+      "173",
+      "183",
+      "184",
+      "194",
+      "201",
+      "202"
+    ],
+    "warehouse_side_product_ids": [
+      "113"
+    ],
+    "report": ".pytest_tmp/prison_warehouse_calibration_20261023/goods/calibration_scores.json",
+    "report_sha256": "2c99ff997511ab349a6ba00e7f43733689bc789c7fd362f07292349678a90c4a",
+    "fixtures": "plans/resonance_pc/development/template_sources/warehouse_transfer/goods_fixtures.json",
+    "fixtures_sha256": "9c67dda1918e4ca716aab6e12dfdbaf778a707377efaa5dc2983c66c890f60b7",
+    "live_game_verified": false,
+    "limitations": [
+      "Only product 113 is visible on warehouse sides in supplied screenshots.",
+      "Other calibrated products are train-side observations only.",
+      "Generated products absent from supplied screenshots remain uncalibrated.",
+      "Threshold and margin are offline calibration values, not a live acceptance result."
+    ]
+  }
+}

@@ -1,0 +1,195 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-23",
+  "kind": "offline_calibration_on_four_user_supplied_captures",
+  "live_game_verified": false,
+  "auto_click_ready": false,
+  "source_manifest": "manifest.json",
+  "reports": {
+    "controls": {
+      "path": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/controls_matching_report.json",
+      "sha256": "f4cc7414df6d815a35d48c82820b678cc6f1cbfcd5e4f19bc2b2750c99feb6ae"
+    },
+    "goods": {
+      "path": ".pytest_tmp/prison_warehouse_calibration_20261023/goods/calibration_scores.json",
+      "sha256": "2c99ff997511ab349a6ba00e7f43733689bc789c7fd362f07292349678a90c4a"
+    },
+    "quantity": {
+      "path": ".pytest_tmp/prison_warehouse_calibration_20261023/quantity_alt/quantity_calibration_report.json",
+      "sha256": "97f6b4e60464a94c494652d698637783056c4e135e9efaeb0473225a1e07e37a"
+    }
+  },
+  "controls": {
+    "new_templates": 10,
+    "source_self_match": {
+      "count": 10,
+      "expectations_met": 10,
+      "meaning": "Crop provenance only"
+    },
+    "cross_screenshot": {
+      "count": 30,
+      "expectations_met": 30,
+      "positive_count": 6,
+      "negative_count": 24
+    },
+    "shared_back": [
+      {
+        "capture": "capture_1",
+        "score": 0.9943,
+        "detected": true,
+        "bbox_xywh": [
+          16,
+          14,
+          134,
+          46
+        ]
+      },
+      {
+        "capture": "capture_2",
+        "score": 0.991763,
+        "detected": true,
+        "bbox_xywh": [
+          16,
+          14,
+          134,
+          46
+        ]
+      },
+      {
+        "capture": "capture_3",
+        "score": 0.991763,
+        "detected": true,
+        "bbox_xywh": [
+          16,
+          14,
+          134,
+          46
+        ]
+      },
+      {
+        "capture": "capture_4",
+        "score": 0.991763,
+        "detected": true,
+        "bbox_xywh": [
+          16,
+          14,
+          134,
+          46
+        ]
+      }
+    ]
+  },
+  "goods": {
+    "positive_samples": 72,
+    "negative_samples": 8,
+    "correct_samples": 80,
+    "lowest_positive_score": 0.8229473829269409,
+    "lowest_positive_margin": 0.1892632246017456,
+    "generated_products": 225,
+    "unsupported_products": 4,
+    "screenshot_observed_products": 30,
+    "warehouse_side_product_ids": [
+      "113"
+    ],
+    "generated_pending_products": 195
+  },
+  "quantity": {
+    "supplied_samples": 72,
+    "recognized_correct": 46,
+    "unknown": 26,
+    "wrong_accepted": 0,
+    "seed_samples": 8,
+    "nonseed_samples": 64,
+    "synthetic_negative_count": 7,
+    "synthetic_negative_rejected": 7,
+    "active": {
+      "count": 47,
+      "recognized_correct": 46,
+      "unknown": 1,
+      "wrong_accepted": 0
+    },
+    "dim_train_diagnostic": {
+      "count": 25,
+      "recognized_correct": 0,
+      "unknown": 25,
+      "wrong_accepted": 0
+    }
+  },
+  "quantity_twenty_observations": [
+    {
+      "frame": "warehouse_before",
+      "id": "raw",
+      "state": "active",
+      "seed": false,
+      "expected": "20",
+      "correct": true,
+      "value": 20,
+      "digit_scores": [
+        {
+          "digit": "0",
+          "score": 0.998216,
+          "margin": 0.37688
+        },
+        {
+          "digit": "2",
+          "score": 0.993656,
+          "margin": 0.332916
+        }
+      ]
+    },
+    {
+      "frame": "warehouse_connected",
+      "id": "product",
+      "state": "active",
+      "seed": true,
+      "expected": "20",
+      "correct": true,
+      "value": 20,
+      "digit_scores": [
+        {
+          "digit": "0",
+          "score": 1.0,
+          "margin": 0.363605
+        },
+        {
+          "digit": "2",
+          "score": 1.0,
+          "margin": 0.331574
+        }
+      ]
+    },
+    {
+      "frame": "warehouse_after",
+      "id": "train_3_0",
+      "state": "active",
+      "seed": false,
+      "expected": "20",
+      "correct": true,
+      "value": 20,
+      "digit_scores": [
+        {
+          "digit": "0",
+          "score": 0.923864,
+          "margin": 0.351819
+        },
+        {
+          "digit": "2",
+          "score": 0.94709,
+          "margin": 0.298725
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Calibrated glyphs are 0..7; 8/9 remain unresolved and may resemble a known glyph.",
+    "Only 20 is a supplied multi-digit value; arbitrary 1-4 digit strings are a decoding mechanism, not an observed accuracy claim.",
+    "The 0 and a 2 phase variant share the supplied product-20 seed; two other 20 observations are same commodity across captures.",
+    "Per-digit acceptance thresholds were fit on this supplied capture set; this is calibration, not held-out accuracy.",
+    "Strict white-bar confirmation intentionally rejects dimmed train cards.",
+    "Synthetic white-bar and damaged-glyph negatives are bounded diagnostics, not exhaustive unknown-symbol validation.",
+    "No task, capture, click or automatic loading integration exists.",
+    "Only product 113 has warehouse-side goods evidence; 29 other calibrated goods are train-side only, and 195 generated goods remain pending.",
+    "Controls, goods and digit thresholds were calibrated on these supplied scenes; this is not independent live-game accuracy.",
+    "Capacity fractions and transition/input/retry timing were not calibrated here."
+  ]
+}

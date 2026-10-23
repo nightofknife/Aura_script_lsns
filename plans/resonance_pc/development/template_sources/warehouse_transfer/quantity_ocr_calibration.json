@@ -1,0 +1,325 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-23",
+  "current_quantity_method": "ocr_recognition_only",
+  "catalog": "plans/resonance_pc/data/meta/prison_warehouse_quantity_ocr_pc.json",
+  "helper": {
+    "path": "plans/resonance_pc/src/actions/_prison_warehouse_quantity.py",
+    "sha256": "d80fddcd821ee39eaae0616f8d3df9ee65bc2c2565e8470f5059418c2788339d"
+  },
+  "backend": {
+    "model": "ppocrv6_small",
+    "provider": "CPUExecutionProvider",
+    "adapter": "engine.predict -> existing OcrService._parse_results -> MultiOcrResult"
+  },
+  "primary_roi_xywh": [
+    7,
+    65,
+    76,
+    16
+  ],
+  "retry_roi_xywh": [
+    7,
+    66,
+    76,
+    15
+  ],
+  "coordinate_reference": "Relative to one fully visible 84x84 RGB commodity card; both ROIs retain the full horizontal text field.",
+  "minimum_confidence": 0.8,
+  "positive_quantity_pattern": "[1-9][0-9]*",
+  "retry_policy": "At most two OCR calls on the same card; retry only when the primary whole-number parse or confidence is unacceptable. No true label is consulted.",
+  "summary": {
+    "active": {
+      "count": 47,
+      "correct": 47,
+      "unknown": 0,
+      "wrong_read": 0,
+      "fallback_used": 1
+    },
+    "dim_train_diagnostic": {
+      "count": 25,
+      "correct": 25,
+      "unknown": 0,
+      "wrong_read": 0,
+      "fallback_used": 0
+    }
+  },
+  "total_ocr_calls": 73,
+  "errors": 0,
+  "normal_samples": 72,
+  "synthetic_damaged_samples_used": 0,
+  "sources": [
+    {
+      "path": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_before.png",
+      "sha256": "95ac2d5a1bc4164bba7c19b1ac217d2e1c4054c87641bcfc67d098579db7b851"
+    },
+    {
+      "path": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_connected.png",
+      "sha256": "5cb3c666688eead957ca558a4b519d8b6ef915c11cb1d7cd932d1c2b5432df76"
+    },
+    {
+      "path": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_after.png",
+      "sha256": "0f079e7f56b8a5832d589cda000b452346083214f02f47d76bf98e6fd5f08b62"
+    }
+  ],
+  "hand_labels": {
+    "path": "plans/resonance_pc/development/template_sources/warehouse_transfer/quantity_samples.json",
+    "sha256": "db774d599b87ec9cc2e15942b933e16c5f592625fd335689f5c48a7594d79d81"
+  },
+  "global_roi_candidates": 31,
+  "live_game_verified": false,
+  "held_out_accuracy": false,
+  "reports": [
+    {
+      "path": ".pytest_tmp/prison_warehouse_ocr_roi_20261023/quantity_ocr_reader_report.json",
+      "sha256": "30ee55f13fec165a3d27a253beeedf60d04aa404695e22aeb7e0b36b8e063970"
+    },
+    {
+      "path": ".pytest_tmp/prison_warehouse_ocr_roi_20261023/quantity_ocr_roi_report.json",
+      "sha256": "a61c30496edb1cb1bd0c7d4421eee5df5332e9ef210e2a46646de17b60772be7"
+    },
+    {
+      "path": ".pytest_tmp/prison_warehouse_ocr_roi_20261023/global_roi_candidates.csv",
+      "sha256": "15555e9f31562cfa6f0fb0aab5551631c9ae0f76e1c7772f6335422efdb2cbfa"
+    }
+  ],
+  "focus_results": [
+    {
+      "sample": "warehouse_connected:train_2_4",
+      "expected": "1",
+      "value": 1,
+      "text": "1",
+      "confidence": 0.9160642027854919,
+      "used_retry": false,
+      "ocr_calls": 1,
+      "attempts": [
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 1,
+          "text": "1",
+          "confidence": 0.9160642027854919,
+          "raw_results": [
+            {
+              "text": "1",
+              "confidence": 0.9160642027854919
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "sample": "warehouse_before:raw",
+      "expected": "20",
+      "value": 20,
+      "text": "20",
+      "confidence": 0.999892383813858,
+      "used_retry": false,
+      "ocr_calls": 1,
+      "attempts": [
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 20,
+          "text": "20",
+          "confidence": 0.999892383813858,
+          "raw_results": [
+            {
+              "text": "20",
+              "confidence": 0.999892383813858
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "sample": "warehouse_connected:product",
+      "expected": "20",
+      "value": 20,
+      "text": "20",
+      "confidence": 0.9998987317085266,
+      "used_retry": false,
+      "ocr_calls": 1,
+      "attempts": [
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 20,
+          "text": "20",
+          "confidence": 0.9998987317085266,
+          "raw_results": [
+            {
+              "text": "20",
+              "confidence": 0.9998987317085266
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "sample": "warehouse_after:train_0_3",
+      "expected": "1",
+      "value": 1,
+      "text": "1",
+      "confidence": 0.9868229627609253,
+      "used_retry": false,
+      "ocr_calls": 1,
+      "attempts": [
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 1,
+          "text": "1",
+          "confidence": 0.9868229627609253,
+          "raw_results": [
+            {
+              "text": "1",
+              "confidence": 0.9868229627609253
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "sample": "warehouse_after:train_0_4",
+      "expected": "1",
+      "value": 1,
+      "text": "1",
+      "confidence": 0.9317901134490967,
+      "used_retry": false,
+      "ocr_calls": 1,
+      "attempts": [
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 1,
+          "text": "1",
+          "confidence": 0.9317901134490967,
+          "raw_results": [
+            {
+              "text": "1",
+              "confidence": 0.9317901134490967
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        }
+      ]
+    },
+    {
+      "sample": "warehouse_after:train_2_2",
+      "expected": "1",
+      "value": 1,
+      "text": "1",
+      "confidence": 0.9937081336975098,
+      "used_retry": true,
+      "ocr_calls": 2,
+      "attempts": [
+        {
+          "status": "unknown",
+          "value": null,
+          "text": "V1",
+          "confidence": 0.6088525131344795,
+          "raw_results": [
+            {
+              "text": "V1",
+              "confidence": 0.6088525131344795
+            }
+          ],
+          "reasons": [
+            "not_a_whole_positive_ascii_integer",
+            "ocr_confidence_below_threshold_or_invalid"
+          ],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        },
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 1,
+          "text": "1",
+          "confidence": 0.9937081336975098,
+          "raw_results": [
+            {
+              "text": "1",
+              "confidence": 0.9937081336975098
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            66,
+            76,
+            15
+          ]
+        }
+      ]
+    },
+    {
+      "sample": "warehouse_after:train_3_0",
+      "expected": "20",
+      "value": 20,
+      "text": "20",
+      "confidence": 0.9997923374176025,
+      "used_retry": false,
+      "ocr_calls": 1,
+      "attempts": [
+        {
+          "status": "recognized_ocr_quantity",
+          "value": 20,
+          "text": "20",
+          "confidence": 0.9997923374176025,
+          "raw_results": [
+            {
+              "text": "20",
+              "confidence": 0.9997923374176025
+            }
+          ],
+          "reasons": [],
+          "roi_xywh": [
+            7,
+            65,
+            76,
+            16
+          ]
+        }
+      ]
+    }
+  ],
+  "limits": [
+    "Crop parameters and retry rule were calibrated on this same supplied normal-card set; no independent live-game accuracy claim.",
+    "Real quantity examples are 1..7 and 20. Full horizontal width is retained for longer numbers, but new layouts and longer values need real observations.",
+    "Only the quantity image reader changed. No game inputs, warehouse task registration, dependency/model changes or project test workflow was performed."
+  ]
+}

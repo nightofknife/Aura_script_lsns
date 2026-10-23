@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "reference_client": [1280, 720],
+  "input_order": "BGR",
+  "status": "implemented_pending_user_live_adjustment",
+  "catalogs": {
+    "controls": "data/meta/prison_warehouse_transfer_templates_pc.json",
+    "goods": "data/meta/prison_warehouse_goods_templates_pc.json",
+    "quantity": "data/meta/prison_warehouse_quantity_ocr_pc.json"
+  },
+  "controls": {
+    "score_threshold": 0.9,
+    "color_mae_limit": 18.0,
+    "regions": {},
+    "overrides": {},
+    "back": {
+      "image": "templates/navigation/global/back.png",
+      "roi": [0, 0, 170, 80],
+      "threshold": 0.86,
+      "use_grayscale": true
+    }
+  },
+  "capacity": {
+    "roi": [414, 632, 85, 28],
+    "minimum_confidence": 0.8,
+    "recognition_only": true,
+    "use_textline_orientation": false,
+    "rotate_tall_crops": false
+  },
+  "goods": {
+    "crop": [8, 24, 68, 42],
+    "search_crop": [6, 22, 72, 46],
+    "minimum_score": 0.81,
+    "minimum_margin": 0.1,
+    "candidate_details": 3,
+    "minimum_mask_pixels": 100
+  },
+  "list": {
+    "viewport": [574, 418, 510, 259],
+    "scan_viewport": [574, 418, 484, 259],
+    "card_size": [84, 84],
+    "reference_first_card": [586, 431, 84, 84],
+    "columns": 5,
+    "native_pitch_xy": [95.3333333333, 95.3333333333],
+    "column_tolerance_px": 7,
+    "anchor_pair_tolerance_px": 5,
+    "row_cluster_tolerance_px": 5,
+    "row_pitch_tolerance_px": 6,
+    "reference_top_tolerance_px": 4,
+    "bar": {
+      "minimum_channel": 235,
+      "open_width": 48,
+      "minimum_width": 48,
+      "maximum_width": 92,
+      "maximum_height": 9,
+      "offset_from_card_top": 78
+    },
+    "cube": {
+      "x_band_from_card": [3, 27],
+      "offset_from_card": [7, 7],
+      "minimum_channel": 205,
+      "maximum_channel_spread": 45,
+      "minimum_width": 10,
+      "maximum_width": 24,
+      "minimum_height": 10,
+      "maximum_height": 25,
+      "minimum_area": 30,
+      "maximum_area": 240
+    },
+    "unexplained_foreground": {
+      "minimum_gray": 85,
+      "minimum_component_area": 30,
+      "known_box_margin_px": 3,
+      "empty_marker_margin_px": 4,
+      "empty_decoration_bands": [[-78, 81, 75, 8], [78, 81, 75, 8]],
+      "maximum_regions": 24
+    },
+    "signature_size": [64, 32],
+    "signature_quantum": 8
+  },
+  "execution": {
+    "total_timeout_sec": 900,
+    "transition_timeout_sec": 20,
+    "transition_probe_sec": 3,
+    "transition_supplemental_clicks": 3,
+    "transition_settle_sec": 0.8,
+    "observation_timeout_sec": 12,
+    "poll_sec": 0.3,
+    "withdraw_settle_sec": 0.8,
+    "effect_timeout_sec": 10,
+    "scroll_step_px": 72,
+    "scroll_duration_sec": 0.4,
+    "scroll_hold_sec": 0.05,
+    "scroll_settle_sec": 0.6,
+    "max_scrolls_per_scan": 80,
+    "edge_clear_pixels": 0,
+    "endpoint_confirmations": 2,
+    "max_withdrawals": 225
+  },
+  "limits": [
+    "Native viewport/card pitch is a layout estimate, not live validation. First-card coordinates are alignment hints only; rows are detected at their actual image phase.",
+    "The rightmost 26 pixels of the estimated native viewport overlap the warehouse-side control panel in supplied captures and are excluded from occupancy scanning.",
+    "A single observation never establishes global list top/bottom or complete inventory coverage. Runtime must combine scrolling and overlapping observations.",
+    "Clipped edge cards are coverage-only unresolved slots. Unknown full cards and unexplained foreground block an empty/inventory-complete claim.",
+    "Only supplied screenshot states and generated catalogs are available; no game execution or tests were performed for this implementation."
+  ]
+}

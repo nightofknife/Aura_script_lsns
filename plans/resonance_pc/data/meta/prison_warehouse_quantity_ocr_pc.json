@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "method": "ocr_recognition_only",
+  "reference_client": [1280, 720],
+  "card_size": [84, 84],
+  "input_order": "RGB",
+  "reader": {
+    "roi_xywh": [7, 65, 76, 16],
+    "retry_roi_xywh": [7, 66, 76, 15],
+    "minimum_confidence": 0.8,
+    "recognition_only": true,
+    "use_textline_orientation": false,
+    "rotate_tall_crops": false,
+    "scale": 1,
+    "preprocess": "none",
+    "quantity_pattern": "[1-9][0-9]*",
+    "retry_policy": "Only if the first output is not one complete positive ASCII integer or its confidence is below 0.8; at most two OCR calls on the same immutable card.",
+    "unknown_policy": "Unknown remains null; do not strip letters, substitute characters, join text fragments or treat unreadable quantities as zero."
+  },
+  "geometry": {
+    "coordinate_system": "XYWH relative to a fully visible 84x84 RGB commodity card",
+    "native_text_rectangle_estimate": [6.53, 63.24, 74.67, 21],
+    "keep_complete_horizontal_field": true,
+    "reason": "Tighten the vertical band to exclude commodity artwork while preserving the full horizontal text area for longer quantities."
+  },
+  "calibration": {
+    "kind": "normal_user_supplied_screenshot_calibration",
+    "sample_fixture": "development/template_sources/warehouse_transfer/quantity_samples.json",
+    "report": ".pytest_tmp/prison_warehouse_ocr_roi_20261023/quantity_ocr_roi_report.json",
+    "global_roi_candidates": 31,
+    "normal_samples": 72,
+    "active_samples": 47,
+    "dim_samples": 25,
+    "correct": 72,
+    "rejected": 0,
+    "wrong_accepted": 0,
+    "fallback_samples": 1,
+    "synthetic_damaged_samples_used": false,
+    "held_out_accuracy": false,
+    "live_game_verified": false
+  },
+  "scope": "Quantity image reader only; no capture, click, warehouse task registration or game input.",
+  "limits": [
+    "Both crop rectangles and the retry rule were calibrated on the same supplied screenshots, not independent live observations.",
+    "Real stack quantity fixtures contain 1..7 and 20; other values and longer quantities still require live layout observation.",
+    "Recognition uses the injected existing OCR service and preserves its raw text and confidence. No model or production OCR setting is changed.",
+    "Read only fully visible cards. After game input or a transition the caller must provide a fresh frame."
+  ]
+}

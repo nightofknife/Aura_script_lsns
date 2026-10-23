@@ -1,0 +1,697 @@
+{
+  "schema_version": 1,
+  "reference_client": [
+    1280,
+    720
+  ],
+  "annotation_scope": "Four user-supplied screenshots; product 113 on warehouse sides, other positives on train side only. No live game actions.",
+  "sources": [
+    {
+      "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/overview.png",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "role": "overview_no_goods",
+      "samples": []
+    },
+    {
+      "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_before.png",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "role": "warehouse_goods_screenshot",
+      "samples": [
+        {
+          "side": "train",
+          "product_id": "202",
+          "origin": [
+            28,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "201",
+          "origin": [
+            124,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "102",
+          "origin": [
+            221,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "1",
+          "origin": [
+            317,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "7",
+          "origin": [
+            414,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "73",
+          "origin": [
+            28,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "98",
+          "origin": [
+            124,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "77",
+          "origin": [
+            221,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "76",
+          "origin": [
+            317,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "100",
+          "origin": [
+            414,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "170",
+          "origin": [
+            28,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "173",
+          "origin": [
+            124,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "58",
+          "origin": [
+            221,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "31",
+          "origin": [
+            317,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "18",
+          "origin": [
+            414,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "46",
+          "origin": [
+            28,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "50",
+          "origin": [
+            124,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "51",
+          "origin": [
+            221,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "93",
+          "origin": [
+            317,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "69",
+          "origin": [
+            414,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "194",
+          "origin": [
+            28,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "155",
+          "origin": [
+            124,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "33",
+          "origin": [
+            221,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "158",
+          "origin": [
+            317,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "109",
+          "origin": [
+            414,
+            534
+          ]
+        },
+        {
+          "side": "raw_warehouse",
+          "product_id": "113",
+          "origin": [
+            585,
+            97
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": null,
+          "origin": [
+            585,
+            429
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": null,
+          "origin": [
+            680,
+            429
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": null,
+          "origin": [
+            775,
+            500
+          ]
+        }
+      ]
+    },
+    {
+      "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_connected.png",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "role": "warehouse_goods_screenshot",
+      "samples": [
+        {
+          "side": "train",
+          "product_id": "202",
+          "origin": [
+            28,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "201",
+          "origin": [
+            124,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "102",
+          "origin": [
+            221,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "1",
+          "origin": [
+            317,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "7",
+          "origin": [
+            414,
+            150
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "73",
+          "origin": [
+            28,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "98",
+          "origin": [
+            124,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "77",
+          "origin": [
+            221,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "76",
+          "origin": [
+            317,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "100",
+          "origin": [
+            414,
+            246
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "170",
+          "origin": [
+            28,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "173",
+          "origin": [
+            124,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "58",
+          "origin": [
+            221,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "31",
+          "origin": [
+            317,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "18",
+          "origin": [
+            414,
+            342
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "46",
+          "origin": [
+            28,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "50",
+          "origin": [
+            124,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "51",
+          "origin": [
+            221,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "93",
+          "origin": [
+            317,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "69",
+          "origin": [
+            414,
+            438
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "194",
+          "origin": [
+            28,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "155",
+          "origin": [
+            124,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "33",
+          "origin": [
+            221,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "158",
+          "origin": [
+            317,
+            534
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "109",
+          "origin": [
+            414,
+            534
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": "113",
+          "origin": [
+            585,
+            429
+          ]
+        },
+        {
+          "side": "raw_warehouse",
+          "product_id": null,
+          "origin": [
+            585,
+            97
+          ]
+        },
+        {
+          "side": "raw_warehouse",
+          "product_id": null,
+          "origin": [
+            775,
+            180
+          ]
+        }
+      ]
+    },
+    {
+      "image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_after.png",
+      "client_crop_xyxy": [
+        1,
+        31,
+        1281,
+        751
+      ],
+      "role": "warehouse_goods_screenshot",
+      "samples": [
+        {
+          "side": "train",
+          "product_id": "170",
+          "origin": [
+            28,
+            188
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "173",
+          "origin": [
+            124,
+            188
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "58",
+          "origin": [
+            221,
+            188
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "31",
+          "origin": [
+            317,
+            188
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "18",
+          "origin": [
+            414,
+            188
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "46",
+          "origin": [
+            28,
+            284
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "50",
+          "origin": [
+            124,
+            284
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "51",
+          "origin": [
+            221,
+            284
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "93",
+          "origin": [
+            317,
+            284
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "69",
+          "origin": [
+            414,
+            284
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "194",
+          "origin": [
+            28,
+            380
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "155",
+          "origin": [
+            124,
+            380
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "33",
+          "origin": [
+            221,
+            380
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "158",
+          "origin": [
+            317,
+            380
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "109",
+          "origin": [
+            414,
+            380
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "113",
+          "origin": [
+            28,
+            476
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "184",
+          "origin": [
+            124,
+            476
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "183",
+          "origin": [
+            221,
+            476
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "146",
+          "origin": [
+            317,
+            476
+          ]
+        },
+        {
+          "side": "train",
+          "product_id": "149",
+          "origin": [
+            414,
+            476
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": null,
+          "origin": [
+            585,
+            429
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": null,
+          "origin": [
+            680,
+            429
+          ]
+        },
+        {
+          "side": "product_warehouse",
+          "product_id": null,
+          "origin": [
+            775,
+            500
+          ]
+        }
+      ]
+    }
+  ]
+}
