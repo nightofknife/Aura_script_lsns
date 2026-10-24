@@ -144,6 +144,8 @@ def test_composition_uses_shared_budget_and_snapshot(window, monkeypatch, order,
         page._drop_task("passenger", 1)
     window.trade_page.fatigue_budget.setValue(333)
     window.trade_page.auto_sparkling_water.setChecked(recovery)
+    window.trade_page.sparkling_water_start_threshold.setValue(600)
+    window.trade_page.sparkling_water_stop_threshold.setValue(200)
     window.passenger_page.trip_count.setValue(3)
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
@@ -152,6 +154,9 @@ def test_composition_uses_shared_budget_and_snapshot(window, monkeypatch, order,
     assert commerce["inputs"]["order"] == order
     assert commerce["inputs"]["total_fatigue_budget"] == 333
     assert commerce["inputs"]["passenger_inputs"]["trip_count"] == 3
+    if recovery:
+        assert commerce["inputs"]["trade_inputs"]["sparkling_water_start_threshold"] == 600
+        assert commerce["inputs"]["trade_inputs"]["sparkling_water_stop_threshold"] == 200
     assert [row["dispatch"] for row in pending] == (["pc_task"] if recovery else []) + ["combined_commerce", "pc_task"]
     assert pending[-1]["step"] == "close"
     window.trade_page.fatigue_budget.setValue(700)

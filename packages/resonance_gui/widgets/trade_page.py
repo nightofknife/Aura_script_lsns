@@ -70,7 +70,11 @@ from ..logic import (
     normalize_trade_task_inputs,
     average_book_profit_text,
 )
-from packages.resonance_shared.freight_parameters import FREIGHT_PLANNING_KEYS, freight_control_state
+from packages.resonance_shared.freight_parameters import (
+    FREIGHT_PLANNING_KEYS, FREIGHT_RECOVERY_THRESHOLD_KEYS,
+    DEFAULT_RECOVERY_THRESHOLDS,
+    freight_control_state, validate_freight_recovery_thresholds,
+)
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog, normalize_black_moon_settings
 from .black_moon_purchase_dialog import BlackMoonPurchaseDialog
@@ -472,9 +476,12 @@ class TradePage(QWidget):
             "target_profit": "填写预计净收益目标，已计入买入税与卖出利润税。以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
             "automatic_end": "自动选择规划终点；关闭后可用城市按钮指定一个或多个允许的终点。",
             "reposition_to_route": "当前城市不是固定线路起点时先导航过去；关闭则报错停止，导航疲劳计入本次预算。",
-            "auto_sparkling_water": "到达最后一个符合条件的城市时按实际疲劳和剩余免费次数喝水；运行前需刷新恢复数据。",
-            "base_fatigue_reserve": "气泡水恢复时保留的基础疲劳下限，避免恢复后低于此值。",
-            "auto_bento": "最终清仓后使用已勾选的便当，按下面的优先级尝试；完成便当收尾后才算货运完成。",
+            "auto_sparkling_water": "当前城市可喝水且疲劳严格超过启动阈值时启动，持续到停止下限或免费次数用尽；先喝水，再用更新后的实际疲劳判断便当。",
+            "sparkling_water_start_threshold": "实际疲劳严格大于此值才启动喝水；开始后不因低于启动阈值而中断。",
+            "sparkling_water_stop_threshold": "喝水开始后持续到实际疲劳不大于此值；每杯恢复50，最后一杯可能跨过停止线。",
+            "bento_start_threshold": "先喝水，再以更新后的实际疲劳判断：严格大于此值才启动便当。",
+            "bento_stop_threshold": "每份吃完重新识别疲劳，达到此值或以下就停止；恢复量未知，最后一份可能跨过停止线。",
+            "auto_bento": "实际疲劳严格超过启动阈值时，按优先级逐份吃便当；每份后实测，持续到停止下限，结束返回实际疲劳。",
             "auto_pickup": "行车过程中启用沿途拣货，会增加行车中的操作。",
             "auto_pickup_interval_sec": "两次拣货点击之间至少等待的秒数，范围 0.1～60 秒；不改变按住时长，到站检查和停止响应不随此间隔延迟。",
             "use_fatigue_medicine": "行车任务允许使用疲劳药；默认关闭，开启后仍受使用上限限制。",
@@ -725,15 +732,23 @@ class TradePage(QWidget):
         recovery_options.addWidget(self.auto_bento)
         recovery_options.addStretch(1)
         recovery_layout.addLayout(recovery_options)
-        self.base_fatigue_reserve = self._spin(0, 2147483647)
-        self.base_fatigue_reserve.setValue(200)
-        self.water_reserve_panel = QWidget(content)
-        reserve_form = QFormLayout(self.water_reserve_panel)
-        reserve_form.setContentsMargins(0, 0, 0, 0)
-        reserve_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
-        self.base_fatigue_reserve.setMaximumWidth(220)
-        reserve_form.addRow("基础疲劳保留", self.base_fatigue_reserve)
-        recovery_layout.addWidget(self.water_reserve_panel)
+        self.recovery_threshold_panel = QWidget(content)
+        threshold_form = QFormLayout(self.recovery_threshold_panel)
+        threshold_form.setContentsMargins(0, 0, 0, 0)
+        threshold_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
+        for key, label in (
+            ("sparkling_water_start_threshold", "气泡水启动阈值"),
+            ("sparkling_water_stop_threshold", "气泡水停止下限"),
+            ("bento_start_threshold", "便当启动阈值"),
+            ("bento_stop_threshold", "便当停止下限"),
+        ):
+            field = self._spin(-1, 2147483647)
+            field.setSpecialValueText("未设置")
+            field.setValue(-1)
+            field.setMaximumWidth(220)
+            setattr(self, key, field)
+            threshold_form.addRow(label, field)
+        recovery_layout.addWidget(self.recovery_threshold_panel)
         self.bento_priority_panel = self._build_bento_priority_panel(content)
         recovery_layout.addWidget(self.bento_priority_panel)
         self.auto_pickup = QCheckBox("自动拣货", content)
@@ -853,7 +868,7 @@ class TradePage(QWidget):
             self.auto_sparkling_water.hide()
             self.auto_bento.hide()
             self.bento_priority_panel.hide()
-            self.water_reserve_panel.hide()
+            self.recovery_threshold_panel.hide()
             self.auto_pickup.hide()
             self.pickup_timing_panel.hide()
             self.auto_cape_island_investment.hide()
@@ -963,7 +978,10 @@ class TradePage(QWidget):
             (self.book_waste_limit, state["book_waste_limit"]), (self.negotiation_policy, True),
             (self.target_profit_enabled, state["free"]), (self.target_profit, state["target"]),
             (self.negotiation_max_attempts, state["negotiation_attempts"]),
-            (self.base_fatigue_reserve, state["recovery_reserve"]),
+            (self.sparkling_water_start_threshold, state["water"]),
+            (self.sparkling_water_stop_threshold, state["water"]),
+            (self.bento_start_threshold, state["bento"]),
+            (self.bento_stop_threshold, state["bento"]),
             (self.bento_priority_panel, state["bento"]), (self.medicine_panel, state["medicine"]),
             (self.fatigue_medicine_max_uses, state["medicine"]),
         ):
@@ -1006,12 +1024,23 @@ class TradePage(QWidget):
         for signal in (self.fixed_route.model().rowsInserted, self.fixed_route.model().rowsRemoved,
                        self.fixed_route.model().rowsMoved):
             signal.connect(self._on_planning_inputs_changed)
+        for key in FREIGHT_RECOVERY_THRESHOLD_KEYS:
+            getattr(self, key).valueChanged.connect(self._on_recovery_threshold_changed)
         for widget in (self.auto_sparkling_water, self.auto_bento, self.use_fatigue_medicine):
             widget.toggled.connect(self._sync_parameter_controls)
 
+    def _on_recovery_threshold_changed(self, *_args: object) -> None:
+        if self._restoring or not self._form_ready:
+            return
+        self._sync_actions()
+        if not self.preview_mode:
+            self.save_ui_state()
+
     def _planning_key(self, inputs: Mapping[str, Any] | None = None) -> dict[str, Any]:
-        data = normalize_trade_task_inputs(inputs if inputs is not None else self.collect_ui_state())
-        return deepcopy({key: data[key] for key in (*FREIGHT_PLANNING_KEYS, "start_city_id") if key in data})
+        source = inputs if inputs is not None else self.collect_ui_state()
+        planning_keys = (*FREIGHT_PLANNING_KEYS, "start_city_id")
+        data = normalize_trade_task_inputs({key: source[key] for key in planning_keys if key in source})
+        return deepcopy({key: data[key] for key in planning_keys if key in data})
 
     def _on_planning_inputs_changed(self, *_args: object) -> None:
         if self._restoring or not self._form_ready:
@@ -1619,7 +1648,11 @@ class TradePage(QWidget):
             check.blockSignals(blocked)
         self._sync_bento_order()
         self._sync_bento_type_checks()
-        self.base_fatigue_reserve.setValue(self._input_integer(values, "base_fatigue_reserve", 200))
+        for key in FREIGHT_RECOVERY_THRESHOLD_KEYS:
+            value = values.get(key, DEFAULT_RECOVERY_THRESHOLDS[key])
+            if value is not None and (type(value) is not int or not 0 <= value <= 2147483647):
+                raise ValueError(f"{key} 必须为非负整数或未设置。")
+            getattr(self, key).setValue(value if value is not None else -1)
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
         self.allow_stale_market.setChecked(validate_allow_stale_market(values.get("allow_stale_market", False)))
         interval = validate_pickup_click_interval(values.get("auto_pickup_interval_sec", 0.5))
@@ -1669,7 +1702,8 @@ class TradePage(QWidget):
             raise ValueError(f"{key} 必须为范围内的整数，不能使用布尔或小数。")
         return value
 
-    def collect_inputs(self, *, require_start_city: bool = False, _draft: bool = False) -> dict[str, Any]:
+    def collect_inputs(self, *, require_start_city: bool = False, _draft: bool = False,
+                       _validate_recovery: bool = True) -> dict[str, Any]:
         bargain_rates = self._parse_int_list(self.bargain_rates.text(), "砍价成功率", 0, 10000)
         raise_rates = self._parse_int_list(self.raise_rates.text(), "抬价成功率", 0, 10000)
         selected_city_ids = self.selected_city_ids()
@@ -1728,7 +1762,7 @@ class TradePage(QWidget):
             "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
             "auto_bento": self.auto_bento.isChecked(),
             "bento_priority": self._selected_bento_priority(),
-            "base_fatigue_reserve": self.base_fatigue_reserve.value(),
+            **self._recovery_threshold_values(),
             "auto_pickup": self.auto_pickup.isChecked(),
             "auto_pickup_interval_sec": self.auto_pickup_interval_sec.value(),
             "use_fatigue_medicine": self.use_fatigue_medicine.isChecked(),
@@ -1745,7 +1779,13 @@ class TradePage(QWidget):
             count = self._trailer_count() if self.auto_trailer.isChecked() else self._last_trailer_count
             inputs.update(auto_trailer=self.auto_trailer.isChecked(),
                           trailer_daily_first_n=count, trailer_payment=self.trailer_payment.currentData())
+        if not _draft and not self.preview_mode and _validate_recovery:
+            validate_freight_recovery_thresholds(inputs)
         return inputs if _draft else normalize_trade_task_inputs(inputs)
+
+    def _recovery_threshold_values(self) -> dict[str, int | None]:
+        return {key: (getattr(self, key).value() if getattr(self, key).value() >= 0 else None)
+                for key in FREIGHT_RECOVERY_THRESHOLD_KEYS}
 
     @staticmethod
     def _amount_base_units(field: QDoubleSpinBox) -> int:
@@ -1753,7 +1793,7 @@ class TradePage(QWidget):
         return int(Decimal(format(field.value(), ".4f")) * Decimal(10000))
 
     def collect_task_inputs(self, *, preview: bool = False) -> dict[str, Any]:
-        inputs = self.collect_inputs(require_start_city=preview)
+        inputs = self.collect_inputs(require_start_city=preview, _validate_recovery=not preview)
         if preview:
             return {key: value for key, value in inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS}
         if not preview:
@@ -1778,7 +1818,6 @@ class TradePage(QWidget):
                      negotiation_policy=self.negotiation_policy.currentData(),
                      negotiation_max_attempts=self.negotiation_max_attempts.value(),
                      bento_priority=self._selected_bento_priority(),
-                     base_fatigue_reserve=self.base_fatigue_reserve.value(),
                      allowed_fatigue_medicines=[name for name, check in self.medicine_checks.items() if check.isChecked()],
                      fatigue_medicine_max_uses=self.fatigue_medicine_max_uses.value(),
                      start_city_id=str(self.start_city.currentData() or ""))
@@ -2174,7 +2213,7 @@ class TradePage(QWidget):
             self.auto_sparkling_water,
             self.auto_bento,
             self.bento_priority_panel,
-            self.base_fatigue_reserve,
+            *(getattr(self, key) for key in FREIGHT_RECOVERY_THRESHOLD_KEYS),
             self.auto_pickup,
             self.auto_trailer,
             self.allow_stale_market,
@@ -2236,6 +2275,15 @@ class TradePage(QWidget):
                 return str(exc)
         if not self.preview_mode and self.auto_bento.isChecked() and not self._selected_bento_priority():
             return "自动吃便当开启时，便当类型至少选择一种。"
+        if not self.preview_mode:
+            try:
+                validate_freight_recovery_thresholds({
+                    **self._recovery_threshold_values(),
+                    "auto_sparkling_water": self.auto_sparkling_water.isChecked(),
+                    "auto_bento": self.auto_bento.isChecked(),
+                })
+            except ValueError as exc:
+                return str(exc)
         if self.trade_mode() == "fixed":
             cities = [self.fixed_route.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.fixed_route.count())]
             if len(cities) < 2:

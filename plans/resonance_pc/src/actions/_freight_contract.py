@@ -156,6 +156,7 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
     visits = []
     original = plan.get("city_visits") or []
     rubbish_selected = False
+    threshold_recovery = bool(water_plan and water_plan.get("mode") == "thresholds")
     for index in range(len(route) + 1 if route else 0):
         incoming = route[index - 1] if index else None
         following = route[index] if index < len(route) else None
@@ -172,8 +173,12 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
             eligible_rubbish = rubbish and city_id in {"7", "14"} and not rubbish_selected
             phase("rubbish_recycling", eligible_rubbish)
             rubbish_selected = rubbish_selected or eligible_rubbish
-            phase("sparkling_water", bool(water_plan and water_plan.get("planned")
-                                         and water_plan.get("city_index") == index))
+            if not threshold_recovery:
+                phase("sparkling_water", bool(water_plan and water_plan.get("planned")
+                                             and water_plan.get("city_index") == index))
+        if threshold_recovery:
+            phase("sparkling_water", bool(water_plan.get("enabled")), "disabled")
+            phase("bento", auto_bento, "disabled")
         phase("sell" if following else "final_sale", True)
         if following:
             books_reason = ("book_budget_exhausted" if following.get("buy_products")
@@ -185,7 +190,7 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
             phase("buy", bool(following.get("buy_products")),
                   following.get("selection_reason") or "no_goods_planned")
             phase("travel", True)
-        else:
+        elif not threshold_recovery:
             phase("bento", auto_bento, "disabled")
         visit.update(city_index=index, city_count=len(route) + 1, city_id=city_id,
                      city_name=city_name, role="initial" if index == 0 else

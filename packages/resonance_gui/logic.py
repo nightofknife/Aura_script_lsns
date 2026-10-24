@@ -229,6 +229,8 @@ def _update_progress_display(state: Any, payload: Mapping[str, Any], data: Mappi
     timestamp = timestamp if isinstance(timestamp, str) and timestamp.strip() else None
     stage = str(payload.get("stage") or "task")
     identity = (stage, payload.get("city_index"), payload.get("leg_index"), payload.get("trip_index"))
+    if stage in {"sparkling_water", "bento"} and data.get("scope") and data.get("phase"):
+        identity += (data["scope"], data["phase"])
     if identity != state._stage_identity:
         state.stage_started_at = timestamp
         state._stage_identity = identity
@@ -280,6 +282,7 @@ class FreightBusinessPhase:
     state: str = "waiting"
     detail: str = ""
     started_at: str | None = None
+    recovery_checkpoint: tuple[str, str] | None = field(default=None, repr=False)
 
 
 @dataclass
@@ -562,10 +565,18 @@ def reduce_workflow_freight_progress(
         return state
 
     view_state = _freight_view_state(event_state)
-    if phase.state in {"completed", "skipped"} and view_state == "running":
+    recovery_checkpoint = ((str(data["scope"]), str(data["phase"]))
+                           if stage in {"sparkling_water", "bento"}
+                           and data.get("scope") and data.get("phase") else None)
+    new_recovery_check = (recovery_checkpoint is not None
+                          and recovery_checkpoint != phase.recovery_checkpoint)
+    if phase.state in {"completed", "skipped"} and view_state == "running" and not new_recovery_check:
         # A later child heartbeat must not undo a confirmed parent completion.
         return copy.deepcopy(current) if current is not None else state
-    if phase.started_at is None:
+    if new_recovery_check:
+        phase.recovery_checkpoint = recovery_checkpoint
+        phase.started_at = state.stage_started_at
+    elif phase.started_at is None:
         phase.started_at = state.stage_started_at
     if stage == "negotiation" and phase_key != "negotiation":
         operation = str(payload.get("operation") or "")

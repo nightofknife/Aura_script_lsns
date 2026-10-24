@@ -1195,12 +1195,38 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: false
-      - name: base_fatigue_reserve
+      - name: sparkling_water_start_threshold
         type: number
         strict_integer: true
         required: false
-        default: 200
+        nullable: true
+        default: 600
         min: 0
+        description: "自动喝气泡水的开始线；实际疲劳严格大于此值才触发，启用时必须大于停止线。"
+      - name: sparkling_water_stop_threshold
+        type: number
+        strict_integer: true
+        required: false
+        nullable: true
+        default: 100
+        min: 0
+        description: "自动喝气泡水的停止线；按每杯50恢复计算，允许最后一杯跨线，喝后疲劳必须大于0。"
+      - name: bento_start_threshold
+        type: number
+        strict_integer: true
+        required: false
+        nullable: true
+        default: 600
+        min: 0
+        description: "自动吃便当的开始线；先喝水后取得最新疲劳，严格大于此值才触发，启用时必须大于停止线。"
+      - name: bento_stop_threshold
+        type: number
+        strict_integer: true
+        required: false
+        nullable: true
+        default: 100
+        min: 0
+        description: "自动吃便当的停止线；每份消费后现场读取疲劳，到达或低于此值停止。"
       - name: auto_bento
         type: boolean
         required: false
@@ -1347,36 +1373,20 @@ auto_cycle_trade_pc:
         auto_sparkling_water: "{{ inputs.auto_sparkling_water | default(false) }}"
         auto_bento: "{{ inputs.auto_bento | default(false) }}"
         bento_priority: "{{ inputs.bento_priority | default(['work_meals', 'love_bentos']) }}"
-        base_fatigue_reserve: "{{ inputs.base_fatigue_reserve | default(200) }}"
+        sparkling_water_start_threshold: "{{ inputs.sparkling_water_start_threshold | default(600) }}"
+        sparkling_water_stop_threshold: "{{ inputs.sparkling_water_stop_threshold | default(100) }}"
+        bento_start_threshold: "{{ inputs.bento_start_threshold | default(600) }}"
+        bento_stop_threshold: "{{ inputs.bento_stop_threshold | default(100) }}"
         recovery_snapshot: "{{ inputs.recovery_snapshot | default(none) }}"
         book_waste_limit: '{{ inputs.book_waste_limit }}'
         auto_trailer: '{{ inputs.auto_trailer | default(false) }}'
         trailer_daily_first_n: '{{ inputs.trailer_daily_first_n | default(1) }}'
         trailer_payment: '{{ inputs.trailer_payment | default(''gold'') }}'
-    bento:
-      action: aura.run_task
-      depends_on: run
-      when: "{{ inputs.auto_bento and nodes.run.output.success and nodes.run.output.status == 'completed' and nodes.run.output.final_sale.success and nodes.run.output.page_state == 'city_main' }}"
-      params:
-        task_ref: tasks:bento_consumption_pc.yaml:bento_consumption_pc
-        inputs:
-          eat_work_meals: "{{ 'work_meals' in inputs.bento_priority }}"
-          eat_love_bentos: "{{ 'love_bentos' in inputs.bento_priority }}"
-          bento_priority: "{{ inputs.bento_priority }}"
-          target_recovery_amount: 2000
-          allow_exceed_target: false
-          base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
     finish:
       action: resonance_pc.finish_auto_cycle_trade
-      depends_on:
-        all:
-          - run
-          - {bento: "success|skipped"}
+      depends_on: run
       params:
         trade_result: "{{ nodes.run.output }}"
-        bento_framework: "{{ nodes.bento.output }}"
-        auto_bento: "{{ inputs.auto_bento }}"
-        base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
   returns:
     market_source: "{{ nodes.finish.output.market_source | default(none) }}"
     market_refreshed: "{{ nodes.finish.output.market_refreshed | default(false) }}"
@@ -1455,6 +1465,10 @@ auto_cycle_trade_pc:
     sparkling_water_plan: "{{ nodes.finish.output.sparkling_water_plan }}"
     sparkling_water: "{{ nodes.finish.output.sparkling_water }}"
     bento_consumption: "{{ nodes.finish.output.bento_consumption }}"
+    recovery_events: "{{ nodes.finish.output.recovery_events | default([]) }}"
+    final_fatigue: "{{ nodes.finish.output.final_fatigue | default(none) }}"
+    estimated_fatigue: "{{ nodes.finish.output.estimated_fatigue | default(none) }}"
+    fatigue_tracking: "{{ nodes.finish.output.fatigue_tracking | default(none) }}"
     blocked_at: "{{ nodes.finish.output.blocked_at }}"
     blocked_leg: "{{ nodes.finish.output.blocked_leg }}"
     fatigue_medicine_used: "{{ nodes.finish.output.fatigue_medicine_used }}"

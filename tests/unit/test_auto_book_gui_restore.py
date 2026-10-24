@@ -89,13 +89,13 @@ def test_normalize_preserves_total_book_budget_without_mutating_source(budget):
     assert inputs == before
 
 
-@pytest.mark.parametrize("reserve", [200, 0])
-def test_base_fatigue_reserve_save_reload_and_formal_dispatch(window, monkeypatch, reserve):
+@pytest.mark.parametrize("stop", [200, 0])
+def test_recovery_threshold_save_reload_and_formal_dispatch(window, monkeypatch, stop):
     page = window.trade_page
-    page.base_fatigue_reserve.setValue(reserve)
+    page.sparkling_water_stop_threshold.setValue(stop)
     page.save_ui_state()
     reloaded = TradePage(window._settings)
-    assert reloaded.base_fatigue_reserve.value() == reserve
+    assert reloaded.sparkling_water_stop_threshold.value() == stop
     reloaded.close()
     reloaded.deleteLater()
     QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
@@ -103,17 +103,17 @@ def test_base_fatigue_reserve_save_reload_and_formal_dispatch(window, monkeypatc
     window.requestRunPcTrade.connect(bridge.run_pc_trade)
     page._request_start()
     assert runner.calls[0]["task_ref"] == PC_TRADE_TASK_REF
-    assert "base_fatigue_reserve" not in runner.calls[0]["inputs"]
+    assert "sparkling_water_stop_threshold" not in runner.calls[0]["inputs"]
 
 
-def test_base_fatigue_reserve_rejects_negative_without_overwriting_saved_zero(window):
+def test_recovery_threshold_rejects_negative_without_overwriting_saved_zero(window):
     page = window.trade_page
-    page.base_fatigue_reserve.setValue(0)
+    page.sparkling_water_stop_threshold.setValue(0)
     page.save_ui_state()
     saved = window._settings.load_trade_inputs()
     raw = window._settings.settings.value(TRADE_INPUTS_KEY)
-    with pytest.raises(ValueError, match="基础疲劳保留必须为非负整数"):
-        window._settings.save_trade_inputs({**saved, "base_fatigue_reserve": -1})
+    with pytest.raises(ValueError, match="sparkling_water_stop_threshold 必须为非负整数"):
+        window._settings.save_trade_inputs({**saved, "sparkling_water_stop_threshold": -1})
     assert window._settings.settings.value(TRADE_INPUTS_KEY) == raw
 
 

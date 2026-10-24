@@ -315,7 +315,7 @@ GUI 将独立功能改为扁平导航，保留已有“数据采集”及其他�
 | `arrival_timeout_seconds` | 正整数，秒；默认 3600 | 行车到达等待，不是预计行车时间或求解超时。 |
 | `auto_sparkling_water`、`auto_bento` | 布尔；默认各 false | 恢复选项不改变规划疲劳预算；终点清仓后才吃便当。 |
 | `base_fatigue_reserve` | 非负整数，疲劳点；默认 200 | 恢复下限，不是路线预算预留；48 缓冲不参与计算。 |
-| `bento_priority` | 有序类别列表；默认 `[work_meals, love_bentos]` | 顺序决定工作餐/爱心便当优先级；不含汽水，汽水仍按最后可喝城市的规则独立执行。 |
+| `bento_priority` | 有序类别列表；默认 `[work_meals, love_bentos]` | 顺序决定工作餐/爱心便当优先级；不含气泡水。两项恢复各自按阈值触发，同时满足时固定先喝水，再按更新后的疲劳判断便当。 |
 | `use_fatigue_medicine` | 布尔；默认 false | `allowed_fatigue_medicines=[]`、`fatigue_medicine_max_uses=4`，沿用现有行车恢复能力。 |
 | `auto_pickup` | 布尔；默认 false | 行车附加操作。 |
 | `auto_cape_island_investment`、`auto_rubbish_recycling` | 布尔；拟默认各 true | 到站附加操作，不作为求解器目标或收益。 |

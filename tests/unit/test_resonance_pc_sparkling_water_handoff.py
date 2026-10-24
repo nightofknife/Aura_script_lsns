@@ -70,6 +70,8 @@ def harness(monkeypatch):
         "total_fatigue_budget": 100,
         "trade_inputs": {
             "auto_sparkling_water": True, "available_city_ids": ["11", "15"],
+            "sparkling_water_start_threshold": 500, "sparkling_water_stop_threshold": 150,
+            "bento_start_threshold": 700, "bento_stop_threshold": 250,
             "auto_cape_island_investment": False, "auto_rubbish_recycling": False,
         },
         "passenger_inputs": {"trip_count": 1, "passenger_city_a_id": "11", "passenger_city_b_id": "15"},
@@ -104,6 +106,10 @@ def test_combined_copies_snapshot_and_adjusts_only_completed_passenger_usage(
     assert trade["recovery_snapshot"] is not recovery_snapshot
     assert trade["persistent_data"] is persistent_data
     assert trade["auto_sparkling_water"] is enabled
+    for key in ("sparkling_water_start_threshold", "sparkling_water_stop_threshold",
+                "bento_start_threshold", "bento_stop_threshold"):
+        assert trade[key] == inputs["trade_inputs"][key]
+        assert key not in combined._PREVIEW_INPUT_KEYS
     assert trade["fatigue_budget"] == (80 if order == "trade_first" else 73)
     trade["recovery_snapshot"]["recovery"]["sparkling_water"]["remaining_free_uses"] = 0
     assert recovery_snapshot == original
@@ -188,7 +194,11 @@ def test_real_auto_trade_requires_snapshot_before_ui(monkeypatch):
         lambda **kwargs: pytest.fail("missing snapshot must fail before UI"),
     )
     with pytest.raises(ValueError, match="recovery_snapshot"):
-        asyncio.run(trade_flow.resonance_pc_auto_cycle_trade_flow(auto_sparkling_water=True))
+        asyncio.run(trade_flow.resonance_pc_auto_cycle_trade_flow(
+            auto_sparkling_water=True,
+            sparkling_water_start_threshold=500, sparkling_water_stop_threshold=150,
+            context=object(), engine=object(), persistent_data=object(),
+        ))
 
 
 def test_real_auto_trade_requires_persistence_before_ui(monkeypatch, recovery_snapshot):
@@ -199,6 +209,8 @@ def test_real_auto_trade_requires_persistence_before_ui(monkeypatch, recovery_sn
     with pytest.raises(RuntimeError, match="persistent_data"):
         asyncio.run(trade_flow.resonance_pc_auto_cycle_trade_flow(
             auto_sparkling_water=True, recovery_snapshot=recovery_snapshot,
+            sparkling_water_start_threshold=500, sparkling_water_stop_threshold=150,
+            context=object(), engine=object(),
         ))
 
 
@@ -211,7 +223,6 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     inputs, _, _ = harness
     inputs["trade_inputs"]["auto_sparkling_water"] = enabled
     inputs["trade_inputs"]["book_budget"] = book_budget
-    inputs["trade_inputs"]["base_fatigue_reserve"] = 70
     original = deepcopy(recovery_snapshot)
     captured = {}
     route = [{
@@ -264,9 +275,12 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     monkeypatch.setattr(trade_flow, "_execute_city_trade_inside_current_city", lambda **kwargs: {
         "success": True, "page_state": "city_main",
     })
+    async def refresh_fatigue(**kwargs):
+        return 120
+    monkeypatch.setattr(trade_flow, "_refresh_recovery_fatigue", refresh_fatigue)
+    monkeypatch.setattr(trade_flow, "load_pc_user_info", lambda store: deepcopy(recovery_snapshot))
     if not enabled:
         monkeypatch.setattr(trade_flow, "validate_recovery_snapshot", lambda snapshot: pytest.fail("disabled flag must ignore snapshot"))
-        monkeypatch.setattr(trade_flow, "select_last_water_arrival", lambda *args: pytest.fail("disabled flag must not select recovery"))
     result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
         **inputs, order=order, recovery_snapshot=recovery_snapshot, persistent_data=persistent_data,
     ))
@@ -278,14 +292,11 @@ def test_combined_handoff_enters_real_auto_trade_signature(
     assert "auto_book" not in result["trade"]
     assert recovery_snapshot == original
     assert captured["persistent_data"] is persistent_data
-    assert result["trade"]["sparkling_water"]["triggered"] is enabled
+    assert result["trade"]["sparkling_water"]["triggered"] is False
     plan = result["trade"]["sparkling_water_plan"]
-    assert captured["sparkling_water_plan"] == plan
-    assert plan["base_fatigue_reserve"] == 70
+    assert plan["mode"] == "thresholds" and plan["enabled"] is enabled
+    assert "base_fatigue_reserve" not in plan
     if enabled:
-        assert plan["planned"] is True
-        assert plan["city_index"] == 1
-        assert "current_fatigue" not in plan  # Real-time reading belongs to arrival execution.
-    else:
-        assert plan == {"planned": False, "reason": "disabled", "drink_count": 0,
-                        "base_fatigue_reserve": 70}
+        session = captured["recovery_session"]
+        assert session.water_start == 500 and session.water_stop == 150
+        assert session.bento_start == 700 and session.bento_stop == 250

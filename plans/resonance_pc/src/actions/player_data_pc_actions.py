@@ -15,7 +15,11 @@ import cv2
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.observability.logging.core_logger import logger
-from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_core.scheduler.operation_scope import OperationTimeout
+from packages.aura_core.utils.exceptions import StopTaskException, TaskControlException
+from ....aura_base.src.services.observation_service import CaptureError, ObservationService
+
+from ._fatigue_observation import FatigueConfirmation, read_fatigue_pair
 
 from .character_pc_actions import (
     enter_character_page,
@@ -476,6 +480,45 @@ def _read_ratio_region(app: Any, ocr: Any, region: Region) -> Dict[str, int]:
     return _extract_ratio(_read_region_text(app, ocr, region))
 
 
+def _read_profile_fatigue(app: Any, ocr: Any) -> Dict[str, int]:
+    """Confirm independently read digits in two consecutive fresh frames."""
+    region = _PROFILE_FIELD_REGIONS["fatigue"]
+    observation = ObservationService(app=app)
+    confirmation = FatigueConfirmation()
+    deadline = time.monotonic() + 3.0
+    reason = "fatigue_unrecognized"
+    while True:
+        check_cancelled()
+        if time.monotonic() >= deadline:
+            break
+        value, frame_id = None, None
+        try:
+            frame = observation.capture_regions((region,))
+            check_cancelled()
+            value, reason = read_fatigue_pair(frame, region, ocr, guard=check_cancelled)
+            frame_id = frame.id
+        except (OperationTimeout, TaskControlException):
+            raise
+        except CaptureError:
+            check_cancelled()
+            reason = "capture failed"
+        except Exception:
+            check_cancelled()
+            reason = "ocr_failed"
+        check_cancelled()
+        # A result obtained after the budget must not update the player cache.
+        if time.monotonic() >= deadline:
+            reason = "observation_timeout"
+            break
+        if confirmation.feed(value, frame_id):
+            return {"current": value[0], "max": value[1]}
+        time.sleep(min(0.2, max(0.0, deadline - time.monotonic())))
+    check_cancelled()
+    raise StopTaskException(
+        f"Player data refresh failed: invalid fatigue digits: {reason}", success=False,
+    )
+
+
 def _parse_city_name(items: List[Dict[str, Any]]) -> str:
     candidates = []
     for item in items:
@@ -499,6 +542,11 @@ def _read_profile_stage(app: Any, ocr: Any, sections: Sequence[str] = _DEFAULT_P
         if section not in sections:
             continue
         check_cancelled()
+        if section == "fatigue":
+            result[section] = _read_profile_fatigue(app, ocr)
+            if on_updated is not None:
+                on_updated(section)
+            continue
         # Missing or partial OCR must not overwrite a previous value with 0/0.
         deadline = time.monotonic() + 3.0
         while True:

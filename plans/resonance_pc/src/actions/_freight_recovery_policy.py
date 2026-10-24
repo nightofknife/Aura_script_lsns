@@ -167,6 +167,36 @@ def plan_water_use(
     }
 
 
+def validate_recovery_thresholds(start: Any, stop: Any, *, resource: str) -> None:
+    """Enabled recovery requires explicit user thresholds, never inferred defaults."""
+    _integer(start, f"{resource}_start_threshold", 1)
+    _integer(stop, f"{resource}_stop_threshold")
+    if start <= stop:
+        raise ValueError(f"{resource}_start_threshold must exceed {resource}_stop_threshold")
+
+
+def plan_threshold_water_use(current_fatigue: int, start: int, stop: int, free_uses: int) -> dict:
+    """Latch above start, then consume whole free cups until at/below stop.
+
+    The last cup may cross the stop line. Preserve the existing strictly
+    positive immediate-fatigue guard; future route consumption is irrelevant.
+    """
+    validate_recovery_thresholds(start, stop, resource="sparkling_water")
+    _integer(current_fatigue, "current_fatigue")
+    _integer(free_uses, "free_uses")
+    needed = max(0, (current_fatigue - stop + 49) // 50)
+    count = (max(0, min(free_uses, needed, (current_fatigue - 1) // 50))
+             if current_fatigue > start else 0)
+    return {
+        "mode": "thresholds", "planned": count > 0,
+        "reason": ("selected" if count else "below_start_threshold" if current_fatigue <= start
+                   else "no_remaining_free_uses" if free_uses == 0 else "positive_fatigue_guard"),
+        "current_fatigue": current_fatigue, "start_threshold": start, "stop_threshold": stop,
+        "free_uses": free_uses, "drink_count": count, "recovery_amount": count * 50,
+        "immediate_fatigue": current_fatigue - count * 50,
+    }
+
+
 def _request(candidate: Mapping) -> dict:
     identity = meal_identity(candidate)
     fields = (("kind", "issue_time") if identity[0] == "work_meals" else

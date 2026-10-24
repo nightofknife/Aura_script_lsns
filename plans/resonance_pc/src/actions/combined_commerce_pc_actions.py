@@ -7,6 +7,7 @@ import copy
 from typing import Any, Dict, List, Mapping, Optional
 
 from packages.aura_core.api import action_info, requires_services
+from packages.resonance_shared.freight_parameters import validate_freight_recovery_thresholds
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.context.persistence.store_service import StateStoreService
@@ -62,7 +63,10 @@ _TRADE_INPUT_KEYS = {
     "auto_sparkling_water",
     "auto_bento",
     "bento_priority",
-    "base_fatigue_reserve",
+    "sparkling_water_start_threshold",
+    "sparkling_water_stop_threshold",
+    "bento_start_threshold",
+    "bento_stop_threshold",
     "use_fatigue_medicine",
     "allowed_fatigue_medicines",
     "fatigue_medicine_max_uses",
@@ -82,7 +86,10 @@ _PREVIEW_INPUT_KEYS = _TRADE_INPUT_KEYS - {
     "trailer_payment",
     "auto_bento",
     "bento_priority",
-    "base_fatigue_reserve",
+    "sparkling_water_start_threshold",
+    "sparkling_water_stop_threshold",
+    "bento_start_threshold",
+    "bento_stop_threshold",
     "auto_pickup",
     "auto_pickup_interval_sec",
     "auto_sparkling_water",
@@ -463,6 +470,7 @@ async def resonance_pc_auto_combined_commerce_flow(
         return _blocked(result, "combined_auto_bento_unsupported", "preflight")
     effective_trade = _filtered(raw_trade, _TRADE_INPUT_KEYS)
     try:
+        validate_freight_recovery_thresholds(effective_trade)
         if type(effective_trade.get("allow_stale_market", False)) is not bool:
             raise ValueError("allow_stale_market must be a boolean")
         validate_trailer_options(effective_trade.get("auto_trailer", False),

@@ -65,7 +65,7 @@ def recovery_runtime(monkeypatch):
         calls.append(("refresh", {"stages": stages, "profile_sections": profile_sections}))
         assert stages == ["profile"] and profile_sections == ["fatigue"]
         return deepcopy(state.get("refresh_result", {
-            "status": {"fatigue": {"current": state["fatigue"], "max": 856}},
+            "status": {"fatigue": {"current": state.get("fatigue_source", {}).get("current_fatigue", state["fatigue"]), "max": 1000}},
             "metadata": {"persisted": True, "executed_profile_sections": ["fatigue"]},
         }))
 
@@ -90,8 +90,11 @@ def recovery_runtime(monkeypatch):
 def freight(trade_harness, recovery_runtime, monkeypatch):
     operations, state = trade_harness
     runtime = recovery_runtime
+    runtime.state["fatigue_source"] = state
+    state["local_quota"] = 2
     monkeypatch.setattr(trade, "_call_recovery_action", CALL_RECOVERY_ACTION)
     from plans.resonance_pc.src.actions._player_data_persistence import load_pc_user_info
+    from packages.aura_core.engine.execution_facade import ExecutionFacade
     monkeypatch.setattr(trade, "load_pc_user_info", load_pc_user_info)
     planned = {"status": "ok", "route": routes(), "expected_profit": 123456,
                "expected_fatigue_used": 333, "remaining_expected_fatigue": 567}
@@ -101,13 +104,23 @@ def freight(trade_harness, recovery_runtime, monkeypatch):
         planner_calls.append(kwargs)
         return deepcopy(planned)
 
+    async def drink(**kwargs):
+        result = await state["drink"](**kwargs)
+        runtime.store.document["recovery"]["sparkling_water"]["remaining_free_uses"] = state["local_quota"]
+        return result
+
+    async def child_task(facade, task_ref, params, **kwargs):
+        assert facade._engine is runtime.engine
+        runtime.calls.append(("consume", {"task_ref": task_ref, **deepcopy(params)}))
+        return await state["bento"](task_ref, params)
+
+    monkeypatch.setattr(ExecutionFacade, "run_task", child_task)
+    monkeypatch.setattr(trade, "resonance_pc_drink_sparkling_water_from_city_panel", drink)
     monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", planner)
-    monkeypatch.setattr(trade, "resonance_pc_go_city_main_direct",
-                        lambda **kwargs: {"success": True, "page_state": "city_main"})
 
     def run(**kwargs):
         args = dict(auto_sparkling_water=False, auto_bento=True,
-                    bento_priority=["work_meals"], base_fatigue_reserve=200,
+                    bento_priority=["work_meals"],
                     recovery_snapshot=None, context=runtime.context, engine=runtime.engine,
                     persistent_data=runtime.store, fatigue_budget=900)
         args.update(kwargs)
@@ -172,107 +185,333 @@ def test_invalid_water_refresh_never_reads_inventory(recovery_runtime, change):
     assert runtime.store.reads == []
 
 
-def test_freight_hands_off_after_final_sale_without_bento_scan(freight):
-    original = deepcopy(freight.runtime.store.document)
-    result = freight.run(recovery_snapshot={"recovery": {"bento_count": {"count": 0}}})
-    assert result["success"] is True and result["bento_pending"] is True
-    assert result["final_sale"] == {"success": True, "page_state": "city_main"}
-    assert result["page_state"] == "city_main"
+def finish(result):
+    return asyncio.run(trade.resonance_pc_finish_auto_cycle_trade(trade_result=result))
+
+
+def test_bento_is_run_as_a_bound_task_before_trade_not_at_terminal_handoff(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0])
+    result = freight.run()
+    assert result["success"] is True and result["page_state"] == "city_main"
+    assert freight.operations.index("bentos") < freight.operations.index("trade:0")
+    assert freight.operations.count("bentos") == 1 and freight.operations.count("final_sale") == 1
+    assert "bento_pending" not in result and "bento_progress_checkpoint" not in result
+    child = next(values for name, values in freight.runtime.calls if name == "consume")
+    assert child == {"task_ref": "tasks:bento_consumption_pc.yaml:bento_consumption_pc",
+                     "eat_work_meals": True, "eat_love_bentos": False,
+                     "bento_priority": ["work_meals"], "bento_start_threshold": 700,
+                     "bento_stop_threshold": 200}
+    assert result["bento_consumption"]["final_fatigue"] == 161
+    assert result["bento_consumption"]["consumed_count"] == 9
+
+
+def test_water_precedes_bento_and_bento_uses_fresh_post_water_fatigue(freight):
+    freight.state.update(current_fatigue=801, travel_costs=[0, 0])
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot(),
+                         sparkling_water_start_threshold=700, sparkling_water_stop_threshold=500)
+    assert result["success"]
+    assert freight.operations.index("water:岚心城:2") < freight.operations.index("bentos")
+    rows = result["recovery_events"]
+    first = next(row for row in rows if row["bento_consumption"]["triggered"])
+    assert first["initial_fatigue"] == 801
+    assert first["sparkling_water"]["final_fatigue"] == 701
+    assert first["bento_consumption"]["initial_fatigue"] == 701
+
+
+def test_water_that_reaches_below_bento_start_skips_bentos(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0])
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot(),
+                         sparkling_water_start_threshold=500, sparkling_water_stop_threshold=450)
+    assert result["success"] and "bentos" not in freight.operations
+    assert result["sparkling_water"]["completed_count"] == 2
+    assert result["final_fatigue"] == 601
+
+
+def test_only_bento_threshold_met_at_arrival_does_not_wait_for_water(freight):
+    freight.state.update(current_fatigue=550, travel_costs=[300, 0])
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot(),
+                         sparkling_water_start_threshold=900, sparkling_water_stop_threshold=100)
+    assert result["success"]
+    assert not any(op.startswith("water:") for op in freight.operations)
+    assert freight.operations.index("travel:0") < freight.operations.index("bentos") < freight.operations.index("trade:1")
+    arrival = next(row for row in result["recovery_events"] if row["phase"] == "arrival")
+    assert arrival["initial_fatigue"] == 850
+    assert arrival["initial_fatigue_source"] == "route_derived"
+    assert arrival["bento_consumption"]["initial_fatigue"] == 850
+    assert arrival["bento_consumption"]["final_fatigue"] == 190
+    assert arrival["sparkling_water"]["triggered"] is False
+    assert arrival["sparkling_water"]["current_fatigue"] == 850
+    assert arrival["checked_order"] == ["sparkling_water", "bento"]
+    assert arrival["fatigue_source"] == "bento"
+    assert result["final_fatigue"] == 190
+    assert freight.state["local_quota"] == 2
+
+
+def test_distinct_thresholds_trigger_bento_then_water_in_a_later_city(freight):
+    freight.state.update(current_fatigue=850, travel_costs=[800, 0])
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot(),
+                         sparkling_water_start_threshold=900, sparkling_water_stop_threshold=100)
+    assert result["success"]
+    operations = freight.operations
+    assert operations.index("bentos") < operations.index("trade:0") < operations.index("travel:0") < operations.index("water:海角城:2")
+    assert operations.count("bentos") == 2
+    start = next(row for row in result["recovery_events"] if row["phase"] == "start")
+    assert start["sparkling_water"]["triggered"] is False
+    assert start["bento_consumption"]["final_fatigue"] == 190
+    arrival = next(row for row in result["recovery_events"] if row["phase"] == "arrival")
+    assert arrival["initial_fatigue"] == 990
+    assert arrival["sparkling_water"]["final_fatigue"] == 890
+    assert arrival["bento_consumption"]["initial_fatigue"] == 890
+    assert arrival["bento_consumption"]["final_fatigue"] == 170
+    assert arrival["checked_order"] == ["sparkling_water", "bento"]
+    assert result["bento_consumption"]["consumed_count"] == 23
+    assert result["sparkling_water"]["completed_count"] == 2
+    assert result["final_fatigue"] == 170
+    assert profile_refresh_count(freight) == 2
+
+
+def test_water_failure_blocks_bento_and_following_trades(freight):
+    freight.state.update(current_fatigue=850, water_failure=True)
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
+    assert result["success"] is False
+    assert "bentos" not in freight.operations
+    assert freight.operations.count("water:岚心城:2") == 1
+    assert "trade:0" not in freight.operations and "travel:0" not in freight.operations
+    assert result["bento_consumption"]["consumed_count"] == 0
+    assert result["sparkling_water"]["completed_count"] == 0
+    assert result["final_fatigue"] is None
+
+
+@pytest.mark.parametrize("unavailable", ["no_rest", "zero_quota"])
+def test_unavailable_water_falls_through_to_bentos_at_current_city(freight, monkeypatch, unavailable):
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0])
+    if unavailable == "no_rest":
+        monkeypatch.setattr(trade, "_has_recovery_rest_point", lambda *args: False)
+    else:
+        freight.state["local_quota"] = 0
+        freight.runtime.store.document["recovery"]["sparkling_water"]["remaining_free_uses"] = 0
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
+    assert result["success"] and result["final_fatigue"] == 161
+    assert not any(op.startswith("water:") for op in freight.operations)
+    assert freight.operations.index("bentos") < freight.operations.index("trade:0")
+
+
+def test_multiple_city_results_aggregate_confirmed_portions_and_measurements(freight):
+    freight.state.update(current_fatigue=450, travel_costs=[200, 200])
+    result = freight.run(bento_start_threshold=400, bento_stop_threshold=300)
+    assert result["success"] and freight.operations.count("bentos") == 3
+    assert result["bento_consumption"]["consumed_count"] == 10
+    assert result["bento_consumption"]["recovered_fatigue"] == 600
+    assert result["final_fatigue"] == 250
+    assert len([v for v in result["bento_consumption"]["visits"] if v["triggered"]]) == 3
+
+
+def profile_refresh_count(freight):
+    return sum(name == "refresh" for name, _params in freight.runtime.calls)
+
+
+def test_trade_observations_and_route_costs_avoid_reopening_profile_at_each_checkpoint(freight):
+    freight.state.update(current_fatigue=100, travel_costs=[100, 100])
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 300
+    assert profile_refresh_count(freight) == 1
+    arrivals = [row for row in result["recovery_events"] if row["phase"] == "arrival"]
+    assert [row["initial_fatigue"] for row in arrivals] == [200, 300]
     assert freight.operations.count("final_sale") == 1
-    assert freight.runtime.calls == [] and freight.runtime.store.reads == []
-    assert freight.runtime.store.document == original
 
 
-def child_framework(**overrides):
-    child = {
-        "success": True, "status": "completed", "reason": "no_fitting_meal",
-        "page_state": "city_main", "consumed_count": 2, "completed_count": 2,
-        "recovered_fatigue": 72, "computed_fatigue": 575,
-        "base_fatigue_reserve": 200, "target_recovery_amount": 2000,
-        "allow_exceed_target": False, "items": [{"consumed": True}],
-    }
-    child.update(overrides)
-    return child
+@pytest.mark.parametrize("index", [0, 1, 2], ids=["first-trade", "middle-trade", "final-sale"])
+def test_failed_trade_page_reading_falls_back_before_recovery_decision(freight, index):
+    freight.state.update(current_fatigue=100, travel_costs=[100, 100],
+                         trade_observations={index: {
+        "success": False, "current_fatigue": None, "max_fatigue": None,
+        "source": "trade_page", "reason": "fatigue_unrecognized"}})
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 300
+    assert profile_refresh_count(freight) == 2
+    assert freight.operations.count("final_sale") == 1
 
 
-def finish(result, framework=None, *, auto_bento=True, event_bus=None, context=None):
-    return asyncio.run(trade.resonance_pc_finish_auto_cycle_trade(
-        trade_result=result, bento_framework=framework, auto_bento=auto_bento,
-        base_fatigue_reserve=200, event_bus=event_bus, context=context,
-    ))
+@pytest.mark.parametrize("cost", [None, True, -1, RuntimeError("missing route cost")])
+def test_missing_or_invalid_route_cost_forces_arrival_profile_calibration(freight, cost):
+    freight.state.update(current_fatigue=100, travel_costs=[150, 0], known_travel_costs=[cost, 0])
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 250
+    assert profile_refresh_count(freight) == 2
+    arrival = next(row for row in result["recovery_events"] if row["phase"] == "arrival")
+    assert arrival["initial_fatigue"] == 250
 
 
-def test_child_result_preserves_freight_and_confirmed_consumption(freight):
-    core = freight.run()
-    result = finish(core, child_framework())
-    assert result["success"] is True and result["status"] == "completed"
-    assert result["page_state"] == "city_main"
-    assert result["bento_consumption"]["recovered_fatigue"] == 72
-    assert result["bento_consumption"]["triggered"] is True
-    assert result["route"] == core["route"] and result["expected_profit"] == core["expected_profit"]
-    assert "bento_plan" not in result and "bento_pending" not in result
+@pytest.mark.parametrize("special", [
+    {"fatigue_medicine_use_count": 1}, {"travel_method": "trailer"}, {"encounter_actions": 1},
+])
+def test_special_travel_forces_actual_calibration_at_confirmed_arrival(freight, special):
+    freight.state.update(current_fatigue=100, travel_costs=[100, 100], travel_results={0: special})
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 300
+    assert profile_refresh_count(freight) == 2
 
 
-@pytest.mark.parametrize("status,page", [("failed", "unknown"), ("cancelled", "city_main")])
-def test_partial_child_failure_is_not_retried_or_reported_as_success(freight, status, page):
-    core = freight.run()
-    framework = child_framework(success=False, status=status, reason="rating_failed",
-                                page_state=page, consumed_count=1, completed_count=0,
-                                recovered_fatigue=36, computed_fatigue=611)
-    result = finish(core, framework)
-    assert result["success"] is False and result["status"] == status
-    assert result["reason"] == "rating_failed" and result["page_state"] == page
+def test_trade_reading_includes_negotiation_without_adding_it_twice(freight):
+    freight.state.update(current_fatigue=100, trade_costs=[24, 16, 8], travel_costs=[50, 70])
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 268
+    assert profile_refresh_count(freight) == 1
+    checkpoints = [(row["phase"], row["initial_fatigue"]) for row in result["recovery_events"]]
+    assert checkpoints == [("start", 100), ("pre_departure", 124), ("arrival", 174),
+                           ("pre_departure", 190), ("arrival", 260), ("final_sale", 268)]
+
+
+def test_next_trade_reading_replaces_route_estimate_before_next_leg(freight):
+    # A stale road dataset overstates the first leg; a trade observation repairs it.
+    freight.state.update(current_fatigue=100, travel_costs=[100, 50], known_travel_costs=[120, 50])
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 250
+    checkpoints = [(row["phase"], row["initial_fatigue"]) for row in result["recovery_events"]]
+    assert ("arrival", 220) in checkpoints and ("pre_departure", 200) in checkpoints
+    assert checkpoints[-2:] == [("arrival", 250), ("final_sale", 250)]
+    assert profile_refresh_count(freight) == 1
+
+
+def test_post_water_actual_reading_becomes_new_route_baseline(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[49, 50])
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot(),
+                         sparkling_water_start_threshold=700, sparkling_water_stop_threshold=450)
+    assert result["success"] and result["final_fatigue"] == 700
+    # Two free cups leave 601; the second arrival at 700 only meets the bento start.
+    assert result["sparkling_water"]["completed_count"] == 2
+    assert "bentos" not in freight.operations
+    assert profile_refresh_count(freight) == 2
+
+
+def test_post_bento_actual_reading_becomes_new_route_baseline(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[50, 50])
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 261
+    assert freight.operations.count("bentos") == 1
+    assert profile_refresh_count(freight) == 1
+
+
+@pytest.mark.parametrize("status", ["failed", "cancelled"])
+def test_partial_child_failure_is_retained_without_retry_or_next_trade(freight, status):
+    freight.state.update(current_fatigue=701, bento_result={
+        "success": False, "status": status, "reason": "bento_cancelled" if status == "cancelled" else "rating_failed",
+        "page_state": "unknown", "consumed_count": 1, "completed_count": 0,
+        "work_meals_used": 1, "final_fatigue": None, "recovered_fatigue": None,
+        "items": [{"consumed": True, "completed": False, "phase": "rating_pending"}],
+    })
+    result = freight.run()
+    assert result["success"] is False
     assert result["bento_consumption"]["consumed_count"] == 1
-    assert freight.operations.count("final_sale") == 1
-    assert freight.runtime.calls == []
+    assert result["bento_consumption"]["completed_count"] == 0
+    assert result["final_fatigue"] is None
+    assert freight.operations.count("bentos") == 1
+    assert "trade:0" not in freight.operations and "final_sale" not in freight.operations
 
 
-def test_early_child_failure_keeps_original_reason(freight):
-    result = finish(freight.run(), child_framework(
-        success=False, status="failed", reason="bento_cabinet_missing",
-        page_state="unknown", consumed_count=0, completed_count=0,
-        recovered_fatigue=0, computed_fatigue=None,
-    ))
-    assert result["success"] is False and result["reason"] == "bento_cabinet_missing"
-    assert result["bento_consumption"]["computed_fatigue"] is None
+@pytest.mark.parametrize("change", [
+    {"page_state": "city_panel"},
+    {"final_fatigue": None},
+    {"consumed_count": True},
+    {"bento_start_threshold": 999},
+])
+def test_unconfirmed_or_invalid_bento_result_stops_route(freight, change):
+    freight.state.update(current_fatigue=701, bento_result=change)
+    result = freight.run()
+    assert result["success"] is False
+    assert freight.operations.count("bentos") == 1 and "trade:0" not in freight.operations
 
 
-def test_wrong_child_page_and_missing_result_fail_closed(freight):
+def test_finish_only_passes_through_already_aggregated_business_results(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0])
     core = freight.run()
-    wrong_page = finish(core, child_framework(page_state="city_panel"))
-    assert wrong_page["success"] is False and wrong_page["reason"] == "bento_main_not_restored"
-    missing = finish(core, {"nodes": {}})
-    assert missing["success"] is False and missing["reason"] == "bento_result_invalid"
+    result = finish(core)
+    assert result == core
+    assert freight.operations.count("bentos") == 1
 
 
-def test_no_available_child_is_a_successful_trade_stop(freight):
-    result = finish(freight.run(), child_framework(
-        status="skipped", reason="no_available_meals", consumed_count=0,
-        completed_count=0, recovered_fatigue=0,
-    ))
-    assert result["success"] is True and result["status"] == "completed"
-    assert result["bento_consumption"]["status"] == "skipped"
+def test_no_available_bentos_above_stop_is_a_resource_skip_not_a_false_recovery(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0], bento_result={
+        "status": "skipped", "reason": "no_available_meals", "consumed_count": 0,
+        "completed_count": 0, "work_meals_used": 0, "recovered_fatigue": 0,
+        "final_fatigue": 701, "items": [],
+    })
+    result = freight.run()
+    assert result["success"] and result["status"] == "completed"
+    assert result["bento_consumption"]["consumed_count"] == 0
+    assert result["final_fatigue"] == 701
+    assert "final_sale" in freight.operations
+    visits = [row for row in result["bento_consumption"]["visits"] if row["triggered"]]
+    assert visits and all(row["reason"] == "no_available_meals" for row in visits)
 
 
-def test_already_below_floor_skips_without_failing_trade(freight):
-    result = finish(freight.run(), child_framework(
-        status="skipped", reason="fatigue_floor_reached", consumed_count=0,
-        completed_count=0, recovered_fatigue=0, computed_fatigue=150,
-    ))
-    assert result["success"] is True and result["status"] == "completed"
+def test_fresh_bento_entry_can_skip_after_observing_fatigue_below_start(freight):
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0], bento_result={
+        "status": "skipped", "reason": "start_threshold_not_exceeded", "consumed_count": 0,
+        "completed_count": 0, "work_meals_used": 0, "initial_fatigue": 699,
+        "final_fatigue": 699, "recovered_fatigue": 0, "items": [],
+    })
+    result = freight.run()
+    assert result["success"] and result["final_fatigue"] == 699
+    assert freight.operations.count("bentos") == 1
+    assert result["bento_consumption"]["consumed_count"] == 0
 
 
-def test_final_sale_failure_never_hands_off_bentos(freight, monkeypatch):
-    monkeypatch.setattr(trade, "_execute_city_trade_inside_current_city",
-                        lambda **kwargs: {"success": False, "page_state": "unknown"})
-    core = freight.run()
-    assert core["success"] is False and core["reason"] == "final_sale_not_confirmed"
-    assert core["bento_pending"] is False
-    finished = finish(core)
-    assert finished["status"] == "failed" and finished["bento_consumption"]["triggered"] is False
+def test_final_sale_failure_does_not_run_terminal_recovery(freight):
+    freight.state.update(current_fatigue=100, final_sale_failure=True)
+    result = freight.run()
+    assert result["success"] is False
+    assert "bento_pending" not in result and "bentos" not in freight.operations
+    assert not any(row["phase"] == "final_sale" for row in result["recovery_events"])
 
 
-def test_trade_progress_waits_for_child_and_keeps_sequence(freight):
+def test_post_sale_bento_failure_keeps_confirmed_sale_and_unknown_final_fatigue(freight):
+    freight.state.update(current_fatigue=100, travel_costs=[0, 0], trade_costs=[0, 0, 650],
+                         bento_result={
+        "success": False, "status": "failed", "reason": "rating_failed", "page_state": "unknown",
+        "consumed_count": 1, "completed_count": 0, "work_meals_used": 1,
+        "final_fatigue": None, "recovered_fatigue": None,
+        "items": [{"consumed": True, "completed": False, "phase": "rating_pending"}],
+    })
+    result = freight.run()
+    assert result["success"] is False and result["status"] == "failed"
+    assert result["reason"] == "rating_failed"
+    assert result["final_sale"]["success"] is True
+    assert result["final_sale"]["page_state"] == "city_main"
+    assert result["bento_consumption"]["consumed_count"] == 1
+    assert result["bento_consumption"]["completed_count"] == 0
+    assert result["bento_consumption"]["recovered_fatigue"] is None
+    assert result["final_fatigue"] is None and result["resources"]["actual_fatigue"] is None
+    assert freight.operations.count("final_sale") == freight.operations.count("bentos") == 1
+    assert freight.operations.index("final_sale") < freight.operations.index("bentos")
+    event = result["recovery_events"][-1]
+    assert event["phase"] == "final_sale" and event["initial_fatigue"] == 750
+    assert event["bento_consumption"]["items"][0]["phase"] == "rating_pending"
+
+
+def test_arrival_recovery_failure_keeps_confirmed_leg_without_next_trade(freight):
+    freight.state.update(current_fatigue=100, travel_costs=[650, 0], bento_result={
+        "success": False, "status": "failed", "reason": "bento_fatigue_unrecognized",
+        "page_state": "bento_cabinet", "consumed_count": 1, "completed_count": 1,
+        "work_meals_used": 1, "final_fatigue": None, "recovered_fatigue": None,
+        "items": [{"consumed": True, "completed": True, "phase": "completed"}],
+    })
+    result = freight.run()
+    assert result["success"] is False and result["reason"] == "bento_fatigue_unrecognized"
+    execution = result["execution"]
+    assert execution["completed_leg_count"] == 1 and freight.state["completed"] == 1
+    assert len(execution["leg_results"]) == 1
+    leg = execution["leg_results"][0]
+    assert leg["travel"]["success"] is True and leg["travel"]["status"] == "ok"
+    assert leg["city_trade"]["success"] is True
+    assert result["bento_consumption"]["consumed_count"] == 1
+    assert result["final_fatigue"] is None
+    assert freight.operations.count("bentos") == 1
+    assert "trade:1" not in freight.operations and "travel:1" not in freight.operations
+    assert "final_sale" not in freight.operations
+
+
+def test_trade_progress_finishes_once_with_monotonic_sequence(freight):
     class Events:
         def __init__(self):
             self.rows = []
@@ -282,87 +521,58 @@ def test_trade_progress_waits_for_child_and_keeps_sequence(freight):
 
     bus = Events()
     context = ExecutionContext(cid="freight-bento-progress")
-    core = freight.run(event_bus=bus, context=context)
-    assert core["bento_pending"] is True and core["bento_progress_sequence"] > 0
-    assert (bus.rows[-1]["payload"]["stage"], bus.rows[-1]["payload"]["state"]) == ("bento", "started")
+    freight.runtime.context = context
+    freight.state.update(current_fatigue=701, travel_costs=[0, 0])
+    core = freight.run(event_bus=bus)
+    assert core["success"]
+    payloads = [row["payload"] for row in bus.rows]
+    assert any(row["stage"] == "bento" and row["state"] == "started" for row in payloads)
+    assert [(row["stage"], row["state"]) for row in payloads].count(("task", "completed")) == 1
+    assert payloads[-1]["stage"] == "task" and payloads[-1]["state"] == "completed"
+    sequences = [row["sequence"] for row in payloads]
+    assert sequences == list(range(1, len(sequences) + 1))
     state = TradeProgressState(cid="freight-bento-progress")
     for row in bus.rows:
         state = reduce_trade_progress(state, row, expected_cid=context.data["cid"])
-    assert state.stage == "bento" and state.state == "started"
-    result = finish(core, child_framework(), event_bus=bus, context=context)
-    assert result["success"] is True
-    assert [(row["payload"]["stage"], row["payload"]["state"]) for row in bus.rows[-2:]] == [
-        ("bento", "completed"), ("task", "completed"),
-    ]
-    sequences = [row["payload"]["sequence"] for row in bus.rows]
-    assert sequences == list(range(1, len(sequences) + 1))
-    for row in bus.rows[-2:]:
-        state = reduce_trade_progress(state, row, expected_cid=context.data["cid"])
-    assert state.state == "completed" and state.sequence == sequences[-1]
-
-
-@pytest.mark.parametrize("change", [
-    {"recovered_fatigue": 2001}, {"computed_fatigue": 199},
-    {"base_fatigue_reserve": 0}, {"allow_exceed_target": True},
-])
-def test_invalid_child_budget_is_rejected(freight, change):
-    result = finish(freight.run(), child_framework(**change))
-    assert result["success"] is False and result["reason"] == "bento_result_invalid"
+    assert state.state == "completed"
 
 
 @pytest.mark.parametrize("water,bento", [(False, False), (False, True), (True, False), (True, True)])
-def test_recovery_preserves_route_profit_and_original_900_budget(freight, water, bento):
+def test_recovery_does_not_refill_planning_budget_or_change_profit(freight, water, bento):
+    freight.state["current_fatigue"] = 701
     original = deepcopy(freight.planned)
     result = freight.run(auto_sparkling_water=water, auto_bento=bento,
                          recovery_snapshot=snapshot() if water else None)
     assert result["status"] == "completed"
-    assert len(freight.planner_calls) == 1
-    assert freight.planner_calls[0]["fatigue_budget"] == 900
+    assert len(freight.planner_calls) == 1 and freight.planner_calls[0]["fatigue_budget"] == 900
     for key in ("route", "expected_profit", "expected_fatigue_used", "remaining_expected_fatigue"):
         assert result[key] == original[key]
     assert freight.planned == original
-    names = [name for name, _ in freight.runtime.calls]
-    assert names.count("refresh") == int(water)
-    assert names.count("consume") == 0
-    assert names.count("open_panel") == int(water)
-    assert result["bento_pending"] is bento
-    if water:
-        assert names.index("refresh") < names.index("open_panel")
-        water_index = next(i for i, op in enumerate(freight.operations) if op.startswith("water:"))
-        assert freight.operations.index("travel:1") < water_index < freight.operations.index("final_sale")
     if not water and not bento:
-        assert freight.runtime.store.reads == []
-        assert finish(result, auto_bento=False)["bento_consumption"]["reason"] == "disabled"
+        assert freight.runtime.calls == [] and freight.runtime.store.reads == []
 
 
-@pytest.mark.parametrize("boundary", ["no_route", "blocked"])
-def test_no_route_or_blocked_never_refreshes_or_consumes(freight, boundary):
-    if boundary == "no_route":
-        freight.planned.update(status="no_plan", route=[])
-    else:
-        freight.state["block_index"] = 1
+def test_no_route_never_refreshes_or_consumes(freight):
+    freight.planned.update(status="no_plan", route=[])
     result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
-    assert result["status"] == ("blocked" if boundary == "blocked" else "stopped")
     assert result["success"] is False
-    assert result["bento_pending"] is False
     assert freight.runtime.calls == [] and freight.runtime.store.reads == []
     assert "final_sale" not in freight.operations and "bentos" not in freight.operations
 
 
-def test_failed_arrival_blocks_water_final_sale_and_bentos(freight, monkeypatch):
-    original = trade._execute_trade_leg
+def test_blocked_arrival_does_not_start_recovery_at_failed_destination(freight):
+    freight.state.update(current_fatigue=100, block_index=0)
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
+    assert result["status"] == "blocked"
+    assert not any(row["city_index"] == 1 for row in result["recovery_events"])
+    assert "final_sale" not in freight.operations and "bentos" not in freight.operations
 
-    async def failed(**kwargs):
-        result = await original(**kwargs)
-        if kwargs["index"] == 1:
-            result["travel"] = {"success": False, "status": "failed"}
-        return result
 
-    monkeypatch.setattr(trade, "_execute_trade_leg", failed)
+def test_failed_arrival_blocks_terminal_work(freight):
+    freight.state.update(current_fatigue=100, fail_index=0)
     with pytest.raises(Exception) as error:
         freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
     assert error.value.code == "trade_arrival_not_confirmed"
-    assert freight.runtime.calls == []
     assert "final_sale" not in freight.operations and "bentos" not in freight.operations
 
 
@@ -374,7 +584,7 @@ def test_combined_auto_bento_is_rejected_before_any_game_action(
     inputs.update(context=freight.runtime.context, engine=freight.runtime.engine,
                   total_fatigue_budget=900)
     inputs["trade_inputs"].update(auto_sparkling_water=True, auto_bento=True,
-                                  bento_priority=["work_meals"], base_fatigue_reserve=200)
+                                  bento_priority=["work_meals"], bento_start_threshold=700, bento_stop_threshold=200)
     from tests.unit.test_resonance_pc_sparkling_water_trade import Market
     from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonancePcCityShopDataService
     inputs["resonance_pc_market_data"] = Market()
@@ -397,10 +607,9 @@ def test_combined_auto_bento_is_rejected_before_any_game_action(
 ])
 def test_unconfirmed_registered_opener_stops_water_and_terminal_work(freight, opened):
     freight.runtime.state["panel_result"] = opened
-    with pytest.raises(Exception) as error:
-        freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
-    assert error.value.code == "sparkling_water_panel_not_restored"
-    assert [name for name, _ in freight.runtime.calls] == ["refresh", "open_panel"]
+    freight.state["current_fatigue"] = 701
+    result = freight.run(auto_sparkling_water=True, recovery_snapshot=snapshot())
+    assert result["success"] is False
     assert not any(op.startswith("water:") for op in freight.operations)
     assert "final_sale" not in freight.operations and "bentos" not in freight.operations
 
