@@ -12,7 +12,8 @@ def test_projection_keeps_draft_values_while_removing_inactive_runtime_fields():
         target_profit_enabled=False, target_profit=9000000, fixed_route_city_ids=["1", "2"],
         reposition_to_route=True, negotiation_policy="disabled", negotiation_max_attempts=6,
         auto_sparkling_water=False, auto_bento=False, bento_priority=["love_bentos"],
-        base_fatigue_reserve=456, use_fatigue_medicine=False,
+        sparkling_water_start_threshold=601, sparkling_water_stop_threshold=200,
+        bento_start_threshold=700, bento_stop_threshold=231, base_fatigue_reserve=456, use_fatigue_medicine=False,
         allowed_fatigue_medicines=["提神棒棒糖"], fatigue_medicine_max_uses=2)
     original = deepcopy(draft)
     result = effective_freight_inputs(draft)
@@ -87,3 +88,26 @@ def test_profit_and_no_books_ignore_inactive_waste_limit():
         request = dict(book_budget=books, book_policy="profit", book_waste_limit="inactive")
         assert "book_waste_limit" not in effective_freight_inputs(request)
         assert normalize_planning_inputs(request)["book_waste_limit"] == 0
+
+
+@pytest.mark.parametrize("water,bento", [(False, False), (False, True), (True, False), (True, True)])
+def test_recovery_threshold_projection_is_independent(water, bento):
+    from packages.resonance_shared.freight_parameters import FREIGHT_RECOVERY_THRESHOLD_KEYS
+    draft = dict(auto_sparkling_water=water, auto_bento=bento,
+                 sparkling_water_start_threshold=600, sparkling_water_stop_threshold=300,
+                 bento_start_threshold=700, bento_stop_threshold=200)
+    projected = effective_freight_inputs(draft)
+    for key in FREIGHT_RECOVERY_THRESHOLD_KEYS:
+        assert (key in projected) is (water if key.startswith("sparkling_water") else bento)
+        assert draft[key] is not None
+
+
+@pytest.mark.parametrize("start,stop", [(None, 0), (600, None), (0, 0), (200, 200),
+                                       (199, 200), (True, 0), (600.0, 200), (600, -1)])
+def test_active_recovery_thresholds_are_strict_integers(start, stop):
+    from packages.resonance_shared.freight_parameters import validate_freight_recovery_thresholds
+    with pytest.raises(ValueError, match="气泡水"):
+        validate_freight_recovery_thresholds(dict(auto_sparkling_water=True,
+            sparkling_water_start_threshold=start, sparkling_water_stop_threshold=stop))
+    validate_freight_recovery_thresholds(dict(auto_sparkling_water=False,
+        sparkling_water_start_threshold=start, sparkling_water_stop_threshold=stop))

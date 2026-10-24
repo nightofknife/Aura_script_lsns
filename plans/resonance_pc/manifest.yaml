@@ -730,8 +730,8 @@ exports:
     public: true
     read_only: false
     timeout: 660
-    description: Consume top-position bentos until target, floor or available meals
-      stop the run.
+    description: Start above the supplied fatigue threshold; measure after each portion
+      until the stop threshold.
     parameters:
     - name: eat_work_meals
       type: Any
@@ -745,18 +745,14 @@ exports:
       type: Any
       required: false
       default: null
-    - name: target_recovery_amount
+    - name: bento_start_threshold
       type: Any
       required: false
-      default: 2000
-    - name: allow_exceed_target
+      default: 600
+    - name: bento_stop_threshold
       type: Any
       required: false
-      default: false
-    - name: base_fatigue_reserve
-      type: Any
-      required: false
-      default: -100
+      default: 100
   - name: resonance_pc.consume_bentos
     module: plans.resonance_pc.src.actions.bento_consumption_pc_actions
     function: resonance_pc_consume_bentos
@@ -1349,10 +1345,22 @@ exports:
       type: Any
       required: false
       default: null
-    - name: base_fatigue_reserve
+    - name: sparkling_water_start_threshold
       type: Any
       required: false
-      default: 200
+      default: 600
+    - name: sparkling_water_stop_threshold
+      type: Any
+      required: false
+      default: 100
+    - name: bento_start_threshold
+      type: Any
+      required: false
+      default: 600
+    - name: bento_stop_threshold
+      type: Any
+      required: false
+      default: 100
     - name: auto_pickup
       type: Any
       required: false
@@ -1387,24 +1395,12 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Merge the optional bento sub-task into the completed freight result.
+    description: Normalize the freight result after threshold-triggered recovery.
     parameters:
     - name: trade_result
       type: Any
       required: true
       default: null
-    - name: bento_framework
-      type: Any
-      required: false
-      default: null
-    - name: auto_bento
-      type: Any
-      required: false
-      default: false
-    - name: base_fatigue_reserve
-      type: Any
-      required: false
-      default: 200
   - name: resonance_pc.select_intercity_destination
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_select_intercity_destination
@@ -3270,8 +3266,8 @@ exports:
   - id: bento_consumption_pc/bento_consumption_pc
     title: Consume Bentos (PC)
     source: tasks/bento_consumption_pc.yaml
-    description: Consume top-position work meals and first love bento until the recovery
-      target or fatigue floor.
+    description: Consume top-position bentos after the start threshold until live
+      fatigue reaches the stop threshold.
     role: internal
     domain: 商贸运输
   - id: black_moon_local_prepare_pc/black_moon_local_prepare_pc
@@ -3540,4 +3536,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-23T09:51:20Z'
+  generated_at: '2026-10-24T08:29:13Z'

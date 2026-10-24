@@ -53,7 +53,7 @@ investment = await execution.run_task(
 
 投资的业务结果检查继续在领域层进行，以保留 `goods_investment_task_incomplete` 与原 result 详情；不在 facade 前置重复断言，把该错误改成通用 task failed。原框架失败仍为 `goods_investment_task_failed`，包装补充 cause 和 evidence。
 
-气泡水次数/疲劳预算、共享休息点 session、消费提交与回程策略未改变。便当仍由 `auto_cycle_trade_pc.yaml` 的独立完整子任务执行，然后交给 `finish_auto_cycle_trade` 合并；2000 恢复目标、不可超目标及组合商贸拒绝 auto_bento 的限制保持。
+气泡水次数、路线疲劳预算、共享休息点 session、消费提交与回程策略保持既有边界。当前货运 flow 在城市安全节点按各自开始线与停止线固定先处理气泡水，再以最新实际疲劳重新判断便当；便当类型按 `bento_priority` 排序；便当通过执行 facade 的完整任务通道调用，每份后现场读取疲劳。`auto_cycle_trade_pc.yaml` 不再追加终点便当节点，`finish_auto_cycle_trade` 只接收共享 flow 已汇总的结果。组合商贸仍拒绝 `auto_bento`，详见 [货运恢复接入](resonance-pc-freight-recovery-integration.md)。
 
 本批只移除指定的手工执行装配。海角投资及其他领域 action 互调、商贸领域操作提取属于后续批次，不借本次迁移扩大范围。现有 context/engine 参数保留；本批没有新增名为 execution 的自动注入参数或业务 schema。
 

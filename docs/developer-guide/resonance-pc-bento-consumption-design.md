@@ -1,5 +1,7 @@
 # PC 便当消费子任务与父任务边界
 
+> 历史设计：本文对应旧 `resonance_pc.consume_bentos(meals)` 明确清单 Action，不代表当前 `bento_consumption_pc.yaml` 的阈值接口。现行流程按实际疲劳分别使用开始线与停止线，每份便当后现场读取；以 [货运恢复接入](resonance-pc-freight-recovery-integration.md) 为准。
+
 状态：已按用户最新要求收紧为明确清单执行接口。调用说明见 [吃便当子任务](resonance-pc-bento-consumption.md)。
 规划业务规则仍在 [到站恢复方案](resonance-pc-arrival-recovery-design.md)，但这些规则由跑商等父任务执行，不属于吃便当子任务。
 

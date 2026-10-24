@@ -128,7 +128,7 @@ def test_unreachable_is_stopped_without_sale_or_recovery(harness, monkeypatch, m
     result = run_full(trade_mode=mode, target_profit=1000000,
                       fixed_route_city_ids=["15", "11", "15"], auto_bento=True)
     assert result["status"] == "stopped" and result["success"] is False
-    assert result["planning_status"] == status and result["bento_pending"] is False
+    assert result["planning_status"] == status and "bento_pending" not in result
     assert result["final_sale"] is None and operations == ["open_panel"]
 
 
@@ -297,7 +297,7 @@ def test_structured_trade_failure_retains_completed_legs_and_never_clears_endpoi
     assert result["execution"]["completed_leg_count"] == 1
     assert result["execution"]["leg_results"][-1]["error"]["detail"]["book_result"]["used"] == 1
     assert result["final_sale"] is None and "final_sale" not in operations
-    assert result["bento_pending"] is False
+    assert "bento_pending" not in result
     assert result["resources"]["confirmed_books_used"] == 1
 
 

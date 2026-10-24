@@ -4,6 +4,32 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 FREIGHT_MODES = ("free", "fixed")
+DEFAULT_RECOVERY_THRESHOLDS = {
+    "sparkling_water_start_threshold": 600,
+    "sparkling_water_stop_threshold": 100,
+    "bento_start_threshold": 600,
+    "bento_stop_threshold": 100,
+}
+FREIGHT_RECOVERY_THRESHOLD_KEYS = (
+    "sparkling_water_start_threshold", "sparkling_water_stop_threshold",
+    "bento_start_threshold", "bento_stop_threshold",
+)
+
+
+def validate_freight_recovery_thresholds(source: Mapping[str, Any]) -> None:
+    """Validate enabled runtime recovery settings; incomplete drafts stay editable."""
+    for enabled, prefix, label in (
+        ("auto_sparkling_water", "sparkling_water", "气泡水"),
+        ("auto_bento", "bento", "便当"),
+    ):
+        if not source.get(enabled):
+            continue
+        start_key, stop_key = f"{prefix}_start_threshold", f"{prefix}_stop_threshold"
+        start = source.get(start_key, DEFAULT_RECOVERY_THRESHOLDS[start_key])
+        stop = source.get(stop_key, DEFAULT_RECOVERY_THRESHOLDS[stop_key])
+        if type(start) is not int or type(stop) is not int or not start > stop >= 0:
+            raise ValueError(f"{label}启动阈值和停止下限必须为整数，且启动阈值大于停止下限、停止下限不小于0。")
+
 FREIGHT_PLANNING_KEYS = (
     "trade_mode", "fatigue_budget", "cargo_capacity", "book_budget",
     "book_profit_threshold", "book_waste_limit", "book_policy", "negotiation_policy",
@@ -42,8 +68,13 @@ def effective_freight_inputs(source: Mapping[str, Any]) -> dict[str, Any]:
         result.pop("negotiation_max_attempts", None)
     if result.get("auto_bento") is False:
         result.pop("bento_priority", None)
-    if result.get("auto_bento") is False and result.get("auto_sparkling_water") is False:
-        result.pop("base_fatigue_reserve", None)
+        result.pop("bento_start_threshold", None)
+        result.pop("bento_stop_threshold", None)
+    if result.get("auto_sparkling_water") is False:
+        result.pop("sparkling_water_start_threshold", None)
+        result.pop("sparkling_water_stop_threshold", None)
+    result.pop("recovery_priority", None)
+    result.pop("base_fatigue_reserve", None)
     if result.get("use_fatigue_medicine") is False:
         result.pop("allowed_fatigue_medicines", None)
         result.pop("fatigue_medicine_max_uses", None)
@@ -61,4 +92,4 @@ def freight_control_state(*, mode: str, book_usage: str, target_enabled: bool,
             "book_waste_limit": book_usage != "none" and book_policy == "fill",
             "target": mode == "free" and target_enabled,
             "negotiation_attempts": negotiation != "disabled",
-            "recovery_reserve": water or bento, "bento": bento, "medicine": medicine}
+            "water": water, "bento": bento, "medicine": medicine}

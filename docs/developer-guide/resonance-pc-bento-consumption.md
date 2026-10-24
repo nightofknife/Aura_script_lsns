@@ -1,5 +1,7 @@
 # PC 吃便当子任务
 
+> 本文记录旧明确清单 Action `resonance_pc.consume_bentos(meals)` 的接口与历史验证；下文关于 `bento_consumption_pc.yaml` 的描述是旧版映射。当前同名 YAML 调用 `resonance_pc.consume_bentos_to_floor`，接收 `bento_start_threshold`、`bento_stop_threshold`，严格超过开始线才触发，每份后现场读取疲劳直到达到停止线。当前任务参数、实际疲劳返回与货运接入见 [货运恢复接入](resonance-pc-freight-recovery-integration.md)。旧版实机记录不作为新阈值策略的验证结论。
+
 ## 职责
 
 这是一个只执行明确消费清单的子任务。它不选择便当、不计算疲劳预算或恢复下限、不读取开始/结束疲劳，也不按优先级或过期时间改变清单顺序。

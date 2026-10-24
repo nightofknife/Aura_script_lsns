@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import copy
 import os
+from pathlib import Path
 from types import SimpleNamespace
 
+import cv2
 import numpy as np
 import pytest
 
@@ -38,6 +40,10 @@ def test_profile_refresh_only_reads_status_and_commits_after_success(tmp_path, m
     }
     service.set(player_data.USER_INFO_FILE, [], old)
     captured = []
+    fatigue_image = cv2.imread(str(Path(__file__).resolve().parents[1] / "fixtures/profile_status_digits/fatigue_58_864.png"))
+    now = [0.0]
+    monkeypatch.setattr(player_data.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(player_data.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds))
 
     class App:
         def click(self, **kwargs):
@@ -50,10 +56,18 @@ def test_profile_refresh_only_reads_status_and_commits_after_success(tmp_path, m
             assert field in STATUS
             if fail_capture and field == "fatigue":
                 return SimpleNamespace(success=False)
-            return SimpleNamespace(success=True, image=np.full((45, 125, 3), list(STATUS).index(field), dtype=np.uint8))
+            if field == "fatigue":
+                return SimpleNamespace(success=True, image=fatigue_image.copy())
+            return SimpleNamespace(success=True, image=np.full((rect[3], rect[2], 3), list(STATUS).index(field), dtype=np.uint8))
 
     class Ocr:
+        fatigue_calls = 0
+
         def recognize_all(self, *, source_image):
+            if int(source_image.max()) > 2:
+                text = str(STATUS["fatigue"]["current" if self.fatigue_calls % 2 == 0 else "max"])
+                self.fatigue_calls += 1
+                return SimpleNamespace(results=[SimpleNamespace(text=text, confidence=1.0)])
             field = list(STATUS)[int(source_image[0, 0, 0])]
             value = STATUS[field]
             return SimpleNamespace(results=[SimpleNamespace(text=f"{value['current']}/{value['max']}", confidence=1.0)])
@@ -82,7 +96,9 @@ def test_profile_refresh_only_reads_status_and_commits_after_success(tmp_path, m
         assert saved["inventory"] == old["inventory"]
         assert saved["metadata"]["section_updated_at"]["location"] == "old-location"
         assert saved["metadata"]["section_updated_at"]["profile"] == result["metadata"]["section_updated_at"]["profile"]
-    assert captured == [player_data._PROFILE_FIELD_REGIONS[key] for key in STATUS]
+    assert captured[:2] == [player_data._PROFILE_FIELD_REGIONS[key] for key in ("cargo", "clarity")]
+    assert all(region == player_data._PROFILE_FIELD_REGIONS["fatigue"] for region in captured[2:])
+    assert len(captured[2:]) == (15 if fail_capture else 2)
 
 
 def test_profile_retirement_preserves_unrelated_keys_and_unselected_data():

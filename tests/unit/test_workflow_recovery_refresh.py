@@ -40,6 +40,12 @@ def window(tmp_path, monkeypatch):
     repository.set_value("game/executable_path", str(executable))
     widget = ResonanceMainWindow(settings=repository, initialize_on_startup=False)
     monkeypatch.setattr(widget.settings_page, "close_on_failure_enabled", lambda: False)
+    # Explicit user configuration is required before either recovery can run.
+    widget.trade_page.sparkling_water_start_threshold.setValue(600)
+    widget.trade_page.sparkling_water_stop_threshold.setValue(300)
+    widget.trade_page.bento_start_threshold.setValue(700)
+    widget.trade_page.bento_stop_threshold.setValue(200)
+    widget.trade_page.save_ui_state()
     monkeypatch.setattr(widget.battle_page, "collect_inputs", lambda: {"jobs": [{"label": "offline fixture"}]})
     yield widget
     widget._busy = False
@@ -538,7 +544,9 @@ def test_trade_preview_strips_runtime_recovery_fields_without_refresh(window, mo
     window.requestPreviewPcTrade.connect(lambda inputs, _timeout: calls.append(inputs))
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     source = {"auto_sparkling_water": True, "recovery_snapshot": payload()["user_data"]["player_data"],
-              "auto_bento": True, "bento_priority": ["love_bentos"], "base_fatigue_reserve": 200,
+              "auto_bento": True, "bento_priority": ["love_bentos"],
+              "sparkling_water_start_threshold": 600, "sparkling_water_stop_threshold": 300,
+              "bento_start_threshold": 700, "bento_stop_threshold": 200,
               "arrival_timeout_seconds": 3600, "use_fatigue_medicine": True,
               "start_city_id": "11", "fatigue_budget": 100}
     before = deepcopy(source)
@@ -554,7 +562,8 @@ def test_trade_preview_strips_runtime_recovery_fields_without_refresh(window, mo
         assert "auto_sparkling_water" not in inputs
         assert "auto_bento" not in inputs
         assert "bento_priority" not in inputs
-        assert "base_fatigue_reserve" not in inputs
+        assert not {"sparkling_water_start_threshold", "sparkling_water_stop_threshold",
+                    "bento_start_threshold", "bento_stop_threshold"} & inputs.keys()
         assert "arrival_timeout_seconds" not in inputs
         assert "use_fatigue_medicine" not in inputs
     assert preview.auto_bento.isHidden()

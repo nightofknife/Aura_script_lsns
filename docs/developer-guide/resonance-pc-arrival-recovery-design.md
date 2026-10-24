@@ -1,5 +1,7 @@
 # PC 跑商到站恢复方案
 
+> 历史方案（2026-09-12），已由 [货运恢复接入](resonance-pc-freight-recovery-integration.md) 的四阈值方案替代。当前在起点和每个到站按实际疲劳分别判断气泡水与便当，固定先水后便当，喝水后按最新实际疲劳重新判断便当；便当内类型按用户设置排序；下文固定最后休息区、终点便当、`base_fatigue_reserve` 及后续消耗估算均不再控制当前流程。
+
 状态：用户已确认规划、使用流程与评分规则；独立吃便当子任务及货运恢复接入已实现，接入验证见 [货运恢复接入](resonance-pc-freight-recovery-integration.md)。调用说明见 [吃便当子任务](resonance-pc-bento-consumption.md)。
 
 记录日期：2026-09-12。

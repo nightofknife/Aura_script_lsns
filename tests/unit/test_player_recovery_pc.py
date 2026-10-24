@@ -89,6 +89,12 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
 
     monkeypatch.setattr(data, "_read_region_text", read_region)
 
+    def read_fatigue(app, ocr):
+        captured.append("fatigue")
+        return {"current": 12, "max": 100}
+
+    monkeypatch.setattr(data, "_read_profile_fatigue", read_fatigue)
+
     class Reader:
         def __init__(self, *args, **kwargs):
             pass

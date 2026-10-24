@@ -66,7 +66,7 @@ def test_cache_default_or_false_blocks_before_planning_and_trade(harness, monkey
     assert blocked["data"]["stale_reason"] == CACHE["stale_reason"]
     assert not any(e["stage"] == "planning" for e in bus.events)
     assert bus.events[-1]["stage"] == "task" and bus.events[-1]["state"] == "blocked"
-    final = asyncio.run(trade.resonance_pc_finish_auto_cycle_trade(result, auto_bento=True))
+    final = asyncio.run(trade.resonance_pc_finish_auto_cycle_trade(result))
     assert final["success"] is False and final["bento_consumption"]["triggered"] is False
     spec = yaml.safe_load((ROOT / "plans/resonance_pc/tasks/auto_cycle_trade_pc.yaml").read_text("utf-8"))["auto_cycle_trade_pc"]
     env = NativeEnvironment(undefined=StrictUndefined)

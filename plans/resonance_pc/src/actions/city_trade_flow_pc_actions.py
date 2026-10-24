@@ -59,8 +59,10 @@ from .rubbish_recycling_pc_actions import (
 from ._sparkling_water_policy import validate_recovery_snapshot
 from ._freight_recovery_policy import (
     select_last_water_arrival, estimate_remaining_consumption,
-    plan_water_use, validate_bento_priority,
+    plan_water_use, validate_bento_priority, validate_recovery_thresholds,
 )
+from ._freight_threshold_recovery import FreightRecoverySession
+from ._trade_fatigue_observation import read_trade_fatigue
 from ._player_data_persistence import load_pc_user_info
 from ._trade_buy_selection import (
     TradeBuySelectionError, load_product_templates, select_buy_products,
@@ -263,20 +265,10 @@ def _with_trade_progress(func: Callable[..., Any]) -> Callable[..., Any]:
                     "error_code": result.get("reason") or "trade_failed",
                 })
             if reporter is not None:
-                if result.get("bento_pending"):
-                    result["bento_progress_sequence"] = reporter.sequence
-                    result["bento_progress_checkpoint"] = {
-                        "total_units": reporter._total_units,
-                        "completed_units": [list(key) for key in reporter._completed_units],
-                        "phase_keys": [list(key) for key in reporter._phase_keys],
-                        "route_revision": reporter.route_revision,
-                    }
-                else:
-                    failed = (result.get("success") is False or
-                              str(result.get("status") or "").lower() in {"failed", "blocked", "error", "cancelled"})
-                    terminal = result.get("status") if result.get("status") in {"blocked", "cancelled"} else "failed" if failed else "completed"
-                    await reporter.emit("task", terminal,
-                                        data={"status": result.get("status")})
+                failed = (result.get("success") is False or
+                          str(result.get("status") or "").lower() in {"failed", "blocked", "error", "cancelled"})
+                terminal = result.get("status") if result.get("status") in {"blocked", "cancelled"} else "failed" if failed else "completed"
+                await reporter.emit("task", terminal, data={"status": result.get("status")})
             return result
         except Exception as exc:
             if "preview" not in func.__name__:
@@ -1480,6 +1472,7 @@ def _execute_city_trade_inside_current_city(
     city_shop_data: ResonancePcCityShopDataService,
     progress_context: Optional[Dict[str, Any]] = None,
     shop_entry: Optional[Dict[str, Any]] = None,
+    capture_fatigue: bool = False,
 ) -> Dict[str, Any]:
     progress_token = _WORKER_PROGRESS_CONTEXT.set(dict(progress_context or {}))
     try:
@@ -1495,6 +1488,7 @@ def _execute_city_trade_inside_current_city(
             vision=vision,
             city_shop_data=city_shop_data,
             shop_entry=shop_entry,
+            capture_fatigue=capture_fatigue,
         )
     finally:
         _WORKER_PROGRESS_CONTEXT.reset(progress_token)
@@ -1513,6 +1507,7 @@ def _execute_city_trade_inside_current_city_scoped(
     vision: Any,
     city_shop_data: ResonancePcCityShopDataService,
     shop_entry: Optional[Dict[str, Any]] = None,
+    capture_fatigue: bool = False,
 ) -> Dict[str, Any]:
     products = [str(item).strip() for item in (buy_products or []) if str(item).strip()]
     logger.info(
@@ -1605,9 +1600,24 @@ def _execute_city_trade_inside_current_city_scoped(
         buy.get("page_state") if isinstance(buy, dict) else None,
         dict(_WORKER_PROGRESS_CONTEXT.get()),
     )
+    fatigue_observation = None
+    if capture_fatigue:
+        try:
+            fatigue_observation = read_trade_fatigue(
+                app=app, ocr=ocr, vision=vision, check_cancelled=_check_trade_cancelled)
+        except (Exception, asyncio.CancelledError) as exc:
+            if hasattr(exc, "code") or isinstance(exc, asyncio.CancelledError):
+                exc.detail = {**(getattr(exc, "detail", {}) or {}), "city_trade": {
+                    "success": True, "page_state": "shop_page", "current_city": current_city,
+                    "sell": sell, "buy": buy}}
+            raise
+        logger.info("[FreightRecovery] trade fatigue city=%s observation=%s", current_city, fatigue_observation)
     main = resonance_pc_go_city_main_direct(app=app, vision=vision)
     if main.get("success") is not True or main.get("page_state") != "city_main":
-        _raise_error("trade_main_not_restored", "City trade did not return to main", main)
+        _raise_error("trade_main_not_restored", "City trade did not return to main", {
+            **main, "city_trade": {"success": True, "page_state": "shop_page",
+                                  "current_city": current_city, "sell": sell, "buy": buy,
+                                  "fatigue_observation": fatigue_observation}})
     logger.info(
         "[CityTrade] phase=completed city=%s sold_confirmed=%s buy_confirmed=%s page_state=%s context=%s",
         current_city,
@@ -1629,6 +1639,7 @@ def _execute_city_trade_inside_current_city_scoped(
         "buy_node": buy_node,
         "buy": buy,
         "go_city_main": main,
+        "fatigue_observation": fatigue_observation,
     }
 
 
@@ -1785,6 +1796,9 @@ async def _plan_water_arrival(
     selection: dict, *, route, travel_costs, page_state, context, engine,
     app, ocr, vision, city_shop_data, persistent_data,
 ) -> dict:
+    if selection.get("mode") == "thresholds":
+        return {"success": True, "triggered": False, "status": "planned", "reason": None,
+                "page_state": page_state, "selection": dict(selection)}
     observe_operation("sparkling_water.fatigue_refresh", "刷新当前疲劳", "started")
     current = await _refresh_recovery_fatigue(page_state=page_state, context=context, engine=engine)
     observe_operation("sparkling_water.fatigue_refresh", "当前疲劳已刷新", "completed", actual_fatigue=current)
@@ -1830,8 +1844,9 @@ async def _execute_sparkling_water_stop(
     selection: Dict[str, Any], *, page_state: str, app: Any, ocr: Any, vision: Any,
     city_shop_data: ResonancePcCityShopDataService, persistent_data: PersistentDataService,
     context: ExecutionContext | None = None, engine: ExecutionEngine | None = None,
+    report_progress: bool = True,
 ) -> Dict[str, Any]:
-    reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    reporter = _ACTIVE_PROGRESS_REPORTER.get() if report_progress else None
     fields = {"city_index": selection["city_index"], "current_city": selection["city_name"]}
     if reporter is not None:
         await reporter.emit("sparkling_water", "started", **fields, data={"selection": selection})
@@ -1859,6 +1874,71 @@ async def _execute_sparkling_water_stop(
         reporter.resources["water_basic_recovered_fatigue"] = int(result.get("completed_count") or 0) * 50
         await reporter.emit("sparkling_water", "completed", **fields, data={"result": result})
     return {**result, "triggered": True, "selection": dict(selection)}
+
+
+def _make_freight_recovery_session(*, water_enabled, bento_enabled, water_start, water_stop,
+                                  bento_start, bento_stop, priority, context, engine,
+                                  app, ocr, vision, city_shop_data, persistent_data, market_data):
+    async def refresh(page_state):
+        current = await _refresh_recovery_fatigue(page_state=page_state, context=context, engine=engine)
+        reporter = _ACTIVE_PROGRESS_REPORTER.get()
+        if reporter is not None:
+            reporter.resources["actual_fatigue"] = current
+        return current
+
+    async def drink(selection, page_state):
+        return await _execute_sparkling_water_stop(
+            selection, page_state=page_state, app=app, ocr=ocr, vision=vision,
+            city_shop_data=city_shop_data, persistent_data=persistent_data,
+            context=context, engine=engine, report_progress=False,
+        )
+
+    async def consume(params, page_state):
+        if page_state == "city_panel":
+            main = await _call_recovery_action("resonance_pc.go_city_main_direct", {}, context=context, engine=engine)
+            if main.get("success") is not True or main.get("page_state") != "city_main":
+                _raise_error("recovery_main_not_restored", "Bento requires the main screen", main)
+        elif page_state != "city_main":
+            _raise_error("recovery_invalid_start_page", "Bento requires a confirmed main screen", {"page_state": page_state})
+        return await engine.bind_execution(context).run_task(
+            "tasks:bento_consumption_pc.yaml:bento_consumption_pc", params,
+        )
+
+    async def emit(stage, state, **fields):
+        reporter = _ACTIVE_PROGRESS_REPORTER.get()
+        if reporter is None:
+            return
+        result = fields["data"].get("result") or {}
+        tracking = fields["data"].get("fatigue_tracking") or {}
+        if tracking:
+            derived = tracking.get("source") == "route_derived"
+            reporter.resources.update(
+                actual_fatigue=None if derived else tracking.get("current_fatigue"),
+                estimated_fatigue=tracking.get("current_fatigue") if derived else None,
+                fatigue_source=tracking.get("source"),
+            )
+        if state == "completed" and type(result.get("final_fatigue")) is int:
+            reporter.resources["actual_fatigue"] = result["final_fatigue"]
+            key = "water_basic_recovered_fatigue" if stage == "sparkling_water" else "bento_observed_recovered_fatigue"
+            recovered = result.get("recovered_fatigue")
+            if type(recovered) is int:
+                reporter.resources[key] = reporter.resources.get(key, 0) + recovered
+        if fields["data"]["scope"] != "route":
+            await reporter.emit("reposition", "running", current_city=fields["current_city"],
+                                data={"recovery": {"stage": stage, "state": state, **fields["data"]}})
+        else:
+            await reporter.emit(stage, state, **fields)
+
+    return FreightRecoverySession(
+        water_enabled=water_enabled, bento_enabled=bento_enabled,
+        water_start=water_start, water_stop=water_stop, bento_start=bento_start, bento_stop=bento_stop,
+        priority=priority, refresh_fatigue=refresh,
+        water_counts=lambda: _water_counts(load_pc_user_info(persistent_data)),
+        has_rest=lambda city: _has_recovery_rest_point(city, city_shop_data),
+        drink_water=drink, consume_bentos=consume, emit=emit,
+        travel_cost=lambda leg: market_data.get_travel_fatigue(
+            str(leg.get("from_city_id") or ""), str(leg.get("to_city_id") or "")),
+    )
 
 
 def _black_moon_purchase_gate(
@@ -2029,7 +2109,7 @@ async def _execute_freight_rest_stop(
         _check_trade_cancelled()
         if planned_cups:
             water_started = True
-            if reporter is not None:
+            if reporter is not None and water_selection.get("mode") != "thresholds":
                 await reporter.emit("sparkling_water", "started", **fields, data={"selection": water_selection})
             result = await _drink_sparkling_water_from_rest_menu(
                 session=session, city_name=point["city_name"], drink_count=planned_cups,
@@ -2047,7 +2127,7 @@ async def _execute_freight_rest_stop(
         purchase["page_state"] = "city_panel"
         if water is not None:
             water["page_state"] = "city_panel"
-        if water_started and reporter is not None:
+        if water_started and reporter is not None and water_selection.get("mode") != "thresholds":
             reporter.resources["water_basic_recovered_fatigue"] = int(water.get("completed_count") or 0) * 50
             await reporter.emit("sparkling_water", "completed", **fields, data={"result": water})
         return {"page_state": "city_panel", "black_moon_local_purchase": dict(purchase), "sparkling_water": water}
@@ -2083,11 +2163,16 @@ async def _execute_freight_rest_stop(
             await reporter.emit("sparkling_water" if water_started else "black_moon_local_purchase",
                                 "cancelled" if cancelled else "failed",
                                 **fields, data={"result": dict(purchase), "error": str(exc)})
+        water_receipt = ({"requested_count": planned_cups,
+                          "completed_count": int(getattr(session, "completed", 0)),
+                          "sparkling_water": dict(water or {})} if water_started else {})
         if isinstance(exc, CityTradeFlowError):
+            exc.detail = {**exc.detail, **water_receipt}
             raise
         error = CityTradeFlowError("black_moon_local_purchase_cancelled" if cancelled else "black_moon_rest_stop_failed",
                                    "Shared rest visit failed; route cannot continue",
-                                   {"code": getattr(exc, "code", None), "message": str(exc), "purchase": dict(purchase)})
+                                   {"code": getattr(exc, "code", None), "message": str(exc),
+                                    "purchase": dict(purchase), **water_receipt})
         attach_evidence(error, evidence_from(exc))
         raise error from exc
 
@@ -2122,6 +2207,7 @@ async def _execute_route(
     recovery_travel_costs: Optional[Dict[str, Any]] = None,
     auto_pickup_interval_sec: float = 0.5,
     trailer_plan: FreightTrailerPlan | None = None,
+    recovery_session: FreightRecoverySession | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -2147,7 +2233,24 @@ async def _execute_route(
             if reporter is not None:
                 await reporter.emit("leg", "started", **progress_fields, data={"leg": dict(leg)})
             try:
-                if index == 0 and auto_black_moon_local_purchase:
+                if index == 0 and recovery_session is not None:
+                    async def start_rest(selection, start_page):
+                        return await _execute_freight_rest_stop(
+                            city_name=str(leg.get("from_city") or ""), city_index=0, page_state=start_page,
+                            purchase_table=black_moon_purchase_table or {},
+                            record_scope=black_moon_purchase_record_scope, catalog=black_moon_catalog,
+                            purchase_visits=purchase_visits, progress_context=progress_fields,
+                            water_selection=selection, route=route, travel_costs=None,
+                            context=recovery_context, engine=engine, app=app, ocr=ocr, vision=vision,
+                            city_shop_data=city_shop_data, persistent_data=persistent_data,
+                        )
+                    recovered = await recovery_session.check(
+                        city_name=str(leg.get("from_city") or ""), city_index=0,
+                        page_state=page_state, phase="start",
+                        rest_stop=start_rest if auto_black_moon_local_purchase else None,
+                    )
+                    page_state = recovered["page_state"]
+                elif index == 0 and auto_black_moon_local_purchase:
                     rest = await _execute_freight_rest_stop(
                         city_name=str(leg.get("from_city") or ""), city_index=0, page_state=page_state,
                         purchase_table=black_moon_purchase_table or {},
@@ -2187,6 +2290,7 @@ async def _execute_route(
                     ),
                     engine=engine,
                     context=recovery_context,
+                    **({"recovery_session": recovery_session} if recovery_session is not None else {}),
                     **({"use_trailer": True, "trailer_daily_first_n": trailer_plan.daily_first_n,
                         "trailer_payment": trailer_plan.payment}
                        if trailer_plan is not None and trailer_plan.should_use("route", index) else {}),
@@ -2200,7 +2304,11 @@ async def _execute_route(
                                      "detail": dict(getattr(exc, "detail", {}) or {})}}
                 attach_evidence(failure["error"], evidence_from(exc))
                 attach_evidence(failure, evidence_from(exc))
-                leg_results.append({"leg": leg, **failure})
+                failed_leg = {"leg": leg, **failure}
+                confirmed_trade = failure["error"]["detail"].get("city_trade")
+                if isinstance(confirmed_trade, dict):
+                    failed_leg["city_trade"] = confirmed_trade
+                leg_results.append(failed_leg)
                 page_state = "unknown"
                 if reporter:
                     await reporter.emit("leg", failure["status"], **progress_fields, data=failure)
@@ -2215,9 +2323,29 @@ async def _execute_route(
                 _raise_error("trade_arrival_not_confirmed", "Arrival failed; cannot continue city actions", travel)
             water_due = bool(selection.get("planned") and selection.get("city_index") == index + 1)
             if (str(travel.get("status") or "ok").lower() not in {"blocked", "failed", "cancelled"}
-                    and travel.get("success") is True and (auto_black_moon_local_purchase or water_due)):
+                    and travel.get("success") is True and (auto_black_moon_local_purchase or water_due or recovery_session is not None)):
                 try:
-                    if auto_black_moon_local_purchase:
+                    if recovery_session is not None:
+                        async def arrival_rest(selection, arrival_page):
+                            return await _execute_freight_rest_stop(
+                                city_name=str(leg.get("to_city") or ""), city_index=index + 1,
+                                page_state=arrival_page, purchase_table=black_moon_purchase_table or {},
+                                record_scope=black_moon_purchase_record_scope, catalog=black_moon_catalog,
+                                purchase_visits=purchase_visits, progress_context=progress_fields,
+                                water_selection=selection, route=route, travel_costs=None,
+                                context=recovery_context, engine=engine, app=app, ocr=ocr, vision=vision,
+                                city_shop_data=city_shop_data, persistent_data=persistent_data,
+                            )
+                        rest = await recovery_session.check(
+                            city_name=str(leg.get("to_city") or ""), city_index=index + 1,
+                            page_state=page_state, phase="arrival",
+                            rest_stop=arrival_rest if auto_black_moon_local_purchase else None,
+                        )
+                        page_state = rest["page_state"]
+                        leg_result["recovery"] = rest.get("recovery")
+                        if "black_moon_local_purchase" in rest:
+                            leg_result["black_moon_local_purchase"] = rest["black_moon_local_purchase"]
+                    elif auto_black_moon_local_purchase:
                         rest = await _execute_freight_rest_stop(
                             city_name=str(leg.get("to_city") or ""), city_index=index + 1, page_state=page_state,
                             purchase_table=black_moon_purchase_table or {},
@@ -2245,7 +2373,7 @@ async def _execute_route(
                         leg_result["sparkling_water"] = water_result
                 except Exception as exc:
                     # Preserve the existing drinking-only exception contract.
-                    if not auto_black_moon_local_purchase or not hasattr(exc, "code"):
+                    if (recovery_session is None and not auto_black_moon_local_purchase) or not hasattr(exc, "code"):
                         raise
                     failure = {"status": "cancelled" if "cancel" in str(exc.code) else "failed",
                                "reason": str(exc.code), "failed_leg_index": index,
@@ -2254,6 +2382,14 @@ async def _execute_route(
                     attach_evidence(failure["error"], evidence_from(exc))
                     attach_evidence(failure, evidence_from(exc))
                     leg_result.update(failure, page_state="unknown")
+                    # Arrival is confirmed even when its subsequent recovery fails.
+                    await resonance_pc_trade_route_execution_update(
+                        run_key=route_run_key, leg=leg, travel_status=str(travel.get("status") or "ok"),
+                        reason=travel.get("reason"), blocked_at=travel.get("blocked_at"),
+                        fatigue_medicine_used=travel.get("fatigue_medicine_used") or [],
+                        fatigue_medicine_use_count=int(travel.get("fatigue_medicine_use_count") or 0),
+                        state_store=state_store,
+                    )
                     if auto_black_moon_local_purchase and purchase_visits:
                         leg_result["black_moon_local_purchase"] = dict(purchase_visits[-1])
                     leg_results.append(leg_result)
@@ -2383,6 +2519,7 @@ async def _execute_trade_leg(
     use_trailer: bool = False,
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
+    recovery_session: FreightRecoverySession | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -2397,6 +2534,8 @@ async def _execute_trade_leg(
             {"page_state": page_state, "leg": leg},
         )
 
+    if recovery_session is not None:
+        recovery_session.invalidate_fatigue()
     city_trade = await _execute_freight_city_trade(
         auto_trade_goods_investment=bool(auto_trade_goods_investment and index > 0),
         trade_goods_investment_mode=trade_goods_investment_mode,
@@ -2412,14 +2551,31 @@ async def _execute_trade_leg(
         vision=vision,
         city_shop_data=city_shop_data,
         progress_context=progress_fields,
+        **({"capture_fatigue": True} if recovery_session is not None else {}),
     )
     page_state = str(city_trade.get("page_state") or "city_main")
     if city_trade.get("success") is not True or page_state != "city_main":
         _raise_error("city_trade_not_confirmed", "Trade failed; departure is disabled", city_trade)
 
+    if recovery_session is not None:
+        recovery_session.accept_trade_reading(city_trade.get("fatigue_observation"))
+        try:
+            recovered = await recovery_session.check(
+                city_name=str(leg.get("from_city") or ""), city_index=index,
+                page_state=page_state, phase="pre_departure")
+        except Exception as exc:
+            if hasattr(exc, "code") and isinstance(getattr(exc, "detail", None), dict):
+                exc.detail = {**exc.detail, "city_trade": city_trade}
+            raise
+        page_state = recovered["page_state"]
+
     if reporter is not None:
         await reporter.emit("travel", "started", **progress_fields)
     _check_trade_cancelled()
+    if recovery_session is not None:
+        travel_fatigue_cost = recovery_session.begin_travel(leg)
+        if reporter is not None:
+            reporter.resources.update(actual_fatigue=None, estimated_fatigue=None, fatigue_source=None)
     travel = await tracked_to_thread(
         resonance_pc_intercity_depart_and_wait,
         to_city_name=str(leg.get("to_city") or ""),
@@ -2446,6 +2602,8 @@ async def _execute_trade_leg(
         **({"use_trailer": True, "trailer_daily_first_n": trailer_daily_first_n,
             "trailer_payment": trailer_payment} if use_trailer else {}),
     )
+    if recovery_session is not None:
+        recovery_session.observe_travel(travel, travel_fatigue_cost)
     if reporter is not None:
         travel_status = str(travel.get("status") or "ok").lower()
         arrival_fields = dict(progress_fields)
@@ -2817,6 +2975,7 @@ async def _execute_freight_reposition(
     arrival_timeout_seconds: float, use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]], fatigue_medicine_max_uses: int,
     trailer_plan: FreightTrailerPlan | None = None,
+    recovery_session: FreightRecoverySession | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     results: List[Dict[str, Any]] = []
@@ -2825,6 +2984,7 @@ async def _execute_freight_reposition(
         restored = await tracked_to_thread(resonance_pc_go_city_main_direct, app=app, vision=vision)
         if restored.get("success") is not True or restored.get("page_state") != "city_main":
             _raise_error("reposition_main_not_restored", "Cannot depart for route start", restored)
+        page_state = "city_main"
     elif page_state != "city_main":
         _raise_error("reposition_invalid_start_page", "Cannot depart from unknown page", {"page_state": page_state})
     for index, leg in enumerate(route):
@@ -2834,8 +2994,18 @@ async def _execute_freight_reposition(
                       "leg_index": index, "leg_count": len(route), "leg": leg}}}
         if reporter:
             await reporter.emit("reposition", "started", **fields)
+        travel = None
         try:
+            if recovery_session is not None:
+                recovered = await recovery_session.check(
+                    city_name=leg["from_city"], city_index=index, page_state=page_state,
+                    scope="reposition", phase="pre_departure")
+                page_state = recovered["page_state"]
             _check_trade_cancelled()
+            if recovery_session is not None:
+                travel_fatigue_cost = recovery_session.begin_travel(leg)
+                if reporter is not None:
+                    reporter.resources.update(actual_fatigue=None, estimated_fatigue=None, fatigue_source=None)
             travel = await tracked_to_thread(
                 resonance_pc_intercity_depart_and_wait,
                 to_city_name=leg["to_city"], from_city_name=leg["from_city"],
@@ -2851,9 +3021,21 @@ async def _execute_freight_reposition(
                     "trailer_payment": trailer_plan.payment}
                    if trailer_plan is not None and trailer_plan.should_use("reposition", index) else {}),
             )
+            if recovery_session is not None:
+                recovery_session.observe_travel(travel, travel_fatigue_cost)
+            if trailer_plan is not None:
+                trailer_plan.observe("reposition", index, travel)
+            page_state = str(travel.get("page_state") or "city_main")
+            if recovery_session is not None and travel.get("success") is True and travel.get("status") != "blocked":
+                recovered = await recovery_session.check(
+                    city_name=leg["to_city"], city_index=index + 1, page_state=page_state,
+                    scope="reposition", phase="arrival")
+                page_state = recovered["page_state"]
         except Exception as exc:
             if not hasattr(exc, "code"):
                 raise
+            if isinstance(travel, dict):
+                results.append({"leg": dict(leg), "travel": travel})
             failure = {"success": False, "status": "cancelled" if "cancel" in str(exc.code) else "failed",
                     "reason": str(exc.code), "page_state": "unknown", "leg_results": results,
                     "blocked_leg": leg, "error": {"code": str(exc.code), "message": str(exc),
@@ -2862,8 +3044,6 @@ async def _execute_freight_reposition(
             attach_evidence(failure, evidence_from(exc))
             return failure
         results.append({"leg": dict(leg), "travel": travel})
-        if trailer_plan is not None:
-            trailer_plan.observe("reposition", index, travel)
         blocked = travel.get("status") == "blocked"
         confirmed = travel.get("success") is True and not blocked
         if reporter:
@@ -2877,6 +3057,10 @@ async def _execute_freight_reposition(
                     "leg_results": results, "page_state": travel.get("page_state", "unknown"),
                     "blocked_at": travel.get("blocked_at"), "blocked_leg": leg}
     _check_trade_cancelled()
+    if page_state == "city_panel":
+        restored = await tracked_to_thread(resonance_pc_go_city_main_direct, app=app, vision=vision)
+        if restored.get("success") is not True or restored.get("page_state") != "city_main":
+            _raise_error("reposition_main_not_restored", "Cannot confirm route start", restored)
     opened = await tracked_to_thread(resonance_pc_open_city_panel_from_main, app=app, vision=vision)
     if opened.get("success") is not True:
         _raise_error("reposition_panel_not_opened", "Cannot confirm route starting city", opened)
@@ -3120,7 +3304,9 @@ def _market_fallback_blocked_result(
         "final_sale": None, "blocked_at": "market", "blocked_leg": None,
         "fatigue_medicine_used": [], "fatigue_medicine_use_count": 0,
         "initial_city": dict(current), "page_state": "city_panel",
-        "success": False, "bento_pending": False,
+        "success": False, "recovery_events": [], "final_fatigue": None,
+        "bento_consumption": {"success": True, "triggered": False, "status": "skipped",
+                              "reason": "freight_not_started", "final_fatigue": None},
         "error": {"code": reason, "message": message,
                   "detail": {"snapshot_id": refresh.get("snapshot_id"),
                              "stale_reason": refresh.get("stale_reason"),
@@ -3185,7 +3371,10 @@ async def resonance_pc_auto_cycle_trade_flow(
     black_moon_purchase_record_scope: str = "default",
     auto_bento: bool = False,
     bento_priority: Optional[List[str]] = None,
-    base_fatigue_reserve: int = 200,
+    sparkling_water_start_threshold: Optional[int] = 600,
+    sparkling_water_stop_threshold: Optional[int] = 100,
+    bento_start_threshold: Optional[int] = 600,
+    bento_stop_threshold: Optional[int] = 100,
     auto_pickup: bool = False,
     recovery_snapshot: Optional[Dict[str, Any]] = None,
     app: Any = None,
@@ -3246,8 +3435,12 @@ async def resonance_pc_auto_cycle_trade_flow(
         bento_priority = validate_bento_priority(
             ["work_meals", "love_bentos"] if bento_priority is None else bento_priority,
         )
-    if type(base_fatigue_reserve) is not int or base_fatigue_reserve < 0:
-        raise ValueError("base_fatigue_reserve must be a nonnegative integer")
+    if auto_sparkling_water:
+        validate_recovery_thresholds(sparkling_water_start_threshold, sparkling_water_stop_threshold, resource="sparkling_water")
+    if auto_bento:
+        validate_recovery_thresholds(bento_start_threshold, bento_stop_threshold, resource="bento")
+    if (auto_sparkling_water or auto_bento) and (context is None or engine is None):
+        raise RuntimeError("Automatic recovery requires the current execution context and engine")
     if auto_sparkling_water:
         recovery_snapshot = validate_recovery_snapshot(recovery_snapshot)
         if persistent_data is None:
@@ -3390,21 +3583,21 @@ async def resonance_pc_auto_cycle_trade_flow(
     current.setdefault("city_id", plan.get("start_city_id"))
     route = plan["route"]
     water_plan = {
-        "planned": False,
-        "reason": "disabled",
-        "drink_count": 0,
-        "base_fatigue_reserve": base_fatigue_reserve,
+        "mode": "thresholds", "enabled": auto_sparkling_water,
+        "planned": auto_sparkling_water,
+        "reason": "threshold_driven" if auto_sparkling_water else "disabled",
+        "start_threshold": sparkling_water_start_threshold,
+        "stop_threshold": sparkling_water_stop_threshold,
+        "visits": [],
     }
-    if auto_sparkling_water:
-        free_uses = recovery_snapshot["recovery"]["sparkling_water"]["remaining_free_uses"]
-        water_plan.update(remaining_free_uses=free_uses)
-        if free_uses:
-            water_plan.update(select_last_water_arrival(
-                route, lambda city: _has_recovery_rest_point(city, resonance_pc_city_shop_data),
-            ))
-        else:
-            water_plan["reason"] = "no_remaining_free_uses"
-        logger.info("Sparkling water selection=%s", water_plan)
+    recovery_session = (_make_freight_recovery_session(
+        water_enabled=auto_sparkling_water, bento_enabled=auto_bento,
+        water_start=sparkling_water_start_threshold, water_stop=sparkling_water_stop_threshold,
+        bento_start=bento_start_threshold, bento_stop=bento_stop_threshold, priority=bento_priority,
+        context=context, engine=engine, app=app, ocr=ocr, vision=vision,
+        city_shop_data=resonance_pc_city_shop_data, persistent_data=persistent_data,
+        market_data=resonance_pc_market_data,
+    ) if auto_sparkling_water or auto_bento else None)
     plan["sparkling_water_plan"] = water_plan
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento, water_plan=water_plan,
                      investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
@@ -3475,6 +3668,7 @@ async def resonance_pc_auto_cycle_trade_flow(
         },
     }
     final_sale: Optional[Dict[str, Any]] = None
+    recovery_failure = None
     reposition_execution = None
     if plan.get("status") == "ok" and route and plan["reposition"]["required"]:
         reposition_execution = await _execute_freight_reposition(
@@ -3485,6 +3679,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             allowed_fatigue_medicines=allowed_fatigue_medicines,
             fatigue_medicine_max_uses=fatigue_medicine_max_uses,
             **({"trailer_plan": trailer_plan} if auto_trailer else {}),
+            **({"recovery_session": recovery_session} if recovery_session is not None else {}),
         )
         page_state = reposition_execution["page_state"]
         if reposition_execution["success"] is not True:
@@ -3517,8 +3712,9 @@ async def resonance_pc_auto_cycle_trade_flow(
             black_moon_catalog=black_moon_catalog,
             persistent_data=persistent_data,
             recovery_context=context,
-            recovery_travel_costs=(resonance_pc_market_data.get_all_travel_fatigue()["costs"] if water_plan.get("planned") else None),
+            recovery_travel_costs=None,
             **({"trailer_plan": trailer_plan} if auto_trailer else {}),
+            **({"recovery_session": recovery_session} if recovery_session is not None else {}),
         )
         page_state = str(execution.get("page_state") or "city_main")
 
@@ -3540,6 +3736,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                     data={"raise_to_cap": bool(route[-1].get("raise_to_cap"))},
                 )
             try:
+                if recovery_session is not None:
+                    recovery_session.invalidate_fatigue()
                 final_sale = await _execute_freight_city_trade(
                     auto_trade_goods_investment=auto_trade_goods_investment,
                     trade_goods_investment_mode=trade_goods_investment_mode,
@@ -3554,6 +3752,7 @@ async def resonance_pc_auto_cycle_trade_flow(
                     ocr=ocr,
                     vision=vision,
                     city_shop_data=resonance_pc_city_shop_data,
+                    **({"capture_fatigue": True} if recovery_session is not None else {}),
                     progress_context={
                         "leg_index": len(route),
                         "leg_count": len(route),
@@ -3593,6 +3792,20 @@ async def resonance_pc_auto_cycle_trade_flow(
                     current_city=endpoint_city,
                     data={"final_sale": final_sale},
                 )
+            if sale_confirmed and recovery_session is not None:
+                recovery_session.accept_trade_reading(final_sale.get("fatigue_observation"))
+                try:
+                    recovered = await recovery_session.check(
+                        city_name=endpoint_city, city_index=len(route), page_state=page_state,
+                        phase="final_sale")
+                    page_state = recovered["page_state"]
+                except Exception as exc:
+                    if not hasattr(exc, "code"):
+                        raise
+                    recovery_failure = {"code": str(exc.code), "message": str(exc),
+                                        "detail": dict(getattr(exc, "detail", {}) or {})}
+                    attach_evidence(recovery_failure, evidence_from(exc))
+                    page_state = "unknown"
     elif page_state == "city_panel" and reposition_execution is None:
         _check_trade_cancelled()
         cleanup = await tracked_to_thread(
@@ -3610,7 +3823,10 @@ async def resonance_pc_auto_cycle_trade_flow(
     execution["negotiation_max_attempts"] = normalized_negotiation_max_attempts
     execution["arrival_timeout_seconds"] = normalized_arrival_timeout_seconds
     execution_status = str(execution.get("status") or "not_started").lower()
-    if final_sale is not None and (final_sale.get("success") is not True or page_state != "city_main"):
+    if recovery_failure is not None:
+        status = "cancelled" if "cancel" in recovery_failure["code"] else "failed"
+        reason, success = recovery_failure["code"], False
+    elif final_sale is not None and (final_sale.get("success") is not True or page_state != "city_main"):
         status = "cancelled" if "cancel" in str(final_sale.get("reason")) else "failed"
         reason = final_sale.get("reason") or "final_sale_not_confirmed"
         success = False
@@ -3627,7 +3843,6 @@ async def resonance_pc_auto_cycle_trade_flow(
         reason = execution.get("reason") or plan.get("reason") or plan["planning_status"]
         success = False
 
-    bento_pending = bool(auto_bento and success and status == "completed" and final_sale is not None)
     result = dict(plan)
     result_warnings = list(result.get("warnings") or [])
     result_warnings.extend(negotiation_execution["warnings"])
@@ -3652,7 +3867,6 @@ async def resonance_pc_auto_cycle_trade_flow(
             "execution": execution,
             "final_sale": final_sale,
             "trade_goods_investment": goods_investment_summary,
-            "bento_pending": bento_pending,
             "sparkling_water": execution.get("sparkling_water") or {
                 "triggered": False, "status": "not_triggered", "reason": water_plan.get("reason"),
             },
@@ -3696,19 +3910,30 @@ async def resonance_pc_auto_cycle_trade_flow(
     if execution.get("error") or (final_sale or {}).get("error"):
         result["error"] = execution.get("error") or final_sale["error"]
     attach_evidence(result, evidence_from(execution) + evidence_from(final_sale))
+    if recovery_session is not None:
+        recovery_summary = recovery_session.summary()
+        result.update(recovery_summary)
+        execution.update(recovery_summary)
+        water_plan["visits"] = list(recovery_session.water_plans)
+        result["resources"].update(
+            actual_fatigue=recovery_summary["final_fatigue"],
+            estimated_fatigue=recovery_summary["estimated_fatigue"],
+            fatigue_source=recovery_summary["fatigue_tracking"]["source"],
+            water_basic_recovered_fatigue=recovery_summary["sparkling_water"]["recovered_fatigue"],
+            bento_observed_recovered_fatigue=recovery_summary["bento_consumption"]["recovered_fatigue"],
+        )
+        if recovery_failure is not None:
+            result["error"] = recovery_failure
+    else:
+        result.update(recovery_events=[], final_fatigue=None,
+                      bento_consumption={"success": True, "triggered": False, "status": "skipped",
+                                         "reason": "disabled", "final_fatigue": None})
     if reporter is not None:
-        if bento_pending:
-            await reporter.emit("bento", "started", city_index=len(route),
-                                current_city=str(route[-1].get("to_city") or ""),
-                                data={"phase": "onsite"})
-        else:
-            await reporter.emit(
-                "route",
-                "blocked" if status == "blocked" else ("failed" if not success else "completed"),
-                leg_count=len(route),
-                current_city=str(route[-1].get("to_city") or "") if route else str(current.get("city_name") or ""),
-                data={"status": status, "reason": reason},
-            )
+        await reporter.emit(
+            "route", "blocked" if status == "blocked" else "failed" if not success else "completed",
+            leg_count=len(route),
+            current_city=str(route[-1].get("to_city") or "") if route else str(current.get("city_name") or ""),
+            data={"status": status, "reason": reason})
     return result
 
 
@@ -3727,91 +3952,17 @@ def _log_trade_outcome(result: Dict[str, Any]) -> None:
     name="resonance_pc.finish_auto_cycle_trade",
     public=True,
     read_only=False,
-    description="Merge the optional bento sub-task into the completed freight result.",
+    description="Normalize the freight result after threshold-triggered recovery.",
 )
 @requires_services(event_bus="core/event_bus")
 async def resonance_pc_finish_auto_cycle_trade(
     trade_result: Dict[str, Any],
-    bento_framework: Optional[Dict[str, Any]] = None,
-    auto_bento: bool = False,
-    base_fatigue_reserve: int = 200,
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
 ) -> Dict[str, Any]:
-    if (not isinstance(trade_result, dict) or type(auto_bento) is not bool
-            or type(base_fatigue_reserve) is not int or base_fatigue_reserve < 0):
+    if not isinstance(trade_result, dict):
         raise ValueError("Invalid freight finalization inputs")
     result = dict(trade_result)
-    pending = result.pop("bento_pending", False)
-    progress_sequence = result.pop("bento_progress_sequence", 0)
-    checkpoint = result.pop("bento_progress_checkpoint", None)
-    if type(pending) is not bool or type(progress_sequence) is not int or progress_sequence < 0:
-        raise ValueError("Invalid freight bento handoff")
-    if pending and (not auto_bento or result.get("success") is not True
-                    or result.get("status") != "completed" or result.get("page_state") != "city_main"):
-        raise ValueError("Inconsistent freight bento handoff")
-    if not pending:
-        result["bento_consumption"] = {
-            "success": True, "triggered": False, "status": "skipped",
-            "reason": "disabled" if not auto_bento else "not_at_freight_end",
-            "page_state": result.get("page_state", "unknown"),
-        }
-        if result.get("success") is False and result.get("status") in {"failed", "error"}:
-            await capture_failure(result, origin="business_result", metadata={"error_code": result.get("reason")})
-        _log_trade_outcome(result)
-        return result
-
-    child = bento_framework if isinstance(bento_framework, dict) else None
-    valid = (isinstance(child, dict) and type(child.get("success")) is bool
-             and isinstance(child.get("status"), str) and isinstance(child.get("page_state"), str)
-             and type(child.get("consumed_count")) is int
-             and child["consumed_count"] >= 0
-             and type(child.get("recovered_fatigue")) is int
-             and 0 <= child["recovered_fatigue"] <= 2000
-             and (type(child.get("computed_fatigue")) is int or
-                  (child.get("computed_fatigue") is None and child["success"] is False
-                   and child["consumed_count"] == 0))
-             and child.get("target_recovery_amount") == 2000
-             and child.get("allow_exceed_target") is False
-             and child.get("base_fatigue_reserve") == base_fatigue_reserve
-             and (child["consumed_count"] == 0 or child["computed_fatigue"] >= base_fatigue_reserve))
-    if not valid:
-        child_result = {"success": False, "status": "failed", "reason": "bento_result_invalid",
-                        "page_state": "unknown", "triggered": True,
-                        "error": "Bento sub-task did not return a valid consumption result"}
-    else:
-        child_result = {**child, "triggered": True}
-    result["bento_consumption"] = child_result
-    attach_evidence(result, evidence_from(bento_framework))
-    resources = dict(result.get("resources") or {})
-    resources["bento_basic_recovered_fatigue"] = child_result.get("recovered_fatigue")
-    resources["bento_computed_fatigue"] = child_result.get("computed_fatigue")
-    result["resources"] = resources
-    if child_result["success"] is not True or child_result["page_state"] != "city_main":
-        result.update(success=False,
-                      status="cancelled" if child_result["status"] == "cancelled" else "failed",
-                      reason=(child_result.get("reason") or "bento_recovery_failed")
-                      if child_result["success"] is not True else "bento_main_not_restored",
-                      page_state=child_result["page_state"])
-    else:
-        result["page_state"] = "city_main"
-
-    cid = str(context.data.get("cid") or "") if isinstance(context, ExecutionContext) else ""
-    if event_bus is not None and cid:
-        reporter = _TradeProgressReporter(event_bus, cid, asyncio.get_running_loop(), progress_sequence)
-        reporter.fields.update(trade_mode=result.get("trade_mode", "free"), request_kind="run")
-        reporter.resources.update(resources)
-        if isinstance(checkpoint, dict):
-            reporter._total_units = checkpoint["total_units"]
-            reporter._completed_units = {tuple(key) for key in checkpoint["completed_units"]}
-            reporter._phase_keys = {tuple(key) for key in checkpoint["phase_keys"]}
-            reporter.route_revision = checkpoint.get("route_revision", 0)
-        await reporter.emit("bento", "completed" if result["success"] else "failed",
-                            city_index=len(result.get("route") or []),
-                            current_city=str((result.get("route") or [{}])[-1].get("to_city") or ""),
-                            data={"result": child_result})
-        await reporter.emit("task", "completed" if result["success"] else "cancelled" if result["status"] == "cancelled" else "failed",
-                            data={"status": result["status"], "reason": result.get("reason")})
     if result.get("success") is False and result.get("status") in {"failed", "error"}:
         await capture_failure(result, origin="business_result", metadata={"error_code": result.get("reason")})
     _log_trade_outcome(result)

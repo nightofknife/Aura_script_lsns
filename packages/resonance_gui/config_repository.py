@@ -13,6 +13,9 @@ from .paths import resolve_application_root
 from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options, validate_city_tax_rates_bps, validate_allow_stale_market
 from .black_moon_catalog import normalize_black_moon_settings
 from .affix_catalog import normalize_affix_inputs
+from packages.resonance_shared.freight_parameters import (
+    DEFAULT_RECOVERY_THRESHOLDS,
+)
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -93,7 +96,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "auto_sparkling_water": False,
     "auto_bento": False,
     "bento_priority": ["work_meals", "love_bentos"],
-    "base_fatigue_reserve": 200,
+    **DEFAULT_RECOVERY_THRESHOLDS,
     "auto_pickup": False,
     "allow_stale_market": False,
     "auto_pickup_interval_sec": 0.5,
@@ -524,9 +527,11 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     ):
         raise ValueError("便当类型顺序至少选择一种，只允许工作餐和爱心便当，且不能重复。")
     merged["bento_priority"] = list(priority)
-    reserve = merged["base_fatigue_reserve"]
-    if type(reserve) is not int or reserve < 0:
-        raise ValueError("基础疲劳保留必须为非负整数。")
+    for key in ("sparkling_water_start_threshold", "sparkling_water_stop_threshold",
+                "bento_start_threshold", "bento_stop_threshold"):
+        value = merged[key]
+        if value is not None and (type(value) is not int or not 0 <= value <= 2147483647):
+            raise ValueError(f"{key} 必须为非负整数或未设置，不能使用布尔或小数。")
     merged["auto_pickup"] = bool(merged["auto_pickup"])
     merged["auto_pickup_interval_sec"] = validate_pickup_click_interval(merged["auto_pickup_interval_sec"])
     merged.update(normalize_black_moon_settings(merged))

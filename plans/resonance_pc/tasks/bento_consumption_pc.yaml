@@ -3,7 +3,7 @@ bento_consumption_pc:
     role: internal
     domain: 商贸运输
     title: Consume Bentos (PC)
-    description: Consume top-position work meals and first love bento until the recovery target or fatigue floor.
+    description: Consume top-position bentos after the start threshold until live fatigue reaches the stop threshold.
     entry_point: false
     concurrency: exclusive
     inputs:
@@ -24,19 +24,22 @@ bento_consumption_pc:
           type: enum
           required: true
           enum: [work_meals, love_bentos]
-      - name: target_recovery_amount
+      - name: bento_start_threshold
         type: number
+        strict_integer: true
         required: false
-        default: 2000
+        nullable: true
+        default: 600
         min: 0
-      - name: allow_exceed_target
-        type: boolean
-        required: false
-        default: false
-      - name: base_fatigue_reserve
+        description: "实际疲劳严格大于此值才开始消费，必须大于停止线。"
+      - name: bento_stop_threshold
         type: number
+        strict_integer: true
         required: false
-        default: -100
+        nullable: true
+        default: 100
+        min: 0
+        description: "每份后读取实际疲劳，到达或低于此值停止。"
   steps:
     consume:
       action: resonance_pc.consume_bentos_to_floor
@@ -45,11 +48,9 @@ bento_consumption_pc:
         eat_work_meals: "{{ inputs.eat_work_meals }}"
         eat_love_bentos: "{{ inputs.eat_love_bentos }}"
         bento_priority: "{{ inputs.bento_priority }}"
-        target_recovery_amount: "{{ inputs.target_recovery_amount }}"
-        allow_exceed_target: "{{ inputs.allow_exceed_target }}"
-        base_fatigue_reserve: "{{ inputs.base_fatigue_reserve }}"
+        bento_start_threshold: "{{ inputs.bento_start_threshold }}"
+        bento_stop_threshold: "{{ inputs.bento_stop_threshold }}"
   returns:
-    allow_exceed_target: "{{ nodes.consume.output.allow_exceed_target }}"
     success: "{{ nodes.consume.output.success }}"
     status: "{{ nodes.consume.output.status }}"
     reason: "{{ nodes.consume.output.reason }}"
@@ -60,9 +61,9 @@ bento_consumption_pc:
     love_bentos_used: "{{ nodes.consume.output.love_bentos_used }}"
     recovered_fatigue: "{{ nodes.consume.output.recovered_fatigue }}"
     initial_fatigue: "{{ nodes.consume.output.initial_fatigue }}"
-    computed_fatigue: "{{ nodes.consume.output.computed_fatigue }}"
-    target_recovery_amount: "{{ nodes.consume.output.target_recovery_amount }}"
-    base_fatigue_reserve: "{{ nodes.consume.output.base_fatigue_reserve }}"
+    final_fatigue: "{{ nodes.consume.output.final_fatigue }}"
+    bento_start_threshold: "{{ nodes.consume.output.bento_start_threshold }}"
+    bento_stop_threshold: "{{ nodes.consume.output.bento_stop_threshold }}"
     items: "{{ nodes.consume.output['items'] }}"
     requires_refresh: "{{ nodes.consume.output.requires_refresh }}"
     failure_stage: "{{ nodes.consume.output.failure_stage }}"

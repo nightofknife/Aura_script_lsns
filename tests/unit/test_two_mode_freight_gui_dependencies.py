@@ -199,7 +199,10 @@ def test_fill_plan_fingerprint_ignores_threshold_but_not_total_book_limit(page):
 def test_recovery_dependencies_and_bento_order_controls(page, water, bento):
     page.auto_sparkling_water.setChecked(water)
     page.auto_bento.setChecked(bento)
-    assert page.base_fatigue_reserve.isEnabled() is (water or bento)
+    assert page.sparkling_water_start_threshold.isEnabled() is water
+    assert page.sparkling_water_stop_threshold.isEnabled() is water
+    assert page.bento_start_threshold.isEnabled() is bento
+    assert page.bento_stop_threshold.isEnabled() is bento
     assert page.bento_priority_panel.isEnabled() is bento
     if not bento:
         assert all(not button.isEnabled() for button in page.bento_type_checks.values())
@@ -230,7 +233,10 @@ def test_inactive_values_survive_repository_reload_but_not_runtime_projection(pa
     page.book_profit_threshold.setValue(72.5)
     choose(page.book_policy, "fill")
     page.negotiation_max_attempts.setValue(3)
-    page.base_fatigue_reserve.setValue(231)
+    page.sparkling_water_start_threshold.setValue(650)
+    page.sparkling_water_stop_threshold.setValue(231)
+    page.bento_start_threshold.setValue(700)
+    page.bento_stop_threshold.setValue(200)
     page.fatigue_medicine_max_uses.setValue(7)
     medicine = next(iter(page.medicine_checks))
     page.medicine_checks[medicine].setChecked(True)
@@ -248,13 +254,17 @@ def test_inactive_values_survive_repository_reload_but_not_runtime_projection(pa
         assert restored.book_profit_threshold.value() == 72.5
         assert restored.book_policy.currentData() == "fill"
         assert restored.negotiation_max_attempts.value() == 3
-        assert restored.base_fatigue_reserve.value() == 231
+        assert restored.sparkling_water_start_threshold.value() == 650
+        assert restored.sparkling_water_stop_threshold.value() == 231
+        assert restored.bento_start_threshold.value() == 700
+        assert restored.bento_stop_threshold.value() == 200
         assert restored.fatigue_medicine_max_uses.value() == 7
         assert restored.medicine_checks[medicine].isChecked()
         assert restored.target_profit.value() == 123
         runtime = restored.collect_task_inputs()
         assert not {"book_profit_threshold", "book_policy", "negotiation_max_attempts",
-                    "base_fatigue_reserve", "bento_priority", "allowed_fatigue_medicines",
+                    "sparkling_water_start_threshold", "sparkling_water_stop_threshold",
+                    "bento_start_threshold", "bento_stop_threshold", "bento_priority", "allowed_fatigue_medicines",
                     "fatigue_medicine_max_uses", "target_profit"} & runtime.keys()
         restored.use_fatigue_medicine.setChecked(True)
         assert medicine in restored.collect_task_inputs()["allowed_fatigue_medicines"]
@@ -416,3 +426,82 @@ def test_repository_rejects_invalid_waste_limit_without_overwriting_saved_state(
     with pytest.raises(ValueError, match="book_waste_limit"):
         page._settings.save_trade_inputs({**saved, "book_waste_limit": value})
     assert page._settings.load_trade_inputs()["book_waste_limit"] == 200
+
+
+def test_recovery_draft_can_be_incomplete_and_invalid_relation_but_execution_requires_values(page):
+    assert page.collect_ui_state()["sparkling_water_start_threshold"] == 600
+    page.sparkling_water_start_threshold.setValue(-1)
+    page.auto_sparkling_water.setChecked(True)
+    page.save_ui_state()
+    assert page._settings.load_trade_inputs()["sparkling_water_start_threshold"] is None
+    assert "气泡水" in page._form_error()
+    with pytest.raises(ValueError, match="气泡水"):
+        page.collect_task_inputs()
+    page.sparkling_water_start_threshold.setValue(200)
+    page.sparkling_water_stop_threshold.setValue(300)
+    page.save_ui_state()
+    assert page._settings.load_trade_inputs()["sparkling_water_stop_threshold"] == 300
+    with pytest.raises(ValueError, match="气泡水"):
+        page.collect_task_inputs()
+    page.sparkling_water_start_threshold.setValue(600)
+    assert page.collect_task_inputs()["sparkling_water_stop_threshold"] == 300
+    page.auto_sparkling_water.setChecked(False)
+    page.auto_bento.setChecked(True)
+    page.bento_start_threshold.setValue(-1)
+    with pytest.raises(ValueError, match="便当"):
+        page.collect_task_inputs()
+    page.bento_start_threshold.setValue(700)
+    page.bento_stop_threshold.setValue(200)
+    runtime = page.collect_task_inputs()
+    assert runtime["bento_start_threshold"] == 700
+    assert "sparkling_water_start_threshold" not in runtime
+
+
+def test_recovery_thresholds_do_not_invalidate_plans_or_enter_previews(page):
+    page._current_plan = {"route": [{"from_city": "A", "to_city": "B"}]}
+    page._plan_fingerprint = page._planning_key()
+    page.auto_sparkling_water.setChecked(True)
+    page.sparkling_water_start_threshold.setValue(700)
+    page.sparkling_water_stop_threshold.setValue(200)
+    assert not page._plan_stale
+    assert page._planning_key() == page._plan_fingerprint
+    page.start_city.setCurrentIndex(page.start_city.findData("11"))
+    page.sparkling_water_start_threshold.setValue(-1)
+    assert "sparkling_water_start_threshold" not in page.collect_task_inputs(preview=True)
+    page.set_busy(True)
+    assert not page.sparkling_water_start_threshold.isEnabled()
+    page.set_busy(False)
+    assert page.sparkling_water_start_threshold.isEnabled()
+
+
+def test_legacy_reserve_uses_explicit_new_defaults_and_never_becomes_a_threshold(page):
+    from packages.resonance_gui.config_repository import TRADE_INPUTS_KEY
+    from packages.resonance_shared.freight_parameters import FREIGHT_RECOVERY_THRESHOLD_KEYS
+    page._settings.settings.setValue(TRADE_INPUTS_KEY, json.dumps({
+        "base_fatigue_reserve": 200, "auto_sparkling_water": True, "auto_bento": True}))
+    loaded = page._settings.load_trade_inputs()
+    assert "base_fatigue_reserve" not in loaded
+    assert [loaded[key] for key in FREIGHT_RECOVERY_THRESHOLD_KEYS] == [600, 100, 600, 100]
+    page.set_inputs(loaded)
+    assert [getattr(page, key).value() for key in FREIGHT_RECOVERY_THRESHOLD_KEYS] == [600, 100, 600, 100]
+    assert page.collect_task_inputs()["sparkling_water_stop_threshold"] == 100
+
+
+@pytest.mark.parametrize("value", [True, 200.5, "200", -1])
+def test_threshold_drafts_reject_noninteger_values_without_overwriting_saved_state(page, value):
+    before = page._settings.load_trade_inputs()
+    with pytest.raises(ValueError, match="sparkling_water_stop_threshold"):
+        page._settings.save_trade_inputs({**before, "sparkling_water_stop_threshold": value})
+    assert page._settings.load_trade_inputs() == before
+    with pytest.raises(ValueError, match="sparkling_water_stop_threshold"):
+        page.set_inputs({**before, "sparkling_water_stop_threshold": value})
+
+
+def test_recovery_threshold_edits_save_as_draft_without_dispatch(page):
+    page.auto_sparkling_water.setChecked(True)
+    page.sparkling_water_start_threshold.setValue(300)
+    page.sparkling_water_stop_threshold.setValue(400)
+    saved = page._settings.load_trade_inputs()
+    assert saved["sparkling_water_start_threshold"] == 300
+    assert saved["sparkling_water_stop_threshold"] == 400
+    assert "气泡水" in page._form_error()

@@ -4,15 +4,12 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import cv2
-import numpy as np
 import pytest
-from PIL import Image
 
 from plans.resonance_pc.src.actions import bento_auto_recovery_pc_actions as auto_bento
 from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions.bento_auto_recovery_pc_actions import (
     AutoBentoConsumptionSession,
-    decode_recovery,
     load_auto_layout,
     validate_auto_inputs,
 )
@@ -20,7 +17,6 @@ from plans.resonance_pc.src.actions.bento_consumption_pc_actions import BentoCon
 from plans.resonance_pc.src.actions.love_bento_pc_actions import load_love_bento_catalog
 
 
-FIXTURES = Path("tests/fixtures/bento_recovery_digits")
 CONSUMPTION_FIXTURES = Path("tests/fixtures/bento_consumption")
 
 
@@ -52,8 +48,7 @@ def fixed_love_session(monkeypatch, frames):
     catalog = load_love_bento_catalog(vision)
     session = AutoBentoConsumptionSession(
         app=object(), ocr=None, vision=vision, layout=layout, recovery_layout={}, catalog=catalog,
-        priority=("love_bentos",), target_recovery_amount=2000,
-        allow_exceed_target=False, base_fatigue_reserve=-100,
+        priority=("love_bentos",), bento_start_threshold=700, bento_stop_threshold=200,
     )
     rx, ry, rw, rh = catalog["scanner"]["capture_roi"]
     pending = iter(frame[ry:ry+rh, rx:rx+rw] for frame in frames)
@@ -70,7 +65,7 @@ def fixed_love_session(monkeypatch, frames):
 
     monkeypatch.setattr(auto_bento, "LoveBentoScanner", Scanner)
     recovery_reads = []
-    monkeypatch.setattr(session, "read_recovery", lambda style, roi: recovery_reads.append((style, roi)) or 46)
+    monkeypatch.setattr(session, "read_recovery", lambda *args: recovery_reads.append(args), raising=False)
     return session, recovery_reads
 
 
@@ -81,8 +76,8 @@ def test_first_love_uses_fixed_food_and_selected_rois(monkeypatch):
     assert meal["food_name"] == "香喷喷浓郁咖喱"
     assert meal["click_point"] == [223, 424]
     assert meal["selected_roi"] == [296, 328, 52, 61]
-    assert meal["fatigue_recovery"] == 46
-    assert recovery_reads == [("love", (298, 513, 22, 16))]
+    assert "fatigue_recovery" not in meal
+    assert recovery_reads == []
     marker = cv2.imread("plans/resonance_pc/templates/recovery/bento/controls/selected_marker.png")
     x, y, w, h = meal["selected_roi"]
     selected = 1 - cv2.minMaxLoc(cv2.matchTemplate(image[y:y+h, x:x+w], marker,
@@ -101,7 +96,7 @@ def test_first_love_unrecognized_after_stable_frame_means_empty(monkeypatch):
     assert session.first_love() is not None
     assert session.first_love() is not None
     assert session.first_love() is None
-    assert len(recovery_reads) == 2
+    assert recovery_reads == []
 
 
 @pytest.mark.parametrize("failure", ["service_error", "nonfinite"])
@@ -120,137 +115,69 @@ def test_first_love_matching_failure_is_not_treated_as_empty(monkeypatch, failur
     assert recovery_reads == []
 
 
-@pytest.mark.parametrize(("name", "style", "expected"), [
-    ("work_05_36.png", "work", 36),
-    ("work_18_36.png", "work", 36),
-    ("fixture_work_second_36.png", "work", 36),
-    ("love_first_51.png", "love", 51),
-    ("love_second_41.png", "love", 41),
-    ("love_third_26.png", "love", 26),
-    ("fixture_love_first_46.png", "love", 46),
-    ("fixture_love_second_44.png", "love", 44),
-    ("fixture_love_third_44.png", "love", 44),
-])
-def test_real_capture_recovery_digits(name, style, expected):
-    layout = load_auto_layout(VisionService())
-    frame = np.asarray(Image.open(FIXTURES / name).convert("RGB"))
-    cfg = layout["recovery_digits"]
-    actual, diagnostics = decode_recovery(
-        frame, cfg["banks"][style], threshold=cfg[f"{style}_threshold"],
+def test_enabled_types_must_match_priority_exactly():
+    assert validate_auto_inputs(True, False, ["work_meals"], 700, 200) == ("work_meals",)
+    with pytest.raises(ValueError, match="priority"):
+        validate_auto_inputs(True, False, ["work_meals", "love_bentos"], 700, 200)
+    with pytest.raises(ValueError, match="at least one"):
+        validate_auto_inputs(False, False, [], 700, 200)
+
+
+def test_auto_layout_does_not_load_recovery_digit_templates():
+    class Vision(VisionService):
+        def resolve_template(self, plan, ref, root):
+            assert "recovery_digits" not in str(ref)
+            return super().resolve_template(plan, ref, root)
+    layout = load_auto_layout(Vision())
+    assert "banks" not in layout["recovery_digits"]
+    # Four digits on both sides need the extra left margin of the HUD crop.
+    assert layout["fatigue_ratio_roi"] == (1139, 20, 132, 40)
+
+
+def test_work_meal_selection_does_not_need_a_recovery_amount(monkeypatch):
+    session = AutoBentoConsumptionSession(
+        object(), None, None,
+        {"total_timeout_sec": 30, "work_selected_rois": [[1, 2, 3, 4]] * 3},
+        {"bento_slots": [{"issue_time": time, "roi": [20 * index, 0, 10, 10]}
+                         for index, time in enumerate(("05:00", "12:00", "18:00"))]},
+        {}, priority=("work_meals", "love_bentos"),
+        bento_start_threshold=700, bento_stop_threshold=200,
     )
-    assert actual == expected
-    assert len(diagnostics) == 2
+    monkeypatch.setattr(session, "work_slots", lambda: [1, 2])
+    monkeypatch.setattr(session, "first_love", lambda: pytest.fail("Priority work meal must be selected first"))
+    meal, reason = session.choose_next()
+    assert reason == "selected" and meal["issue_time"] == "12:00"
+    assert "fatigue_recovery" not in meal
 
 
-def test_blank_recovery_is_unknown_not_zero():
-    cfg = load_auto_layout(VisionService())["recovery_digits"]
-    frame = np.zeros((16, 22, 3), dtype=np.uint8)
-    actual, _ = decode_recovery(frame, cfg["banks"]["work"],
-                                threshold=cfg["work_threshold"])
-    assert actual is None
-
-
-@pytest.mark.parametrize("threshold,expected", [(0.68, 46), (0.70, None)])
-def test_recovery_digit_acceptance_uses_score_not_runner_up_gap(monkeypatch, threshold, expected):
-    frame = np.asarray(Image.open(FIXTURES / "fixture_love_first_46.png").convert("RGB"))
-    bank = {digit: [np.full((16, 12), digit, dtype=np.uint8)] for digit in range(10)}
-    scores = [dict.fromkeys(range(10), 0.1), dict.fromkeys(range(10), 0.1)]
-    scores[0].update({4: 1.0, 0: 0.6487})
-    scores[1].update({6: 0.6968, 8: 0.6941})
+@pytest.mark.parametrize(("priority", "work_available", "love_available", "expected", "scanned"), [
+    (("love_bentos", "work_meals"), True, True, "love_bentos", ["love_bentos"]),
+    (("love_bentos", "work_meals"), True, False, "work_meals", ["love_bentos", "work_meals"]),
+    (("work_meals", "love_bentos"), False, True, "love_bentos", ["work_meals", "love_bentos"]),
+    (("love_bentos", "work_meals"), False, False, None, ["love_bentos", "work_meals"]),
+])
+def test_type_priority_controls_selection_and_exhaustion_fallback(
+    monkeypatch, priority, work_available, love_available, expected, scanned,
+):
+    session = AutoBentoConsumptionSession(
+        object(), None, None,
+        {"total_timeout_sec": 30, "work_selected_rois": [[1, 2, 3, 4]] * 3},
+        {"bento_slots": [{"issue_time": "12:00", "roi": [0, 0, 10, 10]}]},
+        {}, priority=priority, bento_start_threshold=600, bento_stop_threshold=100,
+    )
     calls = []
 
-    def match(glyph, template, method):
-        half = len(calls) // 10
-        digit = int(template[0, 0])
-        calls.append(digit)
-        return np.array([[scores[half][digit]]], dtype=np.float32)
+    def work_slots():
+        calls.append("work_meals")
+        return [0] if work_available else []
 
-    monkeypatch.setattr(auto_bento.cv2, "matchTemplate", match)
-    actual, diagnostics = decode_recovery(frame, bank, threshold=threshold)
-    assert actual == expected
-    assert diagnostics[1]["margin"] == pytest.approx(0.0027)
+    def first_love():
+        calls.append("love_bentos")
+        return {"kind": "love_bentos", "food_name": "Food"} if love_available else None
 
-
-def test_enabled_types_must_match_priority_exactly():
-    assert validate_auto_inputs(True, False, ["work_meals"], 100, False, -100) == ("work_meals",)
-    with pytest.raises(ValueError, match="priority"):
-        validate_auto_inputs(True, False, ["work_meals", "love_bentos"], 100, False, -100)
-    with pytest.raises(ValueError, match="at least one"):
-        validate_auto_inputs(False, False, [], 100, False, -100)
-
-
-def test_budget_never_exceeds_target_or_fatigue_floor():
-    session = AutoBentoConsumptionSession(
-        app=object(), ocr=None, vision=None,
-        layout={"total_timeout_sec": 30}, recovery_layout={}, catalog={},
-        priority=("work_meals",), target_recovery_amount=100,
-        allow_exceed_target=False, base_fatigue_reserve=-100,
-    )
-    session.computed_fatigue = 20
-    assert session.fits(51)
-    session.total_recovered = 51
-    assert not session.fits(51)
-    session.total_recovered = 0
-    assert not session.fits(121)
-    session.computed_fatigue = -80
-    assert not session.fits(36)
-
-
-def test_only_confirmed_consumption_changes_in_memory_budget():
-    session = AutoBentoConsumptionSession(
-        app=object(), ocr=None, vision=None,
-        layout={"total_timeout_sec": 30}, recovery_layout={}, catalog={},
-        priority=("work_meals",), target_recovery_amount=100,
-        allow_exceed_target=False, base_fatigue_reserve=-100,
-    )
-    session.computed_fatigue = 50
-    session.items.append({"meal": {"kind": "work_meals", "fatigue_recovery": 36},
-                          "consumed": False, "completed": False, "phase": "selected"})
-    meal = session.items[-1]["meal"]
-    session.record(meal, "consumption_pending")
-    assert (session.total_recovered, session.computed_fatigue) == (0, 50)
-    session.record(meal, "consumption_confirmed")
-    session.record(meal, "consumption_confirmed")
-    assert (session.total_recovered, session.computed_fatigue) == (36, 14)
-
-
-@pytest.mark.parametrize("kind", ["work_meals", "love_bentos"])
-def test_multiple_portions_scroll_to_top_only_once_after_enter(monkeypatch, kind):
-    session = AutoBentoConsumptionSession(
-        app=object(), ocr=None, vision=None,
-        layout={"total_timeout_sec": 30, "max_portions": 5}, recovery_layout={}, catalog={},
-        priority=(kind,), target_recovery_amount=100,
-        allow_exceed_target=False, base_fatigue_reserve=-100,
-    )
-    events = []
-    candidates = iter(({"kind": kind, "fatigue_recovery": 36},
-                       {"kind": kind, "fatigue_recovery": 36}, None))
-    monkeypatch.setattr(session, "enter", lambda: events.append("enter"))
-    monkeypatch.setattr(session, "scroll_top", lambda: events.append("top"))
-    monkeypatch.setattr(session, "read_initial_fatigue", lambda: 200)
-
-    def choose_next():
-        events.append("scan")
-        candidate = next(candidates)
-        return candidate, "selected" if candidate else "no_available_meals"
-
-    def consume(candidate):
-        events.append("consume")
-        session.items.append({"meal": candidate, "consumed": True,
-                              "completed": True, "phase": "completed"})
-        session.total_recovered += candidate["fatigue_recovery"]
-        session.computed_fatigue -= candidate["fatigue_recovery"]
-
-    monkeypatch.setattr(session, "choose_next", choose_next)
-    monkeypatch.setattr(session, "consume", consume)
-
-    def return_main():
-        events.append("return")
-        session.page = "city_main"
-
-    monkeypatch.setattr(session, "return_main", return_main)
-
-    result = session.run_auto()
-    assert events == ["enter", "top", "scan", "consume", "scan", "consume", "scan", "return"]
-    assert result["success"] is True and result["consumed_count"] == 2
-    assert result["recovered_fatigue"] == 72 and result["page_state"] == "city_main"
+    monkeypatch.setattr(session, "work_slots", work_slots)
+    monkeypatch.setattr(session, "first_love", first_love)
+    meal, reason = session.choose_next()
+    assert (meal["kind"] if meal else None) == expected
+    assert reason == ("selected" if expected else "no_available_meals")
+    assert calls == scanned

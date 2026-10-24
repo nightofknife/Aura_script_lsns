@@ -1308,12 +1308,37 @@ auto_combined_commerce_pc:
             type: list
             required: false
             default: [work_meals, love_bentos]
-          base_fatigue_reserve:
-            name: base_fatigue_reserve
+          sparkling_water_start_threshold:
+            name: sparkling_water_start_threshold
             type: number
             strict_integer: true
             required: false
-            default: 200
+            nullable: true
+            default: 600
+            min: 0
+          sparkling_water_stop_threshold:
+            name: sparkling_water_stop_threshold
+            type: number
+            strict_integer: true
+            required: false
+            nullable: true
+            default: 100
+            min: 0
+          bento_start_threshold:
+            name: bento_start_threshold
+            type: number
+            strict_integer: true
+            required: false
+            nullable: true
+            default: 600
+            min: 0
+          bento_stop_threshold:
+            name: bento_stop_threshold
+            type: number
+            strict_integer: true
+            required: false
+            nullable: true
+            default: 100
             min: 0
           recovery_snapshot:
             name: recovery_snapshot

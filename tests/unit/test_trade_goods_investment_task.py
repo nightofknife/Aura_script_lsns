@@ -16,7 +16,7 @@ from packages.aura_core.scheduler.validation import InputValidator, _MISSING
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import trade_goods_investment_pc_actions as investment
-from tests.unit.test_resonance_pc_sparkling_water_trade import harness, run_full
+from tests.unit.test_resonance_pc_sparkling_water_trade import harness, routes, run_full
 
 
 def business_result(mode=10, **changes):
@@ -351,7 +351,10 @@ def test_route_first_station_excluded_and_repeat_visits_included(monkeypatch, in
 
 
 def test_endpoint_runs_child_after_water_before_final_sale(harness, monkeypatch, task_engine):
-    operations, _ = harness
+    operations, route_state = harness
+    route_state.update(current_fatigue=200, travel_costs=[150])
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route",
+                        lambda **kwargs: {"status": "ok", "route": routes()[:1]})
     context, engine, state = task_engine
     install_exchange(monkeypatch, operations)
     original = engine.orchestrator.execute_task
@@ -362,19 +365,29 @@ def test_endpoint_runs_child_after_water_before_final_sale(harness, monkeypatch,
 
     engine.orchestrator.execute_task = record_task
     result = run_full(auto_trade_goods_investment=True, context=context, engine=engine)
-    assert operations.index("water:岚心城:4") < operations.index("goods_investment") < operations.index("final_sale")
+    assert operations.index("travel:0") < operations.index("water:海角城:3")
+    assert operations.index("water:海角城:3") < operations.index("goods_investment") < operations.index("final_sale")
+    assert [op for op in operations if op.startswith("water:")] == ["water:海角城:3"]
     assert operations.count("exchange") == 1
-    assert state["calls"][0]["inputs"] == {"mode": 10, "city_name": "岚心城"}
+    assert len(state["calls"]) == 1
+    assert state["calls"][0]["inputs"] == {"mode": 10, "city_name": "海角城"}
+    assert route_state["current_fatigue"] == 200 and route_state["local_quota"] == 3
     assert result["final_sale"]["trade_goods_investment"]["status"] == "invested"
 
 
 def test_endpoint_child_failure_prevents_final_sale(harness, monkeypatch, task_engine):
-    operations, _ = harness
+    operations, route_state = harness
+    route_state.update(current_fatigue=200, travel_costs=[150])
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route",
+                        lambda **kwargs: {"status": "ok", "route": routes()[:1]})
     context, engine, state = task_engine
     install_exchange(monkeypatch, operations)
     state["result"] = business_result(page_state="investment_page")
     result = run_full(auto_trade_goods_investment=True, context=context, engine=engine)
-    assert "water:岚心城:4" in operations
+    assert "water:海角城:3" in operations
+    assert operations.index("travel:0") < operations.index("water:海角城:3") < operations.index("exchange")
+    assert len(state["calls"]) == 1
+    assert state["calls"][0]["inputs"] == {"mode": 10, "city_name": "海角城"}
     assert "final_sale" not in operations
     assert result["success"] is False and result["status"] == "failed"
     assert result["final_sale"]["reason"] == "goods_investment_task_incomplete"
