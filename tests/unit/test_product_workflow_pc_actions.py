@@ -606,5 +606,3 @@ def test_cancelled_exit_observation_does_not_start_cleanup_navigation(monkeypatc
         workflow.resonance_pc_product_workflow_return_city(
             city_key=CITY["city_key"], app=app, vision=object(), interaction=interaction)
     assert clicks == []
-
-

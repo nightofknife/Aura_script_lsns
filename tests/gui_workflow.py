@@ -25,4 +25,3 @@ def complete_prison_products_refresh(window):
         }},
     })
     window._on_busy_changed(False)
-
