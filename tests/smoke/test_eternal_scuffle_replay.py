@@ -21,24 +21,23 @@ FIXTURE = ROOT / "tests/fixtures/eternal_scuffle_replay/scripted_surface.py"
 @pytest.fixture(autouse=True)
 def isolated_replay_log_session(monkeypatch):
     """Each replay project represents a separate application process/session."""
+    from packages.aura_core.observability.logging import coordinator
     from packages.aura_core.observability.logging import log_session
-    from packages.aura_core.observability.logging.core_logger import logger
 
+    coordinator.close_session()
+    previous = log_session.get_log_session()
+    if previous is not None:
+        previous.close()
     with monkeypatch.context() as isolated:
-        isolated.setattr(log_session, "_SESSION", None)
-        # Register both original environment values with monkeypatch so changes
-        # made by startup are restored too, including when a key was absent.
+        isolated.delenv("AURA_LOG_DESCRIPTOR", raising=False)
         isolated.setenv("AURA_LOG_ROOT", "")
         isolated.setenv("AURA_LOG_SESSION_ID", "")
         try:
             yield
         finally:
+            coordinator.close_session()
             session = log_session.get_log_session()
             if session is not None:
-                handler = logger._get_handler("task_file")
-                if handler is not None:
-                    logger.logger.removeHandler(handler)
-                    handler.close()
                 session.close()
 
 
@@ -87,11 +86,15 @@ def build_replay_project(tmp_path, *, missing_finish=False, missing_returns=Fals
 
 def assert_existing_logger_only(base, *, expected_kind):
     """No Scuffle journal/diagnostic artifacts; details reach real framework log."""
+    from packages.aura_core.observability.logging import coordinator
+
+    assert coordinator.flush(), "Unified session records did not reach disk"
     assert not (base / "logs/eternal_scuffle").exists()
     prohibited = {"events.jsonl", "summary.json", "failure.json", "last_frame.png", "last_target.png"}
     assert not [path for path in base.rglob("*") if path.is_file() and path.name in prohibited]
-    logs = list((base / "logs").glob("aura_session_*.log*"))
-    assert logs, "The real framework file logger did not create its normal log"
+    logs = list((base / "logs").glob("aura_session_*.log"))
+    assert len(logs) == 1, "Each replay launch must write exactly one unified session log"
+    assert str(logs[0]) == coordinator.get_current_log_path()
     text = "\n".join(path.read_text(encoding="utf-8", errors="replace") for path in logs)
     rows = [json.loads(line.split("[EternalScuffle] ", 1)[1])
             for line in text.splitlines() if "[EternalScuffle] " in line]
@@ -142,6 +145,7 @@ def test_real_scuffle_graph_two_round_replay(tmp_path, monkeypatch, subprocess):
         sequences = [event["sequence"] for event in progress]
         assert sequences == sorted(set(sequences))
         assert progress[-1]["stage"] == progress[-1]["status"] == "completed"
+        runner.close()  # Join the worker and its logging flush before reading the host file.
         rows = assert_existing_logger_only(base, expected_kind="round_completed")
         assert any(row.get("type") == "equipment_assigned" for row in rows)
         completed = [row for row in rows if row.get("type") == "run_completed"]
@@ -199,6 +203,7 @@ def test_real_scuffle_subprocess_cancellation_stops_next_choice_and_coin(tmp_pat
         time.sleep(0.1)
         after = json.loads((base / "replay_audit.json").read_text(encoding="utf-8"))
         assert after["clicks"] == audit["clicks"]
+        runner.close()
         rows = assert_existing_logger_only(base, expected_kind="cancelled")
         assert any("state" in row and "observation" in row and "last_target" in row for row in rows)
     finally:

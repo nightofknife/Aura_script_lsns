@@ -6,6 +6,7 @@ from pathlib import Path
 import re
 import queue
 import sys
+import threading
 import time
 
 import pytest
@@ -51,6 +52,39 @@ def session(tmp_path, monkeypatch):
     descriptor = logs.start_session(tmp_path / "logs", descriptor={})
     yield descriptor
     logs.close_session()
+
+
+def test_display_unsubscribe_closes_connection_only_on_receiving_thread(monkeypatch):
+    from packages.aura_core.observability.logging import transport
+
+    receiving, unsubscribed = threading.Event(), threading.Event()
+
+    class Connection:
+        close_threads = []
+
+        def send_bytes(self, packet):
+            if b'"unsubscribe"' in packet:
+                unsubscribed.set()
+
+        def close(self):
+            self.close_threads.append(threading.current_thread())
+
+    connection = Connection()
+    monkeypatch.setattr(transport, "connect", lambda endpoint: connection)
+
+    def receive(connection):
+        receiving.set()
+        assert unsubscribed.wait(5)
+        raise EOFError
+
+    monkeypatch.setattr(transport, "receive", receive)
+    subscriber = transport.RemoteSubscriber({}, lambda record: None)
+    assert receiving.wait(5)
+    subscriber.close()
+    subscriber.close()
+    subscriber.thread.join(2)
+    assert not subscriber.thread.is_alive()
+    assert connection.close_threads == [subscriber.thread]
 
 
 def test_spawn_concurrency_and_restart_share_file_and_preserve_identity(session):

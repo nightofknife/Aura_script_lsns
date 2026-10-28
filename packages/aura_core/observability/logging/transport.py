@@ -180,10 +180,15 @@ class RemoteSubscriber:
                 self.connection.close()
 
     def close(self):
+        if self.closed:
+            return
         self.closed = True
         if self.connection is not None:
             try:
                 self.connection.send_bytes(encode({"op": "unsubscribe"}))
-                self.connection.close()
             except OSError:
                 pass
+        # The receiving thread owns the handle. Closing it concurrently with
+        # recv_bytes/its finally block races Windows overlapped pipe cleanup.
+        if threading.current_thread() is not self.thread:
+            self.thread.join(.5)
