@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import io
 import json
-import logging
 import multiprocessing
 import os
 import queue
@@ -16,7 +15,10 @@ from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.context.plan import current_plan_name
 from packages.aura_core.runtime.bootstrap import create_runtime, peek_runtime, start_runtime, stop_runtime
 from packages.aura_core.observability.logging.core_logger import logger
-from packages.aura_core.observability.logging.log_session import get_log_session, start_log_session
+from packages.aura_core.observability.logging.coordinator import (
+    attach_session, close_session, get_session_descriptor, start_session,
+)
+from packages.aura_core.observability.logging.stream_capture import install_capture, uninstall_capture
 from packages.aura_core.packaging.core.task_catalog import catalog_group, is_user_entry, task_role
 
 _TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
@@ -37,12 +39,22 @@ def _startup_timeout_sec() -> int:
 
 def _reset_global_runtime_state() -> None:
     runtime = peek_runtime()
-    if runtime is not None:
-        try:
-            runtime.observability.run_store.close()
-        except Exception:
-            pass
-    stop_runtime()
+    try:
+        # Let terminal task events finish while their store is still open.
+        stop_runtime()
+    finally:
+        if runtime is not None:
+            observability = getattr(runtime, "observability", None)
+            try:
+                close_history = getattr(observability, "close_history_retention", None)
+                if callable(close_history):
+                    close_history()
+            except Exception:
+                pass
+            try:
+                observability.run_store.close()
+            except Exception:
+                pass
     ACTION_REGISTRY.clear()
     service_registry.clear()
     hook_manager.clear()
@@ -430,9 +442,16 @@ class EmbeddedGameRunner:
         return result
 
 
-def _subprocess_entry(connection, profile: str, startup_timeout_sec: int) -> None:
-    if os.environ.get("AURA_LOG_ROOT"):
-        start_log_session(os.environ["AURA_LOG_ROOT"], cleanup=False)
+def _subprocess_entry(connection, profile: str, startup_timeout_sec: int, log_descriptor=None) -> None:
+    # A worker's inherited stdout can be its host's JSON protocol. Diagnostics
+    # belong to the dedicated session channel, including the initial attach.
+    logger.setup(console_level=None)
+    if log_descriptor:
+        attach_session(log_descriptor, role="worker")
+    else:
+        start_session(os.environ.get("AURA_LOG_ROOT", "logs"), cleanup=False, role="worker")
+    install_capture(native_stderr=True)
+    logger.info("[WorkerLifecycle] phase=started pid=%s", os.getpid())
     runner = EmbeddedGameRunner(profile=profile, startup_timeout_sec=startup_timeout_sec)
     try:
         while True:
@@ -458,6 +477,7 @@ def _subprocess_entry(connection, profile: str, startup_timeout_sec: int) -> Non
                 except (EOFError, BrokenPipeError, OSError):
                     break
             except Exception as exc:  # noqa: BLE001
+                logger.exception("[WorkerRequest] phase=failed op=%s", op)
                 try:
                     connection.send(
                         {
@@ -475,10 +495,9 @@ def _subprocess_entry(connection, profile: str, startup_timeout_sec: int) -> Non
         try:
             runner.close()
         finally:
-            logging.shutdown()
-            session = get_log_session()
-            if session is not None:
-                session.close()
+            logger.info("[WorkerLifecycle] phase=exited pid=%s", os.getpid())
+            uninstall_capture()
+            close_session()
             try:
                 connection.close()
             except Exception:
@@ -544,10 +563,19 @@ class SubprocessGameRunner:
         if self._process is not None and self._process.is_alive():
             return
 
+        descriptor = get_session_descriptor()
+        if descriptor is None:
+            from pathlib import Path
+            from packages.aura_core.observability.logging.log_session import resolve_log_root
+            base = Path(self.env_overrides.get("AURA_BASE_PATH") or os.environ.get("AURA_BASE_PATH") or Path.cwd())
+            log_root = self.env_overrides.get("AURA_LOG_ROOT") or os.environ.get("AURA_LOG_ROOT") or get_config_value(
+                "logging.log_dir", "logs", base_path=str(base),
+            )
+            descriptor = start_session(resolve_log_root(base, log_root), role="runner_host")
         parent_conn, child_conn = self._ctx.Pipe()
         process = self._ctx.Process(
             target=_subprocess_entry,
-            args=(child_conn, self.profile, self.startup_timeout_sec),
+            args=(child_conn, self.profile, self.startup_timeout_sec, descriptor),
             daemon=True,
         )
         self._start_process_with_env(process)

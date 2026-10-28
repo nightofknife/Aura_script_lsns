@@ -1,6 +1,8 @@
 # 成品仓取出：模板来源与离线校正
 
-`manifest.json` 记录四张用户提供截图的原始附件名、SHA-256 和状态。`screenshots/` 保留原图；没有代理实机操作记录。原图均为 1282×752，去窗口外框和标题栏时裁 `[1,31,1281,751]`（XYXY），得到 1280×720 游戏客户区。所有标注坐标均相对客户区。
+`manifest.json` 记录用户提供截图的原始附件名、SHA-256 和状态。`screenshots/` 保留四张早期原图和 2026-10-24 新增的 `warehouse_stable.png`。前四张为 1282×752，裁 `[1,31,1281,751]`（XYXY）；新增稳定截图裁 `[26,56,1306,776]`，均得到 1280×720 客户区，不缩放。所有标注坐标均相对客户区。
+
+2026-10-24 按稳定截图将仓库页与目标连接识别拆开：三个固定标题使用灰度结构匹配；目标按钮先定位结构，再在按钮内部核对彩色状态，保留旧未选中外观为独立变体。旧标题亮／暗模板仅作诊断，未选中不推断另一组连接。控件生成器默认读取这五张供图，写出带来源与裁剪记录的素材及实际识别器回放报告；本次五张供图回放及 19 项针对性测试通过，另回放首次失败实机的 13 帧。首次实机没有取货；修复后另一次授权实机（CID `769185061948887040`）完成涤纶 20 装车、只读复扫及返回总览，载货 56 → 76。该单商品、单视口结果不代表其他分支或服务器回读已验收；详细证据与范围见开发指南中的取货方案文末。
 
 **当前数量方案为 OCR。** 入口是 `_prison_warehouse_quantity.py::WarehouseQuantityReader`，配置是 `data/meta/prison_warehouse_quantity_ocr_pc.json`（均相对 `plans/resonance_pc/`）。正常完整格子先裁 `[7,65,76,16]`；仅在文本不符合完整正整数或分数低于 0.80 时，再固定裁 `[7,66,76,15]` 识别一次。横向保留完整 76px，不按样本最多两位压缩宽度；不设未经游戏证据支持的四位上限。
 
@@ -22,7 +24,7 @@
 
 重新制作时从仓库根目录调用以下工具，临时目录和生成报告保持在仓内 `.pytest_tmp/` 的专用子目录；控件、商品及旧截图数字使用 `prison_warehouse_calibration_20261023/`，原生数字及 OCR 使用 `prison_warehouse_native_ocr_20261023/`：
 
-- `tools/build_prison_warehouse_transfer_templates.py`：默认读取这里的四张原图，制作控件并输出比对报告。
+- `tools/build_prison_warehouse_transfer_templates.py`：默认读取这里的五张原图，制作页面结构、按钮锚点及内部状态裁片，用正式识别器输出回放报告。新增截图可用 `--stable-source` 和 `--stable-client-crop LEFT TOP RIGHT BOTTOM` 显式指定；默认报告写入 `.pytest_tmp/warehouse_state_separation_20261024/controls/`。
 - `tools/build_prison_warehouse_goods_templates.py`：需提供本机 `--game-data`、开发工具源码及隔离的 UnityPy 环境；`--calibration-fixtures` 指向这里的 `goods_fixtures.json`。该环境只用于离线素材制作，不是自动化程序运行依赖。
 - `tools/calibrate_prison_warehouse_quantity.py`：制作数量字形模板并比较人工数量标注，人工抄录保存为 `quantity_samples.json`；报告区分建库样本与其他样本、真实截图与合成诊断。`--font` 是可选的原生字体路径，仅用于生成未校正的 8／9；缺少字体时不会生成这些候选，不影响 0～7 的供图制作。
 - `tools/build_prison_warehouse_native_digits.py`：从游戏 `font.asset` 提取绑定 TTF，并核对仓库 Text 与 Outline 参数。生成完整 0～9 的 RGBA、填充、描边、掩码与浮点响应；108 组渲染参数记录和未知位数报告保持在 `.pytest_tmp/prison_warehouse_native_ocr_20261023/native/`。可用 `--game-data`、`--unitypy-dir` 指定本机游戏和离线 UnityPy 目录。

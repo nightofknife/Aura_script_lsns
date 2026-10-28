@@ -81,8 +81,14 @@ def test_workflow_snapshot_uses_latest_single_editor_values(window, monkeypatch,
         expected = {"trip_count": 3, "trade_during_trip": False}
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
-    assert len(window._workflow_pending) == 1
-    task = window._workflow_pending[0]
+    assert [row["step"] for row in window._workflow_pending] == (
+        ["refresh_recovery", "trade"] if kind == "trade" else ["passenger"]
+    )
+    if kind == "trade":
+        preparation = window._workflow_pending[0]
+        assert preparation["dispatch"] == "pc_task"
+        assert preparation["inputs"]["stages"] == ["prison_products"]
+    task = window._workflow_pending[-1]
     assert task["step"] == task["dispatch"] == kind
     assert {key: task["inputs"][key] for key in expected} == expected
     saved = window._settings.load_trade_inputs() if kind == "trade" else window._settings.load_passenger_inputs()

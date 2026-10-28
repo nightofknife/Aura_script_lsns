@@ -57,7 +57,12 @@ def _installed_distributions(*names: str) -> list[str]:
 
 datas = []
 binaries = []
-hiddenimports = ["win32timezone"]
+hiddenimports = [
+    "win32timezone",
+    "packages.aura_core.observability.logging.coordinator",
+    "packages.aura_core.observability.logging.transport",
+    "packages.aura_core.observability.logging.stream_capture",
+]
 datas.append((str(ROOT / "docs" / "schemas" / "task-schema.json"), "docs/schemas"))
 
 # Aura uses several lazy package-level exports and importlib-based lookups.

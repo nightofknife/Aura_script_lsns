@@ -95,6 +95,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "product_unlocks": {"mode": "all", "product_ids": []},
     "auto_sparkling_water": False,
     "auto_bento": False,
+    "prison_product_goods": [],
     "bento_priority": ["work_meals", "love_bentos"],
     **DEFAULT_RECOVERY_THRESHOLDS,
     "auto_pickup": False,
@@ -162,6 +163,7 @@ PLAYER_DATA_STAGE_ORDER: tuple[str, ...] = (
     "profile",
     "inventory",
     "characters",
+    "prison_products",
 )
 PLAYER_DATA_INVENTORY_CATEGORY_ORDER: tuple[str, ...] = (
     "items",
@@ -174,7 +176,7 @@ PLAYER_DATA_PROFILE_SECTION_ORDER: tuple[str, ...] = (
 DEFAULT_PROFILE_SECTIONS: tuple[str, ...] = ("cargo", "clarity", "fatigue")
 PLAYER_DATA_INPUTS_SCHEMA_VERSION = 4
 DEFAULT_PLAYER_DATA_INPUTS: dict[str, Any] = {
-    "stages": [*PLAYER_DATA_STAGE_ORDER],
+    "stages": [stage for stage in PLAYER_DATA_STAGE_ORDER if stage != "prison_products"],
     "inventory_categories": ["items"],
     "profile_sections": [*DEFAULT_PROFILE_SECTIONS],
 }
@@ -519,6 +521,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged["auto_rubbish_recycling"] = bool(merged["auto_rubbish_recycling"])
     merged["auto_sparkling_water"] = bool(merged["auto_sparkling_water"])
     merged["auto_bento"] = bool(merged["auto_bento"])
+    merged["prison_product_goods"] = normalize_prison_product_goods(merged["prison_product_goods"])
     priority = merged["bento_priority"]
     if (
         not isinstance(priority, list)
@@ -590,6 +593,14 @@ def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def normalize_prison_product_goods(value: Any) -> list[str]:
+    if value is None:
+        return []
+    if not isinstance(value, list) or any(not isinstance(item, str) or not item.strip() for item in value):
+        raise ValueError("监狱成品选择必须是商品名称或 ID 列表。")
+    return list(dict.fromkeys(item.strip() for item in value))
+
+
 def _merge_player_data_inputs(values: dict[str, Any]) -> dict[str, Any]:
     raw_stages = values.get("stages")
     if not isinstance(raw_stages, list):
@@ -626,11 +637,14 @@ def _merge_player_data_inputs(values: dict[str, Any]) -> dict[str, Any]:
         section in requested_profile_sections for section in ("work_meals", "love_bentos")
     ):
         requested_profile_sections = [*requested_profile_sections, "bento_count"]
-    return {
+    result = {
         "stages": data_stages,
         "inventory_categories": inventory_categories,
         "profile_sections": [section for section in PLAYER_DATA_PROFILE_SECTION_ORDER if section in requested_profile_sections],
     }
+    if "prison_products" in data_stages or "prison_product_goods" in values:
+        result["prison_product_goods"] = normalize_prison_product_goods(values.get("prison_product_goods"))
+    return result
 
 
 def _merge_battle_inputs(values: dict[str, Any]) -> dict[str, Any]:

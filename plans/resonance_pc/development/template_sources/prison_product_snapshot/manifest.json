@@ -1,0 +1,26 @@
+{
+  "source": "profile_menu.png",
+  "original_name": "codex-clipboard-de68dd08-a424-4918-a5bf-f2ced92699b0.png",
+  "sha256": "4a85faff9fbab58e77e68c4e88073f193cce034e9d95af57120a8e77d578be17",
+  "client_crop_xyxy": [
+    26,
+    56,
+    1306,
+    776
+  ],
+  "template": "templates/workshop/warehouse/controls/profile_reforming_entry.png",
+  "template_crop_xywh": [
+    584,
+    586,
+    54,
+    58
+  ],
+  "search_region": [
+    550,
+    565,
+    125,
+    110
+  ],
+  "threshold": 0.92,
+  "method": "TM_CCOEFF_NORMED grayscale"
+}

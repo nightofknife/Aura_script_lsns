@@ -53,7 +53,8 @@ class WarehouseTransferRuntime:
         self.pending: dict | None = None
         self.quantity_evidence: dict[str, dict] = {}
         self.request: dict = {}
-        self.rescan = {"complete": False, "unresolved": [], "quantities": {}}
+        self.rescan = {"complete": False, "scope": "visible", "inventory_complete": False,
+                       "unresolved": [], "coverage_notes": [], "quantities": {}}
         self.returned = False
         self.return_attempted = False
         self.stop_reason = "not_started"
@@ -172,7 +173,7 @@ class WarehouseTransferRuntime:
         self._transition(
             "connect_train_product",
             lambda v: v.get("page") == "warehouse" and v.get("connection") == "train_product",
-            lambda v: v.get("page") == "warehouse" and v.get("connection") == "material_product",
+            lambda v: v.get("page") == "warehouse" and v.get("connection") == "not_train_product",
             "tp_connection_unselected",
         )
         view = self._stable()
@@ -187,82 +188,8 @@ class WarehouseTransferRuntime:
     def _blocking(view):
         return [u for u in view.get("unresolved", []) if not u.get("coverage_only", False)]
 
-    def _edge_shape(self, view, direction):
-        """A stationary drag alone never proves a list endpoint."""
-        if view.get("list_state") == "empty":
-            return True
-        geometry = view.get("geometry", {})
-        slots = geometry.get("slots", [])
-        if not slots:
-            return False
-        # Identity/OCR failures affect inventory certainty, while unaccounted
-        # artwork or missing geometry also prevents a structural edge claim.
-        if any(s.get("status") == "unconfirmed" for s in slots):
-            return False
-        if any(u.get("reason") in {
-            "unexplained_viewport_foreground", "additional_unexplained_regions",
-            "row_spacing_or_missing_row_unconfirmed", "unconfirmed_hole_before_occupied_column",
-        } for u in view.get("unresolved", [])):
-            return False
-        if direction == "top":
-            return (geometry.get("reference_top_aligned_hint") is True
-                    and not any(s.get("status") == "clipped_top" for s in slots))
-        return (not any(s.get("status") == "clipped_bottom" for s in slots)
-                and geometry.get("trailing_clear_pixels", 0) >= self.options["edge_clear_pixels"])
-
-    def _drag(self, view, direction):
-        if view is not self.last or self.frame is None:
-            raise WarehouseTransferError("warehouse_scroll_evidence_stale")
-        if view.get("page") != "warehouse" or view.get("connection") != "train_product":
-            raise WarehouseTransferError("warehouse_scroll_source_unconfirmed")
-        viewport = view["viewport"]
-        x, y, width, height = viewport
-        distance = min(self.options["scroll_step_px"], height - 2 * 84)
-        if distance <= 0:
-            raise WarehouseTransferError("warehouse_scroll_viewport_too_small")
-        # Drag only inside the product pane, with a short movement and row overlap.
-        cx, cy = int(x + width / 2), int(y + height / 2)
-        half = distance / 2
-        start = (cx, int(cy - half if direction == "top" else cy + half))
-        end = (cx, int(cy + half if direction == "top" else cy - half))
-        frame, self.frame = self.frame, None
-        receipt = self.interaction.send_input(
-            lambda: self.app.drag(start_x=start[0], start_y=start[1], end_x=end[0], end_y=end[1],
-                                  duration=self.options["scroll_duration_sec"],
-                                  hold_before_release_sec=self.options["scroll_hold_sec"]),
-            scope=self.scope, point=start, frame=frame, session=self.session,
-            bounds=(0, 0, 1280, 720), check_cancelled=self.cancel_check,
-        )
-        if not receipt.sent or not receipt.call_returned:
-            raise WarehouseTransferError("warehouse_scroll_input_unconfirmed")
-        self._sleep(self.options["scroll_settle_sec"])
-        after = self._stable()
-        self.trace.append({"stage": "scroll", "direction": direction,
-                           "before": view.get("signature"), "after": after.get("signature"),
-                           "receipt": asdict(receipt)})
-        return after
-
-    def _top(self, view):
-        if view.get("list_state") == "empty":
-            return view, True
-        stationary = 0
-        for _ in range(self.options["max_scrolls_per_scan"]):
-            after = self._drag(view, "top")
-            same = self._key(after) == self._key(view)
-            stationary = stationary + 1 if same and self._edge_shape(after, "top") else 0
-            view = after
-            if stationary >= self.options["endpoint_confirmations"]:
-                return view, True
-        return view, False
-
-    def _move_down(self, view):
-        after = self._drag(view, "bottom")
-        same = self._key(after) == self._key(view)
-        overlap = bool(set(self._ids(view)) & set(self._ids(after)))
-        return after, same, overlap
-
     def _effect(self, before_view, goods_id, source_quantity):
-        """Confirm a single mutation without replay; the final rescan quantifies it."""
+        """Confirm one mutation and retain explicit local stock evidence."""
         before_ids = self._ids(before_view)
         before_capacity = before_view.get("capacity", {}).get("current")
         def evidence():
@@ -283,16 +210,22 @@ class WarehouseTransferRuntime:
                     and new_capacity > before_capacity):
                 method = method or "train_cargo_increased"
             after_ids = self._ids(view)
-            if not matching and not self._blocking(view):
+            removed = False
+            if not matching and not self._blocking(view) and not self._blocking(before_view):
                 if view.get("list_state") == "empty":
                     method = "product_list_became_empty"
+                    removed = True
                 else:
                     # At least one preserved neighbor must substantiate removal.
                     neighbors = [i for i in before_ids if i != goods_id]
                     if neighbors and after_ids[:len(neighbors)] == neighbors:
                         method = method or "ordered_neighbors_shifted"
+                        removed = True
             if method:
-                remaining = matching[0].get("quantity") if len(matching) == 1 else None
+                # No scrolling occurs between these observations. Preserved
+                # neighbors shifting forward proves local removal; arbitrary
+                # absence in the final viewport does not establish zero stock.
+                remaining = 0 if removed else matching[0].get("quantity") if len(matching) == 1 else None
                 return {"method": method, "view": view, "remaining": remaining}
             return None
         result = self.interaction.confirm(
@@ -305,7 +238,7 @@ class WarehouseTransferRuntime:
             raise WarehouseTransferError("warehouse_withdraw_effect_unknown", goods_id=goods_id)
         self.pending["effect_confirmed"] = True
         self.pending["effect"] = result["method"]
-        if type(result["remaining"]) is int and 0 < result["remaining"] < source_quantity:
+        if type(result["remaining"]) is int and 0 <= result["remaining"] < source_quantity:
             self.effect_after[goods_id] = result["remaining"]
             self.pending["observed_after_quantity"] = result["remaining"]
         return result["view"]
@@ -341,10 +274,7 @@ class WarehouseTransferRuntime:
         return after
 
     def _take_pass(self, view):
-        view, top = self._top(view)
-        if not top:
-            return view, "list_top_unconfirmed"
-        stationary, moves, mutations, continuous = 0, 0, 0, True
+        mutations = 0
         threshold = self.request["quantity_threshold"]
         while True:
             self._check()
@@ -362,78 +292,49 @@ class WarehouseTransferRuntime:
                     return view, "withdrawal_limit"
                 view = self._take_one(view, candidates[0])
                 mutations += 1
-                # A deletion reorders the list. Restart coverage, never indices.
-                view, top = self._top(view)
-                if not top:
-                    return view, "list_top_unconfirmed"
-                stationary, moves, continuous = 0, 0, True
+                # A deletion can move new cards into view. Use the fresh effect
+                # observation, never old indices or a scroll back to the top.
                 continue
-            if view.get("list_state") == "empty":
-                return view, "no_eligible_goods"
-            if moves >= self.options["max_scrolls_per_scan"]:
-                return view, "take_scan_limit"
-            after, same, overlap = self._move_down(view)
-            moves += 1
-            if not same and not overlap:
-                continuous = False
-            stationary = stationary + 1 if same and self._edge_shape(after, "bottom") else 0
-            view = after
-            if stationary >= self.options["endpoint_confirmations"]:
-                return view, "no_eligible_goods" if continuous else "take_coverage_incomplete"
+            return view, "no_visible_eligible_goods"
 
     def _rescan(self, view):
-        view, top = self._top(view)
+        # Read-only confirmation of this viewport; no claim about hidden rows.
+        view = self._stable()
         quantities: dict[str, int] = {}
-        unresolved: list[dict] = []
+        unresolved = list(self._blocking(view))
+        coverage_notes = [u for u in view.get("unresolved", []) if u.get("coverage_only", False)]
         conflicts: set[str] = set()
-        stationary, continuous, complete = 0, top, False
-        for index in range(self.options["max_scrolls_per_scan"] + 1):
-            unresolved.extend(self._blocking(view))
-            visible_ids = self._ids(view)
-            conflicts.update(goods_id for goods_id in visible_ids if visible_ids.count(goods_id) > 1)
-            for card in view.get("cards", []):
-                if not card.get("target"):
-                    continue
-                goods_id, quantity = str(card["id"]), card.get("quantity")
-                if type(quantity) is not int or quantity <= 0:
-                    unresolved.append({"reason": "quantity_unknown", "goods_id": goods_id,
-                                       "quantity_result": card.get("quantity_result")})
-                elif goods_id in quantities and quantities[goods_id] != quantity:
-                    conflicts.add(goods_id)
-                else:
-                    quantities[goods_id] = quantity
-            if view.get("list_state") == "empty":
-                complete = continuous
-                break
-            if index >= self.options["max_scrolls_per_scan"]:
-                break
-            after, same, overlap = self._move_down(view)
-            if not same and not overlap:
-                continuous = False
-            stationary = stationary + 1 if same and self._edge_shape(after, "bottom") else 0
-            view = after
-            if stationary >= self.options["endpoint_confirmations"]:
-                complete = continuous
-                break
+        visible_ids = self._ids(view)
+        conflicts.update(goods_id for goods_id in visible_ids if visible_ids.count(goods_id) > 1)
+        for card in view.get("cards", []):
+            if not card.get("target"):
+                continue
+            goods_id, quantity = str(card["id"]), card.get("quantity")
+            if type(quantity) is not int or quantity <= 0:
+                unresolved.append({"reason": "quantity_unknown", "goods_id": goods_id,
+                                   "quantity_result": card.get("quantity_result")})
+            else:
+                quantities[goods_id] = quantity
         for goods_id in conflicts:
             quantities.pop(goods_id, None)
             unresolved.append({"reason": "conflicting_quantity", "goods_id": goods_id})
         self.after = quantities
-        self.rescan = {"complete": complete, "unresolved": unresolved,
-                       "quantities": quantities, "top_confirmed": top}
+        complete = not unresolved
+        self.rescan = {"complete": complete, "scope": "visible",
+                       "inventory_complete": complete and not coverage_notes and view.get("list_state") == "empty",
+                       "unresolved": unresolved, "coverage_notes": coverage_notes, "quantities": quantities}
         self.trace.append({"stage": "rescan", **self.rescan})
         return view
 
     def _reconcile(self, *, failure=False):
         after = dict(self.after)
-        if failure and not self.rescan["complete"]:
-            # Each identity is clicked at most once. A later unrelated failure
-            # must not discard an already confirmed explicit source decrease.
-            for goods_id, quantity in self.effect_after.items():
-                after.setdefault(goods_id, quantity)
+        # Each identity is clicked once. Its confirmed local decrease/removal
+        # remains usable even when that identity is no longer in this viewport.
+        for goods_id, quantity in self.effect_after.items():
+            after.setdefault(goods_id, quantity)
         self.reconciled = reconcile_taken(
             self.before, self.clicked, after,
-            scan_complete=self.rescan["complete"], unresolved=bool(self.rescan["unresolved"]),
+            scan_complete=self.rescan["inventory_complete"], unresolved=bool(self.rescan["unresolved"]),
             products=self.products,
         )
         zero_effects = [item for item in self.reconciled["goods_taken"] if item["quantity"] <= 0]
@@ -463,13 +364,15 @@ class WarehouseTransferRuntime:
             issues.append("unresolved_goods")
         if remaining and self.stop_reason != "train_full":
             issues.append("eligible_goods_remaining")
-        if self.stop_reason not in {"train_full", "no_eligible_goods"}:
+        if self.stop_reason not in {"train_full", "no_visible_eligible_goods"}:
             issues.append(self.stop_reason)
         return {
             "success": success, "status": ("partial" if issues else "completed") if success else "failed",
             "reason": reason, "stop_reason": self.stop_reason,
             **ledger, "remaining_targets": remaining, "issues": issues,
             "scan_complete": self.rescan["complete"], "unresolved": self.rescan["unresolved"],
+            "scan_scope": "visible", "inventory_complete": self.rescan["inventory_complete"],
+            "coverage_notes": self.rescan["coverage_notes"],
             "returned_to_overview": self.returned,
             "page_after": self.last.get("page", "unknown") if self.last else "unknown",
             "submission_state": "return_observed" if self.returned else (
@@ -510,7 +413,7 @@ class WarehouseTransferRuntime:
                 self.phase = "summarize"
                 return self._result(success=True, reason=self.stop_reason)
         except asyncio.CancelledError as exc:
-            # Release held input in app.drag's own finally; never navigate/submit.
+            # Cancellation must never trigger navigation or submission input.
             self.trace.append({"stage": self.phase, "error": "cancelled",
                                "receipts": [asdict(r) for r in getattr(exc, "receipts", ())]})
             result = self._result(success=False, reason="cancelled")

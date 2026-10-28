@@ -64,7 +64,12 @@ class StructuredLogFormatter(logging.Formatter):
 
         # 添加额外的上下文字段
         if hasattr(record, 'extra_fields'):
-            log_data.update(record.extra_fields)
+            # Context must not replace the actual severity, time or identity.
+            reserved = set(log_data) | {'exception'}
+            log_data.update({k: v for k, v in record.extra_fields.items() if k not in reserved})
+            collisions = {k: v for k, v in record.extra_fields.items() if k in reserved}
+            if collisions:
+                log_data['extra_fields'] = collisions
 
         # 添加异常信息
         if record.exc_info:

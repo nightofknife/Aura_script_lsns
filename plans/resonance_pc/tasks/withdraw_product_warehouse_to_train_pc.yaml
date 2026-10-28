@@ -3,7 +3,7 @@ withdraw_product_warehouse_to_train_pc:
     role: user_task
     domain: 整顿中心
     title: 成品仓取货到列车
-    description: 从普通整顿中心总览进入仓库，按类型和库存阈值取成品到列车；只读复扫后返回总览，输出本次新增货物及数量。
+    description: 从普通整顿中心总览进入仓库，按类型和库存阈值取当前可见成品到列车，不滚动；只读复查当前视口后返回总览，输出本次新增货物及数量。
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -39,6 +39,9 @@ withdraw_product_warehouse_to_train_pc:
     reconcile_complete: "{{ nodes.transfer.output.reconcile_complete }}"
     remaining_targets: "{{ nodes.transfer.output.remaining_targets }}"
     scan_complete: "{{ nodes.transfer.output.scan_complete }}"
+    scan_scope: "{{ nodes.transfer.output.scan_scope }}"
+    inventory_complete: "{{ nodes.transfer.output.inventory_complete }}"
+    coverage_notes: "{{ nodes.transfer.output.coverage_notes }}"
     unresolved: "{{ nodes.transfer.output.unresolved }}"
     issues: "{{ nodes.transfer.output.issues }}"
     returned_to_overview: "{{ nodes.transfer.output.returned_to_overview }}"

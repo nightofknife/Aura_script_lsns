@@ -13,6 +13,7 @@ from PIL import Image
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions import sparkling_water_pc_actions as water
+from packages.aura_core.observability import failure_evidence
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonancePcCityShopDataService
 
@@ -22,7 +23,10 @@ PAGE_NAMES = ["rest_menu", "drink_menu", "confirm", "animation"]
 
 @pytest.fixture(autouse=True)
 def diagnostic_directory(tmp_path, monkeypatch):
-    monkeypatch.setattr(water, "DIAGNOSTIC_ROOT", tmp_path / "diagnostics")
+    session = SimpleNamespace(root=tmp_path, session_id="water-session", available=True,
+                              errors_dir=tmp_path / "errors" / "water-session")
+    monkeypatch.setattr(water, "get_log_session", lambda: session)
+    monkeypatch.setattr(failure_evidence, "get_log_session", lambda: session)
 
 
 def frames():
@@ -448,10 +452,12 @@ def test_second_cup_black_transition_recovers_without_extra_click_or_count(
     assert evidence["stage"] == "drink_animation"
     assert evidence["completed_count"] == 1
     assert evidence["raw_score"] == "-inf"
-    images = list(water.DIAGNOSTIC_ROOT.glob("*.png"))
-    assert len(images) == len(list(water.DIAGNOSTIC_ROOT.glob("*.json"))) == 1
+    images = list(water.get_log_session().errors_dir.glob("*.png"))
+    assert len(images) == 1
+    assert not list(water.get_log_session().errors_dir.glob("*.json"))
     assert not np.array(Image.open(images[0])).any()
-    assert json.loads(images[0].with_suffix(".json").read_text(encoding="utf-8")) == evidence
+    assert evidence["attachment"]["status"] == "saved"
+    assert evidence["attachment"]["screenshot"].endswith(images[0].name)
 
 
 def test_persistent_black_second_cup_times_out_without_counting_or_reclicking(tmp_path, monkeypatch, fast_time):
@@ -466,7 +472,7 @@ def test_persistent_black_second_cup_times_out_without_counting_or_reclicking(tm
         "remaining_free_uses": 5, "daily_free_limit": 6, "requires_refresh": True,
     }
     assert app.clicks[-1][0] == "confirm"
-    assert len(list(water.DIAGNOSTIC_ROOT.glob("*.png"))) == 1
+    assert len(list(water.get_log_session().errors_dir.glob("*.png"))) == 1
 
 
 def test_cancel_during_black_second_cup_preserves_uncertain_consumption(tmp_path, monkeypatch, fast_time):
@@ -533,7 +539,7 @@ def test_real_missing_template_remains_fatal_not_unknown():
         vision = VisionService()
         vision._loop = asyncio.get_running_loop()
         layout = water.load_sparkling_water_layout(vision)
-        layout["templates"]["rest_menu"]["resolved_path"] = str(water.DIAGNOSTIC_ROOT / "missing.png")
+        layout["templates"]["rest_menu"]["resolved_path"] = str(water.get_log_session().errors_dir / "missing.png")
         session = water.SparklingWaterSession(app=ReplayApp(), vision=vision, layout=layout)
         with pytest.raises(water.SparklingWaterError) as caught:
             await asyncio.to_thread(session.match, "rest_menu")
@@ -579,7 +585,8 @@ def test_debug_error_takes_precedence_over_nonfinite_score():
 def test_diagnostic_write_failure_does_not_turn_uncertain_frame_into_match_failure(tmp_path, monkeypatch):
     blocked_path = tmp_path / "not-a-directory"
     blocked_path.write_text("existing", encoding="utf-8")
-    monkeypatch.setattr(water, "DIAGNOSTIC_ROOT", blocked_path)
+    monkeypatch.setattr(failure_evidence, "get_log_session", lambda:
+        SimpleNamespace(root=blocked_path, session_id="water-session", available=True))
     layout = {"templates": {"rest_menu": {"roi": [0, 0, 20, 20], "resolved_path": "unused", "threshold": 0.9}}}
     vision = SimpleNamespace(find_template=lambda **_: SimpleNamespace(found=False, confidence=float("-inf"), debug_info={}))
     session = water.SparklingWaterSession(app=ReplayApp(), vision=vision, layout=layout)

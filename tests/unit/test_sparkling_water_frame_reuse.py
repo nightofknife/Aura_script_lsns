@@ -9,6 +9,7 @@ import pytest
 from PIL import Image
 
 from plans.resonance_pc.src.actions import sparkling_water_pc_actions as water
+from packages.aura_core.observability import failure_evidence
 
 
 class PixelUI:
@@ -70,7 +71,10 @@ def make_session(monkeypatch, tmp_path):
 
     monkeypatch.setattr(water.time, "monotonic", lambda: now[0])
     monkeypatch.setattr(water.asyncio, "sleep", sleep)
-    monkeypatch.setattr(water, "DIAGNOSTIC_ROOT", tmp_path / "diagnostics")
+    session = NS(root=tmp_path, session_id="water-session", available=True,
+                              errors_dir=tmp_path / "errors" / "water-session")
+    monkeypatch.setattr(water, "get_log_session", lambda: session)
+    monkeypatch.setattr(failure_evidence, "get_log_session", lambda: session)
 
     def create(visible=(), before_capture=None):
         layout = json.loads(water.CONFIG_PATH.read_text(encoding="utf-8"))
@@ -152,8 +156,9 @@ def test_uncertain_rounds_skip_input_refresh_and_keep_first_cropped_evidence(mak
     evidence = session.first_uncertain_frame
     assert evidence["target"] == key and evidence["stage"] == "drink_animation"
     assert evidence["roi"] == ui.layout["templates"][key]["roi"]
-    images = list(water.DIAGNOSTIC_ROOT.glob("*.png"))
-    assert len(images) == len(list(water.DIAGNOSTIC_ROOT.glob("*.json"))) == 1
+    images = list(water.get_log_session().errors_dir.glob("*.png"))
+    assert len(images) == 1
+    assert not list(water.get_log_session().errors_dir.glob("*.json"))
     saved = np.array(Image.open(images[0]))
     # cv2 writes the supplied RGB crop as BGR; channel 2 retains capture ID.
     assert np.all(saved[:, :, 2] == 1)

@@ -1,0 +1,116 @@
+collect_and_withdraw_products_pc:
+  meta:
+    role: user_task
+    domain: 整顿中心
+    title: 领取成品并取货
+    description: 从城市建筑界面直接进入整顿中心，按开关领取生产车间成品和取货到列车，确认返回原城市建筑界面后汇总。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: operations
+        type: list
+        required: false
+        default: [collect_products, withdraw_products]
+        item:
+          name: operation
+          type: enum
+          required: true
+          enum: [collect_products, withdraw_products]
+      - name: goods
+        type: list
+        description: 不指定、null 或空列表表示尝试当前可见的全部达标成品，不滚动，不保证清空仓库。
+        required: false
+        nullable: true
+        default: null
+        item:
+          name: goods
+          type: string
+          required: true
+      - name: quantity_threshold
+        type: number
+        strict_integer: true
+        required: false
+        nullable: true
+        default: null
+        min: 0
+  steps:
+    prepare:
+      action: resonance_pc.product_workflow_prepare
+      params:
+        operations: "{{ inputs.operations }}"
+        goods: "{{ inputs.goods }}"
+        quantity_threshold: "{{ inputs.quantity_threshold }}"
+    require_city:
+      action: resonance_pc.product_workflow_require_city
+      depends_on: prepare
+    city_gate:
+      action: resonance_pc.product_workflow_evaluate
+      depends_on: {require_city: "success|failed"}
+      params:
+        stage: city
+        request: "{{ nodes.prepare.output }}"
+        child: "{{ nodes.require_city.output | default(none) }}"
+        child_state: "{{ nodes.require_city.run_state }}"
+    enter:
+      action: resonance_pc.product_workflow_enter_from_city
+      depends_on: city_gate
+      when: "{{ nodes.city_gate.output is mapping and nodes.city_gate.output.get('can_enter') == true }}"
+      params:
+        city_key: "{{ nodes.city_gate.output.city_key }}"
+    enter_gate:
+      action: resonance_pc.product_workflow_evaluate
+      depends_on: {enter: "success|failed|skipped"}
+      params:
+        stage: enter
+        request: "{{ nodes.prepare.output }}"
+        previous: "{{ nodes.city_gate.output }}"
+        child: "{{ nodes.enter.output | default(none) }}"
+        child_state: "{{ nodes.enter.run_state }}"
+    collect:
+      action: aura.run_task
+      depends_on: enter_gate
+      when: "{{ nodes.enter_gate.output is mapping and nodes.enter_gate.output.get('can_collect') == true }}"
+      params:
+        task_ref: tasks:collect_product_workshops_pc.yaml:collect_product_workshops_pc
+        inputs: {}
+    collect_gate:
+      action: resonance_pc.product_workflow_evaluate
+      depends_on: {collect: "success|failed|skipped"}
+      params:
+        stage: collect
+        request: "{{ nodes.prepare.output }}"
+        previous: "{{ nodes.enter_gate.output }}"
+        child: "{{ nodes.collect.output | default(none) }}"
+        child_state: "{{ nodes.collect.run_state }}"
+    withdraw:
+      action: aura.run_task
+      depends_on: collect_gate
+      when: "{{ nodes.collect_gate.output is mapping and nodes.collect_gate.output.get('can_withdraw') == true }}"
+      params:
+        task_ref: tasks:withdraw_product_warehouse_to_train_pc.yaml:withdraw_product_warehouse_to_train_pc
+        inputs:
+          goods: "{{ nodes.prepare.output.goods }}"
+          quantity_threshold: "{{ nodes.prepare.output.quantity_threshold }}"
+    withdraw_gate:
+      action: resonance_pc.product_workflow_evaluate
+      depends_on: {withdraw: "success|failed|skipped"}
+      params:
+        stage: withdraw
+        request: "{{ nodes.prepare.output }}"
+        previous: "{{ nodes.collect_gate.output }}"
+        child: "{{ nodes.withdraw.output | default(none) }}"
+        child_state: "{{ nodes.withdraw.run_state }}"
+    return_city:
+      action: resonance_pc.product_workflow_return_city
+      depends_on: withdraw_gate
+      when: "{{ nodes.withdraw_gate.output is mapping and nodes.withdraw_gate.output.get('can_return') == true }}"
+      params:
+        city_key: "{{ nodes.withdraw_gate.output.city_key }}"
+    finish:
+      action: resonance_pc.product_workflow_finish
+      depends_on: {return_city: "success|failed|skipped"}
+      params:
+        state: "{{ nodes.withdraw_gate.output }}"
+        city_result: "{{ nodes.return_city.output | default(none) }}"
+        city_state: "{{ nodes.return_city.run_state }}"
+  returns: "{{ nodes.finish.output }}"

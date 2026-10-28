@@ -82,6 +82,7 @@ from .compact_parameter_grid import CompactParameterGrid
 from .disclosure_section import DisclosureSection
 from .market_warning_label import MarketWarningLabel
 from .toggle_button import ToggleButton as QCheckBox
+from .prison_product_selector import PrisonProductDialog, prison_selection_text
 
 
 class CityPrestigeDialog(QDialog):
@@ -724,6 +725,11 @@ class TradePage(QWidget):
         self.recovery_section = DisclosureSection("恢复与附加行为", content)
         form_stack.addWidget(self.recovery_section)
         recovery_layout = self.recovery_section.body_layout
+        self._prison_product_goods = []
+        self.prison_products_button = QPushButton(prison_selection_text([]), content)
+        self.prison_products_button.setToolTip("货运前刷新监狱成品；不选商品时读取全部当前可见成品，不滚动、不取货。")
+        self.prison_products_button.clicked.connect(self._open_prison_product_selection)
+        recovery_layout.addWidget(self.prison_products_button)
         self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
         self.auto_bento = QCheckBox("自动吃便当", content)
         self.auto_bento.toggled.connect(self._sync_bento_type_checks)
@@ -1639,6 +1645,8 @@ class TradePage(QWidget):
             self._unlocked_product_ids = None
         self._update_product_unlock_button()
         self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
+        self._prison_product_goods = list(values.get("prison_product_goods") or [])
+        self.prison_products_button.setText(prison_selection_text(self._prison_product_goods))
         self.auto_bento.setChecked(bool(values.get("auto_bento", False)))
         priority = values.get("bento_priority", ["work_meals", "love_bentos"])
         self._bento_order = [*priority, *(key for key in self.bento_type_checks if key not in priority)]
@@ -1803,6 +1811,7 @@ class TradePage(QWidget):
     def collect_ui_state(self) -> dict[str, Any]:
         """Preserve inactive mode fields without dispatching them to a task."""
         state = self.collect_inputs(_draft=True)
+        state["prison_product_goods"] = list(self._prison_product_goods)
         state.update(books_enabled=self.book_usage.currentData() != "none",
                      books_unlimited=self.book_usage.currentData() == "unlimited",
                      finite_book_budget=self.book_budget.value(),
@@ -1848,6 +1857,24 @@ class TradePage(QWidget):
                 if key in TRADE_PREVIEW_INPUT_KEYS
             }
         signal.emit(deepcopy(self._last_inputs), 0.0)
+
+    def _open_prison_product_selection(self) -> None:
+        if self._busy or self.preview_mode:
+            return
+        try:
+            dialog = PrisonProductDialog(self._prison_product_goods, self)
+            try:
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    goods = dialog.selected_goods()
+                    values = self.collect_ui_state()
+                    values["prison_product_goods"] = goods
+                    self._save_inputs(values)
+                    self._prison_product_goods = goods
+                    self.prison_products_button.setText(prison_selection_text(goods))
+            finally:
+                dialog.deleteLater()
+        except (ValueError, OSError) as exc:
+            QMessageBox.warning(self, "成品选择保存失败", str(exc))
 
     def _sync_goods_investment_controls(self) -> None:
         self.trade_goods_investment_mode.setEnabled(
@@ -2212,6 +2239,7 @@ class TradePage(QWidget):
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
             self.auto_bento,
+            self.prison_products_button,
             self.bento_priority_panel,
             *(getattr(self, key) for key in FREIGHT_RECOVERY_THRESHOLD_KEYS),
             self.auto_pickup,

@@ -350,7 +350,7 @@ def test_gui_migrates_old_inputs_once_and_renders_character_snapshot(tmp_path) -
         {"stages": ["profile"], "inventory_categories": ["items"]}
     )
     assert repository.load_player_data_inputs()["stages"] == ["profile"]
-    assert PLAYER_DATA_STAGE_ORDER[-1] == "characters"
+    assert PLAYER_DATA_STAGE_ORDER == ("location", "profile", "inventory", "characters", "prison_products")
 
     panel = PlayerDataPanel(repository)
     panel.show()
@@ -386,4 +386,4 @@ def test_player_data_task_schema_exports_characters_stage() -> None:
     stages = next(item for item in inputs if item["name"] == "stages")
 
     assert stages["default"] == ["location", "profile", "inventory", "characters"]
-    assert stages["item"]["enum"] == ["location", "profile", "inventory", "characters"]
+    assert stages["item"]["enum"] == ["location", "profile", "inventory", "characters", "prison_products"]

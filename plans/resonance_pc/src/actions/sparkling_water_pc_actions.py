@@ -9,7 +9,6 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Mapping
-from uuid import uuid4
 
 import cv2
 import numpy as np
@@ -17,6 +16,8 @@ import numpy as np
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from packages.aura_core.observability.logging.core_logger import current_cid, logger
+from packages.aura_core.observability.failure_evidence import save_evidence_png
+from packages.aura_core.observability.logging.log_session import get_log_session
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ....aura_base.src.actions._shared import poll_until
 from ....aura_base.src.actions.input_actions import click as aura_click
@@ -27,7 +28,6 @@ from ._recovery_assets import read_layout_json, resolve_plan_asset
 
 PLAN_ROOT = Path(__file__).resolve().parents[2]
 CONFIG_PATH = PLAN_ROOT / "data/meta/sparkling_water.json"
-DIAGNOSTIC_ROOT = PLAN_ROOT.parent.parent / "logs/diagnostics/sparkling_water"
 
 
 class _UncertainFrame(RuntimeError):
@@ -160,16 +160,16 @@ class SparklingWaterSession:
         }
         self.first_uncertain_frame = evidence
         try:
-            DIAGNOSTIC_ROOT.mkdir(parents=True, exist_ok=True)
-            path = DIAGNOSTIC_ROOT / f"uncertain-{uuid4().hex}.png"
             ok, encoded = cv2.imencode(".png", image)
             if not ok:
                 raise ValueError("Could not encode uncertain-frame ROI")
-            path.write_bytes(encoded.tobytes())
-            evidence["image_path"] = str(path)
-            path.with_suffix(".json").write_text(
-                json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8",
-            )
+            session = get_log_session()
+            attachment = save_evidence_png(encoded.tobytes())
+            evidence["attachment"] = attachment
+            if attachment.get("status") == "saved" and session is not None:
+                evidence["image_path"] = str(session.root / attachment["screenshot"])
+            else:
+                evidence["diagnostic_error"] = attachment.get("reason", "evidence_write_failed")
         except (OSError, ValueError, cv2.error) as exc:
             evidence["diagnostic_error"] = str(exc)
         logger.warning("Sparkling water uncertain frame; waiting without input evidence=%s", evidence)

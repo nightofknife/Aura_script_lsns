@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "provenance": "Four user-supplied captures; the user operated the game. No game input or live execution by this calibration task.",
+  "provenance": "Five user-supplied captures. The fifth is a user-confirmed stable warehouse state added on 2026-10-24; it has its own explicit client crop. Offline asset reproduction does not operate the game.",
   "original_size": [
     1282,
     752
@@ -44,6 +44,23 @@
       "original_attachment": "codex-clipboard-4696c768-ee0e-4616-8535-735e04f32b93.png",
       "sha256": "0f079e7f56b8a5832d589cda000b452346083214f02f47d76bf98e6fd5f08b62",
       "state": "train_product_link_selected_product_empty_train_scrolled"
+    },
+    {
+      "capture_id": "capture_5",
+      "image": "screenshots/warehouse_stable.png",
+      "original_attachment": "codex-clipboard-2b368679-76a1-4752-ae58-567fdb4cfe56.png",
+      "sha256": "78a9785c5594ee0c064606a8e570d048fcff96241f4ad53d5f1269dab3599dfc",
+      "original_size": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        26,
+        56,
+        1306,
+        776
+      ],
+      "state": "stable_warehouse_target_connection_unselected"
     }
   ],
   "visible_warehouse_goods": {
@@ -57,7 +74,7 @@
     ]
   },
   "limits": [
-    "Only four supplied scenes; reused and duplicate pixels are not independent observations.",
+    "Four early supplied scenes and one additional stable state; source-image self matches and reused pixels are not independent accuracy evidence.",
     "Goods and quantity calibration compare against explicit manual labels, not OCR-derived labels.",
     "No timing, animation, transition retries, game clicks or server persistence were exercised."
   ]

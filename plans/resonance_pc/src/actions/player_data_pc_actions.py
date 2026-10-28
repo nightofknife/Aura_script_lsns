@@ -48,9 +48,10 @@ from .passenger_pc_actions import (
 Region = Tuple[int, int, int, int]
 
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
-_DATA_STAGES = ("location", "profile", "inventory", "characters")
+_DEFAULT_DATA_STAGES = ("location", "profile", "inventory", "characters")
+_DATA_STAGES = (*_DEFAULT_DATA_STAGES, "prison_products")
 _STAGE_ORDER = _DATA_STAGES
-_PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters"})
+_PROFILE_PANEL_STAGES = frozenset({"profile", "inventory", "characters", "prison_products"})
 _PROFILE_SECTION_ORDER = ("cargo", "clarity", "fatigue", "sparkling_water", "bento_count", "work_meals", "love_bentos")
 _DEFAULT_PROFILE_SECTIONS = ("cargo", "clarity", "fatigue")
 
@@ -585,7 +586,7 @@ def _utc_now_iso() -> str:
 
 def _normalize_stages(stages: Any = None) -> Tuple[str, ...]:
     if stages is None:
-        return _STAGE_ORDER
+        return _DEFAULT_DATA_STAGES
     if not isinstance(stages, list):
         raise ValueError("stages must be a list of stage names")
 
@@ -601,6 +602,20 @@ def _normalize_stages(stages: Any = None) -> Tuple[str, ...]:
     if not requested:
         raise ValueError("stages must select at least one data stage")
     return tuple(stage for stage in _STAGE_ORDER if stage in requested)
+
+
+def _normalize_prison_product_goods(goods: Any = None) -> Optional[List[str]]:
+    """Validate optional goods before any UI input; empty means all visible."""
+    from ._prison_product_snapshot import normalize_goods
+
+    return normalize_goods(goods)
+
+
+def _read_prison_products(app: Any, ocr: Any, vision: Any, interaction: Any, goods: Any) -> Dict[str, Any]:
+    # Lazy import keeps the shared profile helpers available to the reader.
+    from ._prison_product_snapshot import read_visible_prison_products
+
+    return read_visible_prison_products(app, ocr, vision, interaction, goods=goods)
 
 
 def _normalize_inventory_categories(categories: Any = None) -> Tuple[str, ...]:
@@ -726,6 +741,11 @@ def _merge_latest(
     if "characters" in section_updated_at:
         merged["characters"] = copy.deepcopy(fresh["characters"])
 
+    if "prison_products" in fresh:
+        # A partial visible observation replaces only this section, so an older
+        # successful snapshot cannot masquerade as this run's observation.
+        merged["prison_products"] = copy.deepcopy(fresh["prison_products"])
+
     metadata = merged.get("metadata")
     if not isinstance(metadata, dict):
         metadata = {}
@@ -736,6 +756,8 @@ def _merge_latest(
         previous_section_times = {}
     else:
         previous_section_times = copy.deepcopy(previous_section_times)
+    if "prison_products" in fresh and "prison_products" not in section_updated_at:
+        previous_section_times.pop("prison_products", None)
     if "profile" in section_updated_at:
         sub_times = metadata.get("profile_section_updated_at")
         sub_times = dict(sub_times) if isinstance(sub_times, Mapping) else {}
@@ -795,13 +817,14 @@ def _best_effort_return_to_main(app: Any, ocr: Any, page: str, vision: Any = Non
     public=True,
     read_only=False,
     timeout=900,
-    description="Selectively refresh and automatically persist four Resonance PC player-data sections.",
+    description="Selectively refresh and persist player data, including visible prison products.",
 )
 @requires_services(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
     vision="plans/aura_base/vision",
     persistent_data="core/persistent_data",
+    interaction="plans/aura_base/interaction",
 )
 def resonance_pc_player_data_refresh(
     stages: Any = None,
@@ -811,6 +834,8 @@ def resonance_pc_player_data_refresh(
     vision: Any = None,
     persistent_data: PersistentDataService | None = None,
     profile_sections: Any = None,
+    prison_product_goods: Any = None,
+    interaction: Any = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None or persistent_data is None:
         raise RuntimeError("app/ocr/persistent_data service is required")
@@ -819,6 +844,11 @@ def resonance_pc_player_data_refresh(
     selected_inventory_categories = _normalize_inventory_categories(inventory_categories)
     selected = set(selected_stages)
     selected_profile_sections = _normalize_profile_sections(profile_sections, required="profile" in selected)
+    selected_prison_goods = None
+    if "prison_products" in selected:
+        if interaction is None:
+            raise RuntimeError("interaction service is required for prison product refresh")
+        selected_prison_goods = _normalize_prison_product_goods(prison_product_goods)
     if selected.intersection(_PROFILE_PANEL_STAGES) and vision is None:
         raise RuntimeError("vision service is required to confirm the main screen")
     recovery_layout = None
@@ -973,6 +1003,16 @@ def resonance_pc_player_data_refresh(
                 )
                 current_page = "profile"
                 section_updated_at["characters"] = _utc_now_iso()
+
+            if "prison_products" in selected:
+                current_page = "prison_unknown"
+                snapshot = _read_prison_products(app, ocr, vision, interaction, selected_prison_goods)
+                if not isinstance(snapshot, dict) or snapshot.get("returned_to_profile") is not True:
+                    raise RuntimeError("prison product refresh did not confirm return to profile menu")
+                result["prison_products"] = snapshot
+                current_page = "profile"
+                if snapshot.get("success") is True and snapshot.get("visible_complete") is True:
+                    section_updated_at["prison_products"] = _utc_now_iso()
 
             current_page = "unknown"
             main_return_started = True

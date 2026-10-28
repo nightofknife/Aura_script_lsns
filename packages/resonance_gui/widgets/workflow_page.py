@@ -5,6 +5,11 @@ from __future__ import annotations
 from typing import Any, Mapping
 from datetime import datetime, timezone
 import time
+import uuid
+import weakref
+
+from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.coordinator import get_session_descriptor, subscribe
 
 from PySide6.QtCore import (
     QEasingCurve,
@@ -17,6 +22,7 @@ from PySide6.QtCore import (
     Qt,
     QTimer,
     Signal,
+    Slot,
 )
 from PySide6.QtGui import QBrush, QColor, QDrag, QPainter, QPalette, QPen
 from PySide6.QtWidgets import (
@@ -493,9 +499,13 @@ class WorkflowPage(QWidget):
     saveParametersRequested = Signal()
     tradeEndCityAvailabilityChanged = Signal(bool)
     autoBookChanged = Signal(bool)
+    _committedLog = Signal(str)
 
     def __init__(self, settings: ResonanceConfigRepository, parent: QWidget | None = None) -> None:
         super().__init__(parent)
+        self._log_display_id = uuid.uuid4().hex
+        self._log_unsubscribe = None
+        self._committedLog.connect(self._append_committed_log, Qt.ConnectionType.QueuedConnection)
         self._settings = settings
         self._busy = False
         self._freight_validation_error = ""
@@ -1324,7 +1334,7 @@ class WorkflowPage(QWidget):
         self.market_warning_label.hide()
         self.resource_progress_label.hide()
         labels = dict(WORKFLOW_TASKS)
-        labels["refresh_recovery"] = "刷新恢复资源"
+        labels["refresh_recovery"] = "货运前数据刷新"
         for index, step in enumerate(steps, 1):
             item = QTreeWidgetItem([f"{index}  {labels[step]}", "等待"])
             item.setData(0, Qt.ItemDataRole.UserRole, step)
@@ -1347,7 +1357,7 @@ class WorkflowPage(QWidget):
         parent = self._tree_items.get("trade")
         if parent is None:
             return
-        item = QTreeWidgetItem(["准备：刷新恢复资源", "等待"])
+        item = QTreeWidgetItem(["准备：货运前数据刷新", "等待"])
         item.setData(0, Qt.ItemDataRole.UserRole, "refresh_recovery")
         parent.addChild(item)
         parent.setExpanded(True)
@@ -1931,13 +1941,48 @@ class WorkflowPage(QWidget):
         state = cls._tree_state_text(str(payload.get("state") or "running").lower())
         return f"{state} · {detail}"
 
-    def append_log(self, message: str) -> None:
-        self.log_view.append(str(message))
+    def append_log(self, message: str, *, persist: bool = True) -> None:
+        message = str(message)
+        if persist:
+            self._subscribe_log_messages()
+            logger.info("[WorkflowStatus] %s", message, extra={
+                "gui_display_id": self._log_display_id,
+                "gui_display_message": message,
+            })
+            if self._log_unsubscribe is not None:
+                return
+        self.log_view.append(message)
         self._log_count += 1
         arrow = "﹀" if self.log_toggle.isChecked() else "›"
         self.log_toggle.setText(f"详细日志 · {self._log_count} 条  {arrow}")
         if hasattr(self, "runtime_tabs"):
             self.runtime_tabs.setTabText(1, f"日志 · {self._log_count}")
+
+    @Slot(str)
+    def _append_committed_log(self, message: str) -> None:
+        self.append_log(message, persist=False)
+
+    def _subscribe_log_messages(self) -> None:
+        if self._log_unsubscribe is not None or get_session_descriptor() is None:
+            return
+        weak_self = weakref.ref(self)
+        display_id = self._log_display_id
+
+        def committed(record) -> None:
+            if getattr(record, "gui_display_id", None) != display_id:
+                return
+            page = weak_self()
+            if page is not None:
+                try:
+                    page._committedLog.emit(str(record.gui_display_message))
+                except RuntimeError:
+                    pass  # The QObject may have been destroyed after lookup.
+
+        unsubscribe = subscribe(committed)
+        self._log_unsubscribe = unsubscribe
+        # The callback only holds a weak reference; destruction also removes
+        # it from the session subscriber list without retaining this widget.
+        self.destroyed.connect(lambda *_: unsubscribe())
 
     def is_running(self) -> bool:
         return self._busy

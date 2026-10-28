@@ -2403,8 +2403,8 @@ exports:
     public: true
     read_only: false
     timeout: 900
-    description: Selectively refresh and automatically persist four Resonance PC player-data
-      sections.
+    description: Selectively refresh and persist player data, including visible prison
+      products.
     parameters:
     - name: stages
       type: Any
@@ -2418,6 +2418,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: prison_product_goods
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.player_data_get_latest
     module: plans.resonance_pc.src.actions.player_data_pc_actions
     function: resonance_pc_player_data_get_latest
@@ -2426,13 +2430,26 @@ exports:
     timeout: null
     description: Get latest cached Resonance PC player data.
     parameters: []
+  - name: resonance_pc.read_visible_prison_products
+    module: plans.resonance_pc.src.actions.prison_warehouse_pc_actions
+    function: resonance_pc_read_visible_prison_products
+    public: false
+    read_only: false
+    timeout: 120
+    description: Read only visible prison products from and back to the profile menu;
+      never scroll or transfer.
+    parameters:
+    - name: goods
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.withdraw_product_warehouse_to_train
     module: plans.resonance_pc.src.actions.prison_warehouse_pc_actions
     function: resonance_pc_withdraw_product_warehouse_to_train
     public: true
     read_only: false
     timeout: null
-    description: Withdraw selected eligible products into existing train cargo and
+    description: Withdraw currently visible eligible products without scrolling and
       return to the reforming-center overview.
     parameters:
     - name: goods
@@ -2512,6 +2529,112 @@ exports:
       required: false
       default: null
     - name: results
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.product_workflow_prepare
+    module: plans.resonance_pc.src.actions.product_workflow_pc_actions
+    function: resonance_pc_product_workflow_prepare
+    public: true
+    read_only: true
+    timeout: null
+    description: Validate operation switches and conditional withdrawal inputs before
+      game input.
+    parameters:
+    - name: operations
+      type: Any
+      required: false
+      default: null
+    - name: goods
+      type: Any
+      required: false
+      default: null
+    - name: quantity_threshold
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.product_workflow_require_city
+    module: plans.resonance_pc.src.actions.product_workflow_pc_actions
+    function: resonance_pc_product_workflow_require_city
+    public: true
+    read_only: true
+    timeout: null
+    description: Confirm the actual city building panel and city identity without
+      navigation or input.
+    parameters: []
+  - name: resonance_pc.product_workflow_enter_from_city
+    module: plans.resonance_pc.src.actions.product_workflow_pc_actions
+    function: resonance_pc_product_workflow_enter_from_city
+    public: true
+    read_only: false
+    timeout: null
+    description: Enter the Reforming Center directly from its confirmed city building
+      panel, without visiting the train main screen.
+    parameters:
+    - name: city_key
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.product_workflow_evaluate
+    module: plans.resonance_pc.src.actions.product_workflow_pc_actions
+    function: resonance_pc_product_workflow_evaluate
+    public: true
+    read_only: true
+    timeout: null
+    description: Interpret one child business result and authorize only the next safe
+      handoff.
+    parameters:
+    - name: stage
+      type: Any
+      required: true
+      default: null
+    - name: request
+      type: Any
+      required: true
+      default: null
+    - name: previous
+      type: Any
+      required: false
+      default: null
+    - name: child
+      type: Any
+      required: false
+      default: null
+    - name: child_state
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.product_workflow_return_city
+    module: plans.resonance_pc.src.actions.product_workflow_pc_actions
+    function: resonance_pc_product_workflow_return_city
+    public: true
+    read_only: false
+    timeout: null
+    description: Return from the confirmed overview with its back arrow, and confirm
+      the original city building panel.
+    parameters:
+    - name: city_key
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.product_workflow_finish
+    module: plans.resonance_pc.src.actions.product_workflow_pc_actions
+    function: resonance_pc_product_workflow_finish
+    public: true
+    read_only: true
+    timeout: null
+    description: Summarize the city workflow, preserve failure details and require
+      all enabled operations to complete.
+    parameters:
+    - name: state
+      type: Any
+      required: true
+      default: null
+    - name: city_result
+      type: Any
+      required: false
+      default: null
+    - name: city_state
       type: Any
       required: false
       default: null
@@ -3298,6 +3421,12 @@ exports:
       possible, and return.
     role: internal
     domain: 商贸运输
+  - id: collect_and_withdraw_products_pc/collect_and_withdraw_products_pc
+    title: 领取成品并取货
+    source: tasks/collect_and_withdraw_products_pc.yaml
+    description: 从城市建筑界面直接进入整顿中心，按开关领取生产车间成品和取货到列车，确认返回原城市建筑界面后汇总。
+    role: user_task
+    domain: 整顿中心
   - id: collect_product_workshops_pc/collect_product_workshops_pc
     title: 生产车间收菜
     source: tasks/collect_product_workshops_pc.yaml
@@ -3477,8 +3606,8 @@ exports:
   - id: player_data_pc/player_data_refresh
     title: Resonance Player Data Refresh (PC)
     source: tasks/player_data_pc.yaml
-    description: Refresh location, player profile/status, warehouse and character
-      data from the PC client.
+    description: Refresh selected player data and optionally read current visible
+      prison products without scrolling.
     role: user_tool
     domain: 用户数据
   - id: player_data_pc/player_data_get_latest
@@ -3494,6 +3623,12 @@ exports:
       start city.
     role: user_tool
     domain: 商贸运输
+  - id: read_visible_prison_products_pc/read_visible_prison_products_pc
+    title: 读取当前可见监狱成品
+    source: tasks/read_visible_prison_products_pc.yaml
+    description: 从头像菜单进入整顿中心仓库，仅识别当前可见成品并返回头像菜单；不滚动、不取货。
+    role: internal
+    domain: 用户数据
   - id: rubbish_recycling_pc/rubbish_recycling_pc
     title: Rubbish Recycling (PC)
     source: tasks/rubbish_recycling_pc.yaml
@@ -3531,9 +3666,9 @@ exports:
   - id: withdraw_product_warehouse_to_train_pc/withdraw_product_warehouse_to_train_pc
     title: 成品仓取货到列车
     source: tasks/withdraw_product_warehouse_to_train_pc.yaml
-    description: 从普通整顿中心总览进入仓库，按类型和库存阈值取成品到列车；只读复扫后返回总览，输出本次新增货物及数量。
+    description: 从普通整顿中心总览进入仓库，按类型和库存阈值取当前可见成品到列车，不滚动；只读复查当前视口后返回总览，输出本次新增货物及数量。
     role: user_task
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-24T08:29:13Z'
+  generated_at: '2026-10-24T15:21:09Z'

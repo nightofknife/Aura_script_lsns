@@ -6,12 +6,15 @@ import itertools
 import os
 import threading
 import time
+import uuid
+import weakref
 from typing import Any, Callable
 
 from PySide6.QtCore import QCoreApplication, QObject, QTimer, Signal, Slot
 
 from packages.aura_game import SubprocessGameRunner
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.coordinator import get_session_descriptor, subscribe
 
 from .config_repository import TRADE_PREVIEW_INPUT_KEYS
 from .logic import (
@@ -94,6 +97,9 @@ class RunnerBridge(QObject):
         self._poll_error_count = 0
         self._ticket_counter = itertools.count(1)
         self._poll_timer: QTimer | None = None
+        self._log_display_id = uuid.uuid4().hex
+        self._log_unsubscribe: Callable[[], None] | None = None
+        self._subscribe_log_messages()
 
     @property
     def current_cid(self) -> str:
@@ -102,6 +108,36 @@ class RunnerBridge(QObject):
     @property
     def busy(self) -> bool:
         return self._busy
+
+    def _log_message(self, message: str) -> None:
+        self._subscribe_log_messages()
+        logger.info("[GuiStatus] %s", message, extra={
+            "gui_display_id": self._log_display_id,
+            "gui_display_message": message,
+        })
+        if self._log_unsubscribe is None and not self._closed:
+            # Isolated/offline widgets may intentionally have no log session.
+            self.logMessage.emit(message)
+
+    def _subscribe_log_messages(self) -> None:
+        if self._log_unsubscribe is not None or self._closed or get_session_descriptor() is None:
+            return
+        weak_self = weakref.ref(self)
+        display_id = self._log_display_id
+
+        def committed(record) -> None:
+            if getattr(record, "gui_display_id", None) != display_id:
+                return
+            bridge = weak_self()
+            if bridge is not None and not bridge._closed:
+                bridge.logMessage.emit(str(record.gui_display_message))
+
+        self._log_unsubscribe = subscribe(committed)
+
+    def _unsubscribe_log_messages(self) -> None:
+        unsubscribe, self._log_unsubscribe = self._log_unsubscribe, None
+        if unsubscribe is not None:
+            unsubscribe()
 
     def _runner_instance(self) -> Any:
         if self._shutdown_requested.is_set():
@@ -146,7 +182,7 @@ class RunnerBridge(QObject):
         if self._shutdown_requested.is_set():
             return
         self._ensure_poll_timer()
-        self.logMessage.emit("正在加载雷索纳斯任务列表。")
+        self._log_message("正在加载雷索纳斯任务列表。")
         self.refresh_tasks()
         self.refresh_history()
         self.refresh_target()
@@ -159,7 +195,7 @@ class RunnerBridge(QObject):
             self.taskFailed.emit({"stage": "list_tasks", "error": str(exc)})
             return
         self.tasksLoaded.emit(rows)
-        self.logMessage.emit(f"已加载 {len(rows)} 个雷索纳斯任务。")
+        self._log_message(f"已加载 {len(rows)} 个雷索纳斯任务。")
 
     @Slot()
     def refresh_history(self) -> None:
@@ -277,7 +313,7 @@ class RunnerBridge(QObject):
     @Slot()
     def cancel_current(self) -> None:
         if not self._current_cid:
-            self.logMessage.emit("当前没有可取消的任务。")
+            self._log_message("当前没有可取消的任务。")
             return
         if self._cancel_sent:
             return
@@ -312,7 +348,7 @@ class RunnerBridge(QObject):
                 }
             )
             if request_cancel:
-                self.logMessage.emit(f"任务状态连续读取失败，正在请求停止并等待执行端确认：{exc}")
+                self._log_message(f"任务状态连续读取失败，正在请求停止并等待执行端确认：{exc}")
                 self._request_cancel(reason="poll_error")
             return
 
@@ -352,6 +388,7 @@ class RunnerBridge(QObject):
             return
         self._runner = None
         self._closed = True
+        self._unsubscribe_log_messages()
         logger.info("[GuiShutdown] phase=bridge_closed")
         self.closeCompleted.emit()
 
@@ -385,7 +422,7 @@ class RunnerBridge(QObject):
         self._poll_error_count = 0
         self._started_monotonic = time.monotonic()
         self.taskStarted.emit(dict(item))
-        self.logMessage.emit(f"开始执行：{item['label']}")
+        self._log_message(f"开始执行：{item['label']}")
 
         try:
             dispatch_inputs = dict(item["inputs"])
@@ -439,7 +476,7 @@ class RunnerBridge(QObject):
                     "error": str(exc),
                 }
             )
-            self.logMessage.emit(f"执行失败：{item['label']} - {exc}")
+            self._log_message(f"执行失败：{item['label']} - {exc}")
             self._reset_current()
             self._set_busy(False)
 
@@ -533,7 +570,7 @@ class RunnerBridge(QObject):
             "result": result if isinstance(result, dict) else {"result": result},
         }
         self.cancelRequested.emit(payload)
-        self.logMessage.emit(
+        self._log_message(
             f"已因等待超时请求取消任务 {self._current_cid}。"
             if reason == "timeout"
             else f"正在停止任务 {self._current_cid}，等待旧任务退出后才能再次运行。"
@@ -549,7 +586,7 @@ class RunnerBridge(QObject):
         payload["gui_timeout_cancelled"] = self._timeout_cancel
         payload["gui_item"] = item
         self.taskFinished.emit(payload)
-        self.logMessage.emit(f"执行结束：{item.get('label', '')}")
+        self._log_message(f"执行结束：{item.get('label', '')}")
         self._reset_current()
         self.refresh_history()
         self.refresh_target()

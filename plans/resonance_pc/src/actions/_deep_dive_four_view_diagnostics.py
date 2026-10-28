@@ -17,6 +17,7 @@ import traceback
 import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import current_cid, logger
+from packages.aura_core.observability.logging.coordinator import get_current_log_path
 
 
 def _json_value(value):
@@ -63,7 +64,7 @@ class FourViewDiagnostics:
         self.previous_fits = {}
         self.metadata = dict(self.identity, started_utc=datetime.now(timezone.utc).isoformat(),
                              settings=settings, source_files={}, status='running',
-                             trace_path=str(self.output/'control_trace.jsonl'),
+                             trace_path=get_current_log_path(),
                              extra_capture_count=0, used_for_control=False,
                              angle_unit='image_error_degrees_not_physical_rotation')
         try:
@@ -89,11 +90,8 @@ class FourViewDiagnostics:
             payload = dict(self.metadata, event_counts=dict(self.counts), events_attempted=self.sequence,
                            trace_disabled=self.trace_disabled, diagnostic_errors=list(self.errors),
                            trace_write_elapsed_sec=self.write_elapsed_sec)
-            path = self.output/'diagnostics.json'
-            temporary = path.with_suffix('.json.part')
-            temporary.write_text(json.dumps(_json_value(payload), ensure_ascii=False, indent=2,
-                                             allow_nan=False), encoding='utf8')
-            temporary.replace(path)
+            logger.info('[DeepDiveFourViewsMetadata] %s',
+                        json.dumps(_json_value(payload), ensure_ascii=False, allow_nan=False))
         except Exception as exc:
             self._error('metadata_write', exc)
 
@@ -106,8 +104,8 @@ class FourViewDiagnostics:
         try:
             row = dict(self.identity, sequence=self.sequence, event=event,
                        at_monotonic=began, elapsed_sec=began-self.started, **fields)
-            with (self.output/'control_trace.jsonl').open('a', encoding='utf8') as stream:
-                stream.write(json.dumps(_json_value(row), ensure_ascii=False, allow_nan=False)+'\n')
+            logger.info('[DeepDiveFourViewsEvent] %s',
+                        json.dumps(_json_value(row), ensure_ascii=False, allow_nan=False))
         except Exception as exc:
             self.trace_disabled = True
             self._error('trace_write', exc)

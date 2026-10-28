@@ -4,6 +4,20 @@ package:
 
 runtime:
   startup_timeout_sec: 30
+
+logging:
+  log_dir: logs
+  # One non-rotating text file per application session. Managed sessions and
+  # screenshots expire after 72 hours; cleanup runs only at owner startup.
+
+observability:
+  runs:
+    # Durable SQLite history has its own periodic, whole-family retention.
+    retention_hours: 72
+    cleanup_interval_seconds: 300
+    cleanup_batch_size: 500
+    cleanup_transaction_ms: 100
+
 services:
   ocr:
     preload_on_start: true

@@ -21,6 +21,40 @@ _provider: Callable[[dict], dict] | None = None
 _capture_slot = threading.Lock()
 
 
+def save_evidence_png(png: bytes, *, evidence_id: str | None = None) -> dict:
+    """Save supplied pixels under the current leased session, without capturing.
+
+    Diagnostic producers use the same ownership/path contract as terminal errors.
+    This function never starts a session or performs retention during a task.
+    """
+    session = get_log_session()
+    ref = {"evidence_id": evidence_id or uuid4().hex[:16],
+           "session_id": session.session_id if session else None}
+    if session is None or not session.available:
+        return {**ref, "status": "skipped", "reason": "log_session_unavailable"}
+    if not isinstance(png, bytes) or not png or len(png) > 10 * 1024 * 1024:
+        return {**ref, "status": "failed", "reason": "invalid_png_payload"}
+    from .logging.log_session import safe_managed_path
+    relative = f"errors/{session.session_id}/{ref['evidence_id']}.png"
+    created = False
+    path = None
+    try:
+        path = safe_managed_path(session.root, relative)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path = safe_managed_path(session.root, relative)
+        with path.open("xb") as output:
+            created = True
+            output.write(png)
+    except Exception as exc:
+        if created and path is not None:
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
+        return {**ref, "status": "failed", "reason": str(exc)}
+    return {**ref, "status": "saved", "screenshot": relative}
+
+
 def register_capture_provider(provider: Callable[[dict], dict]) -> None:
     global _provider
     _provider = provider
@@ -135,21 +169,7 @@ async def capture_failure(value: Any, *, origin: str = "framework_fallback",
                 else:
                     # Only the coordinator writes; expired workers never write or emit.
                     png = payload.pop("png")
-                    from .logging.log_session import safe_managed_path
-                    relative = f"errors/{session.session_id}/{ref['evidence_id']}.png"
-                    path = safe_managed_path(session.root, relative)
-                    path.parent.mkdir(parents=True, exist_ok=True)
-                    path = safe_managed_path(session.root, relative)
-                    created = False
-                    try:
-                        with path.open("xb") as output:
-                            created = True
-                            output.write(png)
-                    except Exception:
-                        if created:
-                            path.unlink(missing_ok=True)
-                        raise
-                    ref.update(status="saved", screenshot=relative,
+                    ref.update(save_evidence_png(png, evidence_id=ref["evidence_id"]),
                                **{key: payload.get(key) for key in ("width", "height", "backend")})
         except asyncio.CancelledError:
             ref.update(status="cancelled", reason="capture_wait_cancelled")

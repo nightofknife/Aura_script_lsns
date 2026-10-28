@@ -4,7 +4,10 @@
 from __future__ import annotations
 
 import json
+import os
+import re
 import sqlite3
+import stat
 import threading
 import time
 from pathlib import Path
@@ -26,6 +29,8 @@ class RunStore:
         self._db_path = Path(db_path)
         self._db_path.parent.mkdir(parents=True, exist_ok=True)
         self._lock = threading.RLock()
+        self._close_lock = threading.RLock()
+        self._close_callbacks = []
         self._conn = sqlite3.connect(str(self._db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._init_db()
@@ -79,6 +84,16 @@ class RunStore:
             cur.execute("CREATE INDEX IF NOT EXISTS idx_runs_status ON runs(status)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_runs_plan_task ON runs(plan_name, task_name)")
             cur.execute("CREATE INDEX IF NOT EXISTS idx_runs_updated ON runs(updated_at_ms DESC)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_runs_parent ON runs(parent_cid)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_nodes_cid_updated ON node_terminal_events(cid, updated_at_ms)")
+            cur.execute("CREATE TABLE IF NOT EXISTS expired_runs (cid TEXT PRIMARY KEY, deleted_at_ms INTEGER NOT NULL)")
+            cur.execute("CREATE INDEX IF NOT EXISTS idx_expired_runs_time ON expired_runs(deleted_at_ms)")
+            cur.execute("CREATE TABLE IF NOT EXISTS retention_state (id INTEGER PRIMARY KEY CHECK(id=1), watermark_ms INTEGER NOT NULL)")
+            cur.execute("INSERT OR IGNORE INTO retention_state(id,watermark_ms) VALUES (1, 0)")
+            columns = {row[1] for row in cur.execute("PRAGMA table_info(retention_state)")}
+            if "scan_time_ms" not in columns:
+                cur.execute("ALTER TABLE retention_state ADD COLUMN scan_time_ms INTEGER NOT NULL DEFAULT -1")
+                cur.execute("ALTER TABLE retention_state ADD COLUMN scan_cid TEXT NOT NULL DEFAULT ''")
             self._conn.commit()
 
     def apply_event(self, name: str, payload: Dict[str, Any], timestamp_ms: int):
@@ -87,15 +102,191 @@ class RunStore:
             return
         lowered = (name or "").lower()
         with self._lock:
-            if lowered == "queue.enqueued":
-                self._upsert_queued(cid, payload, timestamp_ms)
-            elif lowered == "task.started":
-                self._upsert_started(cid, payload, timestamp_ms)
-            elif lowered == "task.finished":
-                self._upsert_finished(cid, payload, timestamp_ms)
-            elif lowered in {"node.finished", "node.failed"}:
-                self._upsert_node_terminal(cid, lowered, payload, timestamp_ms)
-            self._conn.commit()
+            try:
+                # Serialize the eligibility check with retention in other processes.
+                self._conn.execute("BEGIN IMMEDIATE")
+                exists = self._get_current_status(cid) is not None
+                expired = self._conn.execute(
+                    "SELECT 1 FROM expired_runs WHERE cid IN (?, ?)",
+                    (str(cid), str(payload.get("parent_cid") or "")),
+                ).fetchone()
+                watermark = self._conn.execute("SELECT watermark_ms FROM retention_state WHERE id=1").fetchone()[0]
+                stale = not exists and timestamp_ms < watermark
+                orphan = not exists and lowered in {"task.finished", "node.finished", "node.failed"}
+                if expired or stale or orphan:
+                    self._conn.rollback()
+                    return False
+                if lowered == "queue.enqueued":
+                    self._upsert_queued(cid, payload, timestamp_ms)
+                elif lowered == "task.started":
+                    self._upsert_started(cid, payload, timestamp_ms)
+                elif lowered == "task.finished":
+                    self._upsert_finished(cid, payload, timestamp_ms)
+                elif lowered in {"node.finished", "node.failed"}:
+                    self._upsert_node_terminal(cid, lowered, payload, timestamp_ms)
+                self._conn.commit()
+                return True
+            except Exception:
+                self._conn.rollback()
+                raise
+
+    def prune_expired(self, *, now_ms=None, retention_hours=72, batch_size=500,
+                      transaction_ms=100, snapshot_dir=None, stop_event=None) -> dict:
+        """Expire terminal families, deleting leaves first in bounded transactions.
+
+        A recent/active relative protects its entire connected family. SQLite's
+        immediate write lease coordinates cleanup and event ingestion across
+        processes; a busy database is skipped without waiting. A large family
+        progresses over calls, with parents retained until all children are gone.
+        Tombstones live for the retention window; the monotonic event watermark
+        continues rejecting historical replay after those tombstones expire.
+        """
+        now_ms = int(time.time() * 1000) if now_ms is None else int(now_ms)
+        cutoff = now_ms - int(float(retention_hours) * 3600 * 1000)
+        limit = min(500, max(1, int(batch_size)))
+        result = {"status": "ok", "deleted_runs": 0, "deleted_nodes": 0, "deleted_snapshots": 0}
+        if not self._lock.acquire(blocking=False):
+            return {**result, "status": "busy"}
+        connection = None
+        deleted = []
+        try:
+            if self._conn is None or (stop_event is not None and stop_event.is_set()):
+                return {**result, "status": "closed"}
+            # A dedicated connection avoids changing the foreground writer's
+            # busy timeout or interrupt handler.
+            connection = sqlite3.connect(str(self._db_path), timeout=0)
+            connection.row_factory = sqlite3.Row
+            deadline = time.monotonic() + max(1, int(transaction_ms)) / 1000
+            connection.set_progress_handler(
+                lambda: int(time.monotonic() >= deadline or
+                            (stop_event is not None and stop_event.is_set())), 1000)
+            connection.execute("BEGIN IMMEDIATE")
+            terminal = tuple(sorted(_TERMINAL_STATUSES))
+            placeholders = ",".join("?" for _ in terminal)
+            scan = connection.execute("SELECT scan_time_ms,scan_cid FROM retention_state WHERE id=1").fetchone()
+            candidates = connection.execute(
+                f"SELECT cid FROM runs WHERE status IN ({placeholders}) AND updated_at_ms < ? "
+                "AND (updated_at_ms > ? OR (updated_at_ms = ? AND cid > ?)) "
+                "ORDER BY updated_at_ms, cid LIMIT ?", (*terminal, cutoff, scan[0], scan[0], scan[1], limit),
+            ).fetchall()
+            last_scan = (-1, "")
+            if candidates:
+                last = candidates[-1]["cid"]
+                last_scan = (connection.execute("SELECT updated_at_ms FROM runs WHERE cid=?", (last,)).fetchone()[0], last)
+            seen = set()
+            for candidate in candidates:
+                if stop_event is not None and stop_event.is_set():
+                    connection.rollback()
+                    return {**result, "status": "closed"}
+                cid = candidate["cid"]
+                if cid in seen or len(deleted) >= limit:
+                    continue
+                family = connection.execute(
+                    "WITH RECURSIVE family(cid) AS (SELECT ? UNION "
+                    "SELECT r.cid FROM runs r JOIN family f ON r.parent_cid=f.cid "
+                    "UNION SELECT r.parent_cid FROM runs r JOIN family f ON r.cid=f.cid "
+                    "WHERE r.parent_cid IS NOT NULL) "
+                    "SELECT r.cid,r.parent_cid,r.status,r.updated_at_ms,r.finished_at_ms,"
+                    "(SELECT MAX(n.updated_at_ms) FROM node_terminal_events n WHERE n.cid=r.cid) node_updated "
+                    "FROM runs r JOIN family f ON r.cid=f.cid", (cid,),
+                ).fetchall()
+                seen.update(row["cid"] for row in family)
+                if any(row["status"] not in _TERMINAL_STATUSES or
+                       max(row["updated_at_ms"] or now_ms, row["finished_at_ms"] or now_ms,
+                           row["node_updated"] or 0) >= cutoff for row in family):
+                    continue
+                remaining = {row["cid"]: row["parent_cid"] for row in family}
+                while remaining and len(deleted) < limit:
+                    parents = set(remaining.values())
+                    leaves = sorted(set(remaining) - parents)
+                    if not leaves:  # Malformed cycles are retained conservatively.
+                        break
+                    for leaf in leaves[:limit-len(deleted)]:
+                        deleted.append(leaf)
+                        del remaining[leaf]
+            if deleted:
+                connection.executemany("INSERT OR REPLACE INTO expired_runs VALUES (?, ?)",
+                                       [(cid, now_ms) for cid in deleted])
+                for cid in deleted:
+                    cursor = connection.execute("DELETE FROM node_terminal_events WHERE cid=?", (cid,))
+                    result["deleted_nodes"] += cursor.rowcount
+                    connection.execute("DELETE FROM runs WHERE cid=?", (cid,))
+                result["deleted_runs"] = len(deleted)
+            # Historical orphan nodes cannot be resurrected by new node events.
+            cursor = connection.execute(
+                "DELETE FROM node_terminal_events WHERE rowid IN (SELECT n.rowid FROM node_terminal_events n "
+                "WHERE n.updated_at_ms < ? AND NOT EXISTS (SELECT 1 FROM runs r WHERE r.cid=n.cid) LIMIT ?)",
+                (cutoff, limit),
+            )
+            result["deleted_nodes"] += cursor.rowcount
+            connection.execute("UPDATE retention_state SET watermark_ms=MAX(watermark_ms,?) WHERE id=1", (cutoff,))
+            connection.execute("UPDATE retention_state SET scan_time_ms=?,scan_cid=? WHERE id=1", last_scan)
+            connection.execute("DELETE FROM expired_runs WHERE cid IN (SELECT cid FROM expired_runs WHERE deleted_at_ms < ? LIMIT ?)",
+                               (cutoff, limit))
+            connection.commit()
+            connection.set_progress_handler(None, 0)
+            if snapshot_dir is not None:
+                for cid in deleted:
+                    if stop_event is not None and stop_event.is_set():
+                        break
+                    path = self._snapshot_path(snapshot_dir, cid)
+                    if path is not None:
+                        try:
+                            if path.is_file():
+                                path.unlink()
+                                result["deleted_snapshots"] += 1
+                        except OSError:
+                            pass
+            return result
+        except sqlite3.OperationalError as exc:
+            if connection is not None:
+                connection.rollback()
+            if any(word in str(exc).lower() for word in ("locked", "busy", "interrupted")):
+                return {"status": "busy" if "interrupted" not in str(exc).lower() else "budget",
+                        "deleted_runs": 0, "deleted_nodes": 0, "deleted_snapshots": 0}
+            raise
+        finally:
+            if connection is not None:
+                connection.close()
+            self._lock.release()
+
+    @staticmethod
+    def _snapshot_path(directory, cid):
+        if not re.fullmatch(r"[A-Za-z0-9_-]{1,120}", str(cid)):
+            return None
+        root = Path(os.path.abspath(directory))
+        target = root / f"{cid}.json"
+        for path in (target, *target.parents):
+            try:
+                info = path.lstat()
+            except FileNotFoundError:
+                continue
+            if stat.S_ISLNK(info.st_mode) or getattr(info, "st_file_attributes", 0) & 0x400:
+                return None
+        return target
+
+    def persist_snapshot(self, directory, cid, payload):
+        """Write only an existing run while holding the same database write lease."""
+        path = self._snapshot_path(directory, cid)
+        if path is None:
+            return False
+        with self._lock:
+            try:
+                self._conn.execute("BEGIN IMMEDIATE")
+                if self._get_current_status(cid) is None:
+                    self._conn.rollback()
+                    return False
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if self._snapshot_path(directory, cid) is None:
+                    self._conn.rollback()
+                    return False
+                with path.open("w", encoding="utf-8") as output:
+                    json.dump(payload, output, ensure_ascii=False, indent=2)
+                self._conn.commit()
+                return True
+            except Exception:
+                self._conn.rollback()
+                raise
 
     def _get_current_status(self, cid: str) -> Optional[str]:
         row = self._conn.execute("SELECT status FROM runs WHERE cid = ?", (cid,)).fetchone()
@@ -128,7 +319,7 @@ class RunStore:
                 trace_id=excluded.trace_id,
                 trace_label=excluded.trace_label,
                 source=excluded.source,
-                parent_cid=excluded.parent_cid,
+                parent_cid=COALESCE(excluded.parent_cid, runs.parent_cid),
                 plan_name=excluded.plan_name,
                 task_name=excluded.task_name,
                 status=CASE WHEN runs.status IN ('success','error','failed','timeout','cancelled') THEN runs.status ELSE 'queued' END,
@@ -164,7 +355,7 @@ class RunStore:
                 trace_id=excluded.trace_id,
                 trace_label=excluded.trace_label,
                 source=excluded.source,
-                parent_cid=excluded.parent_cid,
+                parent_cid=COALESCE(excluded.parent_cid, runs.parent_cid),
                 plan_name=excluded.plan_name,
                 task_name=excluded.task_name,
                 status='running',
@@ -338,16 +529,33 @@ class RunStore:
             run["nodes"] = [self._row_to_node(dict(r)) for r in nodes]
             return run
 
+    def register_close_callback(self, callback) -> None:
+        """Stop store-owned background clients before closing the connection."""
+        with self._close_lock:
+            if self._conn is None:
+                callback()
+            else:
+                self._close_callbacks.append(callback)
+
+    @property
+    def closed(self) -> bool:
+        return self._conn is None
+
     def close(self) -> None:
-        with self._lock:
-            conn = getattr(self, "_conn", None)
-            if conn is None:
-                return
-            self._conn = None
-            try:
-                conn.close()
-            except Exception:
-                pass
+        with self._close_lock:
+            callbacks, self._close_callbacks = self._close_callbacks, []
+            # Do not hold _lock while joining a cleanup thread that may use it.
+            for callback in callbacks:
+                callback()
+            with self._lock:
+                conn = getattr(self, "_conn", None)
+                if conn is None:
+                    return
+                self._conn = None
+                try:
+                    conn.close()
+                except Exception:
+                    pass
 
     def list_runs(
         self,
