@@ -9,6 +9,9 @@ import shutil
 import subprocess
 import zipfile
 from hashlib import sha256
+from uuid import uuid4
+
+import yaml
 
 from scripts.release.prune_release_payload import classify_runtime_file, iter_files, path_is_file, prune_files, reset_release_runtime_data
 from scripts.release.release_contract import file_sha256, load_contract, render_contract_value
@@ -81,6 +84,18 @@ def _assert_empty_logs(release_root: Path) -> None:
         raise ValueError(f"Release contains generated log files: {logs}")
 
 
+def validate_logging_defaults(config: str) -> None:
+    """Verify only settings actually consumed by the logging/history runtime."""
+    payload = yaml.safe_load(config) or {}
+    if (payload.get("logging") or {}).get("log_dir") != "logs":
+        raise ValueError("Release logging.log_dir must be logs")
+    runs = (payload.get("observability") or {}).get("runs") or {}
+    for name, expected in {"retention_hours": 72, "cleanup_interval_seconds": 300,
+                           "cleanup_batch_size": 500, "cleanup_transaction_ms": 100}.items():
+        if runs.get(name) != expected:
+            raise ValueError(f"Release observability.runs.{name} must be {expected}")
+
+
 def validate_full_release(release_root: Path, *, profile: str, label: str, contract: dict) -> dict:
     if profile not in {"cpu", "gpu"}:
         raise ValueError(f"Full release validation does not support profile {profile!r}")
@@ -111,6 +126,7 @@ def validate_full_release(release_root: Path, *, profile: str, label: str, contr
             raise ValueError(f"Release contains environment credentials: {path}")
 
     config = (release_root / "config.yaml").read_text(encoding="utf-8-sig")
+    validate_logging_defaults(config)
     expected_provider = contract["profiles"][profile]["execution_provider"]
     if not re.search(rf"(?m)^\s*execution_provider:\s*{re.escape(expected_provider)}\s*$", config):
         raise ValueError(f"Release config does not select OCR provider {expected_provider!r}")
@@ -197,12 +213,23 @@ def run_runtime_smoke(release_root: Path) -> None:
     repo_root = Path(__file__).resolve().parents[2]
     env = os.environ.copy()
     env.pop("AURA_BASE_PATH", None)
+    env.pop("AURA_LOG_DESCRIPTOR", None)
+    env.pop("AURA_LOG_SESSION_ID", None)
+    smoke_root = repo_root / ".pytest_tmp" / "unified-logging" / "packaging" / ("smoke-" + uuid4().hex[:12])
+    temporary = smoke_root / "tmp"
+    temporary.mkdir(parents=True)
+    env["TEMP"] = env["TMP"] = env["TMPDIR"] = str(temporary)
+    env["AURA_LOG_ROOT"] = str(smoke_root / "logs")
     env["PYTHONNOUSERSITE"] = "1"
     env["QT_QPA_PLATFORM"] = "offscreen"
     powershell = _resolve_powershell_executable()
     run_script = str(release_root / "run.ps1")
     games = _run_checked([powershell, "-NoProfile", "-File", run_script, "games", "--all"], cwd=repo_root, env=env)
-    if '"game_name": "resonance_pc"' not in games:
+    try:
+        game_rows = json.loads(games)
+    except json.JSONDecodeError as exc:
+        raise ValueError("Packaged CLI stdout is not clean JSON; diagnostics leaked into the protocol") from exc
+    if not isinstance(game_rows, list) or not any(row.get("game_name") == "resonance_pc" for row in game_rows):
         raise ValueError("Packaged CLI did not discover the Resonance PC plan.")
     _run_checked([powershell, "-NoProfile", "-File", run_script, "tasks", "resonance_pc"], cwd=repo_root, env=env)
     _run_checked(
@@ -211,6 +238,8 @@ def run_runtime_smoke(release_root: Path) -> None:
         env=env,
     )
     _run_checked([str(release_root / "runtime" / "AuraResonanceRuntime.exe"), "--self-check"], cwd=repo_root, env=env)
+    _run_checked([str(release_root / "AuraResonanceGui.exe"), "--self-check"], cwd=repo_root, env=env)
+    _run_checked([str(release_root / "AuraResonanceGui.exe"), "--runtime-self-check"], cwd=repo_root, env=env)
     _run_checked([str(release_root / "更新.exe"), "--self-check"], cwd=repo_root, env=env)
 
 

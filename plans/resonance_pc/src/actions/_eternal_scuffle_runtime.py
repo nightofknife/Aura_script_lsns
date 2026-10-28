@@ -8,7 +8,6 @@ from __future__ import annotations
 import asyncio
 import copy
 import json
-import logging
 import math
 import threading
 import time
@@ -131,11 +130,9 @@ def _json_safe(value):
 
 
 def existing_log_file() -> str:
-    """Use the file handler already owned by Aura; never configure a new one."""
-    for handler in getattr(getattr(logger, "logger", None), "handlers", ()):
-        if isinstance(handler, logging.FileHandler) and handler.get_name() == "task_file":
-            return str(handler.baseFilename)
-    return ""
+    """Resolve the shared session file even when this process only sends logs."""
+    from packages.aura_core.observability.logging.coordinator import get_current_log_path
+    return get_current_log_path() or ""
 
 
 def log_record(session_state, kind: str, **fields):

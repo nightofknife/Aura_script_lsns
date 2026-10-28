@@ -792,8 +792,24 @@ def _launch_helper(root: Path) -> None:
     env = os.environ.copy()
     env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
     env["TEMP"] = env["TMP"] = env["TMPDIR"] = str(directory)
-    subprocess.Popen([str(helper), "--apply-root", str(root)], cwd=root, env=env,
-                     creationflags=subprocess.CREATE_NEW_CONSOLE, close_fds=True)
+    from packages.aura_core.observability.logging.coordinator import (
+        close_session, make_resume_descriptor, session_environment, start_session,
+    )
+    from packages.aura_core.observability.logging.stream_capture import install_capture, uninstall_capture
+    LOG.info("phase=helper_staged path=%s", helper)
+    descriptor = make_resume_descriptor()
+    env.update(session_environment(descriptor))
+    # Transfer file ownership before spawning. The original executable must
+    # exit so the staged helper can replace it; it cannot remain a collector.
+    uninstall_capture()
+    close_session()
+    try:
+        subprocess.Popen([str(helper), "--apply-root", str(root)], cwd=root, env=env,
+                         creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0), close_fds=True)
+    except Exception:
+        start_session(descriptor["log_root"], descriptor=descriptor, cleanup=False, role="updater")
+        install_capture(native_stderr=True, capture_stdout=False)
+        raise
 
 
 def _cleanup_idle_helpers(root: Path) -> None:
@@ -826,17 +842,23 @@ def _wait_for_updater_exit(root: Path) -> None:
         time.sleep(0.2)
 
 
-def _setup_log(root: Path) -> Path:
-    path = _confined_child(root, "logs", "updater", f"update-{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}.log")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    handler = logging.FileHandler(path, encoding="utf-8")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
-    LOG.addHandler(handler)
+def _setup_log(root: Path, *, resume: bool = False) -> Path:
+    from packages.aura_core.config.loader import get_config_value
+    from packages.aura_core.observability.logging.coordinator import get_current_log_path, start_session
+    from packages.aura_core.observability.logging.log_session import resolve_log_root
+    from packages.aura_core.observability.logging.stream_capture import install_capture
+    log_root = resolve_log_root(root, os.environ.get("AURA_LOG_ROOT") or get_config_value(
+        "logging.log_dir", "logs", base_path=str(root),
+    ))
+    start_session(log_root, cleanup=not resume,
+                  descriptor=None if resume else {}, role="updater")
+    install_capture(native_stderr=True, capture_stdout=False)
     LOG.setLevel(logging.INFO)
-    return path
+    return Path(get_current_log_path())
 
 
 def _write_console_line(message: str, ascii_fallback: str) -> None:
+    LOG.info("[UpdaterStatus] %s", message)
     try:
         sys.stdout.write(message + "\n")
     except UnicodeEncodeError:
@@ -883,21 +905,38 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--apply-root", type=Path, help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     if args.self_check:
+        check_logging = bool(str(os.environ.get("AURA_LOG_ROOT") or "").strip())
         try:
+            if check_logging:
+                from packages.aura_core.observability.logging.coordinator import flush
+                log_path = _setup_log(application_root())
             self_check()
+            if check_logging:
+                marker = f"[Updater] phase=self_check pid={os.getpid()}"
+                LOG.info(marker)
+                if not flush() or marker not in log_path.read_text(encoding="utf-8"):
+                    raise UpdateError("Unified updater log self-check failed")
+            _write_console_line("更新器自检通过。", "Aura updater self-check passed.")
+            return 0
         except Exception as exc:
+            if check_logging:
+                LOG.exception("phase=self_check_failed")
             _report_failure(exc, wait_for_enter=False)
             return 1
-        _write_console_line("更新器自检通过。", "Aura updater self-check passed.")
-        return 0
+        finally:
+            if check_logging:
+                from packages.aura_core.observability.logging.coordinator import close_session
+                from packages.aura_core.observability.logging.stream_capture import uninstall_capture
+                uninstall_capture()
+                close_session()
 
     root = args.apply_root.resolve() if args.apply_root else application_root()
     log_path = None
     try:
+        log_path = _setup_log(root, resume=bool(args.apply_root))
         if getattr(sys, "frozen", False) and args.apply_root is None:
             _launch_helper(root)
             return 0
-        log_path = _setup_log(root)
         if args.apply_root:
             _wait_for_updater_exit(root)
         _write_console_line("正在检查最新正式版……", "Checking the latest formal release...")
@@ -916,9 +955,10 @@ def main(argv: list[str] | None = None) -> int:
         _report_failure(exc, wait_for_enter=True)
         return 1
     finally:
-        for handler in list(LOG.handlers):
-            handler.close()
-            LOG.removeHandler(handler)
+        from packages.aura_core.observability.logging.coordinator import close_session
+        from packages.aura_core.observability.logging.stream_capture import uninstall_capture
+        uninstall_capture()
+        close_session()
 
 
 if __name__ == "__main__":

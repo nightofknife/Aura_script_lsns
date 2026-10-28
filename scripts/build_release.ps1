@@ -327,6 +327,7 @@ function Copy-PlanPackages {
 function Build-GuiRootLauncher {
     param(
         [string]$PythonPath,
+        [string]$RepositoryRoot,
         [string]$LauncherSource,
         [string]$IconPath,
         [string]$DistPath,
@@ -344,6 +345,12 @@ function Build-GuiRootLauncher {
         --clean `
         --onefile `
         --windowed `
+        --paths $RepositoryRoot `
+        --hidden-import packages.aura_core.observability.logging.coordinator `
+        --hidden-import packages.aura_core.observability.logging.transport `
+        --hidden-import packages.aura_core.observability.logging.stream_capture `
+        --exclude-module PySide6 `
+        --exclude-module shiboken6 `
         --icon $IconPath `
         --name AuraResonanceGui `
         --distpath $DistPath `
@@ -359,6 +366,7 @@ function Build-GuiRootLauncher {
 function Build-PortableUpdater {
     param(
         [string]$PythonPath,
+        [string]$RepositoryRoot,
         [string]$UpdaterSource,
         [string]$IconPath,
         [string]$ExecutableName,
@@ -377,6 +385,12 @@ function Build-PortableUpdater {
         --clean `
         --onefile `
         --console `
+        --paths $RepositoryRoot `
+        --hidden-import packages.aura_core.observability.logging.coordinator `
+        --hidden-import packages.aura_core.observability.logging.transport `
+        --hidden-import packages.aura_core.observability.logging.stream_capture `
+        --exclude-module PySide6 `
+        --exclude-module shiboken6 `
         --icon $IconPath `
         --name $ExecutableName `
         --distpath $DistPath `
@@ -593,6 +607,7 @@ if (-not $SkipBuild) {
         Assert-PathExists -PathValue $BuiltGuiRuntimeExe -Label "Built Resonance GUI runtime executable"
         Build-GuiRootLauncher `
             -PythonPath $VenvPythonPath `
+            -RepositoryRoot $RepoRoot `
             -LauncherSource $GuiLauncherSource `
             -IconPath $GuiIconPath `
             -DistPath $LauncherDistPath `
@@ -600,6 +615,7 @@ if (-not $SkipBuild) {
         Assert-PathExists -PathValue $BuiltGuiLauncherExe -Label "Built AuraResonanceGui root launcher executable"
         Build-PortableUpdater `
             -PythonPath $VenvPythonPath `
+            -RepositoryRoot $RepoRoot `
             -UpdaterSource $UpdaterSource `
             -IconPath $GuiIconPath `
             -ExecutableName $UpdaterBaseName `

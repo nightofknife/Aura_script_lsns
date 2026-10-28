@@ -231,8 +231,9 @@ def _log(state, kind, **fields):
     row = dict(at=time.time(), kind=kind, plane_index=state.get('plane_index'),
                turn=state.get('turns_completed'), scan_epoch=state.get('scan_epoch'), **fields)
     state['last_event'] = _jsonable(row)
-    with (_directory(state) / 'events.jsonl').open('a', encoding='utf-8') as handle:
-        handle.write(json.dumps(_jsonable(row), ensure_ascii=False) + '\n')
+    logger.info('[DeepDivePlannedRun] %s', json.dumps(
+        dict(_jsonable(row), cid=state.get('cid'), session_key=state.get('session_key')),
+        ensure_ascii=False))
 
 
 def _summary(state):
@@ -1272,7 +1273,9 @@ def _report(state):
                       for label, value in rows)
     text += '\n\n本记录描述本次自动流程状态；到达结算与游戏通关分别记录。\n'
     text += '\n灵感账本依据已确认的地图灵感任务进度，不代表全部战斗货币奖励。\n'
-    text += '\n- [完整会话](session.json)\n- [动作与事件](events.jsonl)\n'
+    from packages.aura_core.observability.logging.coordinator import get_current_log_path
+    text += '\n- [完整会话](session.json)\n'
+    text += f"- 动作与事件：统一日志 {get_current_log_path() or '未配置'}，CID {state.get('cid')}\n"
     if summary.get('final_frame') or summary.get('last_frame'):
         path = Path(summary.get('final_frame') or summary['last_frame'])
         text += '\n![最后画面](' + path.relative_to(_directory(state)).as_posix() + ')\n'

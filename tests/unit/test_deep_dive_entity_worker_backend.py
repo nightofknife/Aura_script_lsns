@@ -161,14 +161,32 @@ def test_close_timeout_reports_failure_and_terminates_only_owned_child(tmp_path)
     assert child.poll() is not None
 
 
-def test_large_stderr_is_file_backed_and_cannot_block_protocol(tmp_path):
+def test_large_stderr_uses_framework_and_cannot_block_protocol(tmp_path, monkeypatch):
+    messages = []
+    monkeypatch.setattr(module.logger, "warning", lambda *args: messages.append(args))
     worker = backend(tmp_path, "logs")
     try:
         worker.run(np.zeros((720,1280,3), np.uint8))
-        assert Path(worker.status["stderr_path"]).is_relative_to(ROOT/".pytest_tmp")
-        assert Path(worker.status["stderr_path"]).stat().st_size >= 200000
+        assert worker.status["stderr_source"] == "unified_log"
+        assert worker._stderr_thread.is_alive()
     finally:
         assert worker.close()["drained"]
+    assert worker.status["stderr_bytes"] == 200000
+    assert sum(len(row[2]) for row in messages) == 200000
+    assert all(row[0] == "[EntityWorkerStderr] pid=%s %s" for row in messages)
+    assert not worker._stderr_thread.is_alive()
+
+
+def test_stderr_split_utf8_and_unterminated_tail_are_preserved(tmp_path, monkeypatch):
+    messages = []
+    monkeypatch.setattr(module.logger, "warning", lambda *args: messages.append(args))
+    worker = backend(tmp_path)
+    text = "x" * 4095 + "中文错误\n最后一行"
+    encoded = text.encode("utf-8")
+    worker._forward_stderr(io.BytesIO(encoded), 123)
+    assert [row[2] for row in messages] == text.split("\n")
+    assert all(row[1] == 123 for row in messages)
+    assert worker._stderr_bytes == len(encoded)
 
 
 @pytest.mark.parametrize("frame", [np.zeros((720,1280,3),np.float32),np.zeros((720,1280),np.uint8)])

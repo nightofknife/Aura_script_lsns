@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import importlib
-import logging
 import os
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 from PySide6.QtCore import QEventLoop, QSettings
@@ -16,7 +16,9 @@ from PySide6.QtWidgets import QApplication
 from packages.aura_game import SubprocessGameRunner
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.config.loader import get_config_value
-from packages.aura_core.observability.logging.log_session import resolve_log_root, start_log_session
+from packages.aura_core.observability.logging.log_session import resolve_log_root
+from packages.aura_core.observability.logging.coordinator import close_session, get_session_descriptor, start_session
+from packages.aura_core.observability.logging.stream_capture import install_capture, uninstall_capture
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
@@ -93,27 +95,28 @@ def _import_required_wgc_module() -> object:
 
 
 def launch_resonance_gui() -> int:
-    # GUI shutdown outlives the worker's session log; keep a separate parent log.
     base = resolve_application_root()
-    session = start_log_session(resolve_log_root(
+    owns_session = get_session_descriptor() is None
+    start_session(resolve_log_root(
         base, os.environ.get("AURA_LOG_ROOT") or
         get_config_value("logging.log_dir", "logs", base_path=str(base)),
-    ), cleanup=True)
-    logger.setup(
-        log_dir=str(session.root),
-        task_name=f"aura_gui_{os.getpid()}",
-    )
-    app = QApplication.instance() or QApplication(sys.argv)
-    icon = _configure_application(app)
-    window = ResonanceMainWindow()
-    window.setWindowIcon(icon)
-    window.show()
+    ), cleanup=True, role="gui")
+    install_capture(native_stderr=True, qt=True)
     try:
+        app = QApplication.instance() or QApplication(sys.argv)
+        icon = _configure_application(app)
+        window = ResonanceMainWindow()
+        window.setWindowIcon(icon)
+        window.show()
         return int(app.exec())
+    except Exception:
+        logger.exception("[GuiApplication] phase=failed")
+        raise
     finally:
         logger.info("[GuiShutdown] phase=gui_event_loop_exited pid=%s", os.getpid())
-        logging.shutdown()
-        session.close()
+        if owns_session:
+            uninstall_capture()
+            close_session()
 
 
 def _close_window_and_wait(window: ResonanceMainWindow) -> None:
@@ -149,6 +152,17 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
     if window.page_stack.currentWidget() is not page:
         raise RuntimeError("Freight trial did not return to the shared editor")
     page.append_log("离线界面自检；未派发游戏任务。")
+    # Display is deliberately asynchronous now: first commit to the session
+    # writer, then deliver its subscription through the GUI's queued signal.
+    from packages.aura_core.observability.logging.coordinator import flush
+    if not flush():
+        raise RuntimeError("Layout self-check log could not be committed")
+    deadline = time.monotonic() + 5
+    while "离线界面自检" not in page.log_view.toPlainText():
+        app.processEvents()
+        if time.monotonic() >= deadline:
+            raise RuntimeError("Committed log did not reach the workflow view")
+        time.sleep(.01)
     page._set_inspector_collapsed(True)
     page._set_inspector_collapsed(False)
     if "离线界面自检" not in page.log_view.toPlainText():

@@ -3,7 +3,7 @@ player_data_refresh:
     role: user_tool
     domain: 用户数据
     title: Resonance Player Data Refresh (PC)
-    description: Refresh location, player profile/status, warehouse and character data from the PC client.
+    description: Refresh selected player data and optionally read current visible prison products without scrolling.
     entry_point: true
     concurrency: exclusive
     inputs:
@@ -15,7 +15,17 @@ player_data_refresh:
           name: stage
           type: enum
           required: true
-          enum: [location, profile, inventory, characters]
+          enum: [location, profile, inventory, characters, prison_products]
+      - name: prison_product_goods
+        type: list
+        description: 监狱成品筛选；不指定、null 或空列表表示识别当前可见全部成品，不滚动列表。
+        required: false
+        nullable: true
+        default: null
+        item:
+          name: goods
+          type: string
+          required: true
       - name: profile_sections
         type: list
         required: false
@@ -46,6 +56,7 @@ player_data_refresh:
         stages: "{{ inputs.stages }}"
         inventory_categories: "{{ inputs.inventory_categories }}"
         profile_sections: "{{ inputs.profile_sections }}"
+        prison_product_goods: "{{ inputs.prison_product_goods }}"
       depends_on: require_resolution
 
   returns:

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 
 from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.stream_capture import install_asyncio_capture
 
 if TYPE_CHECKING:
     from .core import Scheduler
@@ -23,6 +24,7 @@ class RuntimeLifecycleService:
         profile = scheduler.runtime_profile
         scheduler.lifecycle.initialize_async_components()
         scheduler._loop = asyncio.get_running_loop()
+        install_asyncio_capture(scheduler._loop)
         scheduler._main_task = asyncio.current_task()
 
         scheduler.lifecycle._loop = scheduler._loop

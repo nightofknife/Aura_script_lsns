@@ -26,14 +26,16 @@ def _dump(payload: Any) -> None:
 
 
 @click.group()
-def aura() -> None:
+@click.pass_context
+def aura(ctx: click.Context) -> None:
     """Aura Game Framework."""
-    try:
-        ensure_admin_startup("Aura CLI")
-    except AdminPrivilegeRequiredError as exc:
-        raise click.ClickException(str(exc)) from exc
+    from packages.aura_core.observability.logging.core_logger import logger
+    # Reserve stdout before even ConfigService/bootstrap emit their first log.
+    logger.setup(console_level=None)
     from packages.aura_core.config.loader import get_config_value
-    from packages.aura_core.observability.logging.log_session import resolve_log_root, start_log_session
+    from packages.aura_core.observability.logging.log_session import resolve_log_root
+    from packages.aura_core.observability.logging.coordinator import close_session, get_session_descriptor, start_session
+    from packages.aura_core.observability.logging.stream_capture import install_capture, uninstall_capture
     base = Path(os.environ["AURA_BASE_PATH"]) if os.environ.get("AURA_BASE_PATH") else (
         Path(sys.executable).resolve().parent if getattr(sys, "frozen", False)
         else Path(__file__).resolve().parent
@@ -43,10 +45,27 @@ def aura() -> None:
             if (candidate / "config.yaml").is_file() or (candidate / "plans").is_dir():
                 base = candidate
                 break
-    start_log_session(resolve_log_root(
+    owns_session = get_session_descriptor() is None
+    start_session(resolve_log_root(
         base, os.environ.get("AURA_LOG_ROOT") or
         get_config_value("logging.log_dir", "logs", base_path=str(base)),
-    ), cleanup=True)
+    ), cleanup=True, role="cli")
+    # stdout is the CLI's JSON/data interface, not a diagnostic transport.
+    install_capture(capture_stdout=False, native_stderr=True)
+    if owns_session:
+        def close_logging() -> None:
+            error_type, error, traceback = sys.exc_info()
+            if error is not None and not isinstance(error, (click.exceptions.Exit, SystemExit)):
+                from packages.aura_core.observability.logging.core_logger import logger
+                logger.error("[CLI] phase=command_failed error=%s", error,
+                             exc_info=(error_type, error, traceback))
+            uninstall_capture()
+            close_session()
+        ctx.call_on_close(close_logging)
+    try:
+        ensure_admin_startup("Aura CLI")
+    except AdminPrivilegeRequiredError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 @aura.command("tui")

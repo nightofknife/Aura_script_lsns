@@ -27,6 +27,7 @@ from PySide6.QtWidgets import (
 )
 
 from .toggle_button import ToggleButton as QCheckBox
+from .prison_product_selector import PrisonProductDialog, prison_selection_text
 from ..config_repository import (
     PLAYER_DATA_INVENTORY_CATEGORY_ORDER,
     PLAYER_DATA_STAGE_ORDER,
@@ -45,6 +46,7 @@ STAGE_DEFINITIONS: tuple[tuple[str, str, str], ...] = (
         "按所选分类扫描模板目录内已支持的内容；期限识别暂时关闭，耗时较长",
     ),
     ("characters", "角色", "模板识别已收录角色及点亮星级"),
+    ("prison_products", "监狱成品", "仅读取当前可见成品及数量，不滚动、不取货；未显示的商品库存未知"),
 )
 
 INVENTORY_CATEGORY_LABELS = {
@@ -101,6 +103,7 @@ class PlayerDataPanel(QWidget):
         self._stage_times: dict[str, QLabel] = {}
         self._inventory_category_checks: dict[str, QCheckBox] = {}
         self._profile_section_checks: dict[str, QCheckBox] = {}
+        self._prison_product_goods: list[str] = []
         self._build_ui()
         self._load_inputs()
         self._render_snapshot()
@@ -178,6 +181,10 @@ class PlayerDataPanel(QWidget):
             detail.setProperty("caption", True)
             row_layout.addLayout(top)
             row_layout.addWidget(detail)
+            if stage == "prison_products":
+                self.prison_products_button = QPushButton(prison_selection_text([]), row)
+                self.prison_products_button.clicked.connect(self._select_prison_products)
+                row_layout.addWidget(self.prison_products_button)
             if stage == "profile":
                 sections = QGridLayout()
                 for section_index, section in enumerate(PLAYER_DATA_PROFILE_SECTION_ORDER):
@@ -261,6 +268,9 @@ class PlayerDataPanel(QWidget):
         self.currency_label.setWordWrap(True)
         layout.addWidget(self.location_label)
         layout.addWidget(self.currency_label)
+        self.prison_stock_label = QLabel("监狱成品：尚未读取", page)
+        self.prison_stock_label.setWordWrap(True)
+        layout.addWidget(self.prison_stock_label)
         profile_grid = QGridLayout()
         self.profile_value_labels: dict[str, QLabel] = {}
         self.profile_time_labels: dict[str, QLabel] = {}
@@ -355,6 +365,8 @@ class PlayerDataPanel(QWidget):
 
     def _load_inputs(self) -> None:
         saved = self._settings.load_player_data_inputs()
+        self._prison_product_goods = list(saved.get("prison_product_goods") or [])
+        self.prison_products_button.setText(prison_selection_text(self._prison_product_goods))
         stages = set(saved.get("stages") or [])
         for stage, check in self._stage_checks.items():
             check.setChecked(stage in stages)
@@ -367,6 +379,15 @@ class PlayerDataPanel(QWidget):
         self._sync_inventory_category_controls()
         self._sync_profile_section_controls()
         self._refresh_selection_summary()
+
+    def _select_prison_products(self) -> None:
+        dialog = PrisonProductDialog(self._prison_product_goods, self)
+        try:
+            if dialog.exec() == dialog.DialogCode.Accepted:
+                self._prison_product_goods = dialog.selected_goods()
+                self.prison_products_button.setText(prison_selection_text(self._prison_product_goods))
+        finally:
+            dialog.deleteLater()
 
     def _select_stages(self, selected: tuple[str, ...], *, profile_sections: tuple[str, ...] | None = None) -> None:
         selected_set = set(selected)
@@ -448,6 +469,8 @@ class PlayerDataPanel(QWidget):
             "inventory_categories": categories or ["items"],
             "profile_sections": profile_sections,
         }
+        if "prison_products" in stages or self._prison_product_goods:
+            inputs["prison_product_goods"] = list(self._prison_product_goods)
         self._settings.save_player_data_inputs(inputs)
         return inputs
 
@@ -499,6 +522,8 @@ class PlayerDataPanel(QWidget):
             }
         if "characters" in fresh:
             merged["characters"] = copy.deepcopy(fresh["characters"])
+        if "prison_products" in fresh:
+            merged["prison_products"] = copy.deepcopy(fresh["prison_products"])
         fresh_status = fresh.get("status")
         if isinstance(fresh_status, Mapping):
             status = merged.setdefault("status", {})
@@ -561,6 +586,13 @@ class PlayerDataPanel(QWidget):
 
     def _render_snapshot(self) -> None:
         snapshot = self._snapshot
+        stock = snapshot.get("prison_products")
+        if isinstance(stock, Mapping):
+            rows = stock.get("goods", [])
+            values = "、".join(f"{row.get('goods', '?')} × {row.get('quantity', '?')}" for row in rows if isinstance(row, Mapping))
+            self.prison_stock_label.setText(f"监狱成品（仅当前可见）：{values or '无已识别商品'}；未显示商品库存未知")
+        else:
+            self.prison_stock_label.setText("监狱成品：尚未读取")
         metadata = snapshot.get("metadata") if isinstance(snapshot.get("metadata"), Mapping) else {}
         updated_at = metadata.get("updated_at") or metadata.get("refreshed_at")
         self.snapshot_updated.setText(

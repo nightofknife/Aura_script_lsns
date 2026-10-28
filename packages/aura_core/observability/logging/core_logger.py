@@ -19,11 +19,32 @@ import queue
 import sys
 import time
 import asyncio
+from collections import deque
 from contextvars import ContextVar
-from logging.handlers import RotatingFileHandler
 from typing import Optional, Union
 from uuid import uuid4
 from .log_session import get_log_session, flush_session_diagnostics
+
+
+class BootstrapHandler(logging.Handler):
+    """Retain the brief pre-configuration startup phase for the real session."""
+
+    def __init__(self):
+        super().__init__(logging.DEBUG)
+        self.set_name("bootstrap")
+        self.records = deque(maxlen=2048)
+
+    def emit(self, record):
+        self.records.append(record)
+
+
+class ConsoleHandler(logging.StreamHandler):
+    """A host can close its console before process-local daemon diagnostics end."""
+
+    def emit(self, record):
+        if self.stream is None or getattr(self.stream, "closed", False):
+            return
+        super().emit(record)
 
 
 class QueueLogHandler(logging.Handler):
@@ -104,7 +125,8 @@ class CIDLogFilter(logging.Filter):
 
     def filter(self, record: logging.LogRecord) -> bool:
         try:
-            record.cid = current_cid()
+            if not hasattr(record, "cid"):
+                record.cid = current_cid()
         except Exception:
             record.cid = "-"
         return True
@@ -189,9 +211,10 @@ class Logger:
             logger_obj.setLevel(TRACE_LEVEL_NUM)
             logger_obj.propagate = False
             logger_obj.addFilter(CIDLogFilter())
+            logger_obj.addHandler(BootstrapHandler())
             # 默认创建一个控制台处理器，作为未调用 setup 时的后备
-            if not any(h.name == "console" for h in logger_obj.handlers):
-                console_handler = logging.StreamHandler(sys.stdout)
+            if (sys.stdout is not None or sys.stderr is not None) and not any(h.name == "console" for h in logger_obj.handlers):
+                console_handler = ConsoleHandler(sys.stdout)
                 console_handler.set_name("console")
                 console_handler.setLevel(logging.INFO)
                 console_formatter = logging.Formatter(
@@ -209,6 +232,9 @@ class Logger:
         for handler in self.logger.handlers:
             if handler.name == name:
                 return handler
+        if name in {"api_queue", "ui_queue"}:
+            from .coordinator import get_display_handler
+            return get_display_handler(name)
         return None
 
     def setup(self,
@@ -267,37 +293,13 @@ class Logger:
                 self.logger.addHandler(api_queue_handler)
                 self.info("API log streaming queue is connected.")
 
-        # --- 文件处理器 ---
-        if log_dir and task_name:
-            session = get_log_session()
-            if session is not None:
-                log_dir = str(session.root)
-            old_file_handler = self._get_handler("task_file")
-            if old_file_handler:
-                self.logger.removeHandler(old_file_handler)
-                old_file_handler.close()
-
-            os.makedirs(log_dir, exist_ok=True)
-            timestamp = time.strftime("%Y%m%d-%H%M%S")
-            base_task_name = os.path.basename(task_name)
-            safe_base_name = base_task_name.replace('/', '_').replace('\\', '_')
-            suffix = f"_{session.session_id}_{os.getpid()}" if session else ""
-            log_file_path = os.path.join(log_dir, f"{safe_base_name}_{timestamp}{suffix}_{uuid4().hex[:8]}.log")
-
-            file_handler = RotatingFileHandler(
-                log_file_path, maxBytes=5 * 1024 * 1024, backupCount=3, encoding='utf-8'
-            )
-            file_handler.set_name("task_file")
-            file_handler.setLevel(logging.DEBUG)
-            file_formatter = logging.Formatter(
-                '%(asctime)s - %(levelname)-8s - [cid:%(cid)s] - %(name)s - %(module)s.%(funcName)s:%(lineno)d - %(message)s'
-            )
-            file_handler.setFormatter(file_formatter)
-            self.logger.addHandler(file_handler)
-            if session is not None:
-                session.register_log(log_file_path)
-            flush_session_diagnostics(self.logger)
-            self.info(f"File logging is configured. Log file: {log_file_path}")
+        # The application coordinator owns the only file; repeated scheduler
+        # initialization only attaches UI queues and never opens another file.
+        if log_dir:
+            from .coordinator import start_session
+            start_session(log_dir, cleanup=False)
+        from .coordinator import route_display_handlers
+        route_display_handlers()
 
     def update_api_queue(self, new_queue: Union[queue.Queue, asyncio.Queue]):
         """在运行时更新或添加 API 日志队列。
@@ -321,33 +323,42 @@ class Logger:
             api_queue_handler.setLevel(logging.DEBUG)
             self.logger.addHandler(api_queue_handler)
             self.info("New API log streaming queue is connected.")
+        from .coordinator import route_display_handlers
+        route_display_handlers()
 
     def trace(self, message, *args, **kwargs):
         """Log TRACE level messages."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.trace(message, *args, **kwargs)
 
     def debug(self, message, *args, **kwargs):
         """Log DEBUG level messages."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.debug(message, *args, **kwargs)
 
     def info(self, message, *args, **kwargs):
         """Log INFO level messages."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.info(message, *args, **kwargs)
 
     def warning(self, message, *args, **kwargs):
         """Log WARNING level messages."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.warning(message, *args, **kwargs)
 
     def error(self, message, *args, **kwargs):
         """Log ERROR level messages."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.error(message, *args, **kwargs)
 
     def critical(self, message, *args, **kwargs):
         """Log CRITICAL level messages."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.critical(message, *args, **kwargs)
 
     def exception(self, message, *args, **kwargs):
         """Log an ERROR message with exception context."""
+        kwargs.setdefault("stacklevel", 2)
         self.logger.exception(message, *args, **kwargs)
 
 logger = Logger()

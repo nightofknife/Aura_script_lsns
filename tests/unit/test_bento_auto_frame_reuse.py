@@ -173,7 +173,7 @@ def test_invalid_ratio_cannot_stabilize_into_a_fatigue_reading(make_session, inv
     assert_rounds(replay, ["cabinet", "train", "fatigue_current", "fatigue_maximum"], 4)
 
 
-@pytest.mark.parametrize("confidence", [(0.89, 1.), (1., 0.89)])
+@pytest.mark.parametrize("confidence", [(0.79, 1.), (1., 0.79)])
 def test_low_confidence_on_either_side_resets_stability(make_session, confidence):
     session, replay = make_session([
         {"fatigue": "200/600"}, {"fatigue": "200/600", "confidence": confidence},

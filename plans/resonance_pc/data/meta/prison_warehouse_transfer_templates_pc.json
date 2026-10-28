@@ -1,86 +1,16 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "reference_client": [
     1280,
     720
   ],
   "kind": "supplied_screenshot_crops",
   "live_calibrated": false,
-  "calibration": "Offline comparison on four user-supplied captures only; no live clicks or subsequent frames.",
-  "color_contract": "PNG is RGB. OpenCV images are BGR. Preserve color and apply both normalized SQDIFF score and color MAE limit.",
+  "calibration": "Five supplied captures, including the user's stable warehouse state; offline replay only.",
+  "color_contract": "Grayscale CCOEFF for page/button structure; RGB/BGR-equivalent SQDIFF and MAE for inner connection state.",
   "shared_templates": {
     "back": "GLOBAL_BACK"
   },
-  "shared_template_calibration": {
-    "back": {
-      "profile": "GLOBAL_BACK",
-      "image": "templates/navigation/global/back.png",
-      "sha256": "98be348c46581cddfdc0575125d2b38c99ceb2958b4521837a996223f9c3e443",
-      "threshold": 0.86,
-      "roi": [
-        0,
-        0,
-        170,
-        80
-      ],
-      "method": "TM_CCOEFF_NORMED",
-      "use_grayscale": true,
-      "preprocess": "none",
-      "results": [
-        {
-          "capture": "capture_1",
-          "score": 0.9943,
-          "detected": true,
-          "bbox_xywh": [
-            16,
-            14,
-            134,
-            46
-          ]
-        },
-        {
-          "capture": "capture_2",
-          "score": 0.991763,
-          "detected": true,
-          "bbox_xywh": [
-            16,
-            14,
-            134,
-            46
-          ]
-        },
-        {
-          "capture": "capture_3",
-          "score": 0.991763,
-          "detected": true,
-          "bbox_xywh": [
-            16,
-            14,
-            134,
-            46
-          ]
-        },
-        {
-          "capture": "capture_4",
-          "score": 0.991763,
-          "detected": true,
-          "bbox_xywh": [
-            16,
-            14,
-            134,
-            46
-          ]
-        }
-      ],
-      "limit": "Present on both overview and warehouse pages; the back control alone does not prove the source page."
-    }
-  },
-  "excluded": [
-    "maximum_mode_detection",
-    "inventory_digit_recognition",
-    "goods_icon_catalog",
-    "transfer_actions"
-  ],
   "sources": [
     {
       "id": "capture_1",
@@ -103,8 +33,8 @@
       ],
       "client_sha256": "69f6780fb2c2130417bf4ecdf05e67453f531f148e89e0adb758309991f51ad5",
       "state": "prison_overview",
-      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_1_original.png",
-      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_1_client.png"
+      "staged_original": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_1_original.png",
+      "staged_client": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_1_client.png"
     },
     {
       "id": "capture_2",
@@ -126,9 +56,9 @@
         720
       ],
       "client_sha256": "edc0000b6ed6380e32f1367d23caad4d8936b4babdaf531c8f98ab6cce80129b",
-      "state": "material_product_connected_product_empty",
-      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_2_original.png",
-      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_2_client.png"
+      "state": "target_connection_unselected",
+      "staged_original": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_2_original.png",
+      "staged_client": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_2_client.png"
     },
     {
       "id": "capture_3",
@@ -151,8 +81,8 @@
       ],
       "client_sha256": "6ab6e36b4727e56afb88590beb0b331c6f97e864f04645f7a0ed1f792c63ff25",
       "state": "train_product_connected_product_populated",
-      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_3_original.png",
-      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_3_client.png"
+      "staged_original": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_3_original.png",
+      "staged_client": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_3_client.png"
     },
     {
       "id": "capture_4",
@@ -174,14 +104,46 @@
         720
       ],
       "client_sha256": "492d4a4fbbd507694f6639a8b4a6c9ba0609ba8992a63fcbd24e29cc094b7614",
-      "state": "train_product_connected_product_empty_train_scrolled",
-      "staged_original": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_4_original.png",
-      "staged_client": ".pytest_tmp/prison_warehouse_calibration_20261023/controls/capture_4_client.png"
+      "state": "train_product_connected_product_empty",
+      "staged_original": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_4_original.png",
+      "staged_client": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_4_client.png"
+    },
+    {
+      "id": "capture_5",
+      "source_image": "plans/resonance_pc/development/template_sources/warehouse_transfer/screenshots/warehouse_stable.png",
+      "original_name": "codex-clipboard-2b368679-76a1-4752-ae58-567fdb4cfe56.png",
+      "original_sha256": "78a9785c5594ee0c064606a8e570d048fcff96241f4ad53d5f1269dab3599dfc",
+      "original_size": [
+        1332,
+        802
+      ],
+      "client_crop_xyxy": [
+        26,
+        56,
+        1306,
+        776
+      ],
+      "client_size": [
+        1280,
+        720
+      ],
+      "client_sha256": "4b92ce61fe2cb04e88f8da9b9933cbeac7c14bb0f3c5fd60f54b688e33afd26e",
+      "state": "stable_warehouse_target_connection_unselected",
+      "staged_original": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_5_original.png",
+      "staged_client": ".pytest_tmp/warehouse_state_separation_20261024/controls/capture_5_client.png"
     }
   ],
   "templates": {
     "overview_warehouse_shortcut": {
       "image": "templates/workshop/warehouse/controls/overview_warehouse_shortcut.png",
+      "sha256": "457d394723c89cf60b3d9a0f8574a2e7add463b1c3535b40fdcfeb4c91683cfc",
+      "source_capture": "capture_1",
+      "source_bbox_xywh": [
+        42,
+        596,
+        68,
+        68
+      ],
       "bbox": [
         42,
         596,
@@ -197,26 +159,21 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_1",
-      "sha256": "457d394723c89cf60b3d9a0f8574a2e7add463b1c3535b40fdcfeb4c91683cfc",
-      "source_bbox_xywh": [
-        42,
-        596,
-        68,
-        68
-      ],
       "kind": "supplied_screenshot_crop",
-      "status": "offline_supplied_capture_calibration_no_live_execution",
-      "click": [
-        76,
-        630
-      ]
+      "status": "offline_supplied_capture_calibration_no_live_execution"
     },
     "overview_event_list": {
       "image": "templates/workshop/warehouse/controls/overview_event_list.png",
+      "sha256": "a2518fd5ea65b3e8cf34f8914f197061911cdb0bac64066f071016f49afaf84c",
+      "source_capture": "capture_1",
+      "source_bbox_xywh": [
+        1086,
+        119,
+        194,
+        43
+      ],
       "bbox": [
         1086,
         119,
@@ -232,57 +189,21 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_1",
-      "sha256": "a2518fd5ea65b3e8cf34f8914f197061911cdb0bac64066f071016f49afaf84c",
-      "source_bbox_xywh": [
-        1086,
-        119,
-        194,
-        43
-      ],
-      "kind": "supplied_screenshot_crop",
-      "status": "offline_supplied_capture_calibration_no_live_execution",
-      "click": [
-        1190,
-        140
-      ]
-    },
-    "train_title_active": {
-      "image": "templates/workshop/warehouse/controls/train_title_active.png",
-      "bbox": [
-        36,
-        91,
-        181,
-        38
-      ],
-      "search_region": [
-        30,
-        85,
-        193,
-        50
-      ],
-      "preprocess": "none",
-      "use_grayscale": false,
-      "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
-      "threshold": 0.9,
-      "color_mae_limit": 18.0,
-      "source_capture": "capture_3",
-      "sha256": "28dade801ade8a2da44bac5a5b4d6b9765e4c863587c9e86dbc2fd516f4f9a2c",
-      "source_bbox_xywh": [
-        36,
-        91,
-        181,
-        38
-      ],
       "kind": "supplied_screenshot_crop",
       "status": "offline_supplied_capture_calibration_no_live_execution"
     },
-    "train_title_inactive": {
-      "image": "templates/workshop/warehouse/controls/train_title_inactive.png",
+    "train_title_active": {
+      "image": "templates/workshop/warehouse/controls/train_title_active.png",
+      "sha256": "28dade801ade8a2da44bac5a5b4d6b9765e4c863587c9e86dbc2fd516f4f9a2c",
+      "source_capture": "capture_3",
+      "source_bbox_xywh": [
+        36,
+        91,
+        181,
+        38
+      ],
       "bbox": [
         36,
         91,
@@ -298,23 +219,53 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_2",
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "note": "Legacy color diagnostic only; page and target connection no longer depend on panel brightness."
+    },
+    "train_title_inactive": {
+      "image": "templates/workshop/warehouse/controls/train_title_inactive.png",
       "sha256": "22f77a98dbccb4447702fb94963849759270c36116bd2e494d81cc0fa024203b",
+      "source_capture": "capture_2",
       "source_bbox_xywh": [
         36,
         91,
         181,
         38
       ],
+      "bbox": [
+        36,
+        91,
+        181,
+        38
+      ],
+      "search_region": [
+        30,
+        85,
+        193,
+        50
+      ],
+      "preprocess": "none",
+      "use_grayscale": false,
+      "method": "TM_SQDIFF_NORMED",
+      "threshold": 0.9,
+      "color_mae_limit": 18.0,
       "kind": "supplied_screenshot_crop",
       "status": "offline_supplied_capture_calibration_no_live_execution",
-      "note": "Dimmed title state; brightness alone is not a page identity proof."
+      "note": "Legacy color diagnostic only; page and target connection no longer depend on panel brightness."
     },
     "product_title_active": {
       "image": "templates/workshop/warehouse/controls/product_title_active.png",
+      "sha256": "04e1c48f315337a77c5a9b328e3a50d79ae4a8937df8f2ca375f421566e736e0",
+      "source_capture": "capture_3",
+      "source_bbox_xywh": [
+        1118,
+        542,
+        94,
+        28
+      ],
       "bbox": [
         1118,
         542,
@@ -330,22 +281,22 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_3",
-      "sha256": "04e1c48f315337a77c5a9b328e3a50d79ae4a8937df8f2ca375f421566e736e0",
-      "source_bbox_xywh": [
-        1118,
-        542,
-        94,
-        28
-      ],
       "kind": "supplied_screenshot_crop",
-      "status": "offline_supplied_capture_calibration_no_live_execution"
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "note": "Legacy color diagnostic only; page and target connection no longer depend on panel brightness."
     },
     "material_title_active": {
       "image": "templates/workshop/warehouse/controls/material_title_active.png",
+      "sha256": "44ef47a6d38d50caea43dbde5fa00ff63a0941136ca932557098de62cbeb8ab2",
+      "source_capture": "capture_2",
+      "source_bbox_xywh": [
+        1118,
+        210,
+        94,
+        28
+      ],
       "bbox": [
         1118,
         210,
@@ -361,22 +312,22 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_2",
-      "sha256": "44ef47a6d38d50caea43dbde5fa00ff63a0941136ca932557098de62cbeb8ab2",
-      "source_bbox_xywh": [
-        1118,
-        210,
-        94,
-        28
-      ],
       "kind": "supplied_screenshot_crop",
-      "status": "offline_supplied_capture_calibration_no_live_execution"
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "note": "Legacy color diagnostic only; page and target connection no longer depend on panel brightness."
     },
     "material_title_inactive": {
       "image": "templates/workshop/warehouse/controls/material_title_inactive.png",
+      "sha256": "f6628cdf5ea35d8a6ef8b888b24a5ce7aa00ed205159bd6c9bc36c07c6cba7f1",
+      "source_capture": "capture_3",
+      "source_bbox_xywh": [
+        1118,
+        210,
+        94,
+        28
+      ],
       "bbox": [
         1118,
         210,
@@ -392,95 +343,113 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_3",
-      "sha256": "f6628cdf5ea35d8a6ef8b888b24a5ce7aa00ed205159bd6c9bc36c07c6cba7f1",
-      "source_bbox_xywh": [
-        1118,
-        210,
-        94,
-        28
-      ],
       "kind": "supplied_screenshot_crop",
       "status": "offline_supplied_capture_calibration_no_live_execution",
-      "note": "Dimmed title state; brightness alone is not a page identity proof."
+      "note": "Legacy color diagnostic only; page and target connection no longer depend on panel brightness."
     },
     "tp_connection_selected": {
       "image": "templates/workshop/warehouse/controls/tp_connection_selected.png",
+      "sha256": "46b35f8ec297871546814f2dd4662ef7dbc589a7be5b735bf06ca80204cba6e7",
+      "source_capture": "capture_3",
+      "source_bbox_xywh": [
+        524,
+        478,
+        32,
+        135
+      ],
       "bbox": [
-        520,
-        466,
-        40,
-        159
+        524,
+        478,
+        32,
+        135
       ],
       "search_region": [
-        514,
-        460,
-        52,
-        171
+        518,
+        472,
+        44,
+        147
       ],
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_3",
-      "sha256": "e5bbdb6490b90f294be4cd8455838df553eb78d8fb0a79edb1684da2a368659b",
-      "source_bbox_xywh": [
-        520,
-        466,
-        40,
-        159
-      ],
       "kind": "supplied_screenshot_crop",
       "status": "offline_supplied_capture_calibration_no_live_execution",
+      "anchor_offset_xy": [
+        4,
+        12
+      ],
       "click": [
         540,
         546
       ],
-      "note": "Fixed vertical TP button only; no goods or inventory digits. Require RGB and color MAE gate together."
+      "note": "Inner color-state crop; search exactly relative to the observed full button anchor."
     },
     "tp_connection_unselected": {
       "image": "templates/workshop/warehouse/controls/tp_connection_unselected.png",
+      "sha256": "986f994d108bab9c52b757ebdb8cad1d821ed235c59d4523d726580f0484084e",
+      "source_capture": "capture_5",
+      "source_bbox_xywh": [
+        524,
+        478,
+        32,
+        135
+      ],
       "bbox": [
-        520,
-        466,
-        40,
-        159
+        524,
+        478,
+        32,
+        135
       ],
       "search_region": [
-        514,
-        460,
-        52,
-        171
+        518,
+        472,
+        44,
+        147
       ],
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_2",
-      "sha256": "96fbf084951561f52e1c6c433539b84d39fb2659176188124b2022da54235bf2",
-      "source_bbox_xywh": [
-        520,
-        466,
-        40,
-        159
-      ],
       "kind": "supplied_screenshot_crop",
       "status": "offline_supplied_capture_calibration_no_live_execution",
+      "anchor_offset_xy": [
+        4,
+        12
+      ],
       "click": [
         540,
         546
       ],
-      "note": "Fixed vertical TP button only; no goods or inventory digits. Require RGB and color MAE gate together."
+      "note": "Inner color-state crop; search exactly relative to the observed full button anchor.",
+      "variants": [
+        {
+          "image": "templates/workshop/warehouse/controls/tp_connection_unselected_legacy.png",
+          "sha256": "43840432e00203dac26192d42d64fd3afb804fa8d492a9d873f88323650d29c4",
+          "source_capture": "capture_2",
+          "source_bbox_xywh": [
+            524,
+            478,
+            32,
+            135
+          ]
+        }
+      ]
     },
     "product_empty": {
       "image": "templates/workshop/warehouse/controls/product_empty.png",
+      "sha256": "4e99973b8d9511d2f9c700eaaa28cf1be606c21851255e2f5fbdf14d2ab726ed",
+      "source_capture": "capture_2",
+      "source_bbox_xywh": [
+        775,
+        512,
+        75,
+        70
+      ],
       "bbox": [
         775,
         512,
@@ -496,69 +465,168 @@
       "preprocess": "none",
       "use_grayscale": false,
       "method": "TM_SQDIFF_NORMED",
-      "score": "1-normalized_sqdiff",
       "threshold": 0.9,
       "color_mae_limit": 18.0,
-      "source_capture": "capture_2",
-      "sha256": "4e99973b8d9511d2f9c700eaaa28cf1be606c21851255e2f5fbdf14d2ab726ed",
-      "source_bbox_xywh": [
-        775,
-        512,
-        75,
-        70
-      ],
       "kind": "supplied_screenshot_crop",
       "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "train_title_identity": {
+      "image": "templates/workshop/warehouse/controls/train_title_identity.png",
+      "sha256": "1e618f3a4fe05414254fe6da588dd6fa56004858a4a2ede9f8c41720c8e67744",
+      "source_capture": "capture_5",
+      "source_bbox_xywh": [
+        108,
+        91,
+        105,
+        27
+      ],
+      "bbox": [
+        108,
+        91,
+        105,
+        27
+      ],
+      "search_region": [
+        102,
+        85,
+        117,
+        39
+      ],
+      "preprocess": "none",
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "threshold": 0.92,
+      "color_mae_limit": null,
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "material_title_identity": {
+      "image": "templates/workshop/warehouse/controls/material_title_identity.png",
+      "sha256": "44ef47a6d38d50caea43dbde5fa00ff63a0941136ca932557098de62cbeb8ab2",
+      "source_capture": "capture_5",
+      "source_bbox_xywh": [
+        1118,
+        210,
+        94,
+        28
+      ],
+      "bbox": [
+        1118,
+        210,
+        94,
+        28
+      ],
+      "search_region": [
+        1112,
+        204,
+        106,
+        40
+      ],
+      "preprocess": "none",
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "threshold": 0.92,
+      "color_mae_limit": null,
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "product_title_identity": {
+      "image": "templates/workshop/warehouse/controls/product_title_identity.png",
+      "sha256": "04e1c48f315337a77c5a9b328e3a50d79ae4a8937df8f2ca375f421566e736e0",
+      "source_capture": "capture_5",
+      "source_bbox_xywh": [
+        1118,
+        542,
+        94,
+        28
+      ],
+      "bbox": [
+        1118,
+        542,
+        94,
+        28
+      ],
+      "search_region": [
+        1112,
+        536,
+        106,
+        40
+      ],
+      "preprocess": "none",
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "threshold": 0.92,
+      "color_mae_limit": null,
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution"
+    },
+    "tp_connection_anchor": {
+      "image": "templates/workshop/warehouse/controls/tp_connection_anchor_unselected.png",
+      "sha256": "ddd805d7eeed272b51994cf6f4ff1b057021d329f32f43afaa38d1a02c25c92c",
+      "source_capture": "capture_5",
+      "source_bbox_xywh": [
+        520,
+        466,
+        40,
+        159
+      ],
+      "bbox": [
+        520,
+        466,
+        40,
+        159
+      ],
+      "search_region": [
+        514,
+        460,
+        52,
+        171
+      ],
+      "preprocess": "none",
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "threshold": 0.92,
+      "color_mae_limit": null,
+      "kind": "supplied_screenshot_crop",
+      "status": "offline_supplied_capture_calibration_no_live_execution",
+      "variants": [
+        {
+          "image": "templates/workshop/warehouse/controls/tp_connection_anchor_selected.png",
+          "sha256": "e5bbdb6490b90f294be4cd8455838df553eb78d8fb0a79edb1684da2a368659b",
+          "source_capture": "capture_3",
+          "source_bbox_xywh": [
+            520,
+            466,
+            40,
+            159
+          ]
+        },
+        {
+          "image": "templates/workshop/warehouse/controls/tp_connection_anchor_legacy.png",
+          "sha256": "96fbf084951561f52e1c6c433539b84d39fb2659176188124b2022da54235bf2",
+          "source_capture": "capture_2",
+          "source_bbox_xywh": [
+            520,
+            466,
+            40,
+            159
+          ]
+        }
+      ],
+      "note": "Grayscale button structure locates both supported states; it does not authorize a connection state."
     }
   },
-  "auxiliary_frame_probe": {
-    "bbox": [
-      12,
-      200,
-      7,
-      100
-    ],
-    "role": "Reference evidence for bright/dim train frame only; no runtime threshold or standalone state detector.",
-    "observations": [
-      {
-        "capture": "capture_1",
-        "mean_rgb": [
-          139.689,
-          162.62,
-          168.991
-        ]
-      },
-      {
-        "capture": "capture_2",
-        "mean_rgb": [
-          20.753,
-          31.777,
-          52.153
-        ]
-      },
-      {
-        "capture": "capture_3",
-        "mean_rgb": [
-          148.007,
-          150.716,
-          153.671
-        ]
-      },
-      {
-        "capture": "capture_4",
-        "mean_rgb": [
-          148.007,
-          150.716,
-          153.671
-        ]
-      }
-    ]
-  },
+  "excluded": [
+    "maximum_mode_detection",
+    "inventory_digit_recognition",
+    "goods_icon_catalog",
+    "transfer_actions"
+  ],
   "limits": [
-    "All matches use bounded position searches with six-pixel tolerance at 1280x720.",
-    "Source-image self matches establish crop provenance only, not generalization.",
-    "Cross-screenshot positives cover supplied states only; animation, scaling, other UI versions and obstruction remain unmeasured.",
-    "Product EMPTY was supplied at one fixed location; material EMPTY is deliberately outside its search region.",
-    "Warehouse titles are supporting page markers; TP state requires the fixed connection button state."
+    "All searches are bounded at the 1280x720 client size; full-window captures require explicit cropping, never scaling.",
+    "Source-image self matches are provenance checks, not independent accuracy evidence.",
+    "Warehouse page identity and target connection are independent. Unselected does not identify another connected pair.",
+    "Only an exclusive inner color-state match on a recognized button authorizes selected/unselected; all other cases stay unknown.",
+    "Legacy title color templates are diagnostic only. No new live input, successful withdrawal or server persistence was verified."
   ]
 }

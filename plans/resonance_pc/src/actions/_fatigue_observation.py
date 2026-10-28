@@ -107,7 +107,7 @@ def _number(result):
             continue
         confidence = getattr(row, "confidence", None)
         if (isinstance(confidence, bool) or not isinstance(confidence, Real)
-                or not math.isfinite(confidence) or confidence < .9):
+                or not math.isfinite(confidence) or confidence < .8):
             return None, "low_confidence"
         texts.append(text)
     # Do not strip punctuation or guess digits from an incomplete OCR fragment.
