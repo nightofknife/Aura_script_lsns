@@ -6,7 +6,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
 from PySide6.QtCore import QSettings
-from PySide6.QtWidgets import QApplication
+from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtWidgets import QApplication, QBoxLayout
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.widgets import battle_page
@@ -150,3 +151,56 @@ def test_plan_changed_signal_contains_saved_week_not_edited_day_only(page):
     page.structural_buttons["birch_buoy"].click()
     assert emitted[-1] == page._settings.load_battle_inputs()
     assert set(emitted[-1]["weekly_plan"]["days"]) == set(battle_page.WEEKDAYS)
+
+
+@pytest.mark.parametrize("window_width,editor_width,horizontal", [(1220, 568, False), (1440, 788, True)])
+def test_real_workflow_embed_keeps_form_and_stage_names_usable(
+        tmp_path, monkeypatch, window_width, editor_width, horizontal):
+    from PySide6.QtCore import QCoreApplication, QEvent
+    from packages.resonance_gui.main_window import ResonanceMainWindow
+    from packages.resonance_gui.style import APP_STYLE
+
+    app = QApplication.instance() or QApplication([])
+    font_id = QFontDatabase.addApplicationFont("C:/Windows/Fonts/msyh.ttc")
+    previous_font = app.font()
+    if font_id >= 0:
+        app.setFont(QFont(QFontDatabase.applicationFontFamilies(font_id)[0], 10))
+    monkeypatch.setattr(ResonanceMainWindow, "_wire_bridge", lambda self: None)
+    monkeypatch.setattr(battle_page, "battle_game_day", lambda: ("2026-10-29", "thu"))
+    repo = ResonanceConfigRepository(QSettings(str(tmp_path / "embedded.ini"), QSettings.IniFormat))
+    window = ResonanceMainWindow(settings=repo, initialize_on_startup=False)
+    try:
+        window.setStyleSheet(APP_STYLE)
+        page = window.battle_page
+        page.set_inputs({"weekly_plan": {"thu": {"jobs": [{
+            "route_id": "gp.action_summary.blade_encirclement.special_order",
+            "run_count": 9999, "difficulty": 6,
+        }], "structural_types": ["echo_buoy", "disordered_roots"]}}})
+        window.resize(window_width, 950)
+        window.show()
+        window._open_battle_editor()
+        for _ in range(4):
+            app.processEvents()
+        assert abs(page.width()-editor_width) <= 10
+        assert page.job_form.column_count == 2
+        direction = QBoxLayout.Direction.LeftToRight if horizontal else QBoxLayout.Direction.TopToBottom
+        assert page._body_layout.direction() == direction
+        if not horizontal:
+            assert page.job_form.width() < 560  # Regression: global threshold made eight rows.
+            assert page._ordinary_panel.width() >= page.width()-34
+            assert page._structural_panel.y() > page._ordinary_panel.geometry().bottom()
+        item = page.job_table.item(0, 1)
+        assert item.text() == "利刃围剿\n特殊订单"
+        assert page.job_table.columnWidth(1) >= page.job_table.fontMetrics().horizontalAdvance("特殊订单")+12
+        assert page.job_table.cellWidget(0, 4).value() == 9999
+        today = page.weekday_buttons["thu"]
+        assert today.width() >= today.fontMetrics().horizontalAdvance("周四 · 今日")+6
+        assert window.grab().save(str(tmp_path / f"embedded_{window_width}.png"))
+    finally:
+        window._workflow_active = False
+        window._close_ready = True
+        window.close()
+        window.deleteLater()
+        QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+        app.processEvents()
+        app.setFont(previous_font)

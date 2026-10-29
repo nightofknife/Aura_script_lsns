@@ -8,6 +8,7 @@ from typing import Any, Mapping
 from PySide6.QtCore import QTimer, Qt, Signal
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QBoxLayout,
     QButtonGroup,
     QComboBox,
     QFrame,
@@ -45,6 +46,21 @@ from .compact_parameter_grid import CompactParameterGrid
 from .disclosure_section import DisclosureSection
 from ..logic import (extract_run_id, extract_status, extract_final_result,
                      extract_battle_cleanup_evidence, pretty_json, render_result_text)
+
+
+class _BattleParameterGrid(CompactParameterGrid):
+    """The embedded battle editor fits two compact fields from 500 px."""
+
+    def resizeEvent(self, event) -> None:
+        # A pair of 240 px cells plus the existing 20 px gutter fits the
+        # workflow's 536 px form. Keep this threshold local to battle settings.
+        QWidget.resizeEvent(self, event)
+        minimum_cell_width = 240
+        threshold = 2*minimum_cell_width+self._grid.horizontalSpacing()
+        columns = 2 if self.width() >= threshold else 1
+        if columns != self.column_count:
+            self.column_count = columns
+            self._reflow()
 
 
 class BattlePage(QWidget):
@@ -86,10 +102,13 @@ class BattlePage(QWidget):
 
         root.addWidget(self._build_builder_panel())
         body = QHBoxLayout()
+        self._body_layout = body
         body.setContentsMargins(16, 12, 16, 4)
         body.setSpacing(12)
-        body.addWidget(self._build_job_panel(), 7)
-        body.addWidget(self._build_structural_panel(), 3)
+        self._ordinary_panel = self._build_job_panel()
+        self._structural_panel = self._build_structural_panel()
+        body.addWidget(self._ordinary_panel, 7)
+        body.addWidget(self._structural_panel, 3)
         root.addLayout(body, 1)
         root.addWidget(self._build_result_panel())
         root.addWidget(self._build_action_bar())
@@ -148,7 +167,7 @@ class BattlePage(QWidget):
         self.category_group.idClicked.connect(self._sync_subcategories)
         outer.addLayout(category_row)
 
-        self.job_form = CompactParameterGrid(panel)
+        self.job_form = _BattleParameterGrid(panel)
         self.subcategory_combo = QComboBox(content)
         self.mission_combo = QComboBox(content)
         self.route_combo = QComboBox(content)
@@ -326,6 +345,7 @@ class BattlePage(QWidget):
             button.setCheckable(True)
             button.setProperty("segment", True)
             button.setMinimumHeight(48)
+            button.setStyleSheet('QPushButton[segment="true"] { padding: 5px 2px; min-width: 0px; }')
             button.setToolTip(f"编辑{WEEKDAY_LABELS[index]}的关卡、次数和构析优先级")
             self.weekday_group.addButton(button, index)
             self.weekday_buttons[day] = button
@@ -884,3 +904,12 @@ class BattlePage(QWidget):
 
     def is_busy(self) -> bool:
         return self._busy
+
+    def resizeEvent(self, event) -> None:
+        super().resizeEvent(event)
+        if hasattr(self, "_body_layout"):
+            horizontal = self.width() >= 760
+            self._body_layout.setDirection(QBoxLayout.Direction.LeftToRight if horizontal
+                                           else QBoxLayout.Direction.TopToBottom)
+            self._body_layout.setStretch(0, 7 if horizontal else 0)
+            self._body_layout.setStretch(1, 3 if horizontal else 0)
