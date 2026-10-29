@@ -25,6 +25,12 @@ LOG_LINE_RE = re.compile(
     r"(?P<message>.*)$"
 )
 TIMESTAMP_FORMAT = "%Y-%m-%d %H:%M:%S,%f"
+SESSION_CONTEXT_RE = re.compile(
+    r"^\[session:(?P<session_id>[^\s\]]+) pid:(?P<pid>\d+) "
+    r"role:(?P<role>[^\s\]]+) root:(?P<root_cid>[^\s\]]+) "
+    r"seq:(?P<sequence>\d+)(?: thread:(?P<thread_id>\d+) "
+    r"instance:(?P<process_instance_id>[^\s\]]+))?\]\s?"
+)
 LIKELY_ISSUE_TERMS = (
     "error",
     "exception",
@@ -48,6 +54,13 @@ class ParsedLogEntry:
     message: str
     line_number: int
     raw_lines: tuple[str, ...]
+    session_id: str | None = None
+    pid: int | None = None
+    role: str | None = None
+    root_cid: str | None = None
+    sequence: int | None = None
+    thread_id: int | None = None
+    process_instance_id: str | None = None
 
     def to_dict(self) -> dict[str, object]:
         return {
@@ -59,6 +72,13 @@ class ParsedLogEntry:
             "message": self.message,
             "line_number": self.line_number,
             "raw_lines": list(self.raw_lines),
+            "session_id": self.session_id,
+            "pid": self.pid,
+            "role": self.role,
+            "root_cid": self.root_cid,
+            "sequence": self.sequence,
+            "thread_id": self.thread_id,
+            "process_instance_id": self.process_instance_id,
         }
 
 
@@ -133,7 +153,12 @@ def parse_log_file(file_path: Path) -> tuple[list[ParsedLogEntry], int]:
         if current_match is None:
             return
         timestamp = datetime.strptime(current_match.group("timestamp"), TIMESTAMP_FORMAT)
-        message_lines = [current_match.group("message")]
+        message = current_match.group("message")
+        context = SESSION_CONTEXT_RE.match(message)
+        metadata = context.groupdict() if context else {}
+        if context:
+            message = message[context.end():]
+        message_lines = [message]
         if current_lines:
             message_lines.extend(current_lines[1:])
         entries.append(
@@ -146,6 +171,13 @@ def parse_log_file(file_path: Path) -> tuple[list[ParsedLogEntry], int]:
                 message="\n".join(part.rstrip("\r\n") for part in message_lines).strip(),
                 line_number=current_line_number,
                 raw_lines=tuple(current_lines),
+                session_id=metadata.get("session_id"),
+                pid=int(metadata["pid"]) if context else None,
+                role=metadata.get("role"),
+                root_cid=metadata.get("root_cid"),
+                sequence=int(metadata["sequence"]) if context else None,
+                thread_id=int(metadata["thread_id"]) if metadata.get("thread_id") else None,
+                process_instance_id=metadata.get("process_instance_id"),
             )
         )
         current_match = None

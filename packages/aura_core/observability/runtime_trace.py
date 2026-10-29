@@ -8,15 +8,15 @@ import contextvars
 from datetime import datetime, timezone
 import json
 import os
-from pathlib import Path
 import queue
-import re
 import sys
 import threading
 import time
 from uuid import uuid4
 
-from .logging.core_logger import current_cid, logger
+from .logging.core_logger import current_cid, logger, set_cid, reset_cid
+from .logging.log_session import get_log_session
+from .failure_evidence import save_evidence_png
 
 _lock = threading.RLock()
 _events = deque(maxlen=2048)
@@ -33,6 +33,11 @@ _session_id = f"{os.getpid()}-{uuid4().hex[:12]}"
 _diagnostics: queue.Queue = queue.Queue(maxsize=8)
 _diagnostic_thread = None
 _monitor_thread = None
+
+
+def _log_session_id():
+    session = get_log_session()
+    return session.session_id if session else None
 
 
 def _cid(value=None) -> str:
@@ -68,7 +73,7 @@ def _safe(value, depth=0):
 
 def log_event(event: str, cid=None, detail=False, root_cid=None, **fields) -> dict:
     """Detail goes to the bounded ring; ordinary events also go to the log."""
-    row = {**_safe(fields), "event": event, "cid": _cid(cid), "session_id": _session_id,
+    row = {**_safe(fields), "event": event, "cid": _cid(cid), "session_id": _log_session_id(), "process_instance_id": _session_id,
            "pid": os.getpid(), "thread_id": threading.get_ident(),
            "thread_name": threading.current_thread().name,
            "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -310,17 +315,6 @@ def register_diagnostic_provider(name: str, callback):
         _providers[name] = callback
 
 
-def _log_root() -> Path:
-    configured = os.environ.get("AURA_LOG_ROOT")
-    if configured:
-        return Path(configured)
-    for handler in logger.logger.handlers:
-        filename = getattr(handler, "baseFilename", None)
-        if filename:
-            return Path(filename).parent
-    return Path(os.environ.get("AURA_BASE_PATH") or Path.cwd()) / "logs"
-
-
 def request_diagnostic(reason: str, cid=None, **metadata):
     """Bound queue and per-CID rate; never capture synchronously on input path."""
     global _diagnostic_thread
@@ -335,7 +329,7 @@ def request_diagnostic(reason: str, cid=None, **metadata):
         while len(_dump_times) > 128:
             _dump_times.popitem(last=False)
         request = {"cid": cid, "reason": reason, "metadata": _safe(metadata),
-                   "runtime": dict(_runtime.get(cid, {})), "session_id": _session_id,
+                   "runtime": dict(_runtime.get(cid, {})), "session_id": _log_session_id(), "process_instance_id": _session_id,
                    "events": [dict(row) for row in _events if cid in (row["cid"], row["root_cid"])][-256:],
                    "pending": pending_activities(cid)}
         try:
@@ -384,52 +378,46 @@ def _provider_snapshot(name, provider, request):
 
 
 def _write_diagnostic(request):
-    directory = _log_root() / "diagnostics"
-    directory.mkdir(parents=True, exist_ok=True)
-    stem = f"aura-trace-{time.strftime('%Y%m%d-%H%M%S')}-{os.getpid()}-{uuid4().hex[:8]}"
-    payload = {**request, "thread_stacks": _thread_stacks(), "providers": {}}
-    with _lock:
-        providers = list(_providers.items())
-    for index, (name, provider) in enumerate(providers):
-        snapshot = _provider_snapshot(name, provider, request)
-        if not isinstance(snapshot, dict):
-            snapshot = {"status": "invalid_provider_result"}
-        else:
-            snapshot = dict(snapshot)
-        png = snapshot.pop("png", None)
-        if isinstance(png, bytes) and len(png) <= 10 * 1024 * 1024:
-            path = directory / f"{stem}-{index}.png"
-            path.write_bytes(png)
-            snapshot["screenshot"] = path.name
-        payload["providers"][name] = _safe(snapshot)
-    path = directory / f"{stem}.json"
-    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    log_event("diagnostic.saved", cid=request["cid"], reason=request["reason"], path=str(path))
-    _prune_diagnostics(directory)
-    return path
+    """Write diagnostic records to the session log; only PNGs are attachments."""
+    from .logging.coordinator import get_current_log_path
+    evidence_id = uuid4().hex[:16]
+    reference = {"evidence_id": evidence_id, "session_id": _log_session_id(),
+                 "log_path": get_current_log_path(), "screenshots": []}
+    token = set_cid(request["cid"])
+    try:
+        # Write each historical observation independently. A complete bounded
+        # ring must not become one oversized/truncated transport record.
+        def emit(kind, **fields):
+            row = {"evidence_id": evidence_id, "session_id": _log_session_id(),
+                   "process_instance_id": _session_id, "cid": request["cid"],
+                   "kind": kind, **fields}
+            logger.info("[RuntimeDiagnostic] %s", json.dumps(row, ensure_ascii=False, default=str))
 
-
-def _prune_diagnostics(directory):
-    """Retain only our own named bundles: 72 hours and at most 128 bundles."""
-    pattern = re.compile(r"^aura-trace-\d{8}-\d{6}-\d+-[0-9a-f]{8}(?:-\d+)?\.(?:json|png)$")
-    files = []
-    for path in directory.iterdir():
-        if pattern.fullmatch(path.name) and path.is_file():
-            try:
-                files.append((path, path.stat().st_mtime))
-            except OSError:
-                pass
-    bundles = sorted(((p, stamp) for p, stamp in files if p.suffix == ".json"),
-                     key=lambda pair: pair[1], reverse=True)
-    retired = {p.stem for p, stamp in bundles[128:]}
-    cutoff = time.time() - 72 * 3600
-    for path, stamp in files:
-        stem = path.stem if path.suffix == ".json" else path.stem.rsplit("-", 1)[0]
-        if stamp < cutoff or stem in retired:
-            try:
-                path.unlink()
-            except OSError:
-                pass
+        emit("snapshot", **{key: value for key, value in request.items()
+                            if key not in {"events", "cid", "session_id", "process_instance_id"}})
+        for stack in _thread_stacks():
+            emit("thread_stack", **stack)
+        with _lock:
+            providers = list(_providers.items())
+        for index, (name, provider) in enumerate(providers):
+            snapshot = _provider_snapshot(name, provider, request)
+            if not isinstance(snapshot, dict):
+                snapshot = {"status": "invalid_provider_result"}
+            else:
+                snapshot = dict(snapshot)
+            png = snapshot.pop("png", None)
+            if png is not None:
+                attachment = save_evidence_png(png, evidence_id=f"{evidence_id}-{index}")
+                snapshot["attachment"] = attachment
+                if attachment.get("status") == "saved":
+                    reference["screenshots"].append(attachment["screenshot"])
+            emit("provider", provider=name, snapshot=_safe(snapshot))
+        for index, event in enumerate(request.get("events", ())):
+            emit("recent_event", index=index, observation=event)
+        log_event("diagnostic.saved", cid=request["cid"], reason=request["reason"], **reference)
+        return reference
+    finally:
+        reset_cid(token)
 
 
 def _diagnostic_worker():

@@ -32,12 +32,13 @@ def test_release_smoke_queries_pc_without_executing_game_operations(tmp_path, mo
     monkeypatch.setattr(validate_release, "_resolve_powershell_executable", lambda: "pwsh")
     def invoke(command, **kwargs):
         commands.append(command)
-        return '{"game_name": "resonance_pc"}' if "games" in command else "ok"
+        return '[{"game_name": "resonance_pc"}]' if "games" in command else "ok"
     monkeypatch.setattr(validate_release, "_run_checked", invoke)
     validate_release.run_runtime_smoke(tmp_path / "release")
     task_queries = [command for command in commands if "tasks" in command]
     assert len(task_queries) == 1
     assert task_queries[0][-1] == "resonance_pc"
+    assert [str((tmp_path / "release/AuraResonanceGui.exe").resolve()), "--runtime-self-check"] in commands
     assert all("run" not in command for command in commands)
     assert not any("aura_benchmark" in command or "resonance" in command for command in commands)
 

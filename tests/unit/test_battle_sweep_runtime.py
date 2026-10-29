@@ -274,4 +274,3 @@ def test_reward_with_changed_return_stage_preserves_evidence_and_fails():
         asyncio.run(operation.run())
     assert failure.value.sweep_partial_result["reward_confirmed"] is True
     assert failure.value.sweep_partial_result["ready_for_next"] is False
-

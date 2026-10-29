@@ -56,9 +56,9 @@ def readers(observations):
 
 
 @pytest.mark.parametrize(("observations", "captures", "expected"), [
-    ([(58, 864, .99)], 2, {"current": 58, "max": 864}),
+    ([(58, 864, .8)], 2, {"current": 58, "max": 864}),
     ([(58, 864, .99), (59, 864, .99), (59, 864, .99)], 3, {"current": 59, "max": 864}),
-    ([(58, 864, .99), (58, 864, .89), (58, 864, .99), (58, 864, .99)], 4,
+    ([(58, 864, .99), (58, 864, .79), (58, 864, .99), (58, 864, .99)], 4,
      {"current": 58, "max": 864}),
     ([(1200, 864, .99)], 2, {"current": 1200, "max": 864}),
 ])
@@ -77,7 +77,7 @@ def test_unconfirmed_profile_fatigue_does_not_mark_or_save(tmp_path, monkeypatch
     old = {"status": {"fatigue": {"current": 40, "max": 864}},
            "metadata": {"profile_section_updated_at": {"fatigue": "old"}}}
     service.set(player.USER_INFO_FILE, [], old)
-    app, ocr = readers([(58, 864, .89)])
+    app, ocr = readers([(58, 864, .79)])
     monkeypatch.setattr(player, "_wait_for_any_marker", lambda *args, **kwargs: [])
     monkeypatch.setattr(player, "_wait_for_profile_panel", lambda *args, **kwargs: None)
     monkeypatch.setattr(player, "_best_effort_return_to_main", lambda *args: None)

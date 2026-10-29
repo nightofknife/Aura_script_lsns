@@ -1,0 +1,23 @@
+read_visible_prison_products_pc:
+  meta:
+    role: internal
+    domain: 用户数据
+    title: 读取当前可见监狱成品
+    description: 从头像菜单进入整顿中心仓库，仅识别当前可见成品并返回头像菜单；不滚动、不取货。
+    concurrency: exclusive
+    inputs:
+      - name: goods
+        type: list
+        required: false
+        nullable: true
+        default: null
+        item:
+          name: goods
+          type: string
+          required: true
+  steps:
+    read:
+      action: resonance_pc.read_visible_prison_products
+      params:
+        goods: "{{ inputs.goods }}"
+  returns: "{{ nodes.read.output }}"

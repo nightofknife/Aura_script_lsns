@@ -30,7 +30,8 @@ class _SessionDiagnostics:
         with self._lock:
             sink = self._sink
             ready = sink is not None and any(
-                handler.name == "task_file" and getattr(handler, "stream", None) is not None
+                handler.name == "task_file" and (getattr(handler, "stream", None) is not None
+                    or getattr(handler, "state", None) is not None)
                 for handler in sink.handlers
             )
             if not ready:
@@ -290,6 +291,9 @@ def _session_files(root: Path, directory: Path) -> list[Path]:
     for member in metadata:
         if not _safe_path(root, member) or not member.is_file():
             raise ValueError("Unsafe or unknown session member")
+        if member.name == "writer.lock":
+            files.add(member)
+            continue
         match = _MEMBER_PATTERN.fullmatch(member.name)
         if match is None or match.group(1) != session_id:
             raise ValueError("Unknown session owner filename")
@@ -435,7 +439,7 @@ def start_log_session(
     """Start/join once per process; only an owning GUI/CLI requests cleanup."""
     global _SESSION
     with _PROCESS_LOCK:
-        if _SESSION is not None and _SESSION.pid == os.getpid():
+        if _SESSION is not None and _SESSION.pid == os.getpid() and not _SESSION._closed:
             return _SESSION
         inherited = os.environ.get("AURA_LOG_SESSION_ID")
         chosen_id = session_id or inherited or (

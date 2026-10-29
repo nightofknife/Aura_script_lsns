@@ -7,6 +7,7 @@ import json
 import queue
 import threading
 import time
+import weakref
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -57,6 +58,15 @@ class ObservabilityService:
             )
         ).resolve()
         self.run_store = RunStore(run_store_path)
+        self.run_retention_hours = max(1, float(get_config_value("observability.runs.retention_hours", 72)))
+        self.run_cleanup_interval = max(1, float(get_config_value("observability.runs.cleanup_interval_seconds", 300)))
+        self.run_cleanup_batch_size = min(500, max(1, int(get_config_value("observability.runs.cleanup_batch_size", 500))))
+        self.run_cleanup_transaction_ms = max(1, int(get_config_value("observability.runs.cleanup_transaction_ms", 100)))
+        self._history_retention_lock = threading.RLock()
+        self._history_retention_stop = threading.Event()
+        self._history_retention_thread: Optional[threading.Thread] = None
+        self._history_retention_finalizer = None
+        self._history_retention_closed = False
 
         self._metrics: Dict[str, Any] = {
             "tasks_started": 0,
@@ -77,6 +87,10 @@ class ObservabilityService:
 
         self._ui_event_queue_maxsize = max(int(get_config_value("observability.ui_event_queue_maxsize", 2000)), 1)
         self._ui_event_queue: queue.Queue = queue.Queue(maxsize=self._ui_event_queue_maxsize)
+        self.run_store.register_close_callback(self._close_history_with_store)
+        # GUI history/list queries instantiate this service before any scheduler
+        # event loop exists. Retention must not require starting a game runtime.
+        self.start_history_retention()
 
     def get_ui_event_queue(self) -> queue.Queue:
         return self._ui_event_queue
@@ -177,7 +191,8 @@ class ObservabilityService:
             ts_ms = getattr(event, "timestamp_ms", None)
             if ts_ms is None:
                 ts_ms = int(time.time() * 1000)
-            self.run_store.apply_event(name, p, int(ts_ms))
+            if self.run_store.apply_event(name, p, int(ts_ms)) is False:
+                return
         except Exception as exc:
             logger.error("RunStore apply_event failed: %s", exc, exc_info=True)
 
@@ -577,12 +592,8 @@ class ObservabilityService:
         run_copy.setdefault("cid", cid)
         run_copy.setdefault("trace_id", run_copy.get("trace_id"))
         run_copy["persisted_at"] = int(time.time() * 1000)
-        target_path = self.run_history_dir / f"{cid}.json"
-
         def _write():
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(target_path, "w", encoding="utf-8") as f:
-                json.dump(run_copy, f, ensure_ascii=False, indent=2)
+            self.run_store.persist_snapshot(self.run_history_dir, cid, run_copy)
 
         try:
             await loop.run_in_executor(None, _write)
@@ -817,9 +828,73 @@ class ObservabilityService:
             except RuntimeError:
                 # 如果没有运行的事件循环，记录警告
                 logger.warning("[ObservabilityService] Cannot start cleanup task: no running event loop")
+        self.start_history_retention()
+
+    def _prune_run_history(self):
+        started = time.monotonic()
+        result = self.run_store.prune_expired(
+            retention_hours=self.run_retention_hours, batch_size=self.run_cleanup_batch_size,
+            transaction_ms=self.run_cleanup_transaction_ms, snapshot_dir=self.run_history_dir,
+            stop_event=self._history_retention_stop,
+        )
+        result["elapsed_ms"] = round((time.monotonic() - started) * 1000, 2)
+        logger.info("[RunRetention] %s", result)
+        return result
+
+    def start_history_retention(self):
+        """Start one loop independent of asyncio, OCR and scheduler execution."""
+        with self._history_retention_lock:
+            if self._history_retention_thread is not None and self._history_retention_thread.is_alive():
+                return
+            if self._history_retention_closed or self.run_store.closed:
+                return
+            stop = threading.Event()
+            self._history_retention_stop = stop
+            if self._history_retention_finalizer is not None:
+                self._history_retention_finalizer.detach()
+            self._history_retention_finalizer = weakref.finalize(self, stop.set)
+            thread = threading.Thread(
+                target=type(self)._history_retention_worker, args=(weakref.ref(self), stop),
+                name="aura-run-history-retention", daemon=True,
+            )
+            self._history_retention_thread = thread
+            thread.start()
+
+    @staticmethod
+    def _history_retention_worker(owner, stop):
+        while not stop.is_set():
+            service = owner()
+            if service is None:
+                return
+            interval = service.run_cleanup_interval
+            try:
+                service._prune_run_history()
+            except Exception:
+                logger.exception("[RunRetention] cleanup failed; history retained")
+            finally:
+                # Waiting must not keep an otherwise discarded service alive.
+                del service
+            if stop.wait(interval):
+                return
+
+    def close_history_retention(self):
+        """Stop and join even when no scheduler/asyncio loop was ever started."""
+        with self._history_retention_lock:
+            self._history_retention_stop.set()
+            thread = self._history_retention_thread
+        if thread is not None and thread is not threading.current_thread():
+            thread.join(timeout=5)
+            if thread.is_alive():
+                logger.warning("[RunRetention] cleanup thread is still finishing a filesystem operation")
+
+    def _close_history_with_store(self):
+        with self._history_retention_lock:
+            self._history_retention_closed = True
+        self.close_history_retention()
 
     async def stop_cleanup_task(self):
         """停止后台清理任务。"""
+        self.close_history_retention()
         if self._cleanup_task and not self._cleanup_task.done():
             self._cleanup_task.cancel()
             try:

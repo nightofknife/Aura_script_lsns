@@ -10,6 +10,8 @@ from types import SimpleNamespace
 import pytest
 
 from packages.aura_core.observability import runtime_trace as trace
+from packages.aura_core.observability import failure_evidence
+from packages.aura_core.observability.logging import coordinator
 from packages.aura_core.observability.logging.core_logger import set_cid, reset_cid
 
 
@@ -20,6 +22,10 @@ def isolated(monkeypatch, tmp_path):
                         "_throttles": OrderedDict(), "_dump_times": OrderedDict()}.items():
         monkeypatch.setattr(trace, name, value)
     monkeypatch.setenv("AURA_LOG_ROOT", str(tmp_path))
+    session = SimpleNamespace(root=tmp_path, session_id="trace-session", available=True)
+    monkeypatch.setattr(trace, "get_log_session", lambda: session)
+    monkeypatch.setattr(failure_evidence, "get_log_session", lambda: session)
+    monkeypatch.setattr(coordinator, "get_current_log_path", lambda: str(tmp_path / "aura_session_test.log"))
     monkeypatch.setattr(trace, "_monitor_thread", SimpleNamespace(is_alive=lambda: True))
     logs = []
     monkeypatch.setattr(trace.logger, "info", lambda *args, **kw: logs.append(args))
@@ -133,13 +139,16 @@ def test_poll_transition_and_periodic_summary_with_full_ring(isolated, monkeypat
 def test_diagnostic_uses_provider_and_records_stack_without_locals(isolated, tmp_path):
     trace.register_diagnostic_provider("target", lambda request:
         {"status": "ok", "foreground_hwnd": 17, "png": b"fake-png", "held_mouse_buttons": []})
-    path = trace._write_diagnostic({"cid": "trace-test", "reason": "input_failed"})
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    snapshot = payload["providers"]["target"]
-    assert (path.parent / snapshot["screenshot"]).read_bytes() == b"fake-png"
-    assert payload["thread_stacks"]
-    assert all("locals" not in frame for item in payload["thread_stacks"] for frame in item["frames"])
-    assert path.is_relative_to(tmp_path)
+    reference = trace._write_diagnostic({"cid": "trace-test", "reason": "input_failed"})
+    records = [json.loads(row[1]) for row in isolated if row[0] == "[RuntimeDiagnostic] %s"]
+    snapshot = next(row["snapshot"] for row in records if row["kind"] == "provider")
+    assert (tmp_path / snapshot["attachment"]["screenshot"]).read_bytes() == b"fake-png"
+    stacks = [row for row in records if row["kind"] == "thread_stack"]
+    assert stacks
+    assert all("locals" not in frame for item in stacks for frame in item["frames"])
+    assert reference["session_id"] == "trace-session"
+    assert reference["log_path"] == str(tmp_path / "aura_session_test.log")
+    assert not list(tmp_path.rglob("*.json"))
 
 
 def test_hung_provider_is_bounded_and_not_spawned_again(isolated):
@@ -184,7 +193,7 @@ def test_diagnostic_queue_is_bounded_rate_limited_and_cid_scoped(isolated, monke
     assert any(row["event"] == "diagnostic.skipped" for row in trace._events)
 
 
-def test_retention_only_removes_owned_artifacts(isolated, tmp_path):
+def test_diagnostics_never_prune_files_during_a_run(isolated, tmp_path):
     old = tmp_path / "aura-trace-20200101-120000-123-abcdef12.json"
     companion = old.with_name(old.stem + "-0.png")
     foreign = tmp_path / "manual-evidence.json"
@@ -193,8 +202,8 @@ def test_retention_only_removes_owned_artifacts(isolated, tmp_path):
         os.utime(path, (1, 1))
     recent = tmp_path / "aura-trace-20260101-120000-123-abcdef34.json"
     recent.write_bytes(b"new")
-    trace._prune_diagnostics(tmp_path)
-    assert not old.exists() and not companion.exists()
+    trace._write_diagnostic({"cid": "trace-test", "reason": "input_failed"})
+    assert old.exists() and companion.exists()
     assert foreign.exists() and recent.exists()
 
 

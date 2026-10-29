@@ -8,7 +8,7 @@ from pathlib import Path
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings, QCoreApplication, QEvent
+from PySide6.QtCore import QSettings, QCoreApplication, QEvent, Qt
 from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtWidgets import QApplication, QLineEdit, QMessageBox, QPushButton, QScrollArea
 from packages.resonance_gui.widgets.toggle_button import ToggleButton as QCheckBox
@@ -106,7 +106,7 @@ def finish_preceding_tasks(window):
 
 @pytest.mark.parametrize("startup", [False, True])
 @pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade"), ("passenger",), ("battle",)])
-def test_disabled_recovery_is_absent_from_queue_and_display(window, monkeypatch, startup, kinds):
+def test_disabled_recovery_still_refreshes_prison_only_for_freight(window, monkeypatch, startup, kinds):
     configure(window, kinds)
     window.trade_page.auto_sparkling_water.setChecked(False)
     window.trade_page.auto_bento.setChecked(False)
@@ -116,8 +116,11 @@ def test_disabled_recovery_is_absent_from_queue_and_display(window, monkeypatch,
     window._start_workflow()
     queue = window._workflow_pending
     assert queue
-    assert all(row["step"] != "refresh_recovery" for row in queue)
-    assert "refresh_recovery" not in window.workflow_page._tree_items
+    preparations = [row for row in queue if row["step"] == "refresh_recovery"]
+    assert len(preparations) == (1 if "trade" in kinds else 0)
+    if preparations:
+        assert preparations[0]["inputs"]["stages"] == ["prison_products"]
+    assert ("refresh_recovery" in window.workflow_page._tree_items) is ("trade" in kinds)
     assert window._workflow_recovery_snapshot == {}
     assert (queue[0]["step"] == "startup") is startup
 
@@ -127,12 +130,18 @@ def payload(remaining=6, count=2):
         "status": "success", "cid": "refresh-cid",
         "gui_item": {"task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF, "kind": "workflow_task"},
         "user_data": {"player_data": {
+            "prison_products": {
+                "success": True, "scope": "visible", "visible_complete": True,
+                "returned_to_profile": True, "inventory_complete": False,
+                "goods": [{"goods_id": "1", "goods": "涤纶", "quantity": 20}],
+                "unresolved": [], "requested_goods": None, "refreshed_at": "2026-10-24T10:00:00Z",
+            },
             "status": {"fatigue": {"current": 120, "max": 800}},
             "recovery": {
                 "sparkling_water": {"remaining_free_uses": remaining, "daily_free_limit": 6},
                 "bento_count": {"count": count},
             },
-            "metadata": {"persisted": True, "executed_profile_sections": ["fatigue", "sparkling_water", "bento_count"], "profile_section_updated_at": {
+            "metadata": {"persisted": True, "executed_stages": ["profile", "prison_products"], "executed_profile_sections": ["fatigue", "sparkling_water", "bento_count"], "profile_section_updated_at": {
                 "fatigue": "2026-09-06T09:59:59Z",
                 "sparkling_water": "2026-09-06T10:00:00Z",
                 "bento_count": "2026-09-06T10:00:01Z",
@@ -152,7 +161,7 @@ def test_recovery_refresh_reads_only_enabled_resources(window, water, bento, pri
     trade = window._settings.load_trade_inputs()
     trade.update(auto_sparkling_water=water, auto_bento=bento, bento_priority=priority)
     step = window._recovery_refresh_step(trade)
-    assert step["inputs"] == {"stages": ["profile"], "profile_sections": expected}
+    assert step["inputs"] == {"stages": ["profile", "prison_products"], "profile_sections": expected, "prison_product_goods": []}
 
 
 def finish_refresh(window, result):
@@ -179,7 +188,7 @@ def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
     finish_preceding_tasks(window)
     assert len(calls) == 1
     assert calls[0][0] == PC_PLAYER_DATA_REFRESH_TASK_REF
-    assert calls[0][1] == {"stages": ["profile"], "profile_sections": ["fatigue", "sparkling_water"]}
+    assert calls[0][1] == {"stages": ["profile", "prison_products"], "profile_sections": ["fatigue", "sparkling_water"], "prison_product_goods": []}
     assert window._workflow_current["step"] == "refresh_recovery"
     assert window._workflow_current["parent"] == "trade"
     assert all(row["step"] not in {"refresh_recovery", "startup"} for row in window._workflow_pending)
@@ -394,9 +403,10 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
         result = payload()
         result["user_data"]["player_data"]["status"]["fatigue"]["current"] = current
         if not enabled and not bento_enabled:
-            assert calls and not refreshes
+            assert len(refreshes) == len(calls) + 1
+            finish_refresh(window, result)
             assert "recovery_snapshot" not in calls[-1]
-            assert window._workflow_recovery_snapshot == {}
+            assert window._workflow_recovery_snapshot["recovery_requested"] is False
         else:
             pending = deepcopy(window._workflow_pending)
             finish_refresh(window, result)
@@ -422,9 +432,7 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
     if enabled or bento_enabled:
         assert calls[0]["recovery_snapshot"]["status"]["fatigue"]["current"] == 120
         assert calls[1]["recovery_snapshot"]["status"]["fatigue"]["current"] == 230
-        assert len(refreshes) == 2
-    else:
-        assert not refreshes
+    assert len(refreshes) == 2
 
 
 def test_sparkling_checkbox_syncs_persists_and_never_enables_freight_medicine(window):
@@ -466,18 +474,19 @@ def test_opted_in_standalone_freight_refreshes_before_actual_run(window, entry, 
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window._workflow_recovery_snapshot = {"player_data": {"stale": True}}
     window.trade_page._request_start()
-    if not (water or bento):
-        assert refreshes == []
-        assert len(trades) == 1
-        assert "recovery_snapshot" not in trades[0]
-        return
     assert trades == []
     assert len(refreshes) == 1
     assert refreshes[0][0] == PC_PLAYER_DATA_REFRESH_TASK_REF
     assert window._workflow_recovery_snapshot == {}
     assert window._workflow_current["step"] == "refresh_recovery"
     saved = window._settings.load_trade_inputs()
-    finish_refresh(window, payload())
+    result = payload()
+    if not (water or bento):
+        player = result["user_data"]["player_data"]
+        player.pop("status")
+        player.pop("recovery")
+        player["metadata"]["executed_stages"] = ["prison_products"]
+    finish_refresh(window, result)
     assert len(trades) == 1
     assert len(refreshes) == 1
     trade = trades[0]
@@ -488,7 +497,10 @@ def test_opted_in_standalone_freight_refreshes_before_actual_run(window, entry, 
     else:
         assert "bento_priority" not in trade
     assert saved["bento_priority"] == ["work_meals", "love_bentos"]
-    assert trades[0]["recovery_snapshot"] == payload()["user_data"]["player_data"]
+    if water or bento:
+        assert trades[0]["recovery_snapshot"] == result["user_data"]["player_data"]
+    else:
+        assert "recovery_snapshot" not in trades[0]
     assert window._settings.load_trade_inputs() == saved
 
 
@@ -521,10 +533,15 @@ def test_unchecked_standalone_trade_and_passenger_never_inject_old_snapshot(wind
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window._run_pc_trade(window.trade_page.collect_inputs(), 0.0)
     window._run_pc_passenger(window.passenger_page.collect_inputs(), 0.0)
-    assert len(trades) == len(passengers) == 1
+    assert trades == []
+    assert len(refreshes) == len(passengers) == 1
+    result = payload()
+    result["user_data"]["player_data"]["metadata"]["executed_stages"] = ["prison_products"]
+    finish_refresh(window, result)
+    assert len(trades) == 1
     assert "recovery_snapshot" not in trades[0]
     assert "recovery_snapshot" not in passengers[0]
-    assert refreshes == []
+    assert len(refreshes) == 1
 
 
 def test_workflow_passenger_does_not_receive_snapshot(window):
@@ -616,6 +633,112 @@ def test_standalone_refresh_without_result_cannot_dispatch_trade(window):
     assert trades == []
     assert not window._workflow_active
     assert "没有返回可用结果" in window.workflow_page.log_view.toPlainText()
+
+
+@pytest.mark.parametrize("problem", ["missing", "partial", "wrong_scope", "no_return", "unresolved", "bad_quantity", "no_stage", "full_inventory"])
+def test_prison_refresh_failure_blocks_freight_without_recovery(window, problem):
+    trades = []
+    window.requestRunPcTrade.connect(lambda *args: trades.append(args))
+    window._run_pc_trade({}, 0.0)
+    result = payload()
+    player = result["user_data"]["player_data"]
+    stock = player["prison_products"]
+    if problem == "missing":
+        del player["prison_products"]
+    elif problem == "partial":
+        stock["visible_complete"] = False
+    elif problem == "wrong_scope":
+        stock["scope"] = "all"
+    elif problem == "no_return":
+        stock["returned_to_profile"] = False
+    elif problem == "unresolved":
+        stock["unresolved"] = [{"reason": "unknown"}]
+    elif problem == "bad_quantity":
+        stock["goods"][0]["quantity"] = True
+    elif problem == "no_stage":
+        player["metadata"]["executed_stages"] = ["profile"]
+    else:
+        stock["inventory_complete"] = True
+    finish_refresh(window, result)
+    assert trades == []
+    assert not window._workflow_active
+
+
+@pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade")])
+def test_selected_prison_goods_forwarded_to_preparation_only(window, kinds):
+    configure(window, kinds)
+    values = window.trade_page.collect_ui_state()
+    values["prison_product_goods"] = ["1", "2"]
+    window.trade_page.set_inputs(values)
+    window.trade_page.save_ui_state()
+    refreshes, business = [], []
+    window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
+    window.requestRunPcTrade.connect(lambda inputs, timeout: business.append(inputs))
+    window.requestRunPcCombinedCommerce.connect(lambda inputs, timeout: business.append(inputs))
+    window._start_workflow()
+    assert refreshes[0][1]["prison_product_goods"] == ["1", "2"]
+    assert window._settings.load_trade_inputs()["prison_product_goods"] == ["1", "2"]
+    finish_refresh(window, payload())
+    assert len(business) == 1
+    assert "prison_product_goods" not in business[0]
+    assert "prison_product_goods" not in business[0].get("trade_inputs", {})
+
+
+def test_prison_product_selector_cancel_clear_and_busy(window):
+    from packages.resonance_gui.widgets.prison_product_selector import PrisonProductDialog
+    page = window.trade_page
+    dialog = PrisonProductDialog([], page)
+    try:
+        assert dialog.selected_goods() == []
+        first = dialog.list.item(0)
+        first.setCheckState(Qt.CheckState.Checked)
+        assert dialog.selected_goods() == [first.data(Qt.ItemDataRole.UserRole)]
+        dialog.search.setText(first.text())
+        assert not first.isHidden()
+        dialog.clear_selection()
+        assert dialog.selected_goods() == []
+        dialog.reject()
+        assert page.collect_ui_state()["prison_product_goods"] == []
+        page.set_busy(True)
+        assert not page.prison_products_button.isEnabled()
+        page.set_busy(False)
+        assert page.prison_products_button.isEnabled()
+    finally:
+        dialog.deleteLater()
+
+
+def test_standalone_prison_filter_uses_saved_ui_without_leaking_into_trade(window):
+    page = window.trade_page
+    values = page.collect_ui_state()
+    values["prison_product_goods"] = ["1"]
+    page.set_inputs(values)
+    refreshes, trades = [], []
+    window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
+    window.requestRunPcTrade.connect(lambda inputs, timeout: trades.append(inputs))
+    page._request_start()
+    assert refreshes[0][1]["prison_product_goods"] == ["1"]
+    result = payload()
+    stock = result["user_data"]["player_data"]["prison_products"]
+    stock.update(goods=[], requested_goods=["1"], not_observed=["1"])
+    finish_refresh(window, result)
+    assert len(trades) == 1
+    assert "prison_product_goods" not in trades[0]
+    assert "recovery_snapshot" not in trades[0]
+
+
+def test_player_data_tool_retains_selected_prison_goods(window):
+    panel = window.small_tasks_page.player_data_panel
+    panel._select_stages(("prison_products",))
+    panel._prison_product_goods = ["1", "2"]
+    inputs = panel.collect_inputs()
+    assert inputs["stages"] == ["prison_products"]
+    assert inputs["prison_product_goods"] == ["1", "2"]
+    panel._prison_product_goods = []
+    panel._load_inputs()
+    assert panel._prison_product_goods == ["1", "2"]
+    panel.apply_refresh_result(payload()["user_data"]["player_data"])
+    assert "涤纶 × 20" in panel.prison_stock_label.text()
+    assert "未显示商品库存未知" in panel.prison_stock_label.text()
 
 
 @pytest.mark.parametrize("size_name,size", [("normal", (1440, 860)), ("minimum", (1180, 720))])

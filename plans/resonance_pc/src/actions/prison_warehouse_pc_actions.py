@@ -18,10 +18,24 @@ def _check_cancelled() -> None:
 
 
 @action_info(
+    name="resonance_pc.read_visible_prison_products", public=False, read_only=False,
+    timeout=120, description="Read only visible prison products from and back to the profile menu; never scroll or transfer.",
+)
+@requires_services(
+    app="plans/aura_base/app", vision="plans/aura_base/vision", ocr="plans/aura_base/ocr",
+    interaction="plans/aura_base/interaction",
+)
+def resonance_pc_read_visible_prison_products(goods: Any = None, *, app=None, vision=None, ocr=None, interaction=None):
+    from ._prison_product_snapshot import read_visible_prison_products
+
+    return read_visible_prison_products(app, ocr, vision, interaction, goods=goods)
+
+
+@action_info(
     name="resonance_pc.withdraw_product_warehouse_to_train",
     public=True,
     read_only=False,
-    description="Withdraw selected eligible products into existing train cargo and return to the reforming-center overview.",
+    description="Withdraw currently visible eligible products without scrolling and return to the reforming-center overview.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -38,10 +52,10 @@ async def resonance_pc_withdraw_product_warehouse_to_train(
     ocr: Any = None,
     interaction: Any = None,
 ) -> dict:
-    """Run one withdrawal pass, one read-only rescan and verified return.
+    """Run a visible-only withdrawal pass, read-only viewport check and verified return.
 
     Args:
-        goods: Optional product names or IDs; an unspecified selection attempts all products.
+        goods: Optional product names or IDs; an unspecified selection attempts all visible products.
         quantity_threshold: Nonnegative minimum source-stack quantity; default 1.
     """
     if any(service is None for service in (app, vision, ocr, interaction)):

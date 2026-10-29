@@ -125,11 +125,10 @@ class AffixRefreshRuntime:
             self.state["stage"] = stage
         self.state.update(fields)
         # Expose the real managed log to the GUI; it can tail OCR records by CID.
-        for handler in logger.logger.handlers:
-            path = getattr(handler, "baseFilename", None)
-            if handler.name == "task_file" and path:
-                self.state["ocr_log_path"] = str(path)
-                break
+        from packages.aura_core.observability.logging.coordinator import get_current_log_path
+        path = get_current_log_path()
+        if path:
+            self.state["ocr_log_path"] = path
         self.state["sequence"] += 1
         payload = copy.deepcopy(self.state)
         if self.store is not None:

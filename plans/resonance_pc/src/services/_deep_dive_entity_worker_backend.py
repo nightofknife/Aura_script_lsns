@@ -7,6 +7,8 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from copy import deepcopy
+import codecs
+import contextvars
 import hashlib
 import json
 import math
@@ -20,6 +22,8 @@ import time
 import uuid
 
 import numpy as np
+
+from packages.aura_core.observability.logging.core_logger import logger
 
 PROTOCOL_VERSION = 1
 _MAGIC = b"DDW1"
@@ -94,6 +98,8 @@ class EntityDmlWorkerBackend:
         self._request_id = 0
         self._broken = None
         self._log_path = None
+        self._stderr_thread = None
+        self._stderr_bytes = 0
 
     def _resolve(self, path):
         path = Path(str(path)).expanduser()
@@ -115,7 +121,36 @@ class EntityDmlWorkerBackend:
     @property
     def status(self):
         return dict(deepcopy(self._metadata), ready=self.ready, error=self._broken,
-                    stderr_path=str(self._log_path) if self._log_path else None)
+                    stderr_path=str(self._log_path) if self._log_path else None,
+                    stderr_source="unified_log", stderr_bytes=self._stderr_bytes)
+
+    def _forward_stderr(self, stream, pid):
+        """Drain native stderr independently of binary RPC, with bounded chunks."""
+        decoder = codecs.getincrementaldecoder("utf-8")(errors="replace")
+        pending = ""
+        def emit(text):
+            if text:
+                logger.warning("[EntityWorkerStderr] pid=%s %s", pid, text)
+        try:
+            while True:
+                chunk = stream.read(4096)
+                if not chunk:
+                    break
+                self._stderr_bytes += len(chunk)
+                pending += decoder.decode(chunk)
+                while "\n" in pending or len(pending) >= 8192:
+                    end = pending.find("\n")
+                    if end < 0 or end > 8192:
+                        end = 8192
+                        emit(pending[:end])
+                        pending = pending[end:]
+                    else:
+                        emit(pending[:end].rstrip("\r"))
+                        pending = pending[end + 1:]
+            pending += decoder.decode(b"", final=True)
+            emit(pending)
+        except (OSError, ValueError) as exc:
+            logger.warning("[EntityWorkerStderr] pid=%s reader_stopped=%s", pid, exc)
 
     def _worker_command(self):
         return [str(self.python_executable), "-u", "-m",
@@ -134,8 +169,8 @@ class EntityDmlWorkerBackend:
             self._model_hash = hashlib.sha256(self.model_path.read_bytes()).hexdigest()
             artifact = self.root / ".pytest_tmp" / "deep_dive_dml_workers" / uuid.uuid4().hex
             artifact.mkdir(parents=True)
-            self._log_path = artifact / "stderr.log"
-            self._stderr = self._log_path.open("wb")
+            from packages.aura_core.observability.logging.coordinator import get_current_log_path
+            self._log_path = get_current_log_path()
             env = os.environ.copy()
             env.update(TEMP=str(artifact), TMP=str(artifact), TMPDIR=str(artifact),
                        PYTHONUNBUFFERED="1", PYTHONNOUSERSITE="1", PYTHONIOENCODING="utf-8")
@@ -143,8 +178,14 @@ class EntityDmlWorkerBackend:
             self._executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="deep-dive-dml-rpc")
             try:
                 self._process = subprocess.Popen(self._worker_command(), cwd=self.root, env=env,
-                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=self._stderr,
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                     bufsize=0, creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+                self._stderr = self._process.stderr
+                context = contextvars.copy_context()
+                self._stderr_thread = threading.Thread(
+                    target=context.run, args=(self._forward_stderr, self._stderr, self._process.pid),
+                    name="deep-dive-stderr", daemon=True)
+                self._stderr_thread.start()
                 header, payload = self._exchange(dict(op="initialize", request_id=0,
                     model_path=str(self.model_path), model_sha256=self._model_hash,
                     runtime_site=str(self.runtime_site), ort_version=self.ort_version,
@@ -260,6 +301,10 @@ class EntityDmlWorkerBackend:
                 self._executor.shutdown(wait=True, cancel_futures=True)
                 self._executor = None
             if self._stderr:
+                if self._stderr_thread is not None and self._stderr_thread.ident is not None:
+                    self._stderr_thread.join(timeout=2)
+                    if self._stderr_thread.is_alive():
+                        cleanup_errors.append("stderr did not drain before close deadline")
                 try:
                     self._stderr.close()
                 except OSError as exc:

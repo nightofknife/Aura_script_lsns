@@ -87,6 +87,8 @@ class PrisonWarehouseUi:
             raise ValueError("Warehouse identity matching requires competing commodity templates")
         for entry in self.controls_catalog["templates"].values():
             self._asset(entry["image"])
+            for variant in entry.get("variants", []):
+                self._asset(variant["image"])
         self._asset(self.config["controls"]["back"]["image"], gray=True)
 
     def _asset(self, relative, gray=False):
@@ -104,30 +106,83 @@ class PrisonWarehouseUi:
         return {"success": True, "goods_templates": len(self.goods),
                 "controls": len(self.controls_catalog["templates"]), "reference_client": [1280, 720]}
 
-    def _control(self, image, name):
+    def _control(self, image, name, *, region=None):
         source = self.controls_catalog["templates"][name]
         config = self.config["controls"]
-        spec = {**source, **config.get("overrides", {}).get(name, {})}
-        region = _rect(config.get("regions", {}).get(name, spec["search_region"]))
-        needle, search = self._asset(spec["image"]), _crop(image, region)
+        variants = [source, *source.get("variants", [])]
+        results = []
+        for index, variant in enumerate(variants):
+            spec = {**source, **variant, **config.get("overrides", {}).get(name, {})}
+            search_region = _rect(region if region is not None else
+                                  config.get("regions", {}).get(name, spec["search_region"]))
+            hit = self._match_control(image, spec, search_region)
+            results.append({**hit, "variant_index": index, "image": spec["image"]})
+        # A supported alternative must pass its own gates. A high correlation
+        # from a rejected color state cannot hide a valid alternative.
+        accepted = [hit for hit in results if hit.get("found") is True]
+        valid = [hit for hit in results if hit.get("valid")]
+        best = max(accepted or valid or results, key=lambda hit: hit.get("score", -1))
+        return {**best, "variants": results}
+
+    def _match_control(self, image, spec, region):
+        grayscale = spec.get("use_grayscale", False)
+        method = spec.get("method", "TM_SQDIFF_NORMED")
+        if method not in {"TM_SQDIFF_NORMED", "TM_CCOEFF_NORMED"}:
+            raise ValueError(f"Unsupported warehouse control match method: {method}")
+        needle = self._asset(spec["image"], gray=grayscale)
+        search = _crop(image, region)
+        if grayscale:
+            search = cv2.cvtColor(search, cv2.COLOR_BGR2GRAY)
         if search.shape[0] < needle.shape[0] or search.shape[1] < needle.shape[1]:
             return {"valid": False, "found": None, "reason": "control_search_smaller_than_template"}
-        scores = cv2.matchTemplate(search, needle, cv2.TM_SQDIFF_NORMED)
+        if method == "TM_CCOEFF_NORMED" and (float(needle.std()) < 1 or float(search.std()) < 1):
+            return {"valid": True, "found": False, "score": -1.0,
+                    "reason": "control_structure_has_no_contrast"}
+        scores = cv2.matchTemplate(search, needle, getattr(cv2, method))
         if not np.isfinite(scores).any():
             return {"valid": False, "found": None, "reason": "control_match_not_finite"}
-        scores = np.where(np.isfinite(scores), scores, np.inf)
-        minimum, _, point, _ = cv2.minMaxLoc(scores)
+        difference = method == "TM_SQDIFF_NORMED"
+        scores = np.where(np.isfinite(scores), scores, np.inf if difference else -np.inf)
+        minimum, maximum, minimum_point, maximum_point = cv2.minMaxLoc(scores)
+        point = minimum_point if difference else maximum_point
         x, y = region[0]+point[0], region[1]+point[1]
         height, width = needle.shape[:2]
+        score = 1-float(minimum) if difference else float(maximum)
+        threshold = spec.get("threshold", self.config["controls"]["score_threshold"])
+        # Color gates classify a connection state; page/anchor structure uses
+        # grayscale correlation without requiring a particular panel brightness.
+        mae_limit = None if grayscale else spec.get("color_mae_limit", self.config["controls"]["color_mae_limit"])
         actual = image[y:y+height, x:x+width]
-        mae = float(np.abs(actual.astype(np.float32)-needle.astype(np.float32)).mean())
-        score = 1-float(minimum)
-        threshold = spec.get("threshold") if name in config.get("overrides", {}) else config["score_threshold"]
-        mae_limit = spec.get("color_mae_limit") if name in config.get("overrides", {}) else config["color_mae_limit"]
-        found = score >= threshold and mae <= mae_limit
+        mae = None if grayscale else float(np.abs(actual.astype(np.float32)-needle.astype(np.float32)).mean())
+        found = score >= threshold and (mae_limit is None or mae <= mae_limit)
         return {"valid": True, "found": bool(found), "score": score, "color_mae": mae,
                 "threshold": threshold, "color_mae_limit": mae_limit, "bbox": [x, y, width, height],
-                "point": [x+width//2, y+height//2], "search_region": list(region)}
+                "point": [x+width//2, y+height//2], "search_region": list(region),
+                "method": method, "use_grayscale": grayscale}
+
+    def _target_connection(self, image, controls):
+        """Locate structure first, then classify only this button's color state."""
+        anchor = controls["tp_connection_anchor"]
+        states = ("tp_connection_selected", "tp_connection_unselected")
+        for name in states:
+            if anchor.get("found") is not True:
+                controls[name] = {"valid": False, "found": None, "reason": "connection_anchor_unconfirmed"}
+                continue
+            spec = self.controls_catalog["templates"][name]
+            dx, dy = spec["anchor_offset_xy"]
+            width, height = spec["bbox"][2:]
+            x, y = anchor["bbox"][:2]
+            controls[name] = self._control(image, name, region=[x+dx, y+dy, width, height])
+            # Click the observed button's center, not a separately searched crop.
+            controls[name]["point"] = list(anchor["point"])
+        selected, unselected = (controls[name] for name in states)
+        if not all(hit.get("valid") is True for hit in (anchor, selected, unselected)):
+            return "unknown"
+        if selected.get("found") is True and unselected.get("found") is False:
+            return "selected"
+        if unselected.get("found") is True and selected.get("found") is False:
+            return "unselected"
+        return "unknown"
 
     def _back(self, image):
         spec = self.config["controls"]["back"]
@@ -357,7 +412,7 @@ class PrisonWarehouseUi:
         return slots, unresolved, geometry
 
     def probe(self, image_bgr, read_quantities=False, goods_filter=None, read_list=True):
-        result = {"valid": False, "page": "unknown", "connection": "unknown", "controls": {},
+        result = {"valid": False, "page": "unknown", "connection": "unknown", "tp_connection": "unknown", "controls": {},
                   "capacity": {"status": "not_requested", "current": None, "limit": None, "remaining": None, "full": None},
                   "cards": [], "unresolved": [], "list_state": "unknown", "signature": None,
                   "content_signature": None, "geometry": {}, "viewport": list(self.viewport),
@@ -366,24 +421,25 @@ class PrisonWarehouseUi:
             result["unresolved"].append({"reason": "requires_1280x720_uint8_bgr_frame", "blocking": True})
             return result
         result["valid"] = True
-        controls = {name: self._control(image_bgr, name) for name in self.controls_catalog["templates"]}
+        connection_states = {"tp_connection_selected", "tp_connection_unselected"}
+        controls = {name: self._control(image_bgr, name) for name in self.controls_catalog["templates"]
+                    if name not in connection_states}
+        tp_connection = self._target_connection(image_bgr, controls)
         controls["back"] = self._back(image_bgr)
         result["controls"] = controls
         found = lambda name: controls[name].get("found") is True
         overview = found("overview_warehouse_shortcut") and found("overview_event_list") and found("back")
-        warehouse = (found("product_title_active") and found("back")
-                     and (found("train_title_active") or found("train_title_inactive"))
-                     and (found("material_title_active") or found("material_title_inactive")))
+        warehouse = (found("back") and all(found(name) for name in (
+            "train_title_identity", "material_title_identity", "product_title_identity")))
         if overview != warehouse:
             result["page"] = "overview" if overview else "warehouse"
         if result["page"] != "warehouse":
             return result
-        if (found("tp_connection_selected") and controls["tp_connection_unselected"].get("found") is False
-                and found("train_title_active") and found("product_title_active") and found("material_title_inactive")):
+        result["tp_connection"] = tp_connection
+        if tp_connection == "selected":
             result["connection"] = "train_product"
-        elif (found("tp_connection_unselected") and controls["tp_connection_selected"].get("found") is False
-              and found("train_title_inactive") and found("product_title_active") and found("material_title_active")):
-            result["connection"] = "material_product"
+        elif tp_connection == "unselected":
+            result["connection"] = "not_train_product"
         if not read_list:
             return result
         if read_quantities:

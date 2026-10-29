@@ -177,13 +177,13 @@ class Scheduler:
         self.tasklet_identity = TaskletIdentityService(self)
 
         # --- 初始化日志和核心服务 ---
-        log_session = get_log_session() or start_log_session(resolve_log_root(
+        from packages.aura_core.observability.logging.coordinator import start_session
+        log_descriptor = start_session(resolve_log_root(
             self.base_path, os.environ.get("AURA_LOG_ROOT") or
             get_config_value("logging.log_dir", "logs", base_path=str(self.base_path)),
-        ), cleanup=False)
+        ), role="runtime")
         logger.setup(
-            log_dir=str(log_session.root),
-            task_name=str(get_config_value("logging.task_name.default", "aura_session")),
+            log_dir=log_descriptor["log_root"],
             api_log_queue=self.api_log_queue
         )
         self._register_core_services()

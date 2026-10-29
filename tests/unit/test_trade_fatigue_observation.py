@@ -107,7 +107,7 @@ def test_zero_maximum_never_supplies_a_fatigue_baseline(pair):
 
 
 @pytest.mark.parametrize('side', [0, 1])
-@pytest.mark.parametrize('confidence', [0.89, float('nan'), float('inf'), None, True])
+@pytest.mark.parametrize('confidence', [0.79, float('nan'), float('inf'), None, True])
 def test_low_or_invalid_confidence_on_either_side_is_unknown(side, confidence):
     pair = ['77', '872']
     pair[side] = result(pair[side], confidence)

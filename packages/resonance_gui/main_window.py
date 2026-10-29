@@ -59,6 +59,7 @@ from .logic import (
     normalize_trade_task_inputs,
     validate_recovery_refresh,
     battle_continuation_detail,
+    validate_prison_products_refresh,
 )
 from .style import APP_STYLE
 from .update_checker import current_version_label, find_available_update
@@ -492,15 +493,9 @@ class ResonanceMainWindow(QMainWindow):
     def _run_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
             return
-        if isinstance(inputs, dict) and (
-            inputs.get("auto_sparkling_water", False) or inputs.get("auto_bento", False)
-        ):
-            self._start_freight_recovery_workflow(inputs)
-            return
-        self.requestRunPcTrade.emit(
-            normalize_trade_task_inputs(inputs if isinstance(inputs, dict) else {}),
-            float(self._preferences.timeout_sec),
-        )
+        trade = deepcopy(inputs if isinstance(inputs, dict) else {})
+        trade.setdefault("prison_product_goods", self.trade_page.collect_ui_state().get("prison_product_goods", []))
+        self._start_freight_recovery_workflow(trade)
 
     def _save_auto_sparkling_water(self, enabled: bool) -> None:
         inputs = self._settings.load_trade_inputs()
@@ -534,6 +529,7 @@ class ResonanceMainWindow(QMainWindow):
 
     @staticmethod
     def _recovery_refresh_step(trade: Mapping[str, Any]) -> dict[str, Any]:
+        recovery_enabled = bool(trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False))
         profile_sections = ["fatigue"]
         if bool(trade.get("auto_sparkling_water", False)):
             profile_sections.append("sparkling_water")
@@ -543,10 +539,11 @@ class ResonanceMainWindow(QMainWindow):
             "step": "refresh_recovery",
             "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
             "inputs": {
-                "stages": ["profile"],
+                "stages": ["profile", "prison_products"] if recovery_enabled else ["prison_products"],
                 "profile_sections": profile_sections,
+                "prison_product_goods": deepcopy(trade.get("prison_product_goods") or []),
             },
-            "label": "刷新恢复资源",
+            "label": "货运前数据刷新",
             "dispatch": "pc_task",
         }
 
@@ -733,6 +730,7 @@ class ResonanceMainWindow(QMainWindow):
             if "trade" in steps:
                 validating = "货运"
                 snapshots["trade"] = self.trade_page.collect_task_inputs()
+                snapshots["trade"]["prison_product_goods"] = self.trade_page.collect_ui_state().get("prison_product_goods", [])
             if "passenger" in steps:
                 validating = "客运"
                 snapshots["passenger"] = self.passenger_page.collect_inputs()
@@ -767,9 +765,7 @@ class ResonanceMainWindow(QMainWindow):
                     "dispatch": "pc_task",
                 })
             elif step in {"trade", "passenger"}:
-                if step == "trade" and (
-                    trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False)
-                ):
+                if step == "trade":
                     prepare = self._recovery_refresh_step(trade)
                     prepare["parent"] = "trade"
                     pending.append(prepare)
@@ -858,7 +854,7 @@ class ResonanceMainWindow(QMainWindow):
         inputs = dict(current["inputs"])
         if dispatch in {"trade", "combined_commerce"}:
             player = self._workflow_recovery_snapshot.get("player_data")
-            if player is not None:
+            if player is not None and self._workflow_recovery_snapshot.get("recovery_requested") is True:
                 inputs["recovery_snapshot"] = deepcopy(player)
         if dispatch == "trade":
             self.requestRunPcTrade.emit(normalize_trade_task_inputs(inputs), timeout)
@@ -1573,38 +1569,41 @@ class ResonanceMainWindow(QMainWindow):
             elif step == "refresh_recovery":
                 item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
                 if item.get("task_ref") != PC_PLAYER_DATA_REFRESH_TASK_REF:
-                    self._abort_workflow("恢复资源刷新返回了不匹配的任务结果。")
+                    self._abort_workflow("货运前数据刷新返回了不匹配的任务结果。")
                 elif payload.get("gui_timeout_cancelled"):
-                    self._abort_workflow("恢复资源刷新超时，流程已停止。")
+                    self._abort_workflow("货运前数据刷新超时，流程已停止。")
                 elif not succeeded:
                     self._abort_workflow(str(
                         result.get("reason") or result.get("error")
-                        or payload.get("error") or "恢复资源刷新未成功完成。"
+                        or payload.get("error") or "货运前数据刷新未成功完成。"
                     ))
                 else:
                     try:
-                        player = validate_recovery_refresh(
-                            result, current["inputs"]["profile_sections"],
-                        )
+                        player = validate_prison_products_refresh(result)
+                        if "profile" in current["inputs"]["stages"]:
+                            player = validate_recovery_refresh(result, current["inputs"]["profile_sections"])
                     except ValueError as exc:
                         self._abort_workflow(str(exc))
                     else:
                         self._workflow_recovery_snapshot = {
                             "cid": extract_run_id(payload),
                             "player_data": player,
+                            "recovery_requested": "profile" in current["inputs"]["stages"],
                         }
-                        water = player["recovery"].get("sparkling_water")
-                        fatigue = player["status"]["fatigue"]
-                        bento = player["recovery"].get("bento_count")
-                        resources = []
-                        if water is not None:
-                            resources.append(f"气泡水 {water['remaining_free_uses']}/{water['daily_free_limit']} 次")
-                        if bento is not None:
-                            resources.append(f"便当 {bento['count']} 份")
+                        resources = [f"当前可见监狱成品 {len(player['prison_products']['goods'])} 种"]
+                        if "profile" in current["inputs"]["stages"]:
+                            recovery = player.get("recovery", {})
+                            water = recovery.get("sparkling_water")
+                            fatigue = player["status"]["fatigue"]
+                            bento = recovery.get("bento_count")
+                            resources.append(f"疲劳 {fatigue['current']}/{fatigue['max']}")
+                            if water is not None:
+                                resources.append(f"气泡水 {water['remaining_free_uses']}/{water['daily_free_limit']} 次")
+                            if bento is not None:
+                                resources.append(f"便当 {bento['count']} 份")
                         self.workflow_page.mark_step(
                             step, "success",
-                            f"恢复资源已刷新：疲劳 {fatigue['current']}/{fatigue['max']}，"
-                            f"{'，'.join(resources)}，数据已保存"
+                            f"货运前数据已刷新：{'，'.join(resources)}，数据已保存"
                             f"（CID: {extract_run_id(payload)}）",
                         )
                         self._workflow_current = None
@@ -1721,7 +1720,7 @@ class ResonanceMainWindow(QMainWindow):
                 and self._workflow_current is not None
                 and self._workflow_current.get("step") == "refresh_recovery"
             ):
-                self._abort_workflow("恢复资源刷新已停止，但没有返回可用结果。")
+                self._abort_workflow("货运前数据刷新已停止，但没有返回可用结果。")
             if self._workflow_stopping:
                 self._finish_workflow(
                     False,
@@ -1738,7 +1737,7 @@ class ResonanceMainWindow(QMainWindow):
     def _on_log_message(self, message: str) -> None:
         self.statusBar().showMessage(message)
         if self._workflow_active:
-            self.workflow_page.append_log(message)
+            self.workflow_page.append_log(message, persist=False)
 
     def _set_global_target_status(self, payload: dict[str, Any]) -> None:
         target = payload.get("target") if isinstance(payload.get("target"), dict) else {}

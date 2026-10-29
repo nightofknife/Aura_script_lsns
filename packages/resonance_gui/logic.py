@@ -1128,6 +1128,34 @@ def extract_deep_dive_planned_run_result(payload: Mapping[str, Any]) -> dict[str
     return _declared_deep_dive_result(payload, "deep_dive_planned_run")
 
 
+def validate_prison_products_refresh(result: Mapping[str, Any]) -> dict[str, Any]:
+    """Require this run's visible-only stock observation before freight starts."""
+    player = result.get("player_data")
+    if not isinstance(player, Mapping):
+        raise ValueError("监狱成品刷新未返回用户数据。")
+    metadata = player.get("metadata")
+    if (not isinstance(metadata, Mapping) or metadata.get("persisted") is not True
+            or not isinstance(metadata.get("executed_stages"), list)
+            or "prison_products" not in metadata["executed_stages"]):
+        raise ValueError("监狱成品刷新未确认本次读取及保存。")
+    stock = player.get("prison_products")
+    if (not isinstance(stock, Mapping) or stock.get("success") is not True
+            or stock.get("scope") != "visible" or stock.get("visible_complete") is not True
+            or stock.get("returned_to_profile") is not True or stock.get("inventory_complete") is not False
+            or stock.get("unresolved") != [] or not isinstance(stock.get("refreshed_at"), str)
+            or not stock.get("refreshed_at") or not isinstance(stock.get("goods"), list)):
+        raise ValueError("监狱成品可见信息读取不完整，或未确认返回头像菜单。")
+    seen = set()
+    for row in stock["goods"]:
+        if (not isinstance(row, Mapping) or not isinstance(row.get("goods_id"), str)
+                or not row["goods_id"] or row["goods_id"] in seen
+                or not isinstance(row.get("goods"), str) or not row["goods"]
+                or type(row.get("quantity")) is not int or row["quantity"] <= 0):
+            raise ValueError("监狱成品商品或数量无效。")
+        seen.add(row["goods_id"])
+    return copy.deepcopy(dict(player))
+
+
 def validate_recovery_refresh(
     result: Mapping[str, Any], expected_sections: Sequence[str] | None = None,
 ) -> dict[str, Any]:
@@ -1328,6 +1356,7 @@ def validate_trailer_options(values: Mapping[str, Any]) -> dict[str, Any]:
 def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, Any]:
     """Project UI state onto the two-mode freight task contract."""
     normalized = copy.deepcopy(dict(inputs or {}))
+    normalized.pop("prison_product_goods", None)
     if "allow_stale_market" in normalized:
         normalized["allow_stale_market"] = validate_allow_stale_market(normalized["allow_stale_market"])
     currency_error = freight_currency_error(normalized)

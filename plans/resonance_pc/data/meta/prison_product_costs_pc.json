@@ -1,0 +1,1396 @@
+{
+  "schema_version": 1,
+  "model": "native_recipe_base_direct_cost",
+  "currency": "iron_alliance_coin",
+  "source_sha256": {
+    "Patch/BinaryConfig/ProductionFactory.bin": "a1b8451b9efeb811bce0794829fc93bc23494d8dc42b1942b7d7186d72f407b8",
+    "Patch/BinaryConfig/HomeGoodsFactory.bin": "b790f149b96dd91aa08b19bf2f4ba054cdb95c4db4a89b7823d0d7406daa0fe1"
+  },
+  "assumptions": {
+    "unit_cost_rounding": "nearest_half_up_after_exact_material_recursion",
+    "material_source": "prison_production_when_recipe_exists_otherwise_native_normal_price",
+    "external_purchase_tax_included": false,
+    "bonus_output_included": false,
+    "operating_overhead_included": false,
+    "operating_overhead": null,
+    "actual_historical_batch_cost": null,
+    "game_inventory_tax_basis": null,
+    "fixed_assets_and_unlocks_amortized": false
+  },
+  "external_ingredients": {
+    "82900181": {
+      "goods": "钛合金",
+      "unit_price": 2520,
+      "basis": "native_normal_price_excluding_tax"
+    },
+    "82900015": {
+      "goods": "沙金",
+      "unit_price": 2700,
+      "basis": "native_normal_price_excluding_tax"
+    }
+  },
+  "products": {
+    "138": {
+      "name": "尼龙晴雨伞",
+      "native_goods_id": 82900251,
+      "recipe_id": 84900037,
+      "recipe_name": "尼龙晴雨伞缝制法",
+      "base_output": 3,
+      "period_minutes": 60,
+      "unit_direct_cost": 145,
+      "unit_direct_cost_exact": "434/3",
+      "inputs": [
+        {
+          "native_goods_id": 82900243,
+          "name": "尼龙",
+          "quantity": 1,
+          "unit_direct_cost_exact": "601/3"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 1,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "27": {
+      "name": "纯棉T恤",
+      "native_goods_id": 82900165,
+      "recipe_id": 84900040,
+      "recipe_name": "纯棉T恤剪裁法",
+      "base_output": 4,
+      "period_minutes": 60,
+      "unit_direct_cost": 80,
+      "unit_direct_cost_exact": "1927/24",
+      "inputs": [
+        {
+          "native_goods_id": 82900228,
+          "name": "纯棉布料",
+          "quantity": 1,
+          "unit_direct_cost_exact": "375/2"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 1,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "82": {
+      "name": "牛仔裤",
+      "native_goods_id": 82900248,
+      "recipe_id": 84900042,
+      "recipe_name": "牛仔裤缝制法",
+      "base_output": 3,
+      "period_minutes": 60,
+      "unit_direct_cost": 73,
+      "unit_direct_cost_exact": "656/9",
+      "inputs": [
+        {
+          "native_goods_id": 82900245,
+          "name": "牛仔布",
+          "quantity": 1,
+          "unit_direct_cost_exact": "85"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 1,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "4": {
+      "name": "纯棉布料",
+      "native_goods_id": 82900228,
+      "recipe_id": 84900043,
+      "recipe_name": "纯棉布料织造法",
+      "base_output": 2,
+      "period_minutes": 60,
+      "unit_direct_cost": 188,
+      "unit_direct_cost_exact": "375/2",
+      "inputs": [
+        {
+          "native_goods_id": 82900204,
+          "name": "棉花",
+          "quantity": 1,
+          "unit_direct_cost_exact": "375"
+        }
+      ]
+    },
+    "111": {
+      "name": "牛仔布",
+      "native_goods_id": 82900245,
+      "recipe_id": 84900044,
+      "recipe_name": "牛仔布织造法",
+      "base_output": 5,
+      "period_minutes": 60,
+      "unit_direct_cost": 85,
+      "unit_direct_cost_exact": "85",
+      "inputs": [
+        {
+          "native_goods_id": 82900234,
+          "name": "亚麻",
+          "quantity": 1,
+          "unit_direct_cost_exact": "425"
+        }
+      ]
+    },
+    "141": {
+      "name": "棉花枕头",
+      "native_goods_id": 82900253,
+      "recipe_id": 84900038,
+      "recipe_name": "棉花枕头缝制法",
+      "base_output": 10,
+      "period_minutes": 180,
+      "unit_direct_cost": 209,
+      "unit_direct_cost_exact": "4177/20",
+      "inputs": [
+        {
+          "native_goods_id": 82900228,
+          "name": "纯棉布料",
+          "quantity": 3,
+          "unit_direct_cost_exact": "375/2"
+        },
+        {
+          "native_goods_id": 82900204,
+          "name": "棉花",
+          "quantity": 3,
+          "unit_direct_cost_exact": "375"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 3,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "200": {
+      "name": "轻奢女装",
+      "native_goods_id": 82900018,
+      "recipe_id": 84900046,
+      "recipe_name": "轻奢女装剪裁法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 292,
+      "unit_direct_cost_exact": "2921/10",
+      "inputs": [
+        {
+          "native_goods_id": 82900228,
+          "name": "纯棉布料",
+          "quantity": 3,
+          "unit_direct_cost_exact": "375/2"
+        },
+        {
+          "native_goods_id": 82900266,
+          "name": "雪纺",
+          "quantity": 3,
+          "unit_direct_cost_exact": "1802/5"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 3,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "135": {
+      "name": "冲锋衣",
+      "native_goods_id": 82900232,
+      "recipe_id": 84900047,
+      "recipe_name": "冲锋衣缝制法",
+      "base_output": 14,
+      "period_minutes": 300,
+      "unit_direct_cost": 227,
+      "unit_direct_cost_exact": "9515/42",
+      "inputs": [
+        {
+          "native_goods_id": 82900243,
+          "name": "尼龙",
+          "quantity": 10,
+          "unit_direct_cost_exact": "601/3"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 5,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "116": {
+      "name": "手工编织地毯",
+      "native_goods_id": 82900193,
+      "recipe_id": 84900048,
+      "recipe_name": "手工编织地毯织造法",
+      "base_output": 8,
+      "period_minutes": 180,
+      "unit_direct_cost": 388,
+      "unit_direct_cost_exact": "3101/8",
+      "inputs": [
+        {
+          "native_goods_id": 82900204,
+          "name": "棉花",
+          "quantity": 3,
+          "unit_direct_cost_exact": "375"
+        },
+        {
+          "native_goods_id": 82900234,
+          "name": "亚麻",
+          "quantity": 3,
+          "unit_direct_cost_exact": "425"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "117": {
+      "name": "羽绒服",
+      "native_goods_id": 82900194,
+      "recipe_id": 84900049,
+      "recipe_name": "羽绒服缝制法",
+      "base_output": 5,
+      "period_minutes": 180,
+      "unit_direct_cost": 409,
+      "unit_direct_cost_exact": "2046/5",
+      "inputs": [
+        {
+          "native_goods_id": 82900243,
+          "name": "尼龙",
+          "quantity": 3,
+          "unit_direct_cost_exact": "601/3"
+        },
+        {
+          "native_goods_id": 82900272,
+          "name": "羽绒",
+          "quantity": 3,
+          "unit_direct_cost_exact": "248"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "57": {
+      "name": "无纺布",
+      "native_goods_id": 82900224,
+      "recipe_id": 84900050,
+      "recipe_name": "无纺布粘制法",
+      "base_output": 2,
+      "period_minutes": 60,
+      "unit_direct_cost": 51,
+      "unit_direct_cost_exact": "101/2",
+      "inputs": [
+        {
+          "native_goods_id": 82900247,
+          "name": "涤纶",
+          "quantity": 2,
+          "unit_direct_cost_exact": "101/2"
+        }
+      ]
+    },
+    "46": {
+      "name": "抗污染防护服",
+      "native_goods_id": 82900173,
+      "recipe_id": 84900051,
+      "recipe_name": "抗污染防护服缝制法",
+      "base_output": 9,
+      "period_minutes": 240,
+      "unit_direct_cost": 772,
+      "unit_direct_cost_exact": "20840/27",
+      "inputs": [
+        {
+          "native_goods_id": 82900224,
+          "name": "无纺布",
+          "quantity": 8,
+          "unit_direct_cost_exact": "101/2"
+        },
+        {
+          "native_goods_id": 82900174,
+          "name": "碳纤维",
+          "quantity": 8,
+          "unit_direct_cost_exact": "701"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "14": {
+      "name": "防弹背心",
+      "native_goods_id": 82900164,
+      "recipe_id": 84900052,
+      "recipe_name": "防弹背心缝制法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 1524,
+      "unit_direct_cost_exact": "10665/7",
+      "inputs": [
+        {
+          "native_goods_id": 82900243,
+          "name": "尼龙",
+          "quantity": 3,
+          "unit_direct_cost_exact": "601/3"
+        },
+        {
+          "native_goods_id": 82900256,
+          "name": "芳纶纤维",
+          "quantity": 3,
+          "unit_direct_cost_exact": "601"
+        },
+        {
+          "native_goods_id": 82900181,
+          "name": "钛合金",
+          "quantity": 3,
+          "unit_direct_cost_exact": "2520"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "136": {
+      "name": "灯芯绒",
+      "native_goods_id": 82900241,
+      "recipe_id": 84900053,
+      "recipe_name": "灯芯绒织造法",
+      "base_output": 3,
+      "period_minutes": 120,
+      "unit_direct_cost": 250,
+      "unit_direct_cost_exact": "250",
+      "inputs": [
+        {
+          "native_goods_id": 82900204,
+          "name": "棉花",
+          "quantity": 2,
+          "unit_direct_cost_exact": "375"
+        }
+      ]
+    },
+    "132": {
+      "name": "灯芯绒休闲裤",
+      "native_goods_id": 82900229,
+      "recipe_id": 84900054,
+      "recipe_name": "灯芯绒休闲裤剪裁法",
+      "base_output": 9,
+      "period_minutes": 240,
+      "unit_direct_cost": 215,
+      "unit_direct_cost_exact": "5804/27",
+      "inputs": [
+        {
+          "native_goods_id": 82900241,
+          "name": "灯芯绒",
+          "quantity": 4,
+          "unit_direct_cost_exact": "250"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "122": {
+      "name": "羊毛布料",
+      "native_goods_id": 82900216,
+      "recipe_id": 84900055,
+      "recipe_name": "羊毛布料织造法",
+      "base_output": 3,
+      "period_minutes": 120,
+      "unit_direct_cost": 330,
+      "unit_direct_cost_exact": "330",
+      "inputs": [
+        {
+          "native_goods_id": 82900252,
+          "name": "羊毛",
+          "quantity": 2,
+          "unit_direct_cost_exact": "495"
+        }
+      ]
+    },
+    "106": {
+      "name": "法兰绒",
+      "native_goods_id": 82900219,
+      "recipe_id": 84900056,
+      "recipe_name": "法兰绒织造法",
+      "base_output": 3,
+      "period_minutes": 120,
+      "unit_direct_cost": 330,
+      "unit_direct_cost_exact": "330",
+      "inputs": [
+        {
+          "native_goods_id": 82900252,
+          "name": "羊毛",
+          "quantity": 2,
+          "unit_direct_cost_exact": "495"
+        }
+      ]
+    },
+    "121": {
+      "name": "法兰绒睡衣",
+      "native_goods_id": 82900263,
+      "recipe_id": 84900057,
+      "recipe_name": "法兰绒睡衣剪裁法",
+      "base_output": 5,
+      "period_minutes": 120,
+      "unit_direct_cost": 317,
+      "unit_direct_cost_exact": "4762/15",
+      "inputs": [
+        {
+          "native_goods_id": 82900219,
+          "name": "法兰绒",
+          "quantity": 4,
+          "unit_direct_cost_exact": "330"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 2,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "128": {
+      "name": "法兰绒靠垫",
+      "native_goods_id": 82900215,
+      "recipe_id": 84900058,
+      "recipe_name": "法兰绒靠垫缝制法",
+      "base_output": 9,
+      "period_minutes": 240,
+      "unit_direct_cost": 373,
+      "unit_direct_cost_exact": "10064/27",
+      "inputs": [
+        {
+          "native_goods_id": 82900219,
+          "name": "法兰绒",
+          "quantity": 4,
+          "unit_direct_cost_exact": "330"
+        },
+        {
+          "native_goods_id": 82900204,
+          "name": "棉花",
+          "quantity": 4,
+          "unit_direct_cost_exact": "375"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 4,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "42": {
+      "name": "花呢",
+      "native_goods_id": 82900227,
+      "recipe_id": 84900059,
+      "recipe_name": "花呢织造法",
+      "base_output": 5,
+      "period_minutes": 120,
+      "unit_direct_cost": 489,
+      "unit_direct_cost_exact": "7342/15",
+      "inputs": [
+        {
+          "native_goods_id": 82900252,
+          "name": "羊毛",
+          "quantity": 4,
+          "unit_direct_cost_exact": "495"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 2,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "33": {
+      "name": "花呢上衣",
+      "native_goods_id": 82900225,
+      "recipe_id": 84900060,
+      "recipe_name": "花呢上衣剪裁法",
+      "base_output": 8,
+      "period_minutes": 180,
+      "unit_direct_cost": 455,
+      "unit_direct_cost_exact": "18189/40",
+      "inputs": [
+        {
+          "native_goods_id": 82900227,
+          "name": "花呢",
+          "quantity": 6,
+          "unit_direct_cost_exact": "7342/15"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "123": {
+      "name": "西服面料",
+      "native_goods_id": 82900220,
+      "recipe_id": 84900061,
+      "recipe_name": "西服面料织造法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 737,
+      "unit_direct_cost_exact": "5156/7",
+      "inputs": [
+        {
+          "native_goods_id": 82900252,
+          "name": "羊毛",
+          "quantity": 9,
+          "unit_direct_cost_exact": "495"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "129": {
+      "name": "西服",
+      "native_goods_id": 82900264,
+      "recipe_id": 84900062,
+      "recipe_name": "西服剪裁法",
+      "base_output": 7,
+      "period_minutes": 240,
+      "unit_direct_cost": 554,
+      "unit_direct_cost_exact": "81500/147",
+      "inputs": [
+        {
+          "native_goods_id": 82900220,
+          "name": "西服面料",
+          "quantity": 4,
+          "unit_direct_cost_exact": "5156/7"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "125": {
+      "name": "羊绒衫",
+      "native_goods_id": 82900255,
+      "recipe_id": 84900063,
+      "recipe_name": "羊绒衫剪裁法",
+      "base_output": 7,
+      "period_minutes": 240,
+      "unit_direct_cost": 699,
+      "unit_direct_cost_exact": "14684/21",
+      "inputs": [
+        {
+          "native_goods_id": 82900261,
+          "name": "羊绒",
+          "quantity": 4,
+          "unit_direct_cost_exact": "990"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "105": {
+      "name": "蕾丝花边",
+      "native_goods_id": 82900226,
+      "recipe_id": 84900064,
+      "recipe_name": "蕾丝花边织造法",
+      "base_output": 6,
+      "period_minutes": 180,
+      "unit_direct_cost": 542,
+      "unit_direct_cost_exact": "3251/6",
+      "inputs": [
+        {
+          "native_goods_id": 82900234,
+          "name": "亚麻",
+          "quantity": 6,
+          "unit_direct_cost_exact": "425"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "95": {
+      "name": "蕾丝连衣裙",
+      "native_goods_id": 82900239,
+      "recipe_id": 84900065,
+      "recipe_name": "蕾丝连衣裙缝制法",
+      "base_output": 5,
+      "period_minutes": 180,
+      "unit_direct_cost": 465,
+      "unit_direct_cost_exact": "4653/10",
+      "inputs": [
+        {
+          "native_goods_id": 82900226,
+          "name": "蕾丝花边",
+          "quantity": 3,
+          "unit_direct_cost_exact": "3251/6"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "142": {
+      "name": "丝绸布料",
+      "native_goods_id": 82900270,
+      "recipe_id": 84900066,
+      "recipe_name": "丝绸布料织造法",
+      "base_output": 6,
+      "period_minutes": 300,
+      "unit_direct_cost": 660,
+      "unit_direct_cost_exact": "660",
+      "inputs": [
+        {
+          "native_goods_id": 82900273,
+          "name": "蚕丝",
+          "quantity": 5,
+          "unit_direct_cost_exact": "792"
+        }
+      ]
+    },
+    "119": {
+      "name": "金丝",
+      "native_goods_id": 82900275,
+      "recipe_id": 84900067,
+      "recipe_name": "金丝织造法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 1836,
+      "unit_direct_cost_exact": "1836",
+      "inputs": [
+        {
+          "native_goods_id": 82900273,
+          "name": "蚕丝",
+          "quantity": 6,
+          "unit_direct_cost_exact": "792"
+        },
+        {
+          "native_goods_id": 82900015,
+          "name": "沙金",
+          "quantity": 3,
+          "unit_direct_cost_exact": "2700"
+        }
+      ]
+    },
+    "127": {
+      "name": "锦缎",
+      "native_goods_id": 82900201,
+      "recipe_id": 84900068,
+      "recipe_name": "锦缎织造法",
+      "base_output": 9,
+      "period_minutes": 240,
+      "unit_direct_cost": 1115,
+      "unit_direct_cost_exact": "30116/27",
+      "inputs": [
+        {
+          "native_goods_id": 82900273,
+          "name": "蚕丝",
+          "quantity": 12,
+          "unit_direct_cost_exact": "792"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 4,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "139": {
+      "name": "天鹅绒",
+      "native_goods_id": 82900268,
+      "recipe_id": 84900069,
+      "recipe_name": "天鹅绒织造法",
+      "base_output": 9,
+      "period_minutes": 240,
+      "unit_direct_cost": 1160,
+      "unit_direct_cost_exact": "31316/27",
+      "inputs": [
+        {
+          "native_goods_id": 82900273,
+          "name": "蚕丝",
+          "quantity": 12,
+          "unit_direct_cost_exact": "792"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "137": {
+      "name": "天鹅绒椅披",
+      "native_goods_id": 82900267,
+      "recipe_id": 84900070,
+      "recipe_name": "天鹅绒椅披缝制法",
+      "base_output": 5,
+      "period_minutes": 120,
+      "unit_direct_cost": 1075,
+      "unit_direct_cost_exact": "29020/27",
+      "inputs": [
+        {
+          "native_goods_id": 82900268,
+          "name": "天鹅绒",
+          "quantity": 4,
+          "unit_direct_cost_exact": "31316/27"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 2,
+          "unit_direct_cost_exact": "701/3"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 2,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "131": {
+      "name": "高级女装",
+      "native_goods_id": 82900214,
+      "recipe_id": 84900071,
+      "recipe_name": "高级女装剪裁法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 961,
+      "unit_direct_cost_exact": "60554/63",
+      "inputs": [
+        {
+          "native_goods_id": 82900270,
+          "name": "丝绸布料",
+          "quantity": 3,
+          "unit_direct_cost_exact": "660"
+        },
+        {
+          "native_goods_id": 82900201,
+          "name": "锦缎",
+          "quantity": 3,
+          "unit_direct_cost_exact": "30116/27"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 6,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "143": {
+      "name": "织锦缎",
+      "native_goods_id": 82900262,
+      "recipe_id": 84900072,
+      "recipe_name": "织锦缎织造法",
+      "base_output": 11,
+      "period_minutes": 240,
+      "unit_direct_cost": 1564,
+      "unit_direct_cost_exact": "464452/297",
+      "inputs": [
+        {
+          "native_goods_id": 82900201,
+          "name": "锦缎",
+          "quantity": 8,
+          "unit_direct_cost_exact": "30116/27"
+        },
+        {
+          "native_goods_id": 82900275,
+          "name": "金丝",
+          "quantity": 4,
+          "unit_direct_cost_exact": "1836"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "133": {
+      "name": "雪金锦袍",
+      "native_goods_id": 82900223,
+      "recipe_id": 84900073,
+      "recipe_name": "雪金锦袍剪裁法",
+      "base_output": 11,
+      "period_minutes": 240,
+      "unit_direct_cost": 1890,
+      "unit_direct_cost_exact": "6174380/3267",
+      "inputs": [
+        {
+          "native_goods_id": 82900262,
+          "name": "织锦缎",
+          "quantity": 8,
+          "unit_direct_cost_exact": "464452/297"
+        },
+        {
+          "native_goods_id": 82900275,
+          "name": "金丝",
+          "quantity": 4,
+          "unit_direct_cost_exact": "1836"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "140": {
+      "name": "真丝睡衣",
+      "native_goods_id": 82900269,
+      "recipe_id": 84900074,
+      "recipe_name": "真丝睡衣剪裁法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 623,
+      "unit_direct_cost_exact": "623",
+      "inputs": [
+        {
+          "native_goods_id": 82900270,
+          "name": "丝绸布料",
+          "quantity": 6,
+          "unit_direct_cost_exact": "660"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 3,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "134": {
+      "name": "真丝羽绒枕头",
+      "native_goods_id": 82900254,
+      "recipe_id": 84900075,
+      "recipe_name": "真丝羽绒枕头缝制法",
+      "base_output": 4,
+      "period_minutes": 120,
+      "unit_direct_cost": 645,
+      "unit_direct_cost_exact": "3869/6",
+      "inputs": [
+        {
+          "native_goods_id": 82900270,
+          "name": "丝绸布料",
+          "quantity": 2,
+          "unit_direct_cost_exact": "660"
+        },
+        {
+          "native_goods_id": 82900272,
+          "name": "羽绒",
+          "quantity": 4,
+          "unit_direct_cost_exact": "248"
+        },
+        {
+          "native_goods_id": 82900244,
+          "name": "绣线",
+          "quantity": 2,
+          "unit_direct_cost_exact": "401/3"
+        }
+      ]
+    },
+    "180": {
+      "name": "羽绒",
+      "native_goods_id": 82900272,
+      "recipe_id": 84900087,
+      "recipe_name": "羽绒取制法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 248,
+      "unit_direct_cost_exact": "248",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 248,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "120": {
+      "name": "羊毛",
+      "native_goods_id": 82900252,
+      "recipe_id": 84900088,
+      "recipe_name": "羊毛取制法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 495,
+      "unit_direct_cost_exact": "495",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 495,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "126": {
+      "name": "羊绒",
+      "native_goods_id": 82900261,
+      "recipe_id": 84900089,
+      "recipe_name": "羊绒取制法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 990,
+      "unit_direct_cost_exact": "990",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 990,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "113": {
+      "name": "涤纶",
+      "native_goods_id": 82900247,
+      "recipe_id": 84900041,
+      "recipe_name": "涤纶制造法",
+      "base_output": 2,
+      "period_minutes": 60,
+      "unit_direct_cost": 51,
+      "unit_direct_cost_exact": "101/2",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 101,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "109": {
+      "name": "尼龙",
+      "native_goods_id": 82900243,
+      "recipe_id": 84900045,
+      "recipe_name": "尼龙制造法",
+      "base_output": 3,
+      "period_minutes": 120,
+      "unit_direct_cost": 200,
+      "unit_direct_cost_exact": "601/3",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 601,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "130": {
+      "name": "雪纺",
+      "native_goods_id": 82900266,
+      "recipe_id": 84900091,
+      "recipe_name": "雪纺织造法",
+      "base_output": 5,
+      "period_minutes": 240,
+      "unit_direct_cost": 360,
+      "unit_direct_cost_exact": "1802/5",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 1802,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "148": {
+      "name": "芳纶纤维",
+      "native_goods_id": 82900256,
+      "recipe_id": 84900092,
+      "recipe_name": "芳纶纤维制造法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 601,
+      "unit_direct_cost_exact": "601",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 601,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "48": {
+      "name": "碳纤维",
+      "native_goods_id": 82900174,
+      "recipe_id": 84900093,
+      "recipe_name": "碳纤维织造法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 701,
+      "unit_direct_cost_exact": "701",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 701,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "107": {
+      "name": "亚麻",
+      "native_goods_id": 82900234,
+      "recipe_id": 84900094,
+      "recipe_name": "亚麻织造法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 425,
+      "unit_direct_cost_exact": "425",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 425,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "63": {
+      "name": "棉花",
+      "native_goods_id": 82900204,
+      "recipe_id": 84900095,
+      "recipe_name": "棉花采制法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 375,
+      "unit_direct_cost_exact": "375",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 375,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "110": {
+      "name": "绣线",
+      "native_goods_id": 82900244,
+      "recipe_id": 84900096,
+      "recipe_name": "绣线制造法",
+      "base_output": 3,
+      "period_minutes": 120,
+      "unit_direct_cost": 134,
+      "unit_direct_cost_exact": "401/3",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 401,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "108": {
+      "name": "缝纫工具包",
+      "native_goods_id": 82900242,
+      "recipe_id": 84900097,
+      "recipe_name": "缝纫工具包制造法",
+      "base_output": 3,
+      "period_minutes": 120,
+      "unit_direct_cost": 234,
+      "unit_direct_cost_exact": "701/3",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 701,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "118": {
+      "name": "蚕丝",
+      "native_goods_id": 82900273,
+      "recipe_id": 84900098,
+      "recipe_name": "蚕丝取制法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 792,
+      "unit_direct_cost_exact": "792",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 792,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "144": {
+      "name": "宇航服",
+      "native_goods_id": 82900233,
+      "recipe_id": 84900077,
+      "recipe_name": "宇航服缝制指南",
+      "base_output": 4,
+      "period_minutes": 300,
+      "unit_direct_cost": 3576,
+      "unit_direct_cost_exact": "14305/4",
+      "inputs": [
+        {
+          "native_goods_id": 82900222,
+          "name": "太空棉",
+          "quantity": 5,
+          "unit_direct_cost_exact": "1125"
+        },
+        {
+          "native_goods_id": 82900256,
+          "name": "芳纶纤维",
+          "quantity": 5,
+          "unit_direct_cost_exact": "601"
+        },
+        {
+          "native_goods_id": 82900174,
+          "name": "碳纤维",
+          "quantity": 5,
+          "unit_direct_cost_exact": "701"
+        },
+        {
+          "native_goods_id": 82900243,
+          "name": "尼龙",
+          "quantity": 5,
+          "unit_direct_cost_exact": "601/3"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 5,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "165": {
+      "name": "岚心锦服",
+      "native_goods_id": 82900231,
+      "recipe_id": 84900078,
+      "recipe_name": "岚心锦服剪裁法",
+      "base_output": 11,
+      "period_minutes": 240,
+      "unit_direct_cost": 1975,
+      "unit_direct_cost_exact": "6451976/3267",
+      "inputs": [
+        {
+          "native_goods_id": 82900230,
+          "name": "岚心锦",
+          "quantity": 8,
+          "unit_direct_cost_exact": "464452/297"
+        },
+        {
+          "native_goods_id": 82900275,
+          "name": "金丝",
+          "quantity": 4,
+          "unit_direct_cost_exact": "1836"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 8,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "174": {
+      "name": "岚心锦",
+      "native_goods_id": 82900230,
+      "recipe_id": 84900076,
+      "recipe_name": "岚心锦织造法",
+      "base_output": 11,
+      "period_minutes": 240,
+      "unit_direct_cost": 1564,
+      "unit_direct_cost_exact": "464452/297",
+      "inputs": [
+        {
+          "native_goods_id": 82900201,
+          "name": "锦缎",
+          "quantity": 8,
+          "unit_direct_cost_exact": "30116/27"
+        },
+        {
+          "native_goods_id": 82900275,
+          "name": "金丝",
+          "quantity": 4,
+          "unit_direct_cost_exact": "1836"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 4,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "124": {
+      "name": "太空棉",
+      "native_goods_id": 82900222,
+      "recipe_id": 84900079,
+      "recipe_name": "太空棉制造法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 1125,
+      "unit_direct_cost_exact": "1125",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 1125,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "59": {
+      "name": "阿妮塔连体衣",
+      "native_goods_id": 82900217,
+      "recipe_id": 84900084,
+      "recipe_name": "阿妮塔连体衣缝制法",
+      "base_output": 7,
+      "period_minutes": 180,
+      "unit_direct_cost": 1097,
+      "unit_direct_cost_exact": "7682/7",
+      "inputs": [
+        {
+          "native_goods_id": 82900256,
+          "name": "芳纶纤维",
+          "quantity": 6,
+          "unit_direct_cost_exact": "601"
+        },
+        {
+          "native_goods_id": 82900222,
+          "name": "太空棉",
+          "quantity": 3,
+          "unit_direct_cost_exact": "1125"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "178": {
+      "name": "鹅绒",
+      "native_goods_id": 82900304,
+      "recipe_id": 84900143,
+      "recipe_name": "鹅绒取制法",
+      "base_output": 1,
+      "period_minutes": 60,
+      "unit_direct_cost": 396,
+      "unit_direct_cost_exact": "396",
+      "inputs": [
+        {
+          "native_goods_id": 11400001,
+          "name": "铁盟币",
+          "quantity": 396,
+          "unit_direct_cost_exact": "1"
+        }
+      ]
+    },
+    "177": {
+      "name": "羽绒睡袋",
+      "native_goods_id": 82900305,
+      "recipe_id": 84900144,
+      "recipe_name": "羽绒睡袋缝制法",
+      "base_output": 7,
+      "period_minutes": 120,
+      "unit_direct_cost": 191,
+      "unit_direct_cost_exact": "4015/21",
+      "inputs": [
+        {
+          "native_goods_id": 82900228,
+          "name": "纯棉布料",
+          "quantity": 2,
+          "unit_direct_cost_exact": "375/2"
+        },
+        {
+          "native_goods_id": 82900272,
+          "name": "羽绒",
+          "quantity": 2,
+          "unit_direct_cost_exact": "248"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 2,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    },
+    "176": {
+      "name": "鹅绒被",
+      "native_goods_id": 82900303,
+      "recipe_id": 84900145,
+      "recipe_name": "鹅绒被缝制法",
+      "base_output": 10,
+      "period_minutes": 180,
+      "unit_direct_cost": 245,
+      "unit_direct_cost_exact": "4903/20",
+      "inputs": [
+        {
+          "native_goods_id": 82900228,
+          "name": "纯棉布料",
+          "quantity": 3,
+          "unit_direct_cost_exact": "375/2"
+        },
+        {
+          "native_goods_id": 82900304,
+          "name": "鹅绒",
+          "quantity": 3,
+          "unit_direct_cost_exact": "396"
+        },
+        {
+          "native_goods_id": 82900242,
+          "name": "缝纫工具包",
+          "quantity": 3,
+          "unit_direct_cost_exact": "701/3"
+        }
+      ]
+    }
+  }
+}

@@ -88,20 +88,14 @@
     "poll_sec": 0.3,
     "withdraw_settle_sec": 0.8,
     "effect_timeout_sec": 10,
-    "scroll_step_px": 72,
-    "scroll_duration_sec": 0.4,
-    "scroll_hold_sec": 0.05,
-    "scroll_settle_sec": 0.6,
-    "max_scrolls_per_scan": 80,
-    "edge_clear_pixels": 0,
-    "endpoint_confirmations": 2,
     "max_withdrawals": 225
   },
   "limits": [
     "Native viewport/card pitch is a layout estimate, not live validation. First-card coordinates are alignment hints only; rows are detected at their actual image phase.",
     "The rightmost 26 pixels of the estimated native viewport overlap the warehouse-side control panel in supplied captures and are excluded from occupancy scanning.",
-    "A single observation never establishes global list top/bottom or complete inventory coverage. Runtime must combine scrolling and overlapping observations.",
+    "Transfer never scrolls or returns to list top. Only currently visible full cards are processed; refreshed cards may enter view after a deletion.",
+    "Final stable observation covers the current viewport only. Inventory completeness requires a positively recognized empty list.",
     "Clipped edge cards are coverage-only unresolved slots. Unknown full cards and unexplained foreground block an empty/inventory-complete claim.",
-    "Only supplied screenshot states and generated catalogs are available; no game execution or tests were performed for this implementation."
+    "The visible-only transfer change requires separate live acceptance; earlier live evidence predates removal of scrolling."
   ]
 }

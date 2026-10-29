@@ -66,7 +66,7 @@ async def run_four_view_scan(app, *, max_steps=96,time_budget_sec=None,output_di
             input_configuration=input_settings(app),
             command_duration_sec=.5,post_release_wait_sec=.35,standard_repeat_wait_sec=.35,
             supplementary_targets=[-1.2,-2.4],controller_unchanged=True))
-    runtime.logger.info('[DeepDiveFourViews] run=%s diagnostics=%s',run_id,output/'control_trace.jsonl')
+    runtime.logger.info('[DeepDiveFourViews] run=%s diagnostics=%s',run_id,diagnostics.metadata['trace_path'])
     active=dict(phase='initialize',view=None)
     fit_references={}
     views=[];groups=[];associations=[];frames=[];actions=[];trace=[]
@@ -417,8 +417,12 @@ async def run_four_view_scan(app, *, max_steps=96,time_budget_sec=None,output_di
         if cancelled:status='cancelled';reason='cancel_requested'
         if status not in ('targets_ready','completed') and last_rgb is not None:
             try:
-                saved=cv2.imwrite(str(output/'failure_frame.png'),cv2.cvtColor(last_rgb,cv2.COLOR_RGB2BGR))
-                diagnostics.event('failure_frame',saved=bool(saved),path='failure_frame.png',source=last)
+                from packages.aura_core.observability.failure_evidence import save_evidence_png
+                encoded_ok,encoded=cv2.imencode('.png',cv2.cvtColor(last_rgb,cv2.COLOR_RGB2BGR))
+                attachment=(save_evidence_png(encoded.tobytes()) if encoded_ok else
+                            dict(status='failed',reason='png_encode_failed'))
+                diagnostics.event('failure_frame',saved=attachment.get('status')=='saved',
+                                  attachment=attachment,source=last)
             except Exception as exc:
                 diagnostics.event('failure_frame',saved=False,error=f'{type(exc).__name__}: {exc}',source=last)
         diagnostics.event('scan_cleanup',mouse_released=True,status=status,reason=reason,
@@ -446,13 +450,13 @@ async def run_four_view_scan(app, *, max_steps=96,time_budget_sec=None,output_di
         faces_observed=layout.get('faces_observed',0),output_dir=str(output),run_id=run_id,
         total_elapsed_sec=round(elapsed,3),steps=len(actions),view_count=4,
         report_path=report.get('report_path'),json_path=str(output/'layout.json'),
-        control_trace_path=str(output/'control_trace.jsonl'),diagnostics_path=str(output/'diagnostics.json'),
+        control_trace_path=diagnostics.metadata['trace_path'],diagnostics_path=diagnostics.metadata['trace_path'],
         last_frame=str(output/frames[-1]['path']) if frames else None)
     _write(output/'summary.json',summary)
     diagnostics.finish(status=status,reason=reason,steps=len(actions),frame_count=len(frames),
         view_count=len({g['view_index'] for g in groups}),last_source=last,
         readiness=layout.get('readiness'),total_elapsed_sec=round(elapsed,3))
-    runtime.logger.info('[DeepDiveFourViews] status=%s reason=%s diagnostics=%s',status,reason,output)
+    runtime.logger.info('[DeepDiveFourViews] status=%s reason=%s diagnostics=%s',status,reason,diagnostics.metadata['trace_path'])
     result=dict(success=summary['success'],status=status,reason=reason,layout=layout,
         summary=summary,last_frame=summary['last_frame'],reset=reset,latest_scene_observation=last_scene)
     control=runtime._SCAN_CONTROL.get() or {}

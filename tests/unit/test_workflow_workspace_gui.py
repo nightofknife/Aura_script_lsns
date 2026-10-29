@@ -156,23 +156,25 @@ def test_business_tasks_share_budget_without_restoring_auto_book(window, monkeyp
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
     pending = window._workflow_pending
-    assert [row["step"] for row in pending] == ["passenger"]
-    assert [row["dispatch"] for row in pending] == ["combined_commerce"]
-    assert pending[0]["inputs"]["order"] == "passenger_first"
-    assert pending[0]["inputs"]["total_fatigue_budget"] == 333
-    assert all("parent" not in row and "budget_pending" not in row for row in pending)
-    assert "fatigue_budget" not in pending[0]["inputs"]
-    assert pending[0]["inputs"]["passenger_inputs"]["trade_during_trip"] is True
-    assert pending[0]["inputs"]["trade_inputs"]["fatigue_budget"] == 333
-    assert pending[0]["inputs"]["trade_inputs"]["cargo_capacity"] == 950
+    assert [row["step"] for row in pending] == ["refresh_recovery", "passenger"]
+    assert [row["dispatch"] for row in pending] == ["pc_task", "combined_commerce"]
+    assert pending[0]["inputs"]["stages"] == ["prison_products"]
+    commerce = pending[1]
+    assert commerce["inputs"]["order"] == "passenger_first"
+    assert commerce["inputs"]["total_fatigue_budget"] == 333
+    assert "parent" not in commerce and "budget_pending" not in commerce
+    assert "fatigue_budget" not in commerce["inputs"]
+    assert commerce["inputs"]["passenger_inputs"]["trade_during_trip"] is True
+    assert commerce["inputs"]["trade_inputs"]["fatigue_budget"] == 333
+    assert commerce["inputs"]["trade_inputs"]["cargo_capacity"] == 950
     assert all("auto_book" not in row["inputs"] for row in pending)
     assert not hasattr(trade, "auto_book")
     assert not any("自动进货书" in button.text() for button in window.findChildren(ToggleButton))
     assert page.run_tree.topLevelItemCount() == 2
     trade.fatigue_budget.setValue(999)
     window.passenger_page.trip_count.setValue(6)
-    assert pending[0]["inputs"]["passenger_inputs"]["trip_count"] == 3
-    assert pending[0]["inputs"]["trade_inputs"]["fatigue_budget"] == 333
+    assert commerce["inputs"]["passenger_inputs"]["trip_count"] == 3
+    assert commerce["inputs"]["trade_inputs"]["fatigue_budget"] == 333
 
 
 def assert_no_sibling_control_overlap(window):
