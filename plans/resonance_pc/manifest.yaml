@@ -746,6 +746,27 @@ exports:
       type: Any
       required: false
       default: null
+  - name: resonance_pc.try_battle_sweep
+    module: plans.resonance_pc.src.actions.battle_sweep_pc_actions
+    function: resonance_pc_try_battle_sweep
+    public: true
+    read_only: false
+    timeout: null
+    description: Execute one native sweep when its entry is positively available;
+      only a recognized native unavailable layout permits combat fallback.
+    parameters:
+    - name: capture_count
+      type: Any
+      required: false
+      default: null
+    - name: formation_index
+      type: Any
+      required: false
+      default: null
+    - name: control_cid
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.consume_bentos_to_floor
     module: plans.resonance_pc.src.actions.bento_auto_recovery_pc_actions
     function: resonance_pc_consume_bentos_to_floor
@@ -3045,27 +3066,6 @@ exports:
       type: Any
       required: true
       default: null
-  - name: resonance_pc.try_battle_sweep
-    module: plans.resonance_pc.src.actions.battle_sweep_pc_actions
-    function: resonance_pc_try_battle_sweep
-    public: true
-    read_only: false
-    timeout: null
-    description: Execute one native sweep when its entry is positively available;
-      only a recognized native unavailable layout permits combat fallback.
-    parameters:
-    - name: capture_count
-      type: Any
-      required: false
-      default: null
-    - name: formation_index
-      type: Any
-      required: false
-      default: null
-    - name: control_cid
-      type: Any
-      required: false
-      default: null
   - name: resonance_pc.run_structural_exploration
     module: plans.resonance_pc.src.actions.structural_exploration_pc_actions
     function: resonance_pc_run_structural_exploration
@@ -3073,7 +3073,8 @@ exports:
     read_only: false
     timeout: null
     description: Configure native structural-auto type priority, confirm its priority
-      badges, start once, supervise observed outcomes and confirm native stop before returning.
+      badges, start once, supervise observed outcomes and confirm native stop before
+      returning.
     parameters:
     - name: types
       type: Any
@@ -3366,7 +3367,8 @@ exports:
   - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_run_one_pc
     title: Auto Battle PC CT RegionalOps Run One
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Execute one CT regional_ops_center job, preferring one sweep before actual combat.
+    description: Execute one CT regional_ops_center job, preferring one sweep before
+      actual combat.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_batch_pc
@@ -3384,7 +3386,8 @@ exports:
   - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_run_difficulty_pc
     title: Auto Battle PC GP ActionSummary Run Difficulty
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Execute one action_summary difficulty inside an already opened stage.
+    description: Execute one action_summary difficulty inside an opened stage, preferring
+      one sweep before actual combat.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_action_summary_run_group_pc
@@ -3408,7 +3411,8 @@ exports:
   - id: auto_battle_dispatch_pc/auto_battle_gp_structural_batch_pc
     title: Auto Battle PC GP Structural Batch
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Configure ordered structural types and supervise one native auto-hunt session.
+    description: Configure ordered structural types and supervise one native auto-hunt
+      session.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_batch_pc
@@ -3743,4 +3747,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-29T09:26:01Z'
+  generated_at: '2026-10-29T12:07:20Z'
