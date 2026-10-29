@@ -157,11 +157,14 @@ def test_composition_uses_shared_budget_and_snapshot(window, monkeypatch, order,
     if recovery:
         assert commerce["inputs"]["trade_inputs"]["sparkling_water_start_threshold"] == 600
         assert commerce["inputs"]["trade_inputs"]["sparkling_water_stop_threshold"] == 200
-    assert [row["dispatch"] for row in pending] == ["pc_task", "combined_commerce", "pc_task"]
-    assert pending[0]["step"] == "refresh_recovery"
-    assert pending[0]["inputs"]["stages"] == (
-        ["profile", "prison_products"] if recovery else ["prison_products"]
+    assert [row["dispatch"] for row in pending] == (
+        ["pc_task", "combined_commerce", "pc_task"] if recovery else ["combined_commerce", "pc_task"]
     )
+    if recovery:
+        assert pending[0]["step"] == "refresh_recovery"
+        assert pending[0]["inputs"]["stages"] == ["profile"]
+        assert "prison_product_goods" not in pending[0]["inputs"]
+    assert ("refresh_recovery" in page._tree_items) is recovery
     assert pending[-1]["step"] == "close"
     window.trade_page.fatigue_budget.setValue(700)
     assert commerce["inputs"]["total_fatigue_budget"] == 333

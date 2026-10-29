@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.logic import TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA
-from tests.gui_workflow import complete_prison_products_refresh
 
 
 @pytest.fixture
@@ -45,8 +44,6 @@ def test_disabled_invalid_tasks_do_not_block_freight(window, monkeypatch):
     calls = []
     window.requestRunPcTrade.connect(lambda *args: calls.append(args))
     window._start_workflow()
-    assert calls == []
-    complete_prison_products_refresh(window)
     assert len(calls) == 1
     assert calls[0][0]["fatigue_budget"] == 700
     assert calls[0][0]["cargo_capacity"] == 750

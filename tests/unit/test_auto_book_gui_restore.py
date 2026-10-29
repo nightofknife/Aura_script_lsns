@@ -18,7 +18,6 @@ from packages.resonance_gui.logic import (
 )
 from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.widgets.trade_page import TradePage
-from tests.gui_workflow import complete_prison_products_refresh
 
 
 @pytest.fixture
@@ -103,8 +102,6 @@ def test_recovery_threshold_save_reload_and_formal_dispatch(window, monkeypatch,
     runner, bridge = recording_bridge(monkeypatch)
     window.requestRunPcTrade.connect(bridge.run_pc_trade)
     page._request_start()
-    assert runner.calls == []
-    complete_prison_products_refresh(window)
     assert len(runner.calls) == 1
     assert runner.calls[0]["task_ref"] == PC_TRADE_TASK_REF
     assert "sparkling_water_stop_threshold" not in runner.calls[0]["inputs"]
