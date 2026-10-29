@@ -40,6 +40,7 @@ from .logic import (
     TRADE_PROGRESS_EVENT,
     TRADE_PROGRESS_SCHEMA,
     extract_run_id,
+    extract_battle_cleanup_evidence,
     extract_status,
     normalize_run_payload,
     normalize_trade_task_inputs,
@@ -94,6 +95,8 @@ class RunnerBridge(QObject):
         self._started_monotonic = 0.0
         self._cancel_sent = False
         self._timeout_cancel = False
+        self._battle_soft_stop_requested = False
+        self._close_after_battle = False
         self._poll_error_count = 0
         self._ticket_counter = itertools.count(1)
         self._poll_timer: QTimer | None = None
@@ -104,6 +107,10 @@ class RunnerBridge(QObject):
     @property
     def current_cid(self) -> str:
         return self._current_cid
+
+    @property
+    def current_task_ref(self) -> str:
+        return str((self._current_item or {}).get("task_ref") or "")
 
     @property
     def busy(self) -> bool:
@@ -173,6 +180,8 @@ class RunnerBridge(QObject):
     def request_shutdown(self, *, force: bool = False) -> None:
         """Thread-safe signal only; Qt timers, queues and IPC stay on the bridge thread."""
         self._shutdown_requested.set()
+        if force and (self._current_item or {}).get("task_ref") == PC_BATTLE_TASK_REF:
+            logger.warning("[NativeBattleStop] forced_worker_exit=true native_stopped=unconfirmed cid=%s", self._current_cid)
         runner = self._runner
         if isinstance(runner, SubprocessGameRunner):
             runner.request_shutdown(force=force)
@@ -373,6 +382,13 @@ class RunnerBridge(QObject):
 
     @Slot()
     def close(self) -> None:
+        if (not self._shutdown_requested.is_set() and self._current_cid
+                and (self._current_item or {}).get("task_ref") == PC_BATTLE_TASK_REF):
+            self._close_after_battle = True
+            if not self._cancel_sent:
+                self._request_cancel(reason="shutdown")
+            self._log_message("正在请求作战软停止；等待关闭原生自动并完成收尾后退出。")
+            return
         self.request_shutdown()
         self._stop_polling()
         if self._closed:
@@ -419,6 +435,7 @@ class RunnerBridge(QObject):
         self._affix_sequence = -1
         self._cancel_sent = False
         self._timeout_cancel = False
+        self._battle_soft_stop_requested = False
         self._poll_error_count = 0
         self._started_monotonic = time.monotonic()
         self.taskStarted.emit(dict(item))
@@ -557,19 +574,39 @@ class RunnerBridge(QObject):
 
     def _request_cancel(self, *, reason: str) -> None:
         self._cancel_sent = True
+        battle = (self._current_item or {}).get("task_ref") == PC_BATTLE_TASK_REF
         try:
-            result = self._runner_instance().cancel_task(self._current_cid)
+            runner = self._runner_instance()
+            if battle:
+                stop = getattr(runner, "request_battle_stop", None)
+                if not callable(stop):
+                    raise RuntimeError("执行端不支持作战软停止；原生自动停止尚未确认。")
+                result = stop(self._current_cid)
+                if (not isinstance(result, dict) or result.get("status") != "success"
+                        or not (result.get("soft_stop_requested") is True or result.get("already_finished") is True)):
+                    raise RuntimeError("执行端未接受作战软停止；原生自动停止尚未确认。")
+                self._battle_soft_stop_requested = True
+            else:
+                result = runner.cancel_task(self._current_cid)
         except Exception as exc:  # noqa: BLE001
             self._cancel_sent = False
-            self.taskFailed.emit({"stage": "cancel_task", "cid": self._current_cid, "error": str(exc)})
+            message = str(exc)
+            if battle:
+                message = f"作战软停止请求失败，原生自动停止未确认：{message}"
+                logger.warning("[NativeBattleStop] soft_request_failed=true native_stopped=unconfirmed cid=%s error=%s", self._current_cid, exc)
+            self.taskFailed.emit({"stage": "cancel_task", "cid": self._current_cid, "error": message})
             return
         payload = {
             "cid": self._current_cid,
             "reason": reason,
             "timeout": reason == "timeout",
+            "soft_stop": battle,
             "result": result if isinstance(result, dict) else {"result": result},
         }
         self.cancelRequested.emit(payload)
+        if battle:
+            self._log_message("已请求作战软停止，等待原生自动关闭与页面收尾；不会启动后续工作流程。")
+            return
         self._log_message(
             f"已因等待超时请求取消任务 {self._current_cid}。"
             if reason == "timeout"
@@ -584,13 +621,73 @@ class RunnerBridge(QObject):
         payload = dict(run)
         payload.setdefault("cid", self._current_cid)
         payload["gui_timeout_cancelled"] = self._timeout_cancel
+        payload["gui_soft_stop_requested"] = self._battle_soft_stop_requested
         payload["gui_item"] = item
+        battle_evidence = (
+            extract_battle_cleanup_evidence(payload, expected_cid=self._current_cid)
+            if item.get("task_ref") == PC_BATTLE_TASK_REF else {}
+        )
+        if item.get("task_ref") == PC_BATTLE_TASK_REF and self._battle_soft_stop_requested:
+            business = battle_evidence
+            structural = business.get("structural")
+            if isinstance(structural, dict):
+                if structural.get("native_stopped") is True:
+                    self._log_message("执行端已确认原生自动关闭。")
+                else:
+                    logger.warning("[NativeBattleStop] terminal_without_native_stop_confirmation cid=%s", self._current_cid)
+                    self._log_message("后台任务已结束，但原生自动停止未确认，请在游戏内手动检查。")
+            elif extract_status(payload) != "success":
+                logger.warning("[NativeBattleStop] terminal_error_native_stopped=unconfirmed cid=%s", self._current_cid)
+                self._log_message("后台异常结束，原生自动停止未确认，请在游戏内手动检查。")
+        elif item.get("task_ref") == PC_BATTLE_TASK_REF:
+            structural = battle_evidence.get("structural")
+            if isinstance(structural, dict) and structural.get("native_stopped") is not True:
+                logger.warning("[NativeBattleStop] execution_failed_native_stop_unconfirmed cid=%s", self._current_cid)
+                self._log_message("构析执行异常，原生自动停止未确认；后续流程已阻止，请在游戏内手动检查。")
         self.taskFinished.emit(payload)
         self._log_message(f"执行结束：{item.get('label', '')}")
+        if self._close_after_battle and not self._battle_close_is_confirmed(battle_evidence):
+            # The task may be terminal while the game's native automation is
+            # still running. Keep its identity/busy lock for explicit force-exit;
+            # a failed soft cleanup must not silently become worker termination.
+            self._stop_polling()
+            message = "后台任务已结束，但原生自动停止未确认；请在游戏内手动检查，再次关闭窗口可明确选择强制退出。"
+            logger.warning("[NativeBattleStop] close_blocked=true native_stopped=unconfirmed cid=%s", self._current_cid)
+            self._log_message(message)
+            self.closeFailed.emit(message)
+            return
         self._reset_current()
+        if self._close_after_battle:
+            self._close_after_battle = False
+            self._set_busy(False)
+            self.close()
+            return
         self.refresh_history()
         self.refresh_target()
         self._set_busy(False)
+
+    @staticmethod
+    def _battle_close_is_confirmed(business: dict[str, Any]) -> bool:
+        if business.get("schema") != "resonance_pc.battle_plan_result.v1":
+            return False
+        structural = business.get("structural")
+        if isinstance(structural, dict):
+            return (
+                structural.get("schema") == "resonance_pc.structural_native_result.v1"
+                and structural.get("mode") == "native_auto"
+                and structural.get("native_stopped") is True
+            )
+        if "structural" not in business or structural is not None:
+            return False
+        cleanup = business.get("cleanup")
+        if not isinstance(cleanup, dict) or business.get("status") not in {
+            "cancelled", "skipped", "completed", "stopped",
+        }:
+            return False
+        return (
+            cleanup.get("returned_to_main") is True
+            or (cleanup.get("touched_game") is False and cleanup.get("required") is False)
+        )
 
     def _reset_current(self) -> None:
         self._stop_polling()
@@ -600,6 +697,7 @@ class RunnerBridge(QObject):
         self._current_item = None
         self._cancel_sent = False
         self._timeout_cancel = False
+        self._battle_soft_stop_requested = False
         self._poll_error_count = 0
 
     def _ensure_poll_timer(self) -> QTimer | None:

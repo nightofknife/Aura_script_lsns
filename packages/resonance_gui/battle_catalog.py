@@ -78,6 +78,11 @@ class BattleRoute:
     title: str
     detail: str
     mission_type: str = ""
+    open_weekdays: tuple[int, ...] = ()
+
+    def available_on(self, weekday: str) -> bool:
+        from packages.resonance_shared.battle_schedule import WEEKDAYS
+        return not self.open_weekdays or WEEKDAYS.index(weekday) + 1 in self.open_weekdays
 
     @property
     def category_label(self) -> str:
@@ -171,6 +176,7 @@ def _route_from_raw(raw: dict[str, Any]) -> BattleRoute | None:
             title=f"{group_name} · {stage_name}",
             detail=f"{group_name} / {stage_name}",
             mission_type="action_summary",
+            open_weekdays=tuple(raw.get("open_weekdays") or ()),
         )
     if subcategory == "structural_exploration" and len(parts) == 3:
         stage_name = STRUCTURAL_STAGE_LABELS.get(parts[2], parts[2])
@@ -201,7 +207,7 @@ def battle_job_summary(job: dict[str, Any], routes: tuple[BattleRoute, ...]) -> 
     formation = (
         f"队伍 {job['formation_index']}"
         if job.get("formation_index") is not None
-        else "保持当前"
+        else "游戏默认"
     )
     if job.get("capture_count") is not None:
         params.append(f"抓捕 {job['capture_count']} 次")

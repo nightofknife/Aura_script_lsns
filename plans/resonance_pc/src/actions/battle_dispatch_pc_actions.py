@@ -2284,7 +2284,7 @@ def resonance_pc_reconcile_structural_selection(
 @requires_services(
     app="plans/aura_base/app",
 )
-def resonance_pc_prepare_battle_formation(
+async def resonance_pc_prepare_battle_formation(
     formation_index: Optional[int] = None,
     settle_sec: float = 0.5,
     app: Any = None,
@@ -2314,14 +2314,17 @@ def resonance_pc_prepare_battle_formation(
         if selected_index not in _BATTLE_FORMATION_POINTS:
             _raise_error("invalid_formation_index", "formation_index must be in [1,4]")
 
+    from ._battle_ui import BattleUi
+    ui = BattleUi(app)
     click_point: Optional[List[int]] = None
     if selected_index is not None:
         x, y = _BATTLE_FORMATION_POINTS[selected_index]
-        app.click(x=x, y=y)
+        frame = await ui.capture()
+        await ui.click(frame, (x, y))
         click_point = [x, y]
 
     if settle > 0.0:
-        time.sleep(settle)
+        await ui.sleep(settle)
 
     result = {
         "ok": True,
@@ -2344,16 +2347,15 @@ def resonance_pc_prepare_battle_formation(
     name="resonance_pc.detect_and_cancel_insufficient_stamina",
     public=True,
     read_only=False,
-    description=(
-        "Continuously match the insufficient-stamina dialog for a short post-click "
-        "window and cancel it by template when present."
-    ),
+    description="Detect the existing stamina dialog, dismiss it and confirm its callback page under cancellation and budget control.",
 )
 @requires_services(
     app="plans/aura_base/app",
     vision="plans/aura_base/vision",
+    ocr="plans/aura_base/ocr",
+    interaction="plans/aura_base/interaction",
 )
-def resonance_pc_detect_and_cancel_insufficient_stamina(
+async def resonance_pc_detect_and_cancel_insufficient_stamina(
     dialog_region: Optional[List[int]] = None,
     dialog_template: str = "templates/battle/combat/insufficient_stamina_dialog.png",
     dialog_threshold: float = 0.9,
@@ -2370,228 +2372,43 @@ def resonance_pc_detect_and_cancel_insufficient_stamina(
     use_grayscale: bool = True,
     app: Any = None,
     vision: Any = None,
+    ocr: Any = None,
+    interaction: Any = None,
 ) -> Dict[str, Any]:
-    if app is None:
-        _raise_error("missing_service", "app service is required")
-    if vision is None:
-        _raise_error("missing_service", "vision service is required")
-
-    dialog_region_tuple = _coerce_region(dialog_region, [430, 300, 500, 120])
-    cancel_region_tuple = _coerce_region(cancel_region, [240, 450, 220, 110])
-
-    def _template_path(raw_path: str, *, error_code: str) -> Path:
-        path = Path(str(raw_path or "").strip())
-        if not path.is_absolute():
-            path = (_PLAN_ROOT / path).resolve()
-        if not path.is_file():
-            _raise_error(
-                error_code,
-                "Configured stamina-dialog template does not exist",
-                {"template": str(path)},
-            )
-        return path
-
-    dialog_template_path = _template_path(
-        dialog_template,
-        error_code="stamina_dialog_template_not_found",
+    from ._battle_ui import BattleUi
+    from ._battle_combat_runtime import detect_stamina
+    if app is None or vision is None or ocr is None:
+        _raise_error("missing_service", "app, vision and ocr services are required")
+    # move_duration_sec is retained for compatibility. The public input facade
+    # owns cursor movement; its receipt never substitutes for UI confirmation.
+    def template(raw):
+        path = Path(raw)
+        return path if path.is_absolute() else _PLAN_ROOT / path
+    ui = BattleUi(app, ocr=ocr, interaction=interaction)
+    return await detect_stamina(
+        ui, vision,
+        dialog_region=_coerce_region(dialog_region, [430, 300, 500, 120]),
+        dialog_template=template(dialog_template), dialog_threshold=dialog_threshold,
+        cancel_region=_coerce_region(cancel_region, [240, 450, 220, 110]),
+        cancel_template=template(cancel_template), cancel_threshold=cancel_threshold,
+        timeout_sec=timeout_sec, interval_sec=interval_sec, stable_scans=stable_scans,
+        dismiss_timeout_sec=dismiss_timeout_sec, dismiss_stable_scans=dismiss_stable_scans,
+        after_click_sec=after_click_sec, use_grayscale=use_grayscale,
     )
-    cancel_template_path = _template_path(
-        cancel_template,
-        error_code="stamina_cancel_template_not_found",
-    )
-    dialog_match_threshold = float(dialog_threshold)
-    cancel_match_threshold = float(cancel_threshold)
-    timeout = max(float(timeout_sec), 0.0)
-    interval = max(float(interval_sec), 0.01)
-    required_stable_scans = max(int(stable_scans), 1)
-    required_dismiss_stable_scans = max(int(dismiss_stable_scans), 1)
-
-    def _match(region: Tuple[int, int, int, int], template_path: Path, threshold: float) -> Tuple[Any, Optional[Dict[str, Any]]]:
-        capture = app.capture(rect=region)
-        detection: Optional[Dict[str, Any]] = None
-        if capture.success:
-            template_match = vision.find_template(
-                source_image=capture.image,
-                template_image=str(template_path),
-                threshold=threshold,
-                use_grayscale=bool(use_grayscale),
-            )
-            if bool(getattr(template_match, "found", False)):
-                match_center = getattr(template_match, "center_point", None)
-                match_rect = getattr(template_match, "rect", None)
-                if isinstance(match_center, (list, tuple)) and len(match_center) == 2:
-                    detection = {
-                        "center": [int(match_center[0]), int(match_center[1])],
-                        "rect": (
-                            [int(value) for value in match_rect]
-                            if isinstance(match_rect, (list, tuple)) and len(match_rect) == 4
-                            else None
-                        ),
-                        "confidence": float(getattr(template_match, "confidence", 0.0) or 0.0),
-                    }
-        return capture, detection
-
-    deadline = time.monotonic() + timeout
-    scan = 0
-    stable_count = 0
-    last_center: Optional[Tuple[int, int]] = None
-    last_dialog_detection: Optional[Dict[str, Any]] = None
-
-    while True:
-        scan += 1
-        dialog_capture, dialog_detection = _match(
-            dialog_region_tuple,
-            dialog_template_path,
-            dialog_match_threshold,
-        )
-        if dialog_detection is not None:
-            current_center = tuple(int(value) for value in dialog_detection["center"])
-            if last_center is not None and all(abs(a - b) <= 2 for a, b in zip(current_center, last_center)):
-                stable_count += 1
-            else:
-                stable_count = 1
-            last_center = current_center
-            last_dialog_detection = dialog_detection
-        else:
-            stable_count = 0
-            last_center = None
-
-        logger.info(
-            "[BattleVision][InsufficientStaminaDialog] scan=%s template=%s threshold=%.3f "
-            "region=%s capture_success=%s match=%s stable=%s/%s timeout_sec=%.3f",
-            scan,
-            str(dialog_template_path),
-            dialog_match_threshold,
-            list(dialog_region_tuple),
-            bool(dialog_capture.success),
-            dialog_detection,
-            stable_count,
-            required_stable_scans,
-            timeout,
-        )
-
-        if dialog_detection is not None and stable_count >= required_stable_scans:
-            cancel_deadline = time.monotonic() + max(float(dismiss_timeout_sec), interval)
-            cancel_scan = 0
-            cancel_detection: Optional[Dict[str, Any]] = None
-            while time.monotonic() <= cancel_deadline:
-                cancel_scan += 1
-                cancel_capture, cancel_detection = _match(
-                    cancel_region_tuple,
-                    cancel_template_path,
-                    cancel_match_threshold,
-                )
-                logger.info(
-                    "[BattleVision][InsufficientStaminaCancel] scan=%s template=%s threshold=%.3f "
-                    "region=%s capture_success=%s match=%s",
-                    cancel_scan,
-                    str(cancel_template_path),
-                    cancel_match_threshold,
-                    list(cancel_region_tuple),
-                    bool(cancel_capture.success),
-                    cancel_detection,
-                )
-                if cancel_detection is not None:
-                    break
-                time.sleep(interval)
-            if cancel_detection is None:
-                _raise_error(
-                    "stamina_cancel_template_not_found",
-                    "Insufficient-stamina dialog was found but its cancel button was not",
-                    {
-                        "dialog_detection": last_dialog_detection,
-                        "cancel_region": list(cancel_region_tuple),
-                        "cancel_template": str(cancel_template_path),
-                        "cancel_threshold": cancel_match_threshold,
-                    },
-                )
-
-            click_x = int(cancel_region_tuple[0] + cancel_detection["center"][0])
-            click_y = int(cancel_region_tuple[1] + cancel_detection["center"][1])
-            app.move_to(click_x, click_y, duration=max(float(move_duration_sec), 0.0))
-            app.click(x=click_x, y=click_y)
-            click_wait = max(float(after_click_sec), 0.0)
-            if click_wait > 0:
-                time.sleep(click_wait)
-            logger.info(
-                "[BattleClick][InsufficientStaminaCancel] click=%s confidence=%.4f "
-                "dialog_confidence=%.4f",
-                [click_x, click_y],
-                float(cancel_detection["confidence"]),
-                float(dialog_detection["confidence"]),
-            )
-
-            dismiss_deadline = time.monotonic() + max(float(dismiss_timeout_sec), 0.0)
-            dismiss_scan = 0
-            absent_stable_count = 0
-            while True:
-                dismiss_scan += 1
-                dismiss_capture, remaining_dialog = _match(
-                    dialog_region_tuple,
-                    dialog_template_path,
-                    dialog_match_threshold,
-                )
-                if remaining_dialog is None:
-                    absent_stable_count += 1
-                else:
-                    absent_stable_count = 0
-                logger.info(
-                    "[BattleVision][InsufficientStaminaDismissed] scan=%s capture_success=%s "
-                    "match=%s absent_stable=%s/%s",
-                    dismiss_scan,
-                    bool(dismiss_capture.success),
-                    remaining_dialog,
-                    absent_stable_count,
-                    required_dismiss_stable_scans,
-                )
-                if absent_stable_count >= required_dismiss_stable_scans:
-                    return {
-                        "outcome": "insufficient_stamina",
-                        "insufficient_stamina": True,
-                        "dialog_detected": True,
-                        "cancel_clicked": True,
-                        "dialog_closed": True,
-                        "dialog_confidence": float(dialog_detection["confidence"]),
-                        "cancel_confidence": float(cancel_detection["confidence"]),
-                        "click": [click_x, click_y],
-                        "scans": scan,
-                    }
-                if time.monotonic() >= dismiss_deadline:
-                    _raise_error(
-                        "stamina_dialog_dismiss_timeout",
-                        "Cancel was clicked but the insufficient-stamina dialog did not disappear",
-                        {
-                            "click": [click_x, click_y],
-                            "dismiss_scans": dismiss_scan,
-                            "last_detection": remaining_dialog,
-                        },
-                    )
-                time.sleep(interval)
-
-        if time.monotonic() >= deadline:
-            return {
-                "outcome": "normal",
-                "insufficient_stamina": False,
-                "dialog_detected": False,
-                "cancel_clicked": False,
-                "dialog_closed": True,
-                "scans": scan,
-                "elapsed_sec": round(timeout, 3),
-            }
-        time.sleep(interval)
 
 
 @action_info(
     name="resonance_pc.run_battle_resolution",
     public=True,
     read_only=False,
-    description="Resolve in-battle next-step/capture branch by OCR polling.",
+    description="Confirm a native victory/defeat title, settle once and observe a ready callback page.",
 )
 @requires_services(
     app="plans/aura_base/app",
     ocr="plans/aura_base/ocr",
+    interaction="plans/aura_base/interaction",
 )
-def resonance_pc_run_battle_resolution(
+async def resonance_pc_run_battle_resolution(
     capture_count: Optional[int] = None,
     battle_poll_region: Optional[List[int]] = None,
     confirm_region: Optional[List[int]] = None,
@@ -2605,221 +2422,17 @@ def resonance_pc_run_battle_resolution(
     match_mode: str = "contains",
     app: Any = None,
     ocr: Any = None,
+    interaction: Any = None,
 ) -> Dict[str, Any]:
+    from ._battle_ui import BattleUi
+    from ._battle_combat_runtime import settle_battle
     if app is None or ocr is None:
-        _raise_error("missing_service", "app/ocr service is required")
-
-    arrest_targets = ["逮捕"]
-    confirm_targets = ["确认"]
-    next_targets = ["下一步"]
-    exit_targets = ["触碰空白区域退出"]
-
-    capture_click_count: Optional[int] = None
-    if capture_count is not None:
-        capture_click_count = int(capture_count)
-        if capture_click_count < 1:
-            _raise_error("invalid_capture_count", "capture_count must be >= 1")
-
-    battle_region = _coerce_region(battle_poll_region, [1130, 640, 100, 350])
-    confirm_region_tuple = _coerce_region(confirm_region, [900, 510, 150, 60])
-    exit_region = _coerce_region(exit_hint_region, [440, 600, 460, 100])
-
-    confirm_click = confirm_click_point if isinstance(confirm_click_point, list) and len(confirm_click_point) == 2 else [830, 380]
-    confirm_click_x = int(confirm_click[0])
-    confirm_click_y = int(confirm_click[1])
-
-    poll_interval = max(float(poll_interval_sec), 0.1)
-    timeout = max(float(timeout_sec), 1.0)
-    confirm_timeout = max(float(confirm_timeout_sec), 1.0)
-    exit_timeout = max(float(exit_hint_timeout_sec), 1.0)
-    short_interval = max(float(short_interval_sec), 0.1)
-    events: List[Dict[str, Any]] = []
-
-    start_time = time.time()
-    poll_index = 0
-    while time.time() - start_time < timeout:
-        poll_index += 1
-        items = _recognize_text_items(app=app, ocr=ocr, region=battle_region)
-        if capture_click_count is not None:
-            arrest_hit = _find_best_text_hit(items=items, targets=arrest_targets, match_mode=match_mode)
-            next_hit = _find_best_text_hit(items=items, targets=next_targets, match_mode=match_mode)
-            logger.debug(
-                "[BattleResolution] poll=%s mode=capture elapsed=%.1fs region=%s items=%s arrest_hit=%s next_hit=%s",
-                poll_index,
-                time.time() - start_time,
-                list(battle_region),
-                [
-                    {
-                        "text": str(row.get("text") or ""),
-                        "center": row.get("center"),
-                        "confidence": round(float(row.get("confidence") or 0.0), 4),
-                    }
-                    for row in items
-                ],
-                {
-                    "text": str(arrest_hit.get("text") or ""),
-                    "center": arrest_hit.get("center"),
-                    "confidence": round(float(arrest_hit.get("confidence") or 0.0), 4),
-                }
-                if arrest_hit is not None
-                else None,
-                {
-                    "text": str(next_hit.get("text") or ""),
-                    "center": next_hit.get("center"),
-                    "confidence": round(float(next_hit.get("confidence") or 0.0), 4),
-                }
-                if next_hit is not None
-                else None,
-            )
-            if arrest_hit is not None:
-                arrest_x, arrest_y = arrest_hit["center"]
-                app.click(x=int(arrest_x), y=int(arrest_y))
-                events.append({"event": "click_arrest", "center": [int(arrest_x), int(arrest_y)]})
-
-                confirm_deadline = time.time() + confirm_timeout
-                confirm_hit: Optional[Dict[str, Any]] = None
-                while time.time() < confirm_deadline:
-                    confirm_items = _recognize_text_items(app=app, ocr=ocr, region=confirm_region_tuple)
-                    confirm_hit = _find_best_text_hit(items=confirm_items, targets=confirm_targets, match_mode=match_mode)
-                    if confirm_hit is not None:
-                        break
-                    time.sleep(short_interval)
-                if confirm_hit is None:
-                    _raise_error("battle_confirm_not_found", "failed to locate confirm text after arrest")
-
-                extra_capture_clicks = max(capture_click_count - 1, 0)
-                for _ in range(extra_capture_clicks):
-                    app.click(x=confirm_click_x, y=confirm_click_y)
-                    time.sleep(short_interval)
-                events.append(
-                    {
-                        "event": "click_capture_point",
-                        "center": [confirm_click_x, confirm_click_y],
-                        "count": extra_capture_clicks,
-                    }
-                )
-
-                confirm_x, confirm_y = confirm_hit["center"]
-                app.click(x=int(confirm_x), y=int(confirm_y))
-                events.append({"event": "click_confirm", "center": [int(confirm_x), int(confirm_y)]})
-                time.sleep(1.0)
-
-                post_confirm_deadline = time.time() + exit_timeout
-                while time.time() < post_confirm_deadline:
-                    exit_items = _recognize_text_items(app=app, ocr=ocr, region=exit_region)
-                    exit_hit = _find_best_text_hit(items=exit_items, targets=exit_targets, match_mode=match_mode)
-                    battle_items_after_confirm = _recognize_text_items(app=app, ocr=ocr, region=battle_region)
-                    next_hit = _find_best_text_hit(
-                        items=battle_items_after_confirm,
-                        targets=next_targets,
-                        match_mode=match_mode,
-                    )
-                    logger.debug(
-                        "[BattleResolution] post_confirm exit_items=%s battle_items=%s exit_hit=%s next_hit=%s",
-                        [
-                            {
-                                "text": str(row.get("text") or ""),
-                                "center": row.get("center"),
-                                "confidence": round(float(row.get("confidence") or 0.0), 4),
-                            }
-                            for row in exit_items
-                        ],
-                        [
-                            {
-                                "text": str(row.get("text") or ""),
-                                "center": row.get("center"),
-                                "confidence": round(float(row.get("confidence") or 0.0), 4),
-                            }
-                            for row in battle_items_after_confirm
-                        ],
-                        {
-                            "text": str(exit_hit.get("text") or ""),
-                            "center": exit_hit.get("center"),
-                        }
-                        if exit_hit is not None
-                        else None,
-                        {
-                            "text": str(next_hit.get("text") or ""),
-                            "center": next_hit.get("center"),
-                        }
-                        if next_hit is not None
-                        else None,
-                    )
-                    if exit_hit is not None:
-                        exit_x, exit_y = exit_hit["center"]
-                        app.click(x=int(exit_x), y=int(exit_y))
-                        events.append({"event": "click_exit_hint", "center": [int(exit_x), int(exit_y)]})
-                        logger.info("[BattleResolution] branch=capture_exit events=%s", events)
-                        return {
-                            "ok": True,
-                            "branch": "capture_exit",
-                            "capture_count": capture_click_count,
-                            "events": events,
-                        }
-                    if next_hit is not None:
-                        next_x, next_y = next_hit["center"]
-                        app.click(x=int(next_x), y=int(next_y))
-                        events.append({"event": "click_next_step", "center": [int(next_x), int(next_y)]})
-                        logger.info("[BattleResolution] branch=capture_fallback_next events=%s", events)
-                        return {
-                            "ok": True,
-                            "branch": "capture_fallback_next",
-                            "capture_count": capture_click_count,
-                            "events": events,
-                        }
-                    time.sleep(short_interval)
-                _raise_error(
-                    "battle_post_confirm_unresolved",
-                    "failed to locate either exit hint or next step after arrest confirm",
-                    {
-                        "battle_poll_region": list(battle_region),
-                        "exit_hint_region": list(exit_region),
-                        "capture_count": capture_click_count,
-                    },
-                )
-        else:
-            next_hit = _find_best_text_hit(items=items, targets=next_targets, match_mode=match_mode)
-            logger.debug(
-                "[BattleResolution] poll=%s mode=next_step elapsed=%.1fs region=%s items=%s next_hit=%s",
-                poll_index,
-                time.time() - start_time,
-                list(battle_region),
-                [
-                    {
-                        "text": str(row.get("text") or ""),
-                        "center": row.get("center"),
-                        "confidence": round(float(row.get("confidence") or 0.0), 4),
-                    }
-                    for row in items
-                ],
-                {
-                    "text": str(next_hit.get("text") or ""),
-                    "center": next_hit.get("center"),
-                    "confidence": round(float(next_hit.get("confidence") or 0.0), 4),
-                }
-                if next_hit is not None
-                else None,
-            )
-            if next_hit is not None:
-                next_x, next_y = next_hit["center"]
-                app.click(x=int(next_x), y=int(next_y))
-                events.append({"event": "click_next_step", "center": [int(next_x), int(next_y)]})
-                logger.info("[BattleResolution] branch=next_step events=%s", events)
-                return {
-                    "ok": True,
-                    "branch": "next_step",
-                    "capture_count": None,
-                    "events": events,
-                }
-
-        time.sleep(poll_interval)
-
-    _raise_error(
-        "battle_resolution_timeout",
-        f"battle resolution timed out after {timeout:.1f}s",
-        {
-            "capture_count": capture_click_count,
-            "battle_poll_region": list(battle_region),
-            "events": events,
-        },
+        _raise_error("missing_service", "app and ocr services are required")
+    # Old ROI/click arguments stay accepted. Outcome titles and callback pages
+    # are observed on a single full client frame; no legacy fixed capture click.
+    return await settle_battle(
+        BattleUi(app, ocr=ocr, interaction=interaction), capture_count=capture_count,
+        poll_interval_sec=poll_interval_sec, timeout_sec=timeout_sec,
+        confirm_timeout_sec=confirm_timeout_sec, exit_hint_timeout_sec=exit_hint_timeout_sec,
+        short_interval_sec=short_interval_sec,
     )

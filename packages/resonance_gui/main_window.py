@@ -35,6 +35,7 @@ from .config_repository import GuiPreferences, ResonanceConfigRepository, TRADE_
 from .logic import (
     PC_AFFIX_REFRESH_TASK_REF,
     PC_AFFIX_REFRESH_READ_TASK_REF,
+    PC_BATTLE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
@@ -57,6 +58,7 @@ from .logic import (
     trade_result_summary,
     normalize_trade_task_inputs,
     validate_recovery_refresh,
+    battle_continuation_detail,
     validate_prison_products_refresh,
 )
 from .style import APP_STYLE
@@ -101,6 +103,7 @@ class ResonanceMainWindow(QMainWindow):
         self._closing = False
         self._close_ready = False
         self._bridge_closed = False
+        self._battle_shutdown_pending = False
         self._shutdown_watchdog = QTimer(self)
         self._shutdown_watchdog.setInterval(15000)
         self._shutdown_watchdog.timeout.connect(self._on_shutdown_timeout)
@@ -734,8 +737,6 @@ class ResonanceMainWindow(QMainWindow):
             if "battle" in steps:
                 validating = "自动战斗"
                 snapshots["battle"] = self.battle_page.collect_inputs()
-                if not snapshots["battle"].get("jobs"):
-                    raise ValueError("作战任务单为空，请先添加作战任务。")
             validating = "保存设置"
             if "trade" in steps:
                 self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
@@ -862,7 +863,9 @@ class ResonanceMainWindow(QMainWindow):
         elif dispatch == "combined_commerce":
             self.requestRunPcCombinedCommerce.emit(inputs, timeout)
         elif dispatch == "battle":
-            self.requestRunPcBattle.emit(dict(current["inputs"]), timeout)
+            # The backend owns per-battle/transition budgets. A daily plan may
+            # legitimately last longer than the GUI's generic task timeout.
+            self.requestRunPcBattle.emit(dict(current["inputs"]), 0.0)
         else:
             self.requestRunPcTask.emit(
                 str(current["task_ref"]), dict(current["inputs"]), current["label"], timeout
@@ -1126,7 +1129,7 @@ class ResonanceMainWindow(QMainWindow):
                     self.workflow_page.mark_step(step, "stopping", "任务已请求停止，等待执行端确认")
 
     def _run_pc_battle(self, inputs: object, _unused_timeout: float) -> None:
-        self.requestRunPcBattle.emit(inputs, float(self._preferences.timeout_sec))
+        self.requestRunPcBattle.emit(inputs, 0.0)
 
 
     def _on_tasks_loaded(self, rows: list[dict[str, Any]]) -> None:
@@ -1606,6 +1609,21 @@ class ResonanceMainWindow(QMainWindow):
                         self._workflow_current = None
             elif str(current.get("dispatch") or "") == "combined_commerce":
                 self._finish_combined_workflow_result(result=result, succeeded=succeeded)
+            elif step == "battle":
+                try:
+                    gui_item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
+                    if gui_item.get("task_ref") != PC_BATTLE_TASK_REF:
+                        raise ValueError("作战返回了不匹配的任务结果。")
+                    if (status != "success" or payload.get("gui_timeout_cancelled")
+                            or payload.get("gui_soft_stop_requested")):
+                        raise ValueError(str(result.get("reason") or payload.get("error") or "作战执行异常或被取消。"))
+                    state, detail = battle_continuation_detail(result)
+                except ValueError as exc:
+                    self._abort_workflow(str(exc))
+                else:
+                    self.workflow_page.mark_step(step, state, detail)
+                    self.workflow_page.append_log(detail)
+                    self._workflow_current = None
             elif succeeded:
                 self.workflow_page.mark_step(step, "success", f"{current['label']}已完成")
                 parent = str(current.get("parent") or "")
@@ -1754,6 +1772,21 @@ class ResonanceMainWindow(QMainWindow):
             super().closeEvent(event)
             return
         if self._closing:
+            if self._battle_shutdown_pending:
+                box = QMessageBox(self)
+                box.setWindowTitle("作战仍在停止中")
+                box.setText("尚未确认游戏原生自动已关闭。继续等待可让执行端完成收尾；强制退出可能让游戏继续自动作战。")
+                wait = box.addButton("继续等待", QMessageBox.ButtonRole.RejectRole)
+                force = box.addButton("强制退出", QMessageBox.ButtonRole.DestructiveRole)
+                box.setDefaultButton(wait)
+                box.exec()
+                if box.clickedButton() is force:
+                    self._battle_shutdown_pending = False
+                    logger.warning("[NativeBattleStop] user_forced_exit=true native_stopped=unconfirmed")
+                    self.statusBar().showMessage("正在强制退出；原生自动停止未确认，请在游戏内手动检查。")
+                    self._bridge.request_shutdown(force=True)
+                    self.requestBridgeClose.emit()
+                    self._shutdown_watchdog.start(5000)
             event.ignore()
             return
         if self._busy or self._workflow_active or self._small_task_active_ref:
@@ -1769,8 +1802,11 @@ class ResonanceMainWindow(QMainWindow):
             if box.clickedButton() is not cancel_and_exit:
                 event.ignore()
                 return
-        # Runner shutdown cancels scheduler work without another blocking IPC
-        # cancellation request ahead of the close request.
+        battle_running = (
+            getattr(self._bridge, "current_task_ref", "") == PC_BATTLE_TASK_REF
+            or self._active_kind == "battle_run"
+            or (self._workflow_current is not None and self._workflow_current.get("step") == "battle")
+        )
         self._save_preferences()
         self._hotkeys.close()
         event.ignore()
@@ -1781,7 +1817,11 @@ class ResonanceMainWindow(QMainWindow):
         self.setWindowTitle(f"{self._base_window_title} — 正在退出")
         self.statusBar().showMessage("正在停止后台任务并释放资源，请稍候…")
         logger.info("[GuiShutdown] phase=gui_close_requested")
-        self._bridge.request_shutdown()
+        self._battle_shutdown_pending = battle_running
+        if not battle_running:
+            self._bridge.request_shutdown()
+        else:
+            self.statusBar().showMessage("正在关闭游戏原生自动并收尾；再次关闭窗口可选择强制退出。")
         self._shutdown_watchdog.start()
         self.requestBridgeClose.emit()
 
@@ -1802,6 +1842,11 @@ class ResonanceMainWindow(QMainWindow):
         self.statusBar().showMessage("后台退出超时，正在回收本次运行的工作进程…")
         if self._bridge_closed:
             self._bridge_thread.quit()
+            return
+        if self._battle_shutdown_pending:
+            logger.warning("[NativeBattleStop] waiting_for_native_stop=true force_exit=false")
+            self.statusBar().showMessage("作战仍在软停止，尚未确认原生自动关闭；继续等待，再次关闭可选择强制退出。")
+            self._shutdown_watchdog.start(60000)
             return
         try:
             self._bridge.request_shutdown(force=True)

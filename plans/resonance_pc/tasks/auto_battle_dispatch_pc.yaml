@@ -3,7 +3,7 @@ auto_battle_ct_tie_an_run_one_pc:
     role: internal
     domain: 战斗
     title: Auto Battle PC CT TieAn Run One
-    description: Execute one CT tie_an job.
+    description: Execute one CT tie_an job, preferring one sweep before actual combat.
     inputs:
       - name: route_id
         type: string
@@ -25,6 +25,9 @@ auto_battle_ct_tie_an_run_one_pc:
         required: false
       - name: capture_count
         type: number
+        required: false
+      - name: control_cid
+        type: string
         required: false
   steps:
     select_city:
@@ -177,15 +180,25 @@ auto_battle_ct_tie_an_run_one_pc:
         click_confirm_difficulty: "success|skipped"
       when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
 
+    try_sweep:
+      action: resonance_pc.try_battle_sweep
+      params:
+        formation_index: "{{ inputs.formation_index | default(none) }}"
+        control_cid: "{{ inputs.control_cid | default(none) }}"
+        capture_count: "{{ inputs.capture_count | default(none) }}"
+      depends_on:
+        all:
+          - stage_selected_marker: "success"
+          - wait_after_confirm_difficulty: "success|skipped"
+
     click_go_combat_with_difficulty:
       action: plans/aura_base/find_text_and_click
       params:
         text_to_find: "\u524d\u5f80\u4f5c\u6218"
         region: [920, 520, 180, 50]
         match_mode: "contains"
-      depends_on:
-        wait_after_confirm_difficulty: "success|skipped"
-      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+      depends_on: try_sweep
+      when: "{{ inputs.mission_type == 'expel' and nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     click_go_combat_without_difficulty:
       action: plans/aura_base/find_text_and_click
@@ -193,8 +206,8 @@ auto_battle_ct_tie_an_run_one_pc:
         text_to_find: "\u524d\u5f80\u4f5c\u6218"
         region: [730, 590, 130, 50]
         match_mode: "contains"
-      depends_on: stage_selected_marker
-      when: "{{ inputs.mission_type == 'bounty' }}"
+      depends_on: try_sweep
+      when: "{{ inputs.mission_type == 'bounty' and nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     detect_stamina_after_go_combat_with_difficulty:
       action: resonance_pc.detect_and_cancel_insufficient_stamina
@@ -203,7 +216,7 @@ auto_battle_ct_tie_an_run_one_pc:
         interval_sec: 0.2
       depends_on:
         click_go_combat_with_difficulty: "success|skipped"
-      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none }}"
+      when: "{{ inputs.mission_type == 'expel' and nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     detect_stamina_after_go_combat_without_difficulty:
       action: resonance_pc.detect_and_cancel_insufficient_stamina
@@ -212,7 +225,7 @@ auto_battle_ct_tie_an_run_one_pc:
         interval_sec: 0.2
       depends_on:
         click_go_combat_without_difficulty: "success|skipped"
-      when: "{{ inputs.mission_type == 'bounty' }}"
+      when: "{{ inputs.mission_type == 'bounty' and nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     run_combat_after_go_combat_with_difficulty:
       action: aura.run_task
@@ -223,7 +236,7 @@ auto_battle_ct_tie_an_run_one_pc:
           capture_count: "{{ inputs.capture_count | default(none) }}"
       depends_on:
         detect_stamina_after_go_combat_with_difficulty: "success|skipped"
-      when: "{{ inputs.mission_type == 'expel' and inputs.difficulty is not none and not nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina }}"
+      when: "{{ inputs.mission_type == 'expel' and nodes.try_sweep.output.outcome == 'unsupported' and not nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina }}"
 
     run_combat_after_go_combat_without_difficulty:
       action: aura.run_task
@@ -234,13 +247,18 @@ auto_battle_ct_tie_an_run_one_pc:
           capture_count: "{{ inputs.capture_count | default(none) }}"
       depends_on:
         detect_stamina_after_go_combat_without_difficulty: "success|skipped"
-      when: "{{ inputs.mission_type == 'bounty' and not nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina }}"
+      when: "{{ inputs.mission_type == 'bounty' and nodes.try_sweep.output.outcome == 'unsupported' and not nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina }}"
 
   returns:
     success: true
     route_id: "{{ inputs.route_id }}"
     city_name: "{{ inputs.city_name }}"
     mission_type: "{{ inputs.mission_type }}"
+    outcome: "{{ nodes.try_sweep.output.outcome if nodes.try_sweep.output.outcome != 'unsupported' else (('insufficient_stamina' if nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_with_difficulty.output.outcome) if inputs.mission_type == 'expel' else ('insufficient_stamina' if nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_without_difficulty.output.outcome)) }}"
+    battle_started: "{{ nodes.try_sweep.output.battle_started if nodes.try_sweep.output.outcome != 'unsupported' else ((false if nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_with_difficulty.output.battle_started) if inputs.mission_type == 'expel' else (false if nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_without_difficulty.output.battle_started)) }}"
+    page_after: "{{ nodes.try_sweep.output.page_after if nodes.try_sweep.output.outcome != 'unsupported' else ((nodes.detect_stamina_after_go_combat_with_difficulty.output.page_after if nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_with_difficulty.output.page_after) if inputs.mission_type == 'expel' else (nodes.detect_stamina_after_go_combat_without_difficulty.output.page_after if nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_without_difficulty.output.page_after)) }}"
+    ready_for_next: "{{ nodes.try_sweep.output.ready_for_next if nodes.try_sweep.output.outcome != 'unsupported' else ((nodes.detect_stamina_after_go_combat_with_difficulty.output.ready_for_next if nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_with_difficulty.output.ready_for_next) if inputs.mission_type == 'expel' else (nodes.detect_stamina_after_go_combat_without_difficulty.output.ready_for_next if nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_without_difficulty.output.ready_for_next)) }}"
+    branch: "{{ nodes.try_sweep.output.branch if nodes.try_sweep.output.outcome != 'unsupported' else ((nodes.detect_stamina_after_go_combat_with_difficulty.output.branch if nodes.detect_stamina_after_go_combat_with_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_with_difficulty.output.branch) if inputs.mission_type == 'expel' else (nodes.detect_stamina_after_go_combat_without_difficulty.output.branch if nodes.detect_stamina_after_go_combat_without_difficulty.output.insufficient_stamina else nodes.run_combat_after_go_combat_without_difficulty.output.branch)) }}"
 
 
 auto_battle_ct_tie_an_batch_pc:
@@ -281,7 +299,7 @@ auto_battle_ct_regional_ops_run_one_pc:
     role: internal
     domain: 战斗
     title: Auto Battle PC CT RegionalOps Run One
-    description: Execute one CT regional_ops_center job.
+    description: Execute one CT regional_ops_center job, preferring one sweep before actual combat.
     inputs:
       - name: route_id
         type: string
@@ -300,6 +318,9 @@ auto_battle_ct_regional_ops_run_one_pc:
         required: false
       - name: capture_count
         type: number
+        required: false
+      - name: control_cid
+        type: string
         required: false
   steps:
     select_city:
@@ -391,20 +412,31 @@ auto_battle_ct_regional_ops_run_one_pc:
         match_mode: "contains"
       depends_on: click_confirm_difficulty
 
+    try_sweep:
+      action: resonance_pc.try_battle_sweep
+      params:
+        formation_index: "{{ inputs.formation_index | default(none) }}"
+        control_cid: "{{ inputs.control_cid | default(none) }}"
+        capture_count: "{{ inputs.capture_count | default(none) }}"
+      depends_on: wait_go_combat_text
+
     click_go_combat:
       action: plans/aura_base/find_text_and_click
       params:
         text_to_find: "\u524d\u5f80\u4f5c\u6218"
         region: [1000, 560, 200, 60]
         match_mode: "contains"
-      depends_on: wait_go_combat_text
+      depends_on: try_sweep
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     detect_stamina_after_go_combat:
       action: resonance_pc.detect_and_cancel_insufficient_stamina
       params:
         timeout_sec: 2.0
         interval_sec: 0.2
-      depends_on: click_go_combat
+      depends_on:
+        click_go_combat: "success|skipped"
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     run_combat_after_go_combat:
       action: aura.run_task
@@ -413,14 +445,20 @@ auto_battle_ct_regional_ops_run_one_pc:
         inputs:
           formation_index: "{{ inputs.formation_index | default(none) }}"
           capture_count: "{{ inputs.capture_count | default(none) }}"
-      depends_on: detect_stamina_after_go_combat
-      when: "{{ not nodes.detect_stamina_after_go_combat.output.insufficient_stamina }}"
+      depends_on:
+        detect_stamina_after_go_combat: "success|skipped"
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' and not nodes.detect_stamina_after_go_combat.output.insufficient_stamina }}"
 
   returns:
     success: true
     route_id: "{{ inputs.route_id }}"
     city_name: "{{ inputs.city_name }}"
     threat_level: "{{ inputs.threat_level }}"
+    outcome: "{{ nodes.try_sweep.output.outcome if nodes.try_sweep.output.outcome != 'unsupported' else ('insufficient_stamina' if nodes.detect_stamina_after_go_combat.output.insufficient_stamina else nodes.run_combat_after_go_combat.output.outcome) }}"
+    battle_started: "{{ nodes.try_sweep.output.battle_started if nodes.try_sweep.output.outcome != 'unsupported' else (false if nodes.detect_stamina_after_go_combat.output.insufficient_stamina else nodes.run_combat_after_go_combat.output.battle_started) }}"
+    page_after: "{{ nodes.try_sweep.output.page_after if nodes.try_sweep.output.outcome != 'unsupported' else (nodes.detect_stamina_after_go_combat.output.page_after if nodes.detect_stamina_after_go_combat.output.insufficient_stamina else nodes.run_combat_after_go_combat.output.page_after) }}"
+    ready_for_next: "{{ nodes.try_sweep.output.ready_for_next if nodes.try_sweep.output.outcome != 'unsupported' else (nodes.detect_stamina_after_go_combat.output.ready_for_next if nodes.detect_stamina_after_go_combat.output.insufficient_stamina else nodes.run_combat_after_go_combat.output.ready_for_next) }}"
+    branch: "{{ nodes.try_sweep.output.branch if nodes.try_sweep.output.outcome != 'unsupported' else (nodes.detect_stamina_after_go_combat.output.branch if nodes.detect_stamina_after_go_combat.output.insufficient_stamina else nodes.run_combat_after_go_combat.output.branch) }}"
 
 
 auto_battle_ct_regional_ops_batch_pc:
@@ -689,7 +727,7 @@ auto_battle_gp_action_summary_run_difficulty_pc:
     role: internal
     domain: 战斗
     title: Auto Battle PC GP ActionSummary Run Difficulty
-    description: Execute one action_summary difficulty inside an already opened stage.
+    description: Execute one action_summary difficulty inside an opened stage, preferring one sweep before actual combat.
     inputs:
       - name: route_id
         type: string
@@ -702,6 +740,9 @@ auto_battle_gp_action_summary_run_difficulty_pc:
         required: false
       - name: capture_count
         type: number
+        required: false
+      - name: control_cid
+        type: string
         required: false
   steps:
     click_difficulty_1:
@@ -763,27 +804,40 @@ auto_battle_gp_action_summary_run_difficulty_pc:
           - click_difficulty_5: "success|failed|skipped"
           - click_difficulty_6: "success|failed|skipped"
 
+    try_sweep:
+      action: resonance_pc.try_battle_sweep
+      params:
+        formation_index: "{{ inputs.formation_index | default(none) }}"
+        control_cid: "{{ inputs.control_cid | default(none) }}"
+        capture_count: "{{ inputs.capture_count | default(none) }}"
+      depends_on: wait_after_difficulty
+
     click_start_battle:
       action: plans/aura_base/find_text_and_click
       params:
         text_to_find: "\u5f00\u59cb\u4f5c\u6218"
         region: [790, 460, 430, 100]
         match_mode: "contains"
-      depends_on: wait_after_difficulty
+      depends_on: try_sweep
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     assert_start_battle_clicked:
       action: plans/aura_base/assert_condition
       params:
         condition: "{{ nodes.click_start_battle.output | default(false) }}"
         message: "failed to click start battle"
-      depends_on: click_start_battle
+      depends_on:
+        click_start_battle: "success|skipped"
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     detect_stamina_after_start_battle:
       action: resonance_pc.detect_and_cancel_insufficient_stamina
       params:
         timeout_sec: 2.0
         interval_sec: 0.2
-      depends_on: assert_start_battle_clicked
+      depends_on:
+        assert_start_battle_clicked: "success|skipped"
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' }}"
 
     run_combat_after_start_battle:
       action: aura.run_task
@@ -792,13 +846,19 @@ auto_battle_gp_action_summary_run_difficulty_pc:
         inputs:
           formation_index: "{{ inputs.formation_index | default(none) }}"
           capture_count: "{{ inputs.capture_count | default(none) }}"
-      depends_on: detect_stamina_after_start_battle
-      when: "{{ not nodes.detect_stamina_after_start_battle.output.insufficient_stamina }}"
+      depends_on:
+        detect_stamina_after_start_battle: "success|skipped"
+      when: "{{ nodes.try_sweep.output.outcome == 'unsupported' and not nodes.detect_stamina_after_start_battle.output.insufficient_stamina }}"
 
   returns:
     success: true
     route_id: "{{ inputs.route_id }}"
     difficulty: "{{ inputs.difficulty }}"
+    outcome: "{{ nodes.try_sweep.output.outcome if nodes.try_sweep.output.outcome != 'unsupported' else ('insufficient_stamina' if nodes.detect_stamina_after_start_battle.output.insufficient_stamina else nodes.run_combat_after_start_battle.output.outcome) }}"
+    battle_started: "{{ nodes.try_sweep.output.battle_started if nodes.try_sweep.output.outcome != 'unsupported' else (false if nodes.detect_stamina_after_start_battle.output.insufficient_stamina else nodes.run_combat_after_start_battle.output.battle_started) }}"
+    page_after: "{{ nodes.try_sweep.output.page_after if nodes.try_sweep.output.outcome != 'unsupported' else (nodes.detect_stamina_after_start_battle.output.page_after if nodes.detect_stamina_after_start_battle.output.insufficient_stamina else nodes.run_combat_after_start_battle.output.page_after) }}"
+    ready_for_next: "{{ nodes.try_sweep.output.ready_for_next if nodes.try_sweep.output.outcome != 'unsupported' else (nodes.detect_stamina_after_start_battle.output.ready_for_next if nodes.detect_stamina_after_start_battle.output.insufficient_stamina else nodes.run_combat_after_start_battle.output.ready_for_next) }}"
+    branch: "{{ nodes.try_sweep.output.branch if nodes.try_sweep.output.outcome != 'unsupported' else (nodes.detect_stamina_after_start_battle.output.branch if nodes.detect_stamina_after_start_battle.output.insufficient_stamina else nodes.run_combat_after_start_battle.output.branch) }}"
 
 
 auto_battle_gp_action_summary_run_group_pc:
@@ -821,6 +881,13 @@ auto_battle_gp_action_summary_run_group_pc:
         type: list
         required: true
         min_items: 1
+      - name: return_to_list
+        type: boolean
+        required: false
+        default: true
+      - name: control_cid
+        type: string
+        required: false
   steps:
     click_group_text:
       action: plans/aura_base/find_text_and_click
@@ -876,6 +943,7 @@ auto_battle_gp_action_summary_run_group_pc:
       params:
         task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_action_summary_run_difficulty_pc"
         inputs:
+          control_cid: "{{ inputs.control_cid | default(none) }}"
           route_id: "{{ loop.item.route_id }}"
           difficulty: "{{ loop.item.difficulty }}"
           formation_index: "{{ loop.item.formation_index | default(none) }}"
@@ -901,6 +969,7 @@ auto_battle_gp_action_summary_run_group_pc:
         all:
           - select_stage_and_enter: "success"
           - run_group_jobs: "success|failed|skipped"
+      when: "{{ inputs.return_to_list }}"
 
     wait_after_back_to_action_summary:
       action: plans/aura_base/sleep
@@ -913,7 +982,8 @@ auto_battle_gp_action_summary_run_group_pc:
       params:
         condition: "{{ nodes.select_stage_and_enter.output.success }}"
         message: "{{ nodes.select_stage_and_enter.output.error_message | default('failed to enter action_summary stage') }}"
-      depends_on: wait_after_back_to_action_summary
+      depends_on:
+        wait_after_back_to_action_summary: "success|skipped"
 
   returns:
     success: true
@@ -921,6 +991,12 @@ auto_battle_gp_action_summary_run_group_pc:
     gp_group_name: "{{ inputs.gp_group_name }}"
     gp_stage_name: "{{ inputs.gp_stage_name }}"
     job_count: "{{ inputs.jobs | length }}"
+    outcome: "{{ nodes.run_group_jobs.output[0].outcome if (inputs.jobs | length) == 1 else 'batch' }}"
+    battle_started: "{{ nodes.run_group_jobs.output[0].battle_started if (inputs.jobs | length) == 1 else none }}"
+    page_after: "{{ 'unknown' if inputs.return_to_list else nodes.run_group_jobs.output[0].page_after }}"
+    ready_for_next: "{{ false if inputs.return_to_list else nodes.run_group_jobs.output[0].ready_for_next }}"
+    branch: "{{ nodes.run_group_jobs.output[0].branch if (inputs.jobs | length) == 1 else none }}"
+    results: "{{ nodes.run_group_jobs.output }}"
 
 
 auto_battle_gp_action_summary_batch_pc:
@@ -965,7 +1041,7 @@ auto_battle_gp_structural_run_one_pc:
     role: internal
     domain: 战斗
     title: Auto Battle PC GP Structural Run One
-    description: Execute one structural_exploration target.
+    description: Run native structural auto-hunt for one configured type.
     inputs:
       - name: route_id
         type: string
@@ -980,81 +1056,25 @@ auto_battle_gp_structural_run_one_pc:
         type: number
         required: true
   steps:
-    click_settings:
-      action: plans/aura_base/find_text_and_click
+    run_structural:
+      action: resonance_pc.run_structural_exploration
       params:
-        text_to_find: "\u8bbe\u7f6e"
-        region: [340, 610, 60, 50]
-        match_mode: "contains"
-
-    wait_after_settings:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 0.5
-      depends_on: click_settings
-
-    reconcile_structural_selection:
-      action: resonance_pc.reconcile_structural_selection
-      params:
-        route_id: "{{ inputs.route_id }}"
-        gp_stage_name: "{{ inputs.gp_stage_name }}"
-        region: [70, 360, 220, 270]
-        rgb_min: [60, 180, 160]
-        rgb_max: [130, 245, 225]
-        match_mode: "contains"
-      depends_on: wait_after_settings
-
-    assert_target_ready:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.reconcile_structural_selection.output.ok }}"
-        message: "failed to prepare structural target"
-      depends_on: reconcile_structural_selection
-
-    wait_after_target_ready:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 0.5
-      depends_on: assert_target_ready
-
-    click_start_auto:
-      action: plans/aura_base/find_text_and_click
-      params:
-        text_to_find: "\u5f00\u542f\u81ea\u52a8\u8ba8\u4f10"
-        region: [110, 620, 160, 40]
-        match_mode: "contains"
-      depends_on: wait_after_target_ready
-
-    detect_stamina_after_start_auto:
-      action: resonance_pc.detect_and_cancel_insufficient_stamina
-      params:
-        timeout_sec: 2.0
-        interval_sec: 0.2
-      depends_on: click_start_auto
-
-    wait_after_start_auto:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 1.0
-      depends_on: detect_stamina_after_start_auto
-      when: "{{ not nodes.detect_stamina_after_start_auto.output.insufficient_stamina }}"
-
-    wait_global_scan:
-      action: plans/aura_base/wait_for_text
-      params:
-        text_to_find: "\u5168\u57df\u52d8\u6d4b"
-        timeout: 600.0
-        interval: 1.0
-        region: [1000, 560, 150, 40]
-        match_mode: "contains"
-      depends_on:
-        wait_after_start_auto: "success|skipped"
-      when: "{{ not nodes.detect_stamina_after_start_auto.output.insufficient_stamina }}"
-
+        types:
+          - "{{ inputs.route_id | replace('gp.structural_exploration.', '') }}"
   returns:
     success: true
     route_id: "{{ inputs.route_id }}"
     gp_stage_name: "{{ inputs.gp_stage_name }}"
+    outcome: "{{ nodes.run_structural.output.outcome }}"
+    schema: "{{ nodes.run_structural.output.schema }}"
+    mode: "{{ nodes.run_structural.output.mode }}"
+    reason: "{{ nodes.run_structural.output.reason }}"
+    configured_types: "{{ nodes.run_structural.output.configured_types }}"
+    native_stopped: "{{ nodes.run_structural.output.native_stopped }}"
+    observed: "{{ nodes.run_structural.output.observed }}"
+    statistics_complete: "{{ nodes.run_structural.output.statistics_complete }}"
+    page_after: "{{ nodes.run_structural.output.page_after }}"
+    ready_for_next: "{{ nodes.run_structural.output.ready_for_next }}"
 
 
 auto_battle_gp_structural_batch_pc:
@@ -1062,30 +1082,31 @@ auto_battle_gp_structural_batch_pc:
     role: internal
     domain: 战斗
     title: Auto Battle PC GP Structural Batch
-    description: Execute structural_exploration jobs in order.
+    description: Configure ordered structural types and supervise one native auto-hunt session.
     inputs:
       - name: jobs
         type: list
         required: true
         min_items: 1
   steps:
-    run_structural_jobs:
-      action: aura.run_task
-      loop:
-        for_each: "{{ inputs.jobs }}"
-        parallelism: 1
+    run_structural:
+      action: resonance_pc.run_structural_exploration
       params:
-        task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_structural_run_one_pc"
-        inputs:
-          route_id: "{{ loop.item.route_id }}"
-          gp_stage_name: "{{ loop.item.gp_stage_name }}"
-          sample_x: "{{ loop.item.structural_sample_point[0] }}"
-          sample_y: "{{ loop.item.structural_sample_point[1] }}"
-
+        types: "{{ inputs.jobs | map(attribute='gp_stage_key') | list }}"
   returns:
     success: true
-    category: "structural_exploration"
+    category: structural_exploration
     job_count: "{{ inputs.jobs | length }}"
+    outcome: "{{ nodes.run_structural.output.outcome }}"
+    schema: "{{ nodes.run_structural.output.schema }}"
+    mode: "{{ nodes.run_structural.output.mode }}"
+    reason: "{{ nodes.run_structural.output.reason }}"
+    configured_types: "{{ nodes.run_structural.output.configured_types }}"
+    native_stopped: "{{ nodes.run_structural.output.native_stopped }}"
+    observed: "{{ nodes.run_structural.output.observed }}"
+    statistics_complete: "{{ nodes.run_structural.output.statistics_complete }}"
+    page_after: "{{ nodes.run_structural.output.page_after }}"
+    ready_for_next: "{{ nodes.run_structural.output.ready_for_next }}"
 
 
 auto_battle_gp_batch_pc:
@@ -1293,395 +1314,232 @@ auto_battle_gp_batch_pc:
     structural_job_count: "{{ nodes.group_gp_jobs.output.structural_exploration_jobs | length }}"
 
 
-auto_battle_dispatch_pc:
+auto_battle_enter_terminal_pc:
   meta:
-    role: user_task
+    role: internal
     domain: 战斗
-    title: Auto Battle PC Dispatch
-    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category batch tasks.
-    entry_point: true
+    title: Enter Battle Terminal Category
+    description: Enter the battle terminal from the main page and select CT or GP.
+    entry_point: false
     inputs:
-      - name: jobs
-        label: Battle Jobs
-        description: Ordered job list.
-        type: list
+      - name: main_category
+        type: string
         required: true
-        min_items: 1
-        max_items: 50
-        item:
-          name: job_item
-          label: Job Item
-          type: dict
-          required: true
-          properties:
-            route_id:
-              name: route_id
-              label: Route
-              type: string
-              required: true
-              enum:
-                - "ct.tie_an.shoggolith_city.expel"
-                - "ct.tie_an.shoggolith_city.bounty"
-                - "ct.tie_an.mander_mine.expel"
-                - "ct.tie_an.mander_mine.bounty"
-                - "ct.tie_an.freeport.expel"
-                - "ct.tie_an.freeport.bounty"
-                - "ct.tie_an.clarity_data_center.expel"
-                - "ct.tie_an.clarity_data_center.bounty"
-                - "ct.tie_an.seacorner_city.expel"
-                - "ct.tie_an.seacorner_city.bounty"
-                - "ct.tie_an.anita_launch_center.expel"
-                - "ct.tie_an.anita_launch_center.bounty"
-                - "ct.tie_an.lanxin_city.expel"
-                - "ct.tie_an.lanxin_city.bounty"
-                - "ct.tie_an.gonglu_city.expel"
-                - "ct.tie_an.gonglu_city.bounty"
-                - "ct.regional_ops_center.wilderness_station"
-                - "ct.regional_ops_center.brcl_outpost"
-                - "ct.regional_ops_center.onederland"
-                - "ct.regional_ops_center.anita_energy_research_institute"
-                - "ct.regional_ops_center.anita_weapon_research_institute"
-                - "ct.regional_ops_center.yunxiuqiao_base"
-                - "ct.regional_ops_center.qiyu_station"
-                - "ct.regional_ops_center.confluence_tower"
-                - "ct.regional_ops_center.farstar_bridge"
-                - "ct.regional_ops_center.vitilin_forest"
-                - "gp.action_summary.blade_encirclement.special_order"
-                - "gp.action_summary.blade_encirclement.blade_action"
-                - "gp.action_summary.blade_encirclement.read_by_lamp"
-                - "gp.action_summary.blade_encirclement.weapon_material_analysis"
-                - "gp.action_summary.blade_encirclement.knight_novel"
-                - "gp.action_summary.blade_encirclement.i_think_i_am"
-                - "gp.action_summary.blade_encirclement.what_i_know"
-                - "gp.action_summary.blade_encirclement.big_one"
-                - "gp.action_summary.blade_encirclement.total_encirclement"
-                - "gp.action_summary.global_supply.savior"
-                - "gp.action_summary.global_supply.standard"
-                - "gp.action_summary.global_supply.elegant"
-                - "gp.action_summary.global_supply.cutting_edge"
-                - "gp.action_summary.global_supply.chaos"
-                - "gp.action_summary.global_supply.magic"
-                - "gp.action_summary.smuggler_crackdown.blind_box"
-                - "gp.structural_exploration.disordered_roots"
-                - "gp.structural_exploration.hetero_branches"
-                - "gp.structural_exploration.echo_buoy"
-                - "gp.structural_exploration.birch_buoy"
-            difficulty:
-              name: difficulty
-              label: Difficulty
-              description: Used by tie_an expel, regional_ops, and gp action_summary routes. Incompatible residual values are ignored before validation.
-              type: number
-              required: false
-              enum: [1, 2, 3, 4, 5, 6]
-            stage:
-              name: stage
-              label: Stage
-              description: Used only by tie_an expel routes. Incompatible residual values are ignored before validation.
-              type: number
-              required: false
-              enum: [1, 2, 3]
-            threat_level:
-              name: threat_level
-              label: Threat Level
-              description: Used only by regional_ops routes. Incompatible residual values are ignored before validation.
-              type: number
-              required: false
-              min: 1
-      - name: stop_on_failure
-        label: Stop On Failure
-        type: boolean
-        required: false
-        default: true
-
+        enum: [ct, gp]
   steps:
     require_resolution:
       action: resonance_pc.require_client_resolution
-
-    wait_battle_terminal_text:
+    wait_terminal:
       action: plans/aura_base/wait_for_text
       params:
         text_to_find: "\u4f5c\u6218\u7ec8\u7aef"
         timeout: 3.0
         interval: 0.5
         region: [1100, 380, 150, 120]
-        match_mode: "contains"
+        match_mode: contains
       depends_on: require_resolution
-
-    click_battle_terminal:
+    click_terminal:
       action: plans/aura_base/find_text_and_click
       params:
         text_to_find: "\u4f5c\u6218\u7ec8\u7aef"
         region: [1100, 380, 150, 120]
-        match_mode: "contains"
-      depends_on: wait_battle_terminal_text
-
-    assert_battle_terminal_clicked:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.click_battle_terminal.output }}"
-        message: "failed to click battle terminal"
-      depends_on: click_battle_terminal
-
-    wait_after_enter_battle:
+        match_mode: contains
+        required: true
+      depends_on: wait_terminal
+    settle_terminal:
       action: plans/aura_base/sleep
       params:
         seconds: 1.0
-      depends_on: assert_battle_terminal_clicked
-
-    normalize_jobs:
-      action: resonance_pc.normalize_battle_jobs
-      params:
-        jobs: "{{ inputs.jobs }}"
-      depends_on: wait_after_enter_battle
-
-    validate_jobs:
-      action: resonance_pc.validate_battle_jobs
-      params:
-        jobs: "{{ nodes.normalize_jobs.output.normalized_jobs }}"
-      depends_on: normalize_jobs
-
-    group_jobs:
-      action: resonance_pc.group_battle_jobs
-      params:
-        jobs: "{{ nodes.validate_jobs.output.normalized_jobs }}"
-      depends_on: validate_jobs
-
-    assert_no_unknown_jobs:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ (nodes.group_jobs.output.unknown_jobs | length) == 0 }}"
-        message: "contains unsupported route_id category"
-      depends_on: group_jobs
-
-    prepare_category_order:
-      action: plans/aura_base/log
-      params:
-        message: "prepare category order"
-      depends_on: assert_no_unknown_jobs
-      outputs:
-        first_category: "{{ (nodes.group_jobs.output.category_order | first) if (nodes.group_jobs.output.category_order | length) > 0 else '' }}"
-        second_category: "{{ nodes.group_jobs.output.category_order[1] if (nodes.group_jobs.output.category_order | length) > 1 else '' }}"
-
-    switch_first_ct:
+      depends_on: click_terminal
+    select_main_category:
       action: plans/aura_base/find_image_and_click
       params:
-        template: "templates/battle/dispatch/category_ct.png"
+        template: "{{ 'templates/battle/dispatch/category_ct.png' if inputs.main_category == 'ct' else 'templates/battle/dispatch/category_gp.png' }}"
         timeout: 8.0
         interval: 0.2
         region: [20, 180, 200, 160]
         threshold: 0.95
         use_grayscale: true
-      depends_on: prepare_category_order
-      when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
-
-    assert_first_ct_switched:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.switch_first_ct.output }}"
-        message: "failed to click collaboration terminal category template"
-      depends_on:
-        switch_first_ct: "success|skipped"
-      when: "{{ nodes.prepare_category_order.first_category == 'ct' }}"
-
-    switch_first_gp:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_gp.png"
-        timeout: 8.0
-        interval: 0.2
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on: prepare_category_order
-      when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
-
-    assert_first_gp_switched:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.switch_first_gp.output }}"
-        message: "failed to click global preparation category template"
-      depends_on:
-        switch_first_gp: "success|skipped"
-      when: "{{ nodes.prepare_category_order.first_category == 'gp' }}"
-
-    wait_after_first_switch:
+        required: true
+      depends_on: settle_terminal
+    settle_category:
       action: plans/aura_base/sleep
       params:
         seconds: 2.0
-      depends_on:
-        all:
-          - assert_first_ct_switched: "success|skipped"
-          - assert_first_gp_switched: "success|skipped"
-      when: "{{ nodes.prepare_category_order.first_category != '' }}"
-
-    run_first_ct_batch:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_batch_pc"
-        inputs:
-          jobs: "{{ nodes.group_jobs.output.ct_jobs }}"
-      depends_on: wait_after_first_switch
-      when: "{{ nodes.prepare_category_order.first_category == 'ct' and (nodes.group_jobs.output.ct_jobs | length) > 0 }}"
-
-    run_first_gp_batch:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_batch_pc"
-        inputs:
-          jobs: "{{ nodes.group_jobs.output.gp_jobs }}"
-      depends_on: wait_after_first_switch
-      when: "{{ nodes.prepare_category_order.first_category == 'gp' and (nodes.group_jobs.output.gp_jobs | length) > 0 }}"
-
-    recover_ct_menu_after_first_gp:
-      action: plans/aura_base/drag
-      params:
-        start_x: 117
-        start_y: 334
-        end_x: 117
-        end_y: 447
-        duration: 0.4
-        hold_before_release_sec: 0.5
-      depends_on:
-        all:
-          - run_first_ct_batch: "success|failed|skipped"
-          - run_first_gp_batch: "success|failed|skipped"
-      when: "{{ nodes.prepare_category_order.first_category == 'gp' and nodes.prepare_category_order.second_category == 'ct' }}"
-
-    wait_after_ct_menu_recovery:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 0.5
-      depends_on:
-        recover_ct_menu_after_first_gp: "success|skipped"
-      when: "{{ nodes.prepare_category_order.first_category == 'gp' and nodes.prepare_category_order.second_category == 'ct' }}"
-
-    switch_second_ct:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_ct.png"
-        timeout: 8.0
-        interval: 0.2
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on:
-        wait_after_ct_menu_recovery: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
-
-    assert_second_ct_switched:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.switch_second_ct.output }}"
-        message: "failed to click collaboration terminal category template"
-      depends_on:
-        switch_second_ct: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'ct' }}"
-
-    switch_second_gp:
-      action: plans/aura_base/find_image_and_click
-      params:
-        template: "templates/battle/dispatch/category_gp.png"
-        timeout: 8.0
-        interval: 0.2
-        region: [20, 180, 200, 160]
-        threshold: 0.95
-        use_grayscale: true
-      depends_on:
-        all:
-          - run_first_ct_batch: "success|failed|skipped"
-          - run_first_gp_batch: "success|failed|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
-
-    assert_second_gp_switched:
-      action: plans/aura_base/assert_condition
-      params:
-        condition: "{{ nodes.switch_second_gp.output }}"
-        message: "failed to click global preparation category template"
-      depends_on:
-        switch_second_gp: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'gp' }}"
-
-    wait_after_second_switch:
-      action: plans/aura_base/sleep
-      params:
-        seconds: 2.0
-      depends_on:
-        all:
-          - assert_second_ct_switched: "success|skipped"
-          - assert_second_gp_switched: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category != '' }}"
-
-    run_second_ct_batch:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_ct_batch_pc"
-        inputs:
-          jobs: "{{ nodes.group_jobs.output.ct_jobs }}"
-      depends_on:
-        wait_after_second_switch: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'ct' and (nodes.group_jobs.output.ct_jobs | length) > 0 }}"
-
-    run_second_gp_batch:
-      action: aura.run_task
-      params:
-        task_ref: "tasks:auto_battle_dispatch_pc.yaml:auto_battle_gp_batch_pc"
-        inputs:
-          jobs: "{{ nodes.group_jobs.output.gp_jobs }}"
-      depends_on:
-        wait_after_second_switch: "success|skipped"
-      when: "{{ nodes.prepare_category_order.second_category == 'gp' and (nodes.group_jobs.output.gp_jobs | length) > 0 }}"
-
-    click_back_to_initial_after_single_category:
-      action: resonance_pc.wait_and_click_back_button
-      params:
-        region: [10, 5, 160, 70]
-        template: "templates/battle/navigation/back_button.png"
-        threshold: 0.9
-        use_grayscale: true
-        after_click_sec: 1.0
-        timeout_sec: 20.0
-        interval_sec: 0.2
-        stable_scans: 2
-        already_at_target_template: "templates/battle/navigation/main_terminal_marker.png"
-        already_at_target_region: [1080, 375, 190, 80]
-        already_at_target_threshold: 0.95
-        already_at_target_use_grayscale: true
-        repeat_until_target: true
-        max_clicks: 4
-        target_stable_scans: 2
-      depends_on:
-        all:
-          - run_first_ct_batch: "success|failed|skipped"
-          - run_first_gp_batch: "success|failed|skipped"
-      when: "{{ nodes.prepare_category_order.first_category != '' and nodes.prepare_category_order.second_category == '' }}"
-
-    click_back_to_initial_after_second_category:
-      action: resonance_pc.wait_and_click_back_button
-      params:
-        region: [10, 5, 160, 70]
-        template: "templates/battle/navigation/back_button.png"
-        threshold: 0.9
-        use_grayscale: true
-        after_click_sec: 1.0
-        timeout_sec: 20.0
-        interval_sec: 0.2
-        stable_scans: 2
-        already_at_target_template: "templates/battle/navigation/main_terminal_marker.png"
-        already_at_target_region: [1080, 375, 190, 80]
-        already_at_target_threshold: 0.95
-        already_at_target_use_grayscale: true
-        repeat_until_target: true
-        max_clicks: 4
-        target_stable_scans: 2
-      depends_on:
-        all:
-          - run_second_ct_batch: "success|failed|skipped"
-          - run_second_gp_batch: "success|failed|skipped"
-      when: "{{ nodes.prepare_category_order.second_category != '' }}"
-
+      depends_on: select_main_category
   returns:
-    success: true
-    category_order: "{{ nodes.group_jobs.output.category_order }}"
-    ct_job_count: "{{ nodes.group_jobs.output.ct_jobs | length }}"
-    gp_job_count: "{{ nodes.group_jobs.output.gp_jobs | length }}"
-    validated_job_count: "{{ nodes.validate_jobs.output.job_count }}"
+    entered: true
+    main_category: "{{ inputs.main_category }}"
+
+
+auto_battle_enter_category_pc:
+  meta:
+    role: internal
+    domain: 战斗
+    title: Enter Battle Play Category
+    description: Open one play category inside an already selected CT or GP terminal.
+    entry_point: false
+    inputs:
+      - name: main_category
+        type: string
+        required: true
+        enum: [ct, gp]
+      - name: sub_category
+        type: string
+        required: true
+        enum: [tie_an, regional_ops_center, action_summary, structural_exploration]
+  steps:
+    require_category_pair:
+      action: plans/aura_base/assert_condition
+      params:
+        condition: "{{ (inputs.main_category == 'ct' and inputs.sub_category in ['tie_an', 'regional_ops_center']) or (inputs.main_category == 'gp' and inputs.sub_category in ['action_summary', 'structural_exploration']) }}"
+        message: Incompatible battle terminal and play category.
+    select_sub_category:
+      action: plans/aura_base/find_text_and_click
+      params:
+        text_to_find: "{{ {'tie_an': '\u94c1\u5b89\u5c40', 'regional_ops_center': '\u533a\u57df\u4f5c\u6218\u4e2d\u5fc3', 'action_summary': '\u884c\u52a8\u6c47\u603b', 'structural_exploration': '\u6784\u6790\u52d8\u63a2'}[inputs.sub_category] }}"
+        region: "{{ [670, 370, 530, 50] if inputs.main_category == 'ct' else [980, 270, 140, 290] }}"
+        match_mode: contains
+        timeout: 8.0
+        interval: 0.5
+        required: true
+      depends_on: require_category_pair
+    settle_sub_category:
+      action: plans/aura_base/sleep
+      params:
+        seconds: 2.0
+      depends_on: select_sub_category
+  returns:
+    entered: true
+    main_category: "{{ inputs.main_category }}"
+    sub_category: "{{ inputs.sub_category }}"
+
+
+auto_battle_dispatch_pc:
+  meta:
+    role: user_task
+    domain: 战斗
+    title: Auto Battle PC Dispatch
+    description: Resolve a daily plan, execute ordinary battles in list order, then run structural exploration and return to main.
+    entry_point: true
+    inputs:
+      - &battle_plan_jobs
+        name: jobs
+        label: Ordinary Battle Jobs
+        type: list
+        required: false
+        max_items: 54
+        item:
+          name: job_item
+          type: dict
+          properties:
+            route_id:
+              name: route_id
+              type: string
+              required: true
+            run_count:
+              name: run_count
+              type: number
+              strict_integer: true
+              required: false
+              default: 1
+              min: 1
+              max: 9999
+            difficulty:
+              name: difficulty
+              type: number
+              required: false
+              enum: [1, 2, 3, 4, 5, 6]
+            stage:
+              name: stage
+              type: number
+              required: false
+              enum: [1, 2, 3]
+            threat_level:
+              name: threat_level
+              type: number
+              required: false
+              min: 1
+            formation_index:
+              name: formation_index
+              type: number
+              required: false
+              min: 1
+              max: 4
+            capture_count:
+              name: capture_count
+              type: number
+              required: false
+              min: 1
+      - &battle_plan_structural_types
+        name: structural_types
+        label: Structural Target Priority
+        description: Ordered independent target types; no run count.
+        type: list
+        required: false
+      - name: weekly_plan
+        label: Weekly Battle Plan
+        description: Persistent seven-day plan; mutually exclusive with direct jobs or structural_types, including explicit empty lists.
+        type: dict
+        required: false
+        properties:
+          mon: &battle_plan_day
+            name: battle_day
+            type: dict
+            required: false
+            properties:
+              jobs: *battle_plan_jobs
+              structural_types: *battle_plan_structural_types
+              stop_on_failure:
+                name: stop_on_failure
+                type: boolean
+                required: false
+          tue: *battle_plan_day
+          wed: *battle_plan_day
+          thu: *battle_plan_day
+          fri: *battle_plan_day
+          sat: *battle_plan_day
+          sun: *battle_plan_day
+          schema_version:
+            name: schema_version
+            type: number
+            strict_integer: true
+            required: false
+            enum: [1]
+          days:
+            name: days
+            type: dict
+            required: false
+            properties:
+              mon: *battle_plan_day
+              tue: *battle_plan_day
+              wed: *battle_plan_day
+              thu: *battle_plan_day
+              fri: *battle_plan_day
+              sat: *battle_plan_day
+              sun: *battle_plan_day
+      - name: stop_on_failure
+        label: Legacy Stop On Failure
+        description: Compatibility input only; defeat or insufficient stamina always ends this battle plan.
+        type: boolean
+        required: false
+        default: true
+  steps:
+    execute:
+      action: resonance_pc.execute_battle_plan
+      params:
+        jobs: "{{ inputs.jobs | default(none) }}"
+        structural_types: "{{ inputs.structural_types | default(none) }}"
+        weekly_plan: "{{ inputs.weekly_plan | default(none) }}"
+  returns:
+    schema: "{{ nodes.execute.output.schema }}"
+    effective_date: "{{ nodes.execute.output.effective_date }}"
+    weekday: "{{ nodes.execute.output.weekday }}"
+    status: "{{ nodes.execute.output.status }}"
+    stop_reason: "{{ nodes.execute.output.stop_reason }}"
+    counts: "{{ nodes.execute.output.counts }}"
+    job_results: "{{ nodes.execute.output.job_results }}"
+    results: "{{ nodes.execute.output.results }}"
+    structural: "{{ nodes.execute.output.structural }}"
+    cleanup: "{{ nodes.execute.output.cleanup }}"
+    continue_workflow: "{{ nodes.execute.output.continue_workflow }}"

@@ -279,27 +279,33 @@
     },
     {
       "route_id": "gp.action_summary.global_supply.savior",
-      "main_category": "gp"
+      "main_category": "gp",
+      "open_weekdays": [2, 7]
     },
     {
       "route_id": "gp.action_summary.global_supply.standard",
-      "main_category": "gp"
+      "main_category": "gp",
+      "open_weekdays": [1, 7]
     },
     {
       "route_id": "gp.action_summary.global_supply.elegant",
-      "main_category": "gp"
+      "main_category": "gp",
+      "open_weekdays": [3, 7]
     },
     {
       "route_id": "gp.action_summary.global_supply.cutting_edge",
-      "main_category": "gp"
+      "main_category": "gp",
+      "open_weekdays": [4, 7]
     },
     {
       "route_id": "gp.action_summary.global_supply.chaos",
-      "main_category": "gp"
+      "main_category": "gp",
+      "open_weekdays": [5, 7]
     },
     {
       "route_id": "gp.action_summary.global_supply.magic",
-      "main_category": "gp"
+      "main_category": "gp",
+      "open_weekdays": [6, 7]
     },
     {
       "route_id": "gp.action_summary.smuggler_crackdown.blind_box",

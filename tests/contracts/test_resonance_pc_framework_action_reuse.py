@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 
 import yaml
@@ -10,6 +11,7 @@ from plans.resonance_pc.src.actions import combined_commerce_pc_actions
 from plans.resonance_pc.src.actions import passenger_flow_pc_actions
 from plans.resonance_pc.src.actions import passenger_pc_actions
 from plans.resonance_pc.src.actions import reforming_center_pc_actions
+from plans.resonance_pc.src.actions import _battle_dispatch_runtime
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -60,8 +62,21 @@ def test_simple_battle_back_steps_use_framework_image_click() -> None:
         assert step["params"]["stable_center_tolerance_px"] == 2
         assert step["params"]["move_duration"] == 0.1
         assert step["params"]["required"] is True
-    assert len(complex_steps) == 2
-    assert all(step["params"]["repeat_until_target"] is True for step in complex_steps)
+    # The ordered daily dispatcher owns the single main-page handoff now.
+    assert not complex_steps
+    assert tasks["auto_battle_dispatch_pc"]["steps"]["execute"]["action"] == "resonance_pc.execute_battle_plan"
+    calls = []
+
+    class Execution:
+        async def call_action(self, action, params, **kwargs):
+            calls.append((action, params))
+            return {"already_at_target": True}
+
+    asyncio.run(_battle_dispatch_runtime._return_to_main(Execution()))
+    assert len(calls) == 1
+    assert calls[0][0] == "resonance_pc.wait_and_click_back_button"
+    assert calls[0][1]["repeat_until_target"] is True
+    assert calls[0][1]["target_stable_scans"] == 2
 
 
 def test_removed_pc_action_and_drag_controller_are_not_exported() -> None:

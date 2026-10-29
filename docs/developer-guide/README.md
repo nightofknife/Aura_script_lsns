@@ -12,6 +12,7 @@ This section is for maintaining the Resonance plan, GUI and release package.
 - [OCR Recognition Benchmark](./ocr-recognition-benchmark.md)
 - [OCR Orientation Benchmark](./ocr-orientation-benchmark.md)
 - [Resonance Development](./resonance-development.md)
+- [每日作战执行](./resonance-pc-daily-battle.md)
 - [整顿中心成品仓取出到车厢方案](./resonance-pc-product-warehouse-transfer-design.md)
 - [领取成品并取货（PC）](./resonance-pc-collect-and-withdraw-products.md)
 - [当前可见监狱成品刷新（PC）](./resonance-pc-visible-prison-products.md)

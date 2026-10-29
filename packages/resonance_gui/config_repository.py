@@ -13,6 +13,7 @@ from .paths import resolve_application_root
 from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options, validate_city_tax_rates_bps, validate_allow_stale_market
 from .black_moon_catalog import normalize_black_moon_settings
 from .affix_catalog import normalize_affix_inputs
+from .battle_plan import normalize_battle_editor_inputs
 from packages.resonance_shared.freight_parameters import (
     DEFAULT_RECOVERY_THRESHOLDS,
 )
@@ -648,13 +649,4 @@ def _merge_player_data_inputs(values: dict[str, Any]) -> dict[str, Any]:
 
 
 def _merge_battle_inputs(values: dict[str, Any]) -> dict[str, Any]:
-    raw_jobs = values.get("jobs")
-    jobs = [
-        dict(job)
-        for job in (raw_jobs if isinstance(raw_jobs, list) else [])
-        if isinstance(job, dict) and str(job.get("route_id") or "").strip()
-    ][:50]
-    return {
-        "jobs": jobs,
-        "stop_on_failure": bool(values.get("stop_on_failure", True)),
-    }
+    return normalize_battle_editor_inputs(values)

@@ -1,0 +1,87 @@
+{
+  "reference_client": [
+    1280,
+    720
+  ],
+  "recognition": "native_title_exact_ocr_with_settlement_controls",
+  "titles": {
+    "victory": [
+      "作战胜利",
+      "作战完成"
+    ],
+    "defeat": [
+      "作战失败"
+    ],
+    "timeout": [
+      "严重超时"
+    ],
+    "next": [
+      "下一步"
+    ],
+    "arrest": [
+      "逮捕"
+    ]
+  },
+  "text_ids": {
+    "victory": [
+      80606157,
+      80606163,
+      80606164
+    ],
+    "defeat": [
+      80606176
+    ],
+    "timeout": [
+      80606186
+    ],
+    "next": [
+      80606161
+    ],
+    "arrest": [
+      80610301
+    ]
+  },
+  "text_source": {
+    "file": "Patch/BinaryConfig/TextFactory.bin",
+    "sha256": "6863ad8c39e7ef730b5c203f962e688a3570d3c2615560c24ed90926eeb2c6f2"
+  },
+  "settlement_source": {
+    "prefab": "ui/settlement/settlement.asset",
+    "sha256": "8145869872f1a5f5338722d329efbe2c64d2a570ba1070495f6d44118aad69aa",
+    "victory_nodes": [
+      "/Settlement/Group_Victory/Group_MVP/Txt_Victory",
+      "/Settlement/Group_Victory/Group_Tips/Txt_victory_CN",
+      "/Settlement/Group_Victory/Group_CoreTips/Txt_victory_CN"
+    ],
+    "defeat_node": "/Settlement/Group_Defeat/Img_Bg/Txt_Defeat",
+    "next_callbacks": [
+      "Settlement_Group_Victory_Btn_Next_Click",
+      "Settlement_Group_Defeat_Btn_Next_Click"
+    ]
+  },
+  "arrest": {
+    "prefab": "ui/prison/arrestprisoner/arresttips.asset",
+    "sha256": "cb38c79ef912c4d905a5924d49bde13a31b40e0122599d6311c5a4d8840708e6",
+    "min_text": "最小",
+    "plus_text": "+1",
+    "count_region": [
+      460,
+      315,
+      350,
+      100
+    ],
+    "plus_region": [
+      770,
+      340,
+      115,
+      80
+    ],
+    "min_region": [
+      330,
+      340,
+      110,
+      80
+    ]
+  },
+  "live_validation": "not_run"
+}
