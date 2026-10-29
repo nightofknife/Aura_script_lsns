@@ -156,10 +156,10 @@ def test_business_tasks_share_budget_without_restoring_auto_book(window, monkeyp
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
     pending = window._workflow_pending
-    assert [row["step"] for row in pending] == ["refresh_recovery", "passenger"]
-    assert [row["dispatch"] for row in pending] == ["pc_task", "combined_commerce"]
-    assert pending[0]["inputs"]["stages"] == ["prison_products"]
-    commerce = pending[1]
+    assert [row["step"] for row in pending] == ["passenger"]
+    assert [row["dispatch"] for row in pending] == ["combined_commerce"]
+    assert "refresh_recovery" not in page._tree_items
+    commerce = pending[0]
     assert commerce["inputs"]["order"] == "passenger_first"
     assert commerce["inputs"]["total_fatigue_budget"] == 333
     assert "parent" not in commerce and "budget_pending" not in commerce

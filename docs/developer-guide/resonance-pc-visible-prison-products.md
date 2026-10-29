@@ -1,6 +1,6 @@
 # 当前可见监狱成品刷新
 
-2026-10-24。新增 `player_data_refresh` 的可选 `prison_products` stage；原有默认四项保持不变。货运 GUI 的准备阶段显式选择该 stage，若启用汽水或便当则在同一次刷新中追加原有 `profile` 阶段。
+2026-10-29 更新。`player_data_refresh` 保留可选 `prison_products` stage，原有默认四项保持不变。货运不再自动选择该 stage，也不要求监狱成品刷新成功；只有启用汽水或便当时才执行原有 `profile` 恢复资源刷新。不新增 GUI 开关，现有独立读取入口和保存的商品筛选保持不变。
 
 ```mermaid
 flowchart TD
@@ -12,7 +12,7 @@ flowchart TD
     F --> G[识别当前完整可见卡片及数量]
     G --> H[返回普通总览，再返回头像菜单]
     H --> I[关闭菜单并确认游戏主界面]
-    I --> J[保存本次数据，校验后启动货运]
+    I --> J[保存本次独立刷新数据]
 ```
 
 ## 参数和观测范围
@@ -23,13 +23,13 @@ flowchart TD
 
 成功表示本次完整可见范围内没有未解决项，不表示仓库完整库存。`scope` 固定 `visible`，`inventory_complete` 固定 `false`；未见商品数量未知。选择商品均不在当前视口时允许空结果，且保留 `not_observed`。
 
-## 保存和货运准备
+## 保存和货运边界
 
 数据独立保存到 `user-info.json` 的 `prison_products`，包含 `goods`（`goods_id`、`goods`、`quantity`）、`requested_goods`、`not_observed`、`unresolved`、`coverage_notes`、`refreshed_at`、`visible_complete` 和 `returned_to_profile`。部分读取也保存本次明确结果并移除旧成功时间，避免将旧值当成本次刷新。其余用户数据按原规则合并保留。
 
-货运直接启动和组合工作流均在货运前读取；客货运组合在整个组合前准备。没有开启恢复资源时只选 `prison_products`；开启时同时选 `profile`，保持疲劳、汽水、便当的原校验。GUI 商品选择保存为 `prison_product_goods`，不透传为正式货运任务参数。普通用户数据页面也可勾选此阶段并选择商品。
+货运直接启动、工作流货运以及客货运组合均不读取监狱成品。没有开启恢复资源时直接执行货运；开启时只选 `profile`，保持疲劳、汽水、便当的原校验，客货运组合在整个组合前准备。现有 GUI 商品选择仍保存为 `prison_product_goods`，不会加入货运前刷新或正式货运任务参数。普通用户数据页面仍可独立勾选 `prison_products` 阶段并选择商品。
 
-只有本次刷新已保存、监狱结果明确、返回菜单确认，以及本次需要的恢复项校验通过，GUI 才启动货运。仓库数量不会混入 `recovery_snapshot` 的恢复资源字段。行情仍在货运内部规划路线前刷新。
+货运仅校验本次启用的恢复资源刷新，不校验监狱成品结果。独立监狱读取的可见范围、数量有效性、保存及返回菜单确认要求保持不变。行情仍在货运内部规划路线前刷新。
 
 ## 导航与验证边界
 

@@ -59,7 +59,6 @@ from .logic import (
     normalize_trade_task_inputs,
     validate_recovery_refresh,
     battle_continuation_detail,
-    validate_prison_products_refresh,
 )
 from .style import APP_STYLE
 from .update_checker import current_version_label, find_available_update
@@ -494,7 +493,6 @@ class ResonanceMainWindow(QMainWindow):
         if self._busy or self._workflow_active or self._small_task_active_ref:
             return
         trade = deepcopy(inputs if isinstance(inputs, dict) else {})
-        trade.setdefault("prison_product_goods", self.trade_page.collect_ui_state().get("prison_product_goods", []))
         self._start_freight_recovery_workflow(trade)
 
     def _save_auto_sparkling_water(self, enabled: bool) -> None:
@@ -528,8 +526,10 @@ class ResonanceMainWindow(QMainWindow):
         self._settings.save_trade_inputs(inputs)
 
     @staticmethod
-    def _recovery_refresh_step(trade: Mapping[str, Any]) -> dict[str, Any]:
+    def _recovery_refresh_step(trade: Mapping[str, Any]) -> dict[str, Any] | None:
         recovery_enabled = bool(trade.get("auto_sparkling_water", False) or trade.get("auto_bento", False))
+        if not recovery_enabled:
+            return None
         profile_sections = ["fatigue"]
         if bool(trade.get("auto_sparkling_water", False)):
             profile_sections.append("sparkling_water")
@@ -539,9 +539,8 @@ class ResonanceMainWindow(QMainWindow):
             "step": "refresh_recovery",
             "task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF,
             "inputs": {
-                "stages": ["profile", "prison_products"] if recovery_enabled else ["prison_products"],
+                "stages": ["profile"],
                 "profile_sections": profile_sections,
-                "prison_product_goods": deepcopy(trade.get("prison_product_goods") or []),
             },
             "label": "货运前数据刷新",
             "dispatch": "pc_task",
@@ -552,10 +551,13 @@ class ResonanceMainWindow(QMainWindow):
     ) -> None:
         kinds = ["trade"] if passenger is None else ["trade", "passenger"]
         prepare = self._recovery_refresh_step(trade)
-        prepare["parent"] = "trade"
-        pending = [prepare, {
+        pending = []
+        if prepare is not None:
+            prepare["parent"] = "trade"
+            pending.append(prepare)
+        pending.append({
             "step": "trade", "label": "货运", "dispatch": "trade", "inputs": deepcopy(trade),
-        }]
+        })
         if passenger is not None:
             pending.append({
                 "step": "passenger", "label": "客运", "dispatch": "passenger",
@@ -730,7 +732,6 @@ class ResonanceMainWindow(QMainWindow):
             if "trade" in steps:
                 validating = "货运"
                 snapshots["trade"] = self.trade_page.collect_task_inputs()
-                snapshots["trade"]["prison_product_goods"] = self.trade_page.collect_ui_state().get("prison_product_goods", [])
             if "passenger" in steps:
                 validating = "客运"
                 snapshots["passenger"] = self.passenger_page.collect_inputs()
@@ -767,8 +768,9 @@ class ResonanceMainWindow(QMainWindow):
             elif step in {"trade", "passenger"}:
                 if step == "trade":
                     prepare = self._recovery_refresh_step(trade)
-                    prepare["parent"] = "trade"
-                    pending.append(prepare)
+                    if prepare is not None:
+                        prepare["parent"] = "trade"
+                        pending.append(prepare)
                 pending.append({
                     "step": step, "inputs": dict(run_snapshots[step]),
                     "label": "货运" if step == "trade" else "客运", "dispatch": step,
@@ -1579,28 +1581,24 @@ class ResonanceMainWindow(QMainWindow):
                     ))
                 else:
                     try:
-                        player = validate_prison_products_refresh(result)
-                        if "profile" in current["inputs"]["stages"]:
-                            player = validate_recovery_refresh(result, current["inputs"]["profile_sections"])
+                        player = validate_recovery_refresh(result, current["inputs"]["profile_sections"])
                     except ValueError as exc:
                         self._abort_workflow(str(exc))
                     else:
                         self._workflow_recovery_snapshot = {
                             "cid": extract_run_id(payload),
                             "player_data": player,
-                            "recovery_requested": "profile" in current["inputs"]["stages"],
+                            "recovery_requested": True,
                         }
-                        resources = [f"当前可见监狱成品 {len(player['prison_products']['goods'])} 种"]
-                        if "profile" in current["inputs"]["stages"]:
-                            recovery = player.get("recovery", {})
-                            water = recovery.get("sparkling_water")
-                            fatigue = player["status"]["fatigue"]
-                            bento = recovery.get("bento_count")
-                            resources.append(f"疲劳 {fatigue['current']}/{fatigue['max']}")
-                            if water is not None:
-                                resources.append(f"气泡水 {water['remaining_free_uses']}/{water['daily_free_limit']} 次")
-                            if bento is not None:
-                                resources.append(f"便当 {bento['count']} 份")
+                        recovery = player.get("recovery", {})
+                        water = recovery.get("sparkling_water")
+                        fatigue = player["status"]["fatigue"]
+                        bento = recovery.get("bento_count")
+                        resources = [f"疲劳 {fatigue['current']}/{fatigue['max']}"]
+                        if water is not None:
+                            resources.append(f"气泡水 {water['remaining_free_uses']}/{water['daily_free_limit']} 次")
+                        if bento is not None:
+                            resources.append(f"便当 {bento['count']} 份")
                         self.workflow_page.mark_step(
                             step, "success",
                             f"货运前数据已刷新：{'，'.join(resources)}，数据已保存"
