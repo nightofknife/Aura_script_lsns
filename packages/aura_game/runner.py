@@ -254,6 +254,22 @@ class EmbeddedGameRunner:
         runtime = self._ensure_runtime()
         return runtime.cancel_task(str(cid))
 
+    def request_battle_stop(self, cid: str) -> Dict[str, Any]:
+        """Request cooperative stop inside this worker; never latch core cancel."""
+        from packages.resonance_shared.battle_control import request_stop
+
+        row = self.get_run(str(cid))
+        task_name = str(row.get("task_name") or row.get("task_ref") or "")
+        game_name = str(row.get("game_name") or row.get("plan_name") or "")
+        if game_name != "resonance_pc" or not task_name.endswith("auto_battle_dispatch_pc"):
+            raise ValueError("Cooperative battle stop requires an active battle root task")
+        if (str(row.get("status") or "").lower() in _TERMINAL_STATUSES
+                and row.get("execution_pending") is not True):
+            return {"status": "success", "cid": str(cid), "soft_stop_requested": False, "already_finished": True}
+        if not request_stop(str(cid), allow_pending=True):
+            raise RuntimeError("Battle stop request could not be registered")
+        return {"status": "success", "cid": str(cid), "soft_stop_requested": True}
+
     def target_status(self, *, game_name: str) -> Dict[str, Any]:
         runtime = self._ensure_running_runtime()
         del runtime
@@ -660,6 +676,9 @@ class SubprocessGameRunner:
 
     def cancel_task(self, cid: str) -> Dict[str, Any]:
         return self._request("cancel_task", cid=cid)
+
+    def request_battle_stop(self, cid: str) -> Dict[str, Any]:
+        return self._request("request_battle_stop", cid=cid)
 
     def target_status(self, *, game_name: str) -> Dict[str, Any]:
         return self._request("target_status", game_name=game_name)

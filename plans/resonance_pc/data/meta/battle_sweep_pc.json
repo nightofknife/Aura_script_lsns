@@ -1,0 +1,844 @@
+{
+  "schema_version": 1,
+  "status": "native_generated_not_live_verified",
+  "reference_client": [
+    1280,
+    720
+  ],
+  "sources": {
+    "Asset": "2ac5804245748ec03666301a6d985869eaa54f1c18688fbdcb45af1ef1d2a74a",
+    "ui/chapter/battle_material/battle_material.asset": "9f112406249d1148f6f4cccd3d3adf25f14a17936727b791096c25d0fb0d65f5",
+    "ui/font.asset": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a",
+    "ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+    "ui/font/originpack.asset": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1",
+    "ui/squads.asset": "5986337d0c809dfd163859da721b56b853e9a1660881d27faf24632fbb5fe402",
+    "ui/chapter/battle_abyss/team_double.asset": "f4f9bcb78b564d2bd6382724448a773d675df3aadb93eb06947a852179b10115",
+    "ui/chapter.asset": "c793ab3a263168732058f3e2d74e21bc4d2219cf50bea40545acd0391f069fbb",
+    "ui/chapter/battle_material/images.asset": "8412a612d95b136fe45fcba62f0c5e562ccb7ca1ad56f2997ca390dda4512cc2",
+    "ui/chapter/battle_material/battle_equipmentday.asset": "455942f866730608b8d183d208a34193a202198266af67082779146d768c3007",
+    "ui/chapter/battle_material/battle_equipmentweek.asset": "e7f8f3133e831fc071343d0f7cca8af3ce23e1c00633a16d6efbf1127524eb14",
+    "ui/activity/activitysafe/fastbattle.asset": "9b6b12e6b1a07afc36458aec4711c3d1909edb7f69dbdd308653c25448da08de",
+    "ui/common/showitem.asset": "e36a8c1a752d6f138f0c2050b02d4aff25e0e0b6c8533d211f0b00006afa65f6",
+    "ui/common/battleskiptips.asset": "2a8a07dae19912a0c709c225e4ed08dea0756d919063843a82b3980b0b6feb1c",
+    "ui/prison/arrestprisoner/arresttips.asset": "cb38c79ef912c4d905a5924d49bde13a31b40e0122599d6311c5a4d8840708e6",
+    "ui/prison/arrestprisoner/skiparrestsettlement.asset": "2d05ee01d461e623af3d3f9195314050798d28c512a8184dcab81952412a10d8"
+  },
+  "gp_profiles": [
+    {
+      "name": "material",
+      "page_after": "battle_preparation",
+      "anchors": [
+        {
+          "text": "掉落预览",
+          "roi": [
+            795,
+            395,
+            67,
+            20
+          ],
+          "rect_source": "/Battle_Material/Group_Right/Group_Reward/Txt_R",
+          "prefab": "ui/chapter/battle_material/battle_material.asset"
+        },
+        {
+          "text": "难度等级",
+          "roi": [
+            1071,
+            148,
+            85,
+            20
+          ],
+          "rect_source": "/Battle_Material/Group_Right/Group_Details/Img_D/Txt_",
+          "prefab": "ui/chapter/battle_material/battle_material.asset"
+        }
+      ],
+      "stage_name": {
+        "text": "{名字}",
+        "roi": [
+          533,
+          54,
+          667,
+          100
+        ],
+        "rect_source": "/Battle_Material/Group_Right/Group_Details/Txt_Name",
+        "prefab": "ui/chapter/battle_material/battle_material.asset"
+      },
+      "sweep": {
+        "rect": [
+          780,
+          465,
+          186,
+          80
+        ],
+        "point": [
+          873,
+          505
+        ],
+        "rect_source": "/Battle_Material/Group_Right/Group_Skip/Btn_Skip",
+        "prefab": "ui/chapter/battle_material/battle_material.asset",
+        "template": "templates/battle/sweep/material_sweep.png",
+        "sprite": "Battle_Material_btn_skipWin",
+        "sprite_bundle": "ui/chapter/battle_material/images.asset",
+        "sprite_path_id": -3042273987036030221,
+        "sha256": "4756edf3c0da130145dc73e1f819e930252bc248c4d3cbecae27b15c7082916b",
+        "native_image_type": 0,
+        "tint_rgba": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "text_mask": "child_text_rectangles_with_three_pixel_guard"
+      },
+      "sweep_label": {
+        "text": "扫荡",
+        "roi": [
+          851,
+          473,
+          67,
+          31
+        ],
+        "rect_source": "/Battle_Material/Group_Right/Group_Skip/Btn_Skip/Txt_T",
+        "prefab": "ui/chapter/battle_material/battle_material.asset"
+      },
+      "group_start_label": {
+        "text": "开始作战",
+        "roi": [
+          1045,
+          473,
+          107,
+          31
+        ],
+        "rect_source": "/Battle_Material/Group_Right/Group_Skip/Btn_Start/Txt_T",
+        "prefab": "ui/chapter/battle_material/battle_material.asset"
+      },
+      "manual_only": {
+        "rect": [
+          780,
+          465,
+          427,
+          80
+        ],
+        "point": [
+          993,
+          505
+        ],
+        "rect_source": "/Battle_Material/Group_Right/Btn_Start",
+        "prefab": "ui/chapter/battle_material/battle_material.asset",
+        "template": "templates/battle/sweep/material_manual_only.png",
+        "sprite": "Battle_Material_btn_enter",
+        "sprite_bundle": "ui/chapter/battle_material/images.asset",
+        "sprite_path_id": -8802420510576775512,
+        "sha256": "366c3ce9b9aa97736bb79869c15a27c770c33fa254ee0102acbb4bd2c5448ab1",
+        "native_image_type": 0,
+        "tint_rgba": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "text_mask": "child_text_rectangles_with_three_pixel_guard"
+      },
+      "manual_only_label": {
+        "text": "开始作战",
+        "roi": [
+          905,
+          467,
+          107,
+          67
+        ],
+        "rect_source": "/Battle_Material/Group_Right/Btn_Start/Txt_",
+        "prefab": "ui/chapter/battle_material/battle_material.asset"
+      },
+      "availability_source": "GetLevelPassBySelf(levelId); own completion required; PlayerData.lua:2924-2930"
+    },
+    {
+      "name": "equipmentday",
+      "page_after": "battle_preparation",
+      "anchors": [
+        {
+          "text": "掉落预览",
+          "roi": [
+            795,
+            395,
+            67,
+            20
+          ],
+          "rect_source": "/Battle_EquipmentDay/Group_Right/Group_Reward/Txt_R",
+          "prefab": "ui/chapter/battle_material/battle_equipmentday.asset"
+        },
+        {
+          "text": "难度等级",
+          "roi": [
+            1071,
+            148,
+            85,
+            20
+          ],
+          "rect_source": "/Battle_EquipmentDay/Group_Right/Group_Details/Img_D/Txt_",
+          "prefab": "ui/chapter/battle_material/battle_equipmentday.asset"
+        }
+      ],
+      "stage_name": {
+        "text": "{名字}",
+        "roi": [
+          533,
+          54,
+          667,
+          100
+        ],
+        "rect_source": "/Battle_EquipmentDay/Group_Right/Group_Details/Txt_Name",
+        "prefab": "ui/chapter/battle_material/battle_equipmentday.asset"
+      },
+      "sweep": {
+        "rect": [
+          780,
+          465,
+          186,
+          80
+        ],
+        "point": [
+          873,
+          505
+        ],
+        "rect_source": "/Battle_EquipmentDay/Group_Right/Group_Skip/Btn_Skip",
+        "prefab": "ui/chapter/battle_material/battle_equipmentday.asset",
+        "template": "templates/battle/sweep/equipmentday_sweep.png",
+        "sprite": "Battle_Material_btn_skipWin",
+        "sprite_bundle": "ui/chapter/battle_material/images.asset",
+        "sprite_path_id": -3042273987036030221,
+        "sha256": "4756edf3c0da130145dc73e1f819e930252bc248c4d3cbecae27b15c7082916b",
+        "native_image_type": 0,
+        "tint_rgba": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "text_mask": "child_text_rectangles_with_three_pixel_guard"
+      },
+      "sweep_label": {
+        "text": "扫荡",
+        "roi": [
+          851,
+          473,
+          67,
+          31
+        ],
+        "rect_source": "/Battle_EquipmentDay/Group_Right/Group_Skip/Btn_Skip/Txt_T",
+        "prefab": "ui/chapter/battle_material/battle_equipmentday.asset"
+      },
+      "group_start_label": {
+        "text": "开始作战",
+        "roi": [
+          1045,
+          473,
+          107,
+          31
+        ],
+        "rect_source": "/Battle_EquipmentDay/Group_Right/Group_Skip/Btn_Start/Txt_T",
+        "prefab": "ui/chapter/battle_material/battle_equipmentday.asset"
+      },
+      "manual_only": {
+        "rect": [
+          780,
+          465,
+          427,
+          80
+        ],
+        "point": [
+          993,
+          505
+        ],
+        "rect_source": "/Battle_EquipmentDay/Group_Right/Btn_Start",
+        "prefab": "ui/chapter/battle_material/battle_equipmentday.asset",
+        "template": "templates/battle/sweep/equipmentday_manual_only.png",
+        "sprite": "Battle_Material_btn_enter",
+        "sprite_bundle": "ui/chapter/battle_material/images.asset",
+        "sprite_path_id": -8802420510576775512,
+        "sha256": "366c3ce9b9aa97736bb79869c15a27c770c33fa254ee0102acbb4bd2c5448ab1",
+        "native_image_type": 0,
+        "tint_rgba": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "text_mask": "child_text_rectangles_with_three_pixel_guard"
+      },
+      "manual_only_label": {
+        "text": "开始作战",
+        "roi": [
+          905,
+          467,
+          107,
+          67
+        ],
+        "rect_source": "/Battle_EquipmentDay/Group_Right/Btn_Start/Txt_",
+        "prefab": "ui/chapter/battle_material/battle_equipmentday.asset"
+      },
+      "availability_source": "GetLevelPassBySelf(levelId); own completion required; PlayerData.lua:2924-2930"
+    },
+    {
+      "name": "equipmentweek",
+      "page_after": "battle_preparation",
+      "anchors": [
+        {
+          "text": "掉落预览",
+          "roi": [
+            795,
+            395,
+            67,
+            20
+          ],
+          "rect_source": "/Battle_EquipmentWeek/Group_Right/Group_Reward/Txt_R",
+          "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset"
+        },
+        {
+          "text": "难度等级",
+          "roi": [
+            1071,
+            148,
+            85,
+            20
+          ],
+          "rect_source": "/Battle_EquipmentWeek/Group_Right/Group_Details/Img_D/Txt_",
+          "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset"
+        }
+      ],
+      "stage_name": {
+        "text": "{名字}",
+        "roi": [
+          533,
+          54,
+          667,
+          100
+        ],
+        "rect_source": "/Battle_EquipmentWeek/Group_Right/Group_Details/Txt_Name",
+        "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset"
+      },
+      "sweep": {
+        "rect": [
+          780,
+          465,
+          186,
+          80
+        ],
+        "point": [
+          873,
+          505
+        ],
+        "rect_source": "/Battle_EquipmentWeek/Group_Right/Group_Skip/Btn_Skip",
+        "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset",
+        "template": "templates/battle/sweep/equipmentweek_sweep.png",
+        "sprite": "Battle_Material_btn_skipWin",
+        "sprite_bundle": "ui/chapter/battle_material/images.asset",
+        "sprite_path_id": -3042273987036030221,
+        "sha256": "4756edf3c0da130145dc73e1f819e930252bc248c4d3cbecae27b15c7082916b",
+        "native_image_type": 0,
+        "tint_rgba": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "text_mask": "child_text_rectangles_with_three_pixel_guard"
+      },
+      "sweep_label": {
+        "text": "扫荡",
+        "roi": [
+          851,
+          473,
+          67,
+          31
+        ],
+        "rect_source": "/Battle_EquipmentWeek/Group_Right/Group_Skip/Btn_Skip/Txt_T",
+        "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset"
+      },
+      "group_start_label": {
+        "text": "开始作战",
+        "roi": [
+          1045,
+          473,
+          107,
+          31
+        ],
+        "rect_source": "/Battle_EquipmentWeek/Group_Right/Group_Skip/Btn_Start/Txt_T",
+        "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset"
+      },
+      "manual_only": {
+        "rect": [
+          780,
+          465,
+          427,
+          80
+        ],
+        "point": [
+          993,
+          505
+        ],
+        "rect_source": "/Battle_EquipmentWeek/Group_Right/Btn_Start",
+        "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset",
+        "template": "templates/battle/sweep/equipmentweek_manual_only.png",
+        "sprite": "Battle_Material_btn_enter",
+        "sprite_bundle": "ui/chapter/battle_material/images.asset",
+        "sprite_path_id": -8802420510576775512,
+        "sha256": "366c3ce9b9aa97736bb79869c15a27c770c33fa254ee0102acbb4bd2c5448ab1",
+        "native_image_type": 0,
+        "tint_rgba": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "text_mask": "child_text_rectangles_with_three_pixel_guard"
+      },
+      "manual_only_label": {
+        "text": "开始作战",
+        "roi": [
+          905,
+          467,
+          107,
+          67
+        ],
+        "rect_source": "/Battle_EquipmentWeek/Group_Right/Btn_Start/Txt_",
+        "prefab": "ui/chapter/battle_material/battle_equipmentweek.asset"
+      },
+      "availability_source": "GetLevelPassBySelf(levelId); own completion required; PlayerData.lua:2924-2930"
+    }
+  ],
+  "unsupported_profiles": [
+    {
+      "name": "ct_expel",
+      "page_after": "mission_preparation",
+      "manual_only": {
+        "rect": [
+          826,
+          515,
+          411,
+          54
+        ],
+        "point": [
+          1031,
+          542
+        ],
+        "rect_source": "/FastBattle/Group_Safa/Group_Level/Group_Information/Group_Battle/Group_Start/Btn_Battle",
+        "prefab": "ui/activity/activitysafe/fastbattle.asset"
+      },
+      "manual_only_label": {
+        "text": "前往作战",
+        "roi": [
+          967,
+          524,
+          107,
+          32
+        ],
+        "rect_source": "/FastBattle/Group_Safa/Group_Level/Group_Information/Group_Battle/Group_Start/Btn_Battle/Txt_",
+        "prefab": "ui/activity/activitysafe/fastbattle.asset"
+      },
+      "anchors": [
+        {
+          "text": "驱逐奖励",
+          "roi": [
+            1161,
+            304,
+            73,
+            20
+          ],
+          "rect_source": "/FastBattle/Group_Safa/Group_Level/Group_Information/Group_Progress/Group_Schedule/Group_Right/Group_Reward/Txt_",
+          "prefab": "ui/activity/activitysafe/fastbattle.asset"
+        }
+      ],
+      "availability_source": "UIFastBattleSafeController.ClickBattle:484-536; native controllers expose squad entry only, no sweep control"
+    },
+    {
+      "name": "ct_bounty",
+      "page_after": "mission_preparation",
+      "manual_only": {
+        "rect": [
+          671,
+          579,
+          239,
+          67
+        ],
+        "point": [
+          790,
+          612
+        ],
+        "rect_source": "/FastBattle/Group_Safa/Group_XS/Group_Information/Group_TZ/Btn_QW",
+        "prefab": "ui/activity/activitysafe/fastbattle.asset"
+      },
+      "manual_only_label": {
+        "text": "前往作战",
+        "roi": [
+          728,
+          587,
+          133,
+          52
+        ],
+        "rect_source": "/FastBattle/Group_Safa/Group_XS/Group_Information/Group_TZ/Btn_QW/Txt_",
+        "prefab": "ui/activity/activitysafe/fastbattle.asset"
+      },
+      "anchors": [
+        {
+          "text": "城市悬赏任务",
+          "roi": [
+            540,
+            107,
+            107,
+            20
+          ],
+          "rect_source": "/FastBattle/Group_Safa/Group_XS/Group_Information/Group_Top/Txt_",
+          "prefab": "ui/activity/activitysafe/fastbattle.asset"
+        }
+      ],
+      "availability_source": "UIFastBattleXSController.ClickBattle:174-205; native controllers expose squad entry only, no sweep control"
+    },
+    {
+      "name": "ct_regional",
+      "page_after": "mission_preparation",
+      "manual_only": {
+        "rect": [
+          980,
+          560,
+          239,
+          67
+        ],
+        "point": [
+          1099,
+          593
+        ],
+        "rect_source": "/FastBattle/Group_Battle/Group_Battle/Group_1/Group_Information/Group_TZ/Btn_QW",
+        "prefab": "ui/activity/activitysafe/fastbattle.asset"
+      },
+      "manual_only_label": {
+        "text": "前往作战",
+        "roi": [
+          1015,
+          567,
+          170,
+          52
+        ],
+        "rect_source": "/FastBattle/Group_Battle/Group_Battle/Group_1/Group_Information/Group_TZ/Btn_QW/Txt_",
+        "prefab": "ui/activity/activitysafe/fastbattle.asset"
+      },
+      "anchors": [
+        {
+          "text": "点击变更难度",
+          "roi": [
+            1044,
+            435,
+            55,
+            21
+          ],
+          "rect_source": "/FastBattle/Group_Battle/Group_Battle/Group_1/Group_Information/Group_Difficult/Btn_Difficult/Txt_",
+          "prefab": "ui/activity/activitysafe/fastbattle.asset"
+        }
+      ],
+      "availability_source": "UIFastBattleBattleController.TryBattle:345-383; native controllers expose squad entry only, no sweep control"
+    }
+  ],
+  "skip": {
+    "title": {
+      "text": "选择队伍",
+      "roi": [
+        587,
+        157,
+        107,
+        20
+      ],
+      "rect_source": "/BattleSkipTips/Img_Bg/Txt_T",
+      "prefab": "ui/common/battleskiptips.asset"
+    },
+    "confirm": {
+      "rect": [
+        648,
+        497,
+        255,
+        63
+      ],
+      "point": [
+        775,
+        528
+      ],
+      "rect_source": "/BattleSkipTips/Btn_Confirm",
+      "prefab": "ui/common/battleskiptips.asset"
+    },
+    "confirm_label": {
+      "text": "开始扫荡",
+      "roi": [
+        719,
+        515,
+        107,
+        20
+      ],
+      "rect_source": "/BattleSkipTips/Btn_Confirm/Txt_T",
+      "prefab": "ui/common/battleskiptips.asset"
+    },
+    "cancel": {
+      "rect": [
+        376,
+        497,
+        255,
+        63
+      ],
+      "point": [
+        503,
+        528
+      ],
+      "rect_source": "/BattleSkipTips/Btn_Close",
+      "prefab": "ui/common/battleskiptips.asset"
+    },
+    "cancel_label": {
+      "text": "取消",
+      "roi": [
+        451,
+        515,
+        107,
+        20
+      ],
+      "rect_source": "/BattleSkipTips/Btn_Close/Txt_T",
+      "prefab": "ui/common/battleskiptips.asset"
+    },
+    "formation_current": {
+      "text": "1",
+      "roi": [
+        290,
+        437,
+        107,
+        20
+      ],
+      "rect_source": "/BattleSkipTips/Txt_Team",
+      "prefab": "ui/common/battleskiptips.asset"
+    },
+    "formation_tabs": [
+      {
+        "index": 1,
+        "rect": [
+          287,
+          207,
+          167,
+          53
+        ],
+        "point": [
+          370,
+          233
+        ],
+        "rect_source": "/BattleSkipTips/ScrollGrid_Tab/Viewport/Grid/Group_Item_000/Btn_Tab",
+        "prefab": "ui/common/battleskiptips.asset",
+        "index_roi": [
+          293,
+          213,
+          40,
+          44
+        ]
+      },
+      {
+        "index": 2,
+        "rect": [
+          455,
+          207,
+          167,
+          53
+        ],
+        "point": [
+          538,
+          233
+        ],
+        "rect_source": "/BattleSkipTips/ScrollGrid_Tab/Viewport/Grid/Group_Item_001/Btn_Tab",
+        "prefab": "ui/common/battleskiptips.asset",
+        "index_roi": [
+          461,
+          213,
+          40,
+          44
+        ]
+      },
+      {
+        "index": 3,
+        "rect": [
+          623,
+          207,
+          167,
+          53
+        ],
+        "point": [
+          706,
+          233
+        ],
+        "rect_source": "/BattleSkipTips/ScrollGrid_Tab/Viewport/Grid/Group_Item_002/Btn_Tab",
+        "prefab": "ui/common/battleskiptips.asset",
+        "index_roi": [
+          629,
+          213,
+          40,
+          44
+        ]
+      },
+      {
+        "index": 4,
+        "rect": [
+          791,
+          207,
+          167,
+          53
+        ],
+        "point": [
+          874,
+          233
+        ],
+        "rect_source": "/BattleSkipTips/ScrollGrid_Tab/Viewport/Grid/Group_Item_003/Btn_Tab",
+        "prefab": "ui/common/battleskiptips.asset",
+        "index_roi": [
+          797,
+          213,
+          40,
+          44
+        ]
+      }
+    ],
+    "formation_source": "UIBattleSkipTipsController.Init:5-10 MoveToTop; SetElementTab:12-32 zero-padded index; ClickBtnTab:55-68 updates Txt_Team to curSquadIndex"
+  },
+  "reward": {
+    "titles": [
+      {
+        "text": "获得物品",
+        "roi": [
+          307,
+          280,
+          0,
+          0
+        ],
+        "rect_source": "/ShowItem/Group_300/Group_Title/Txt_Title",
+        "prefab": "ui/common/showitem.asset"
+      },
+      {
+        "text": "获得物品",
+        "roi": [
+          597,
+          98,
+          160,
+          57
+        ],
+        "rect_source": "/ShowItem/Group_580/Group_Title/Txt_Title",
+        "prefab": "ui/common/showitem.asset"
+      },
+      {
+        "text": "获得物品",
+        "roi": [
+          597,
+          25,
+          160,
+          57
+        ],
+        "rect_source": "/ShowItem/Group_800/Group_Title/Txt_Title",
+        "prefab": "ui/common/showitem.asset"
+      },
+      {
+        "text": "获得物品",
+        "roi": [
+          597,
+          25,
+          160,
+          57
+        ],
+        "rect_source": "/ShowItem/Group_890/Group_Title/Txt_Title",
+        "prefab": "ui/common/showitem.asset"
+      }
+    ],
+    "identity_text": "获得物品",
+    "viewport": {
+      "rect": [
+        173,
+        93,
+        933,
+        533
+      ],
+      "point": [
+        639,
+        359
+      ],
+      "rect_source": "/ShowItem/ScrollGrid_Items",
+      "prefab": "ui/common/showitem.asset"
+    },
+    "close": {
+      "rect": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "point": [
+        86,
+        360
+      ],
+      "rect_source": "/ShowItem/Btn_OK",
+      "prefab": "ui/common/showitem.asset",
+      "point_derivation": "center of canvas margin left of ScrollGrid_Items"
+    },
+    "source": "UIBattleSkipTipsController.TryArrest:326-359; GoBack + CommonTips.OpenShowItem(reward)"
+  },
+  "arrest": {
+    "cancel": {
+      "rect": [
+        7,
+        502,
+        631,
+        74
+      ],
+      "point": [
+        322,
+        539
+      ],
+      "rect_source": "/ArrestTips/Btn_Cancel",
+      "prefab": "ui/prison/arrestprisoner/arresttips.asset"
+    },
+    "source": "UIArrestTipsViewFunction:30-33; GoBack + Cancel callback",
+    "minimum_text": "最小",
+    "plus_text": "+1",
+    "count_region": [
+      460,
+      315,
+      350,
+      100
+    ],
+    "minimum_region": [
+      330,
+      340,
+      110,
+      80
+    ],
+    "plus_region": [
+      770,
+      340,
+      115,
+      80
+    ],
+    "result_title": {
+      "text": "成功逮捕<color=#FFB800>5</color>名囚犯！",
+      "roi": [
+        587,
+        65,
+        107,
+        20
+      ],
+      "rect_source": "/SkipArrestSettlement/Txt_",
+      "prefab": "ui/prison/arrestprisoner/skiparrestsettlement.asset"
+    },
+    "result_close": {
+      "rect": [
+        0,
+        0,
+        1280,
+        720
+      ],
+      "point": [
+        640,
+        360
+      ],
+      "rect_source": "/SkipArrestSettlement/Btn_",
+      "prefab": "ui/prison/arrestprisoner/skiparrestsettlement.asset"
+    }
+  },
+  "execution_source": "UIBattleSkipTipsController.StartSkipWin:71-230; single battle.skip_battle per confirmation, no quantity selector",
+  "resource_source": "CommonTips.OpenBuyEnergyTips:924-959; no generic sweep ticket; level-specific itemCost still applies"
+}

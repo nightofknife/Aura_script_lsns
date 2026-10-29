@@ -22,6 +22,88 @@ PC_COMBINED_COMMERCE_TASK_REF = (
     "tasks:auto_combined_commerce_pc.yaml:auto_combined_commerce_pc"
 )
 PC_BATTLE_TASK_REF = "tasks:auto_battle_dispatch_pc.yaml:auto_battle_dispatch_pc"
+BATTLE_RESULT_SCHEMA = "resonance_pc.battle_plan_result.v1"
+STRUCTURAL_NATIVE_RESULT_SCHEMA = "resonance_pc.structural_native_result.v1"
+
+
+def battle_continuation_detail(result: Mapping[str, Any]) -> tuple[str, str]:
+    """Accept a battle's business stop only after its page handoff is confirmed.
+
+    The caller must independently require a successful, fully drained framework
+    task and reject user cancellation and GUI timeout cancellation.
+    """
+    if result.get("schema") != BATTLE_RESULT_SCHEMA or result.get("continue_workflow") is not True:
+        raise ValueError(str(result.get("reason") or result.get("stop_reason") or "作战没有返回可接续的结果。"))
+    cleanup = result.get("cleanup")
+    counts = result.get("counts")
+    if not isinstance(cleanup, Mapping) or not isinstance(counts, Mapping):
+        raise ValueError("作战结果缺少收尾或执行次数。")
+    for key in ("planned", "started", "won", "lost", "not_started"):
+        if type(counts.get(key)) is not int or counts[key] < 0:
+            raise ValueError("作战结果的执行次数不完整。")
+    if counts["started"] != counts["won"] + counts["lost"]:
+        raise ValueError("作战结果缺少已开战场次的明确结算。")
+    swept = counts.get("swept", 0)
+    if type(swept) is not int or swept < 0:
+        raise ValueError("作战结果的扫荡次数不正确。")
+    if counts["planned"] != counts["started"] + swept + counts["not_started"]:
+        raise ValueError("作战结果的计划次数与实际执行次数不一致。")
+    status, reason = result.get("status"), result.get("stop_reason")
+    structural = result.get("structural")
+    if structural is not None:
+        if not isinstance(structural, Mapping):
+            raise ValueError("构析勘探结果格式错误。")
+        observed = structural.get("observed")
+        types = structural.get("configured_types")
+        if (structural.get("schema") != STRUCTURAL_NATIVE_RESULT_SCHEMA
+                or structural.get("mode") != "native_auto"
+                or structural.get("statistics_complete") is not False
+                or not isinstance(observed, Mapping)
+                or any(type(observed.get(key)) is not int or observed[key] < 0 for key in ("won", "lost"))):
+            raise ValueError("构析勘探结果缺少原生自动协议或观察统计。")
+        known_types = {"disordered_roots", "hetero_branches", "echo_buoy", "birch_buoy"}
+        if (not isinstance(types, list) or not types
+                or any(not isinstance(value, str) or value not in known_types for value in types)
+                or len(set(types)) != len(types)):
+            raise ValueError("构析勘探结果缺少有效的目标优先级。")
+        reasons = {"completed": "no_matching_targets", "defeat": "defeat",
+                   "insufficient_stamina": "insufficient_stamina", "cancelled": "cancelled"}
+        if (structural.get("outcome") not in reasons
+                or structural.get("reason") != reasons.get(structural.get("outcome"))
+                or structural.get("native_stopped") is not True
+                or structural.get("ready_for_next") is not True or structural.get("page_after") != "world_scan"):
+            raise ValueError("构析勘探结果没有确认原生自动已关闭和返回页面。")
+        if ((structural["outcome"] == "defeat" and observed["lost"] < 1)
+                or (structural["outcome"] in {"completed", "insufficient_stamina"} and observed["lost"] != 0)):
+            raise ValueError("构析勘探结束原因与已观察到的战败不一致。")
+        if counts["not_started"] or counts["lost"]:
+            raise ValueError("普通作战未完成时不应执行构析勘探。")
+    if status == "skipped":
+        if (reason != "empty_plan" or counts["planned"] != 0
+                or cleanup.get("required") is not False or cleanup.get("touched_game") is not False
+                or cleanup.get("returned_to_main") is not False or structural is not None
+                or result.get("results") != []):
+            raise ValueError("作战跳过结果不符合空计划约定。")
+        return "skipped", "今日未安排作战，继续后续流程。"
+    if (cleanup.get("returned_to_main") is not True or cleanup.get("required") is not True
+            or cleanup.get("touched_game") is not True):
+        raise ValueError("作战结束后未确认返回主界面，无法接续后续任务。")
+    if status == "completed":
+        if (counts["not_started"] or counts["lost"] or reason is not None
+                or (structural is not None and structural["outcome"] != "completed")):
+            raise ValueError("作战仍有未执行或战败场次，不能报告全部完成。")
+        return "success", "作战计划已完成，已返回主界面。"
+    if status == "stopped" and reason in {"defeat", "insufficient_stamina"}:
+        if structural is not None and structural["outcome"] != reason:
+            raise ValueError("构析勘探结果与作战停止原因不一致。")
+        if structural is None and ((reason == "defeat" and counts["lost"] != 1)
+                                   or (reason == "insufficient_stamina" and counts["lost"] != 0)):
+            raise ValueError("普通作战结果与停止原因不一致。")
+        label = "战败" if reason == "defeat" else "体力不足"
+        return "skipped", f"因{label}提前结束作战，已返回主界面；继续后续流程。"
+    raise ValueError("作战返回了未约定的结束状态。")
+
+
 PC_PLAYER_DATA_REFRESH_TASK_REF = "tasks:player_data_pc.yaml:player_data_refresh"
 PC_PLAYER_DATA_LATEST_TASK_REF = "tasks:player_data_pc.yaml:player_data_get_latest"
 PC_TEAM_RECOMMENDATION_TASK_REF = (
@@ -986,6 +1068,44 @@ def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:
             continue
         return dict(data)
     return dict(data) if isinstance(data, Mapping) else {}
+
+
+def extract_battle_cleanup_evidence(
+    payload: Mapping[str, Any] | None, *, expected_cid: str,
+) -> dict[str, Any]:
+    """Read public root output or its explicit progress snapshot for shutdown.
+
+    A failed task's partial snapshot is evidence only. It must never replace
+    extract_final_result in workflow continuation decisions.
+    """
+    public = extract_final_result(payload)
+    if public.get("schema") == BATTLE_RESULT_SCHEMA:
+        return public
+    data: Any = normalize_run_payload(payload)
+    for _ in range(6):
+        if not isinstance(data, Mapping):
+            return {}
+        framework = data.get("framework_data")
+        if isinstance(framework, Mapping):
+            progress = framework.get("battle_plan_progress")
+            if (isinstance(progress, Mapping) and expected_cid
+                    and progress.get("schema") == "resonance_pc.battle_plan_progress.v1"
+                    and progress.get("cid") == expected_cid):
+                partial = progress.get("result")
+                if isinstance(partial, Mapping) and partial.get("schema") == BATTLE_RESULT_SCHEMA:
+                    return dict(partial)
+        if isinstance(data.get("final_result"), Mapping):
+            data = data["final_result"]
+            continue
+        run = data.get("run")
+        if isinstance(run, Mapping) and isinstance(run.get("detail"), Mapping):
+            data = run["detail"]
+            continue
+        if isinstance(data.get("detail"), Mapping):
+            data = data["detail"]
+            continue
+        return {}
+    return {}
 
 
 def _declared_deep_dive_result(payload: Mapping[str, Any], field: str) -> dict[str, Any]:

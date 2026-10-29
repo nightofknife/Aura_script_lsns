@@ -60,11 +60,7 @@ auto_battle_combat_pc:
       action: resonance_pc.run_battle_resolution
       params:
         capture_count: "{{ inputs.capture_count | default(none) }}"
-        battle_poll_region: [1100, 330, 140, 360]
-        confirm_region: [900, 510, 150, 60]
-        exit_hint_region: [550, 660, 180, 50]
-        confirm_click_point: [830, 380]
-        poll_interval_sec: 5.0
+        poll_interval_sec: 0.5
         timeout_sec: 600.0
         confirm_timeout_sec: 30.0
         exit_hint_timeout_sec: 30.0
@@ -73,5 +69,8 @@ auto_battle_combat_pc:
       when: "{{ not nodes.detect_stamina_after_start.output.insufficient_stamina }}"
   returns:
     success: true
-    outcome: "{{ 'insufficient_stamina' if nodes.detect_stamina_after_start.output.insufficient_stamina else 'completed' }}"
-    branch: "{{ nodes.resolve_battle_result.output.branch | default(none) }}"
+    outcome: "{{ 'insufficient_stamina' if nodes.detect_stamina_after_start.output.insufficient_stamina else nodes.resolve_battle_result.output.outcome }}"
+    battle_started: "{{ false if nodes.detect_stamina_after_start.output.insufficient_stamina else nodes.resolve_battle_result.output.battle_started }}"
+    page_after: "{{ nodes.detect_stamina_after_start.output.page_after if nodes.detect_stamina_after_start.output.insufficient_stamina else nodes.resolve_battle_result.output.page_after }}"
+    ready_for_next: "{{ nodes.detect_stamina_after_start.output.ready_for_next if nodes.detect_stamina_after_start.output.insufficient_stamina else nodes.resolve_battle_result.output.ready_for_next }}"
+    branch: "{{ nodes.detect_stamina_after_start.output.branch if nodes.detect_stamina_after_start.output.insufficient_stamina else nodes.resolve_battle_result.output.branch }}"

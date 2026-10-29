@@ -46,7 +46,9 @@ def window(tmp_path, monkeypatch):
     widget.trade_page.bento_start_threshold.setValue(700)
     widget.trade_page.bento_stop_threshold.setValue(200)
     widget.trade_page.save_ui_state()
-    monkeypatch.setattr(widget.battle_page, "collect_inputs", lambda: {"jobs": [{"label": "offline fixture"}]})
+    monkeypatch.setattr(widget.battle_page, "collect_inputs", lambda: {
+        "jobs": [{"route_id": "ct.tie_an.shoggolith_city.bounty"}],
+    })
     yield widget
     widget._busy = False
     widget._finish_workflow(False, "test finished")

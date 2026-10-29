@@ -639,24 +639,20 @@ def test_file_and_spec_exception_type_and_message_parity(isolated_asset, kind):
                                    captured(lambda: matching.match_asset(frame, spec))))
 
 
-def test_dispatch_category_clicks_keep_branch_dependencies_and_assertions():
+def test_dispatch_category_clicks_require_the_requested_terminal_category():
     tasks = yaml.safe_load((PLAN / "tasks/auto_battle_dispatch_pc.yaml").read_text(encoding="utf-8"))
-    steps = next(task["steps"] for task in tasks.values() if "switch_first_ct" in task.get("steps", {}))
-    for order in ("first", "second"):
-        for category in ("ct", "gp"):
-            key = f"switch_{order}_{category}"
-            assert f"wait_{order}_{category}_category_template" not in steps
-            step = steps[key]
-            assert step["action"] == "plans/aura_base/find_image_and_click"
-            assert step["params"] == {"template": f"templates/battle/dispatch/category_{category}.png",
-                                      "timeout": 8.0, "interval": .2, "region": [20, 180, 200, 160],
-                                      "threshold": .95, "use_grayscale": True}
-            assert step["when"] == "{{ nodes.prepare_category_order." + order + "_category == '" + category + "' }}"
-            assertion = steps[f"assert_{order}_{category}_switched"]
-            assert assertion["params"]["condition"] == "{{ nodes." + key + ".output }}"
-            assert assertion["depends_on"] == {key: "success|skipped"}
-            assert assertion["when"] == step["when"]
-    assert steps["switch_first_ct"]["depends_on"] == steps["switch_first_gp"]["depends_on"] == "prepare_category_order"
-    assert steps["switch_second_ct"]["depends_on"] == {"wait_after_ct_menu_recovery": "success|skipped"}
-    assert steps["switch_second_gp"]["depends_on"] == {"all": [
-        {"run_first_ct_batch": "success|failed|skipped"}, {"run_first_gp_batch": "success|failed|skipped"}]}
+    # Daily jobs now retain their list order, so category selection is one
+    # internal navigation call for the current job rather than two batch arms.
+    steps = tasks["auto_battle_enter_terminal_pc"]["steps"]
+    step = steps["select_main_category"]
+    assert step["action"] == "plans/aura_base/find_image_and_click"
+    assert step["params"] == {
+        "template": "{{ 'templates/battle/dispatch/category_ct.png' if inputs.main_category == 'ct' else 'templates/battle/dispatch/category_gp.png' }}",
+        "timeout": 8.0, "interval": .2, "region": [20, 180, 200, 160],
+        "threshold": .95, "use_grayscale": True, "required": True,
+    }
+    assert step["depends_on"] == "settle_terminal"
+    assert steps["settle_category"]["depends_on"] == "select_main_category"
+    play_steps = tasks["auto_battle_enter_category_pc"]["steps"]
+    assert play_steps["select_sub_category"]["depends_on"] == "require_category_pair"
+    assert play_steps["select_sub_category"]["params"]["required"] is True

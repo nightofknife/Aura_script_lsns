@@ -52,6 +52,7 @@ from PySide6.QtWidgets import (
 )
 
 from ..config_repository import ResonanceConfigRepository
+from ..battle_plan import battle_editor_day_summary
 from .toggle_button import ToggleButton as QCheckBox
 from .market_warning_label import MarketWarningLabel
 from ..passenger_catalog import load_passenger_route_catalog
@@ -901,9 +902,30 @@ class WorkflowPage(QWidget):
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
         scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        scroll.setWidget(panel)
+        content = QWidget(scroll)
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(0, 0, 0, 0)
+        self.battle_plan_summary = QLabel(content)
+        self.battle_plan_summary.setWordWrap(True)
+        self.battle_plan_summary.setProperty("caption", True)
+        layout.addWidget(self.battle_plan_summary)
+        layout.addWidget(panel, 1)
+        scroll.setWidget(content)
+        self._update_battle_plan_summary(self._settings.load_battle_inputs())
+        changed = getattr(panel, "planChanged", None)
+        if changed is not None:
+            changed.connect(self._update_battle_plan_summary)
+        self._battle_summary_timer = QTimer(self)
+        self._battle_summary_timer.setInterval(60000)
+        self._battle_summary_timer.timeout.connect(
+            lambda: self._update_battle_plan_summary(self._settings.load_battle_inputs()))
+        self._battle_summary_timer.start()
         self._task_config_pages["battle"] = scroll
         self.center_stack.addWidget(scroll)
+
+    def _update_battle_plan_summary(self, inputs: Mapping[str, Any]) -> None:
+        self.battle_plan_summary.setText(battle_editor_day_summary(inputs))
+        self.battle_plan_summary.setToolTip("运行时按国服 05:00 刷新的游戏日选择当天安排；切换编辑星期不会改变执行日。")
 
     def _page_heading(self, title: str, description: str, parent: QWidget) -> QVBoxLayout:
         box = QVBoxLayout()

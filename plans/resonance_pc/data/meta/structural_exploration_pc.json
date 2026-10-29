@@ -1,0 +1,1135 @@
+{
+  "schema_version": 1,
+  "provenance": "installed-client-native-assets",
+  "status": "native_generated_not_live_verified",
+  "sources": {
+    "ui/activity/activityglobalbattle/images.asset": "a42ce14c2f5334b923f5cf38ebd6b16c9d51290f0dc76c0aca6550693adf35e1",
+    "ui/mainui.asset": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
+    "ui/activity/activityglobalbattle/worldscan.asset": "d3344c4f83232f0dd879452f3f9b58effb65d2ac10b9f666ead3c343a61c9d1f",
+    "ui/chapter/battle_dungeonscan.asset": "183b687f84ffdecf6b6047b043d787ff5122b36f1ca5212326b8ffabb3dd5b3d",
+    "ui/energy/energybuytips.asset": "6140a0888d44356c1b822af8e3d78d0a97a3464fdfece412ad6474ba3a431285",
+    "ui/energy/energy.asset": "08ff3cfea5943c0fac6ad835da8781011853c7d175d1c57c364ebfd4b7a5c484",
+    "ui/battle/ui.asset": "9be584cec733463217ae435b47753b82789e1318a61b1419f39369d4b5f2606b",
+    "ui/battle/pause/img.asset": "84bcb39222c007abb354eb855d06e1eebf7af740fb64d6a8e094f5d29d5b4900"
+  },
+  "layouts": {
+    "/WorldScan/Group_Btn/ScrollGrid_BtnList/Viewport": [
+      32,
+      161,
+      293,
+      421
+    ],
+    "/WorldScan/Group_Btn/Btn_Main": [
+      25,
+      86,
+      307,
+      67
+    ],
+    "/Battle_DungeonScan/Group_Right/Group_Auto/Btn_Auto": [
+      739,
+      605,
+      83,
+      43
+    ],
+    "/Battle_DungeonScan/Group_Right/Group_Fight/Btn_StartFight": [
+      833,
+      594,
+      276,
+      67
+    ]
+  },
+  "icons": [
+    {
+      "index": 1,
+      "type": "hetero_branches",
+      "template": "templates/battle/structural/event_type_1.png",
+      "sprite": "WorldScan_event_icon_btn_1",
+      "path_id": 4274758262192154183,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        35,
+        35
+      ],
+      "sha256": "2a0c6b7a95998737895fe88c04a72b432265c8fba457097616e0d2888cfdc478"
+    },
+    {
+      "index": 2,
+      "type": "hetero_branches",
+      "template": "templates/battle/structural/event_type_2.png",
+      "sprite": "WorldScan_event_icon_btn_2",
+      "path_id": -8027550331096746456,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        35,
+        35
+      ],
+      "sha256": "f539a478891f110df032927743467096bddec2c28854aff83f34c31ad67ef1f1"
+    },
+    {
+      "index": 3,
+      "type": "echo_buoy",
+      "template": "templates/battle/structural/event_type_3.png",
+      "sprite": "WorldScan_event_icon_btn_3",
+      "path_id": -7398696971500758274,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        35,
+        35
+      ],
+      "sha256": "7d9107bdcccb43c1ddc2c31462aa58c021b77c2d611ea8c0d571065678842e92"
+    },
+    {
+      "index": 4,
+      "type": "birch_buoy",
+      "template": "templates/battle/structural/event_type_4.png",
+      "sprite": "WorldScan_event_icon_btn_4",
+      "path_id": 4564571243293068808,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        35,
+        35
+      ],
+      "sha256": "2d8890680d750787663f34996d5bb517b7502003873adca90f769ce984643c7f"
+    },
+    {
+      "index": 5,
+      "type": "disordered_roots",
+      "template": "templates/battle/structural/event_type_5.png",
+      "sprite": "WorldScan_event_icon_btn_5",
+      "path_id": -4244070572399773149,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        35,
+        35
+      ],
+      "sha256": "0fc8b40e04d8868a8fff599e7783d89b10d85f59d5494dfbbbeb696544c89daa"
+    }
+  ],
+  "controls": {
+    "event_list_open": {
+      "template": "templates/battle/structural/event_list_open.png",
+      "sprite": "WorldScan_btn_event2",
+      "path_id": 2592199744137304732,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        40,
+        20
+      ],
+      "sha256": "9e81fae624e29dd6fda7bf3f33a5ec4d914ab3caaa80e1d7827dc6aa8b9a8e1c"
+    },
+    "event_list_closed": {
+      "template": "templates/battle/structural/event_list_closed.png",
+      "sprite": "WorldScan_btn_event2",
+      "path_id": 2592199744137304732,
+      "bundle": "ui/activity/activityglobalbattle/images.asset",
+      "size": [
+        40,
+        20
+      ],
+      "sha256": "8a8c97cf43df378d1cf9af380b8dd65300904b059176fedc66f1c2c7eafaa9cb",
+      "transform": "flip_vertical"
+    },
+    "detail_auto_off": {
+      "template": "templates/battle/structural/detail_auto_off.png",
+      "sprite": "map_btn_off",
+      "path_id": 965488295151324037,
+      "bundle": "ui/mainui.asset",
+      "size": [
+        76,
+        33
+      ],
+      "sha256": "9812111221754dfc06d4c56a33b7d4843897f4502e7610dd731c4665ec5ffb6b"
+    },
+    "detail_auto_on": {
+      "template": "templates/battle/structural/detail_auto_on.png",
+      "sprite": "map_btn_onBlue",
+      "path_id": 2203476688054841273,
+      "bundle": "ui/mainui.asset",
+      "size": [
+        76,
+        33
+      ],
+      "sha256": "0d00f35f7e730f90c50cb92c529847884190c59dcdf624f1bbdd9eae73d3a661"
+    }
+  },
+  "list_roi": [
+    32,
+    161,
+    293,
+    421
+  ],
+  "list_icon_roi": [
+    86,
+    161,
+    55,
+    421
+  ],
+  "icon_match_threshold": 0.78,
+  "detail_auto_roi": [
+    739,
+    605,
+    83,
+    43
+  ],
+  "detail_start_roi": [
+    833,
+    550,
+    300,
+    150
+  ],
+  "manual_auto_roi": [
+    25,
+    590,
+    310,
+    105
+  ],
+  "list_title_roi": [
+    25,
+    85,
+    310,
+    80
+  ],
+  "list_arrow_roi": [
+    50,
+    103,
+    52,
+    34
+  ],
+  "detail_dismiss_point": [
+    500,
+    80
+  ],
+  "detail_dismiss_source": "/WorldScan/Group_Map/ScrollView_Map/Viewport/Content/Btn_CloseDetail",
+  "scan_roi": [
+    1000,
+    555,
+    240,
+    130
+  ],
+  "native_auto": {
+    "schema_version": 1,
+    "types_order": [
+      1,
+      2,
+      3,
+      4
+    ],
+    "color_matching_required": true,
+    "cards": {
+      "1": {
+        "native_index": 1,
+        "type": "disordered_roots",
+        "label": "乱序根须",
+        "click_roi": [
+          23,
+          350,
+          427,
+          53
+        ],
+        "point": [
+          236,
+          376
+        ],
+        "label_roi": [
+          135,
+          367,
+          107,
+          20
+        ],
+        "priority_roi": [
+          338,
+          367,
+          88,
+          20
+        ],
+        "background_roi": [
+          23,
+          350,
+          426,
+          54
+        ],
+        "state_roi": [
+          29,
+          355,
+          50,
+          44
+        ],
+        "state_selected": {
+          "template": "templates/battle/structural/auto_card_selected_state.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "e359e85329a334f23de5d107089a0798b013e4152804ed2edfc302c9a5218f62",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_On/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "state_unselected": {
+          "template": "templates/battle/structural/auto_card_unselected_state.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "181d651689f42fe1125b3b4d5d1529b7af51d9d0c1ca75d4e64cfb825c7c6588",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_Off/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "selected": {
+          "template": "templates/battle/structural/auto_card_selected.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "94d65887561017ab3ff6f5f69c5a0457a6a75dba46ce5f35bff66019fef9640b",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_On/Img_Bg"
+        },
+        "unselected": {
+          "template": "templates/battle/structural/auto_card_unselected.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "6f881353f452dca759cf7bebb4e5bbe99daae2b7cb702546020d13191c367615",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_Off/Img_Bg"
+        },
+        "rect_source": {
+          "click": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item",
+          "label": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Txt_Type",
+          "priority": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_On/Txt_Index",
+          "background": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_On/Img_Bg"
+        }
+      },
+      "2": {
+        "native_index": 2,
+        "type": "hetero_branches",
+        "label": "异构厄枝",
+        "click_roi": [
+          23,
+          410,
+          427,
+          53
+        ],
+        "point": [
+          236,
+          436
+        ],
+        "label_roi": [
+          135,
+          427,
+          107,
+          20
+        ],
+        "priority_roi": [
+          338,
+          427,
+          88,
+          20
+        ],
+        "background_roi": [
+          23,
+          410,
+          426,
+          54
+        ],
+        "state_roi": [
+          29,
+          415,
+          50,
+          44
+        ],
+        "state_selected": {
+          "template": "templates/battle/structural/auto_card_selected_state.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "e359e85329a334f23de5d107089a0798b013e4152804ed2edfc302c9a5218f62",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_On/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "state_unselected": {
+          "template": "templates/battle/structural/auto_card_unselected_state.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "181d651689f42fe1125b3b4d5d1529b7af51d9d0c1ca75d4e64cfb825c7c6588",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_Off/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "selected": {
+          "template": "templates/battle/structural/auto_card_selected.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "94d65887561017ab3ff6f5f69c5a0457a6a75dba46ce5f35bff66019fef9640b",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_On/Img_Bg"
+        },
+        "unselected": {
+          "template": "templates/battle/structural/auto_card_unselected.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "6f881353f452dca759cf7bebb4e5bbe99daae2b7cb702546020d13191c367615",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_Off/Img_Bg"
+        },
+        "rect_source": {
+          "click": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item",
+          "label": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Txt_Type",
+          "priority": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_On/Txt_Index",
+          "background": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_On/Img_Bg"
+        }
+      },
+      "3": {
+        "native_index": 3,
+        "type": "echo_buoy",
+        "label": "混响浮标",
+        "click_roi": [
+          23,
+          470,
+          427,
+          53
+        ],
+        "point": [
+          236,
+          496
+        ],
+        "label_roi": [
+          135,
+          487,
+          107,
+          20
+        ],
+        "priority_roi": [
+          338,
+          487,
+          88,
+          20
+        ],
+        "background_roi": [
+          23,
+          470,
+          426,
+          54
+        ],
+        "state_roi": [
+          29,
+          475,
+          50,
+          44
+        ],
+        "state_selected": {
+          "template": "templates/battle/structural/auto_card_selected_state.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "e359e85329a334f23de5d107089a0798b013e4152804ed2edfc302c9a5218f62",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_On/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "state_unselected": {
+          "template": "templates/battle/structural/auto_card_unselected_state.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "181d651689f42fe1125b3b4d5d1529b7af51d9d0c1ca75d4e64cfb825c7c6588",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_Off/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "selected": {
+          "template": "templates/battle/structural/auto_card_selected.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "94d65887561017ab3ff6f5f69c5a0457a6a75dba46ce5f35bff66019fef9640b",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_On/Img_Bg"
+        },
+        "unselected": {
+          "template": "templates/battle/structural/auto_card_unselected.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "6f881353f452dca759cf7bebb4e5bbe99daae2b7cb702546020d13191c367615",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_Off/Img_Bg"
+        },
+        "rect_source": {
+          "click": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item",
+          "label": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Txt_Type",
+          "priority": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_On/Txt_Index",
+          "background": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_On/Img_Bg"
+        }
+      },
+      "4": {
+        "native_index": 4,
+        "type": "birch_buoy",
+        "label": "桦树浮标",
+        "click_roi": [
+          23,
+          530,
+          427,
+          53
+        ],
+        "point": [
+          236,
+          556
+        ],
+        "label_roi": [
+          135,
+          547,
+          107,
+          20
+        ],
+        "priority_roi": [
+          338,
+          547,
+          88,
+          20
+        ],
+        "background_roi": [
+          23,
+          530,
+          426,
+          54
+        ],
+        "state_roi": [
+          29,
+          535,
+          50,
+          44
+        ],
+        "state_selected": {
+          "template": "templates/battle/structural/auto_card_selected_state.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "e359e85329a334f23de5d107089a0798b013e4152804ed2edfc302c9a5218f62",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_On/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "state_unselected": {
+          "template": "templates/battle/structural/auto_card_unselected_state.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            50,
+            44
+          ],
+          "sha256": "181d651689f42fe1125b3b4d5d1529b7af51d9d0c1ca75d4e64cfb825c7c6588",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_Off/Img_Bg",
+          "crop_from_background": [
+            6,
+            5,
+            56,
+            49
+          ]
+        },
+        "selected": {
+          "template": "templates/battle/structural/auto_card_selected.png",
+          "sprite": "WorldScan_auto_box_on",
+          "path_id": -3361355302520220279,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "94d65887561017ab3ff6f5f69c5a0457a6a75dba46ce5f35bff66019fef9640b",
+          "tint_rgba": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_On/Img_Bg"
+        },
+        "unselected": {
+          "template": "templates/battle/structural/auto_card_unselected.png",
+          "sprite": "WorldScan_auto_box_off",
+          "path_id": -7825630842117981681,
+          "bundle": "ui/activity/activityglobalbattle/images.asset",
+          "size": [
+            426,
+            54
+          ],
+          "sha256": "6f881353f452dca759cf7bebb4e5bbe99daae2b7cb702546020d13191c367615",
+          "tint_rgba": [
+            0,
+            0,
+            0,
+            255
+          ],
+          "rect_source": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_Off/Img_Bg"
+        },
+        "rect_source": {
+          "click": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item",
+          "label": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Txt_Type",
+          "priority": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_On/Txt_Index",
+          "background": "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_On/Img_Bg"
+        }
+      }
+    },
+    "controls": {
+      "setup": {
+        "rect": [
+          292,
+          603,
+          163,
+          75
+        ],
+        "point": [
+          373,
+          640
+        ],
+        "rect_native_client": [
+          292,
+          603,
+          163,
+          75
+        ],
+        "rect_source": "/WorldScan/Group_Auto/Btn_Setup",
+        "prefab": "ui/activity/activityglobalbattle/worldscan.asset"
+      },
+      "start": {
+        "rect": [
+          0,
+          603,
+          322,
+          75
+        ],
+        "point": [
+          161,
+          640
+        ],
+        "rect_native_client": [
+          -129,
+          603,
+          451,
+          75
+        ],
+        "rect_source": "/WorldScan/Group_Auto/Btn_Start",
+        "prefab": "ui/activity/activityglobalbattle/worldscan.asset",
+        "identity_text": "开启自动讨伐",
+        "identity_roi": [
+          127,
+          626,
+          152,
+          20
+        ]
+      },
+      "end": {
+        "rect": [
+          0,
+          603,
+          322,
+          75
+        ],
+        "point": [
+          161,
+          640
+        ],
+        "rect_native_client": [
+          -129,
+          603,
+          451,
+          75
+        ],
+        "rect_source": "/WorldScan/Group_Auto/Btn_End",
+        "prefab": "ui/activity/activityglobalbattle/worldscan.asset",
+        "identity_text": "关闭自动讨伐",
+        "identity_roi": [
+          127,
+          626,
+          152,
+          20
+        ]
+      },
+      "detail_return": {
+        "rect": [
+          12,
+          9,
+          141,
+          55
+        ],
+        "point": [
+          82,
+          36
+        ],
+        "rect_native_client": [
+          12,
+          9,
+          141,
+          55
+        ],
+        "rect_source": "/Battle_DungeonScan/Group_CommonTopLeft/Btn_Return",
+        "prefab": "ui/chapter/battle_dungeonscan.asset"
+      },
+      "map_return": {
+        "rect": [
+          12,
+          9,
+          141,
+          55
+        ],
+        "point": [
+          82,
+          36
+        ],
+        "rect_native_client": [
+          12,
+          9,
+          141,
+          55
+        ],
+        "rect_source": "/WorldScan/Group_CommonTopLeft/Btn_Return",
+        "prefab": "ui/activity/activityglobalbattle/worldscan.asset"
+      },
+      "list_panel": {
+        "rect": [
+          23,
+          350,
+          426,
+          234
+        ],
+        "point": [
+          236,
+          467
+        ],
+        "rect_source": [
+          "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_000/Btn_Item/Group_On/Img_Bg",
+          "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_001/Btn_Item/Group_On/Img_Bg",
+          "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_002/Btn_Item/Group_On/Img_Bg",
+          "/WorldScan/Group_Auto/Group_List/StaticGrid_List/Group_Item_003/Btn_Item/Group_On/Img_Bg"
+        ],
+        "prefab": "ui/activity/activityglobalbattle/worldscan.asset",
+        "rect_derivation": "union_of_four_native_card_backgrounds",
+        "identity_rule": "all_four_labels_in_their_native_row_regions"
+      }
+    },
+    "energy_pages": {
+      "buy_tips": {
+        "identity_text": "您当前的澄明度不足，是否补充澄明度？",
+        "identity_roi": [
+          0,
+          0,
+          1280,
+          720
+        ],
+        "identity_native_rect": [
+          637,
+          350,
+          107,
+          20
+        ],
+        "identity_rect_source": "/EnergyBuyTips/Txt_Tips",
+        "identity_overflow": "native_text_horizontal_overflow_center_aligned",
+        "close": {
+          "rect": [
+            9,
+            472,
+            631,
+            74
+          ],
+          "point": [
+            324,
+            509
+          ],
+          "rect_native_client": [
+            9,
+            472,
+            631,
+            74
+          ],
+          "rect_source": "/EnergyBuyTips/Btn_Cancel",
+          "prefab": "ui/energy/energybuytips.asset"
+        },
+        "close_handler": "UIEnergyBuyTipsViewFunction.EnergyBuyTips_Btn_Cancel_Click:15-17",
+        "ignored_noop_control": "/EnergyBuyTips/Btn_Close"
+      },
+      "energy": {
+        "identity_text": "请选择恢复方式",
+        "identity_roi": [
+          0,
+          0,
+          1280,
+          720
+        ],
+        "identity_native_rect": [
+          187,
+          360,
+          107,
+          20
+        ],
+        "identity_rect_source": "/Energy/Group_PickEnergyWay/Group_Energy/Txt_Title/Txt_Tips",
+        "close": {
+          "rect": [
+            12,
+            9,
+            141,
+            55
+          ],
+          "point": [
+            82,
+            36
+          ],
+          "rect_native_client": [
+            12,
+            9,
+            141,
+            55
+          ],
+          "rect_source": "/Energy/Group_PickEnergyWay/Group_CommonTopLeft/Btn_Return",
+          "prefab": "ui/energy/energy.asset"
+        },
+        "close_handler": "UIEnergyViewFunction.Energy_Group_PickEnergyWay_Group_CommonTopLeft_Btn_Return_Click:273-276"
+      }
+    },
+    "list_selection_persistence": "immediate; setup toggles visibility; confirm/cancel handlers are empty",
+    "selection_state_matching": "native tinted RGBA backgrounds; compare RGB and ignore label/icon/priority overlays",
+    "battle_hud": {
+      "provided": true,
+      "button": {
+        "rect": [
+          116,
+          17,
+          83,
+          53
+        ],
+        "point": [
+          157,
+          43
+        ],
+        "rect_native_client": [
+          116,
+          17,
+          83,
+          53
+        ],
+        "rect_source": "/UI/Other/Btn_AutoBattle",
+        "prefab": "ui/battle/ui.asset"
+      },
+      "identity_roi": [
+        125,
+        10,
+        67,
+        67
+      ],
+      "states": {
+        "on": {
+          "template": "templates/battle/structural/hud_auto_on.png",
+          "roi": [
+            125,
+            10,
+            67,
+            67
+          ],
+          "size": [
+            67,
+            67
+          ],
+          "rect_source": "/UI/Other/Btn_AutoBattle/Group_On",
+          "parts": [
+            {
+              "template": "templates/battle/structural/hud_auto_on_01.png",
+              "sprite": "AutoBattleOn01",
+              "path_id": 8975133544881125838,
+              "bundle": "ui/battle/pause/img.asset",
+              "size": [
+                67,
+                67
+              ],
+              "sha256": "23ec2768000bf9f4b93ee30bc6856f1a52f9231efa018e6b6319e01784f1ec03",
+              "roi": [
+                125,
+                10,
+                67,
+                67
+              ],
+              "rect_source": "/UI/Other/Btn_AutoBattle/Group_On/Img_01"
+            },
+            {
+              "template": "templates/battle/structural/hud_auto_on_02.png",
+              "sprite": "AutoBattleOn02",
+              "path_id": -3826753770937154791,
+              "bundle": "ui/battle/pause/img.asset",
+              "size": [
+                20,
+                20
+              ],
+              "sha256": "67087bd6f4c38c7386c45a73e06b79fa06bf71c25e56a304b933779183f3ef5f",
+              "roi": [
+                148,
+                33,
+                20,
+                20
+              ],
+              "rect_source": "/UI/Other/Btn_AutoBattle/Group_On/Img_02"
+            }
+          ],
+          "identity_eligible": true,
+          "sha256": "8b189b91705222ae754910846b9bd235b3400c732aa1e453feb76c7334ae2ee9",
+          "pixel_origin": "native sprite layers alpha-composited at their prefab rectangles"
+        },
+        "off": {
+          "template": "templates/battle/structural/hud_auto_off.png",
+          "roi": [
+            125,
+            10,
+            67,
+            67
+          ],
+          "size": [
+            67,
+            67
+          ],
+          "rect_source": "/UI/Other/Btn_AutoBattle/Group_Off",
+          "parts": [
+            {
+              "template": "templates/battle/structural/hud_auto_off_01.png",
+              "sprite": "AutoBattleOff01",
+              "path_id": -1490027088838264555,
+              "bundle": "ui/battle/pause/img.asset",
+              "size": [
+                53,
+                53
+              ],
+              "sha256": "8e39682d5e3160335729d4022881e8f5b4dd494a6b4d1e00da4d90c17a76b2d2",
+              "roi": [
+                131,
+                17,
+                53,
+                53
+              ],
+              "rect_source": "/UI/Other/Btn_AutoBattle/Group_Off/Img_01"
+            },
+            {
+              "template": "templates/battle/structural/hud_auto_off_02.png",
+              "sprite": "AutoBattleOff02",
+              "path_id": -760485588011991046,
+              "bundle": "ui/battle/pause/img.asset",
+              "size": [
+                20,
+                20
+              ],
+              "sha256": "ea8fa4a6187257841fd594663b1dd55b6ac6964470e8db62ef303b4a1f7dec15",
+              "roi": [
+                148,
+                33,
+                20,
+                20
+              ],
+              "rect_source": "/UI/Other/Btn_AutoBattle/Group_Off/Img_02"
+            }
+          ],
+          "identity_eligible": true,
+          "sha256": "5764bd7880fbcf83c453cb3c15fdc3f02c524e4acd6b4e3d8c63c7ed17689b0c",
+          "pixel_origin": "native sprite layers alpha-composited at their prefab rectangles"
+        },
+        "disabled": {
+          "template": "templates/battle/structural/hud_auto_disabled.png",
+          "roi": [
+            125,
+            10,
+            67,
+            67
+          ],
+          "size": [
+            67,
+            67
+          ],
+          "rect_source": "/UI/Other/Btn_AutoBattle/Group_Disabled",
+          "parts": [
+            {
+              "template": "templates/battle/structural/hud_auto_disabled_disabled.png",
+              "sprite": "AutoBattleDisabled",
+              "path_id": 1022071445440147516,
+              "bundle": "ui/battle/pause/img.asset",
+              "size": [
+                67,
+                67
+              ],
+              "sha256": "ac6a535842aadfc7d2d6a93aeeb1704c027b7982ca3bdb7bd3f6da0edbf39bb4",
+              "roi": [
+                125,
+                10,
+                67,
+                67
+              ],
+              "rect_source": "/UI/Other/Btn_AutoBattle/Group_Disabled/Img_Disabled"
+            }
+          ],
+          "identity_eligible": false,
+          "sha256": "ac6a535842aadfc7d2d6a93aeeb1704c027b7982ca3bdb7bd3f6da0edbf39bb4",
+          "pixel_origin": "native sprite layers alpha-composited at their prefab rectangles"
+        }
+      },
+      "identity_rule": "fixed native ROI plus the on/off combined background and status glyph; both parts must agree",
+      "disabled_alone_is_identity": false,
+      "speed_control": "not provided; serialized pause/speed controls lie offscreen and their runtime placement was not established"
+    }
+  }
+}

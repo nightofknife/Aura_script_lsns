@@ -24,7 +24,8 @@ REMOVED = {
     "navigate_reforming_center_room_pc": "open_reforming_center_room_pc",
 }
 RENAMED = {"consciousness_deep_dive_single_run_test_pc": "consciousness_deep_dive_random_run_pc"}
-ADDED = {"affix_refresh_pc", "affix_refresh_read_pc", "withdraw_product_warehouse_to_train_pc"}
+ADDED = {"affix_refresh_pc", "affix_refresh_read_pc", "withdraw_product_warehouse_to_train_pc",
+         "auto_battle_enter_terminal_pc", "auto_battle_enter_category_pc"}
 
 
 def definitions():
@@ -49,12 +50,12 @@ def test_all_64_source_definitions_accounted_without_old_aliases():
     current = definitions()
     assert len(inventory) == len(original) == 64
     assert set(current) == (original - REMOVED.keys() - RENAMED.keys()) | set(RENAMED.values()) | ADDED
-    assert len(current) == 62
+    assert len(current) == 64
     assert all(replacement in current for replacement in (*REMOVED.values(), *RENAMED.values()))
     assert all(spec["meta"]["domain"] for spec in current.values())
     assert Counter(task_role(spec["meta"]) for spec in current.values()) == {
         "lifecycle": 2, "orchestration": 1, "user_task": 12, "user_tool": 3,
-        "developer": 9, "internal": 35,
+        "developer": 9, "internal": 37,
     }
 
 
@@ -62,7 +63,7 @@ def test_runtime_and_manifest_publish_one_matching_canonical_entry_per_definitio
     loader = TaskLoader("resonance_pc", PLAN)
     runtime = loader.get_all_task_definitions()
     assert not loader.get_task_load_errors()
-    assert len(runtime) == 62
+    assert len(runtime) == 64
     generated = ManifestGenerator(PLAN).generate()["exports"]["tasks"]
     assert {row["id"] for row in generated} == set(runtime)
     assert len(generated) == len(runtime)
@@ -157,6 +158,48 @@ def test_specialized_battle_batches_and_action_summary_group_are_retained():
     group_refs = list(references(tasks["auto_battle_gp_action_summary_run_group_pc"]))
     assert any(ref.endswith(":auto_battle_gp_action_summary_run_group_pc") for ref in batch_refs)
     assert any(ref.endswith(":auto_battle_gp_action_summary_run_difficulty_pc") for ref in group_refs)
+
+
+def test_daily_battle_navigation_stays_internal_and_public_entry_declares_result():
+    tasks = definitions()
+    for name, input_names in (
+        ("auto_battle_enter_terminal_pc", {"main_category"}),
+        ("auto_battle_enter_category_pc", {"main_category", "sub_category"}),
+    ):
+        task = tasks[name]
+        assert task["meta"]["role"] == "internal"
+        assert task["meta"]["domain"] == "战斗"
+        assert task["meta"]["entry_point"] is False
+        assert not is_user_entry(task["meta"])
+        assert {row["name"] for row in task["meta"]["inputs"]} == input_names
+        assert task["returns"] == {
+            "entered": True, **{name: "{{ inputs." + name + " }}" for name in input_names},
+        }
+    public = tasks["auto_battle_dispatch_pc"]
+    assert is_user_entry(public["meta"])
+    assert {row["name"] for row in public["meta"]["inputs"]} == {
+        "jobs", "structural_types", "weekly_plan", "stop_on_failure",
+    }
+    assert public["steps"]["execute"]["action"] == "resonance_pc.execute_battle_plan"
+    assert public["returns"] == {
+        name: "{{ nodes.execute.output." + name + " }}" for name in (
+            "schema", "effective_date", "weekday", "status", "stop_reason", "counts",
+            "job_results", "results", "structural", "cleanup", "continue_workflow",
+        )
+    }
+
+
+def test_sweep_and_native_structural_are_reusable_actions_with_explicit_parameters():
+    actions = {row["name"]: row for row in ManifestGenerator(PLAN).generate()["exports"]["actions"]}
+    stored = {row["name"]: row for row in yaml.safe_load((PLAN / "manifest.yaml").read_text(encoding="utf-8"))["exports"]["actions"]}
+    for name, parameters in (
+        ("resonance_pc.try_battle_sweep", {"capture_count", "formation_index", "control_cid"}),
+        ("resonance_pc.run_structural_exploration", {"types", "control_cid"}),
+    ):
+        assert actions[name] == stored[name]
+        assert actions[name]["public"] is True
+        assert actions[name]["read_only"] is False
+        assert {row["name"] for row in actions[name]["parameters"]} == parameters
 
 
 def test_cache_only_plan_is_not_discovered_or_given_a_generated_manifest(tmp_path):

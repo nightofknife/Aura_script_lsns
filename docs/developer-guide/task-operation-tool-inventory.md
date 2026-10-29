@@ -123,7 +123,7 @@
 | `trade_goods_investment_pc.yaml` | 内部投资操作 | 降级 | 货运通过 `aura.run_task` 实际调用，保留按解锁顺序投资 |
 | `use_trailer_service_pc.yaml` | 内部出发操作 | 降级 | 旅行流程复用 action；只确认拖车出发，不负责等待到站 |
 
-### 战斗调度文件 12 项
+### 战斗调度文件 14 项
 
 文件：[auto_battle_dispatch_pc.yaml](../../plans/resonance_pc/tasks/auto_battle_dispatch_pc.yaml)。内部调用均来自本文件的上级任务；“合并批次骨架”保留类别差异和连续同关卡分组。
 
@@ -137,10 +137,31 @@
 | `auto_battle_gp_action_summary_run_difficulty_pc` | — | 内部操作 | 降级 | 当前关卡执行一个难度 |
 | `auto_battle_gp_action_summary_run_group_pc` | — | 内部分组流程 | 保留 | 同关卡连续难度，避免重复进入 |
 | `auto_battle_gp_action_summary_batch_pc` | — | 内部批次 | 合并 | 行动汇总关卡分组 |
-| `auto_battle_gp_structural_run_one_pc` | — | 内部操作 | 降级 | 单条构析勘探目标 |
-| `auto_battle_gp_structural_batch_pc` | — | 内部批次 | 合并 | 构析勘探顺序 |
+| `auto_battle_gp_structural_run_one_pc` | — | 内部操作 | 降级 | 兼容单类型构析入口；调用原生自动会话 |
+| `auto_battle_gp_structural_batch_pc` | — | 内部批次 | 合并 | 兼容构析类型批次；新入口统一配置类型顺序 |
 | `auto_battle_gp_batch_pc` | — | 内部分发流程 | 保留 | GP 内类别分发 |
-| `auto_battle_dispatch_pc` | T | 用户任务 | 保留 | 终端入口、任务单规范化、类别调度 |
+| `auto_battle_enter_terminal_pc` | — | 内部导航 | 新增 | 主界面进入终端并选择 CT／GP；普通用户入口不增加 |
+| `auto_battle_enter_category_pc` | — | 内部导航 | 新增 | 从终端进入指定玩法；明确页面前置条件 |
+| `auto_battle_dispatch_pc` | T | 用户任务 | 保留 | 按游戏日解析计划，普通关卡逐场执行，最后运行构析并统一收尾 |
+
+2026-10-29：新增两项内部导航，保留原用户入口。新入口不依赖旧类别分桶批次；
+旧批次任务保留内部兼容用途。单场结果区分胜败和体力不足，详情见
+[每日作战执行](resonance-pc-daily-battle.md)。本节数量变化只涉及作战调度文件，
+前文其他历史盘点数量保留其原始快照含义。
+
+构析 action `resonance_pc.run_structural_exploration` 保留原接口，执行方式改为配置原生类型顺序、
+确认优先级角标、启动一次、监督并停止收尾，不再逐场选择事件。
+返回 `resonance_pc.structural_native_result.v1`（`mode: native_auto`），只报告观察到的胜败数，
+`statistics_complete` 为 false。只有原生停止和回到 `world_scan` 均确认才可交接；
+`stop_failed` 不允许接续。用户取消优先停止原生自动，并结束整个工作流程。
+取消先通过内部 `control_cid` 关联根任务的软停止请求，再确认任务取消；强制取消时原生状态未知，
+不得将框架取消当作原生已停止的证据。
+原生续战可能早于脚本观察及停控，不承诺首败后绝不会多开一场。
+
+普通关卡通过公共业务操作 `resonance_pc.try_battle_sweep` 优先执行单次原生扫荡；
+只有明确 `unsupported` 才进入原实战链。扫荡确认奖励与回页后返回 `swept`，
+与实际战斗的 `started/won/lost` 分开计数；同关连续扫荡复用当前详情页。
+该操作属于内部任务可复用的 action，不增加用户任务入口。
 
 ### 无垠乱斗文件 9 项
 

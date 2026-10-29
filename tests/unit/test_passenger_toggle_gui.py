@@ -85,14 +85,18 @@ def test_settings_and_player_data_have_buttons_not_native_checkboxes(page):
         widget.close()
 
 
-def test_battle_failure_button_snapshot_round_trip(page):
+def test_battle_stop_rule_is_fixed_and_weekly_snapshot_round_trips(page):
     battle = BattlePage(page._settings)
     battle.set_inputs({"jobs": [battle._job_from_controls()], "stop_on_failure": False})
-    assert not battle.collect_inputs()["stop_on_failure"]
-    assert battle.stop_on_failure.text() == "失败即停止"
-    battle.stop_on_failure.click()
-    assert battle.collect_inputs()["stop_on_failure"]
-    assert page._settings.load_battle_inputs()["stop_on_failure"]
+    assert "战败" in battle.stop_rule_label.text()
+    assert "体力不足" in battle.stop_rule_label.text()
+    assert not hasattr(battle, "stop_on_failure")
+    inputs = battle.collect_inputs()
+    assert set(inputs) == {"weekly_plan"}
+    page._settings.save_battle_inputs(inputs)
+    restored = BattlePage(page._settings)
+    assert restored.collect_inputs() == inputs
+    restored.close()
     battle.close()
 
 

@@ -613,8 +613,8 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Continuously match the insufficient-stamina dialog for a short post-click
-      window and cancel it by template when present.
+    description: Detect the existing stamina dialog, dismiss it and confirm its callback
+      page under cancellation and budget control.
     parameters:
     - name: dialog_region
       type: Any
@@ -678,7 +678,8 @@ exports:
     public: true
     read_only: false
     timeout: null
-    description: Resolve in-battle next-step/capture branch by OCR polling.
+    description: Confirm a native victory/defeat title, settle once and observe a
+      ready callback page.
     parameters:
     - name: capture_count
       type: Any
@@ -724,6 +725,27 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.execute_battle_plan
+    module: plans.resonance_pc.src.actions.battle_dispatch_runtime_actions
+    function: resonance_pc_execute_battle_plan
+    public: true
+    read_only: false
+    timeout: null
+    description: Resolve the current game day and run ordinary battles in order, followed
+      by structural exploration.
+    parameters:
+    - name: jobs
+      type: Any
+      required: false
+      default: null
+    - name: structural_types
+      type: Any
+      required: false
+      default: null
+    - name: weekly_plan
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.consume_bentos_to_floor
     module: plans.resonance_pc.src.actions.bento_auto_recovery_pc_actions
     function: resonance_pc_consume_bentos_to_floor
@@ -2900,6 +2922,44 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.try_battle_sweep
+    module: plans.resonance_pc.src.actions.battle_sweep_pc_actions
+    function: resonance_pc_try_battle_sweep
+    public: true
+    read_only: false
+    timeout: null
+    description: Execute one native sweep when its entry is positively available;
+      only a recognized native unavailable layout permits combat fallback.
+    parameters:
+    - name: capture_count
+      type: Any
+      required: false
+      default: null
+    - name: formation_index
+      type: Any
+      required: false
+      default: null
+    - name: control_cid
+      type: Any
+      required: false
+      default: null
+  - name: resonance_pc.run_structural_exploration
+    module: plans.resonance_pc.src.actions.structural_exploration_pc_actions
+    function: resonance_pc_run_structural_exploration
+    public: true
+    read_only: false
+    timeout: null
+    description: Configure native structural-auto type priority, confirm its priority
+      badges, start once, supervise observed outcomes and confirm native stop before returning.
+    parameters:
+    - name: types
+      type: Any
+      required: true
+      default: null
+    - name: control_cid
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.team_recommendations
     module: plans.resonance_pc.src.actions.team_recommendation_pc_actions
     function: resonance_pc_team_recommendations
@@ -3171,7 +3231,7 @@ exports:
   - id: auto_battle_dispatch_pc/auto_battle_ct_tie_an_run_one_pc
     title: Auto Battle PC CT TieAn Run One
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Execute one CT tie_an job.
+    description: Execute one CT tie_an job, preferring one sweep before actual combat.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_tie_an_batch_pc
@@ -3183,7 +3243,7 @@ exports:
   - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_run_one_pc
     title: Auto Battle PC CT RegionalOps Run One
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Execute one CT regional_ops_center job.
+    description: Execute one CT regional_ops_center job, preferring one sweep before actual combat.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_ct_regional_ops_batch_pc
@@ -3219,13 +3279,13 @@ exports:
   - id: auto_battle_dispatch_pc/auto_battle_gp_structural_run_one_pc
     title: Auto Battle PC GP Structural Run One
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Execute one structural_exploration target.
+    description: Run native structural auto-hunt for one configured type.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_structural_batch_pc
     title: Auto Battle PC GP Structural Batch
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Execute structural_exploration jobs in order.
+    description: Configure ordered structural types and supervise one native auto-hunt session.
     role: internal
     domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_gp_batch_pc
@@ -3235,11 +3295,23 @@ exports:
       dispatch in order.
     role: internal
     domain: 战斗
+  - id: auto_battle_dispatch_pc/auto_battle_enter_terminal_pc
+    title: Enter Battle Terminal Category
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Enter the battle terminal from the main page and select CT or GP.
+    role: internal
+    domain: 战斗
+  - id: auto_battle_dispatch_pc/auto_battle_enter_category_pc
+    title: Enter Battle Play Category
+    source: tasks/auto_battle_dispatch_pc.yaml
+    description: Open one play category inside an already selected CT or GP terminal.
+    role: internal
+    domain: 战斗
   - id: auto_battle_dispatch_pc/auto_battle_dispatch_pc
     title: Auto Battle PC Dispatch
     source: tasks/auto_battle_dispatch_pc.yaml
-    description: Enter battle terminal, validate jobs, switch tabs, and dispatch category
-      batch tasks.
+    description: Resolve a daily plan, execute ordinary battles in list order, then
+      run structural exploration and return to main.
     role: user_task
     domain: 战斗
   - id: auto_combined_commerce_pc/auto_combined_commerce_pc
@@ -3536,4 +3608,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-24T08:29:13Z'
+  generated_at: '2026-10-29T09:26:01Z'
