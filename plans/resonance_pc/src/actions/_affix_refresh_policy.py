@@ -173,7 +173,8 @@ def validate_config(config: Mapping, catalog: Mapping) -> dict:
     threshold = config.get("threshold")
     if type(threshold) is not str:
         _fail("invalid_config", "数值要求必须以数字字符串保存")
-    limit = _integer(config.get("max_film_cost"), "胶卷消耗上限", 0, 9999)
+    # Keep the persisted input name; its value now limits submitted rounds.
+    limit = _integer(config.get("max_film_cost"), "最多刷新轮数", 0, 9999)
     target = affixes[target_id]
     if comparison in ("gte", "eq"):
         number = _decimal(threshold, "目标数值")
@@ -195,16 +196,14 @@ def validate_config(config: Mapping, catalog: Mapping) -> dict:
 
 
 def validate_frame(current: Mapping, catalog: Mapping) -> None:
-    """Accept only a readable main window, balance and complete candidate."""
+    """Accept a readable main window and complete candidate, without counters."""
     current = _object(current, "current", "invalid_snapshot")
     if current.get("valid") is not True or current.get("scene") != "affix":
         _fail("invalid_snapshot", "请先打开游戏中的词缀替换窗口")
     if current.get("replace_mode") is not True:
         _fail("mode_unconfirmed", "尚未确认词缀刷新窗口")
-    if "candidate" not in current or "film_remaining" not in current:
-        _fail("invalid_snapshot", "尚未确认候选词缀或胶卷余额区域")
-    if current["film_remaining"] is not None:
-        _integer(current["film_remaining"], "胶卷余额", code="invalid_snapshot")
+    if "candidate" not in current:
+        _fail("invalid_snapshot", "尚未确认候选词缀区域")
     if current["candidate"] is not None:
         affixes, _ = _catalog_indexes(catalog)
         _observed_affix(current["candidate"], affixes)

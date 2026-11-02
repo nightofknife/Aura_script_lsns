@@ -19,7 +19,7 @@ async def read_affix_refresh(config: Any = None, app: Any = None, vision: Any = 
 
 
 @action_info(name="resonance_pc.affix_refresh_run", public=True, read_only=False,
-             description="Refresh within a film budget and stop on a target; replacement is disabled.")
+             description="Refresh within a round limit without reading film counts; stop on a target for manual replacement.")
 @requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision",
                    ocr="plans/aura_base/ocr", state_store="core/state_store", event_bus="core/event_bus")
 async def run_affix_refresh(config: Any = None, app: Any = None, vision: Any = None,
