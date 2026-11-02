@@ -903,8 +903,7 @@ class ResonanceMainWindow(QMainWindow):
 
     def _read_small_task_affix_refresh(self) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
-            self.small_tasks_page.affix_refresh_panel.defer_auto_read()
-            self.statusBar().showMessage("当前有任务正在运行，空闲后自动识别词缀界面。")
+            self.statusBar().showMessage("当前有任务正在运行，请结束后手动重新读取词缀界面。")
             return
         self._small_task_active_ref = PC_AFFIX_REFRESH_READ_TASK_REF
         self.small_tasks_page.begin_affix_refresh("read")
@@ -915,7 +914,7 @@ class ResonanceMainWindow(QMainWindow):
             self.statusBar().showMessage("当前有任务正在运行，请稍后再试。")
             return
         try:
-            # Recollect the visible target and budget; replacement is disabled.
+            # Recollect the visible target and round limit; replacement is disabled.
             inputs = self.small_tasks_page.affix_refresh_panel.collect_inputs()
             self._settings.save_affix_refresh_inputs(inputs)
         except (ValueError, KeyError) as exc:

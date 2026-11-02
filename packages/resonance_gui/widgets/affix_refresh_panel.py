@@ -37,8 +37,6 @@ class AffixRefreshPanel(QWidget):
         self._state: dict[str, Any] = {}
         self._runner_busy = self._task_running = self._stopping = False
         self._mode = self._last_stage = ""
-        self._auto_read_needed = True
-        self._auto_read_queued = False
         self._ocr_log_path: Path | None = None
         self._log_cid = ""
         self._log_offset = 0
@@ -59,13 +57,9 @@ class AffixRefreshPanel(QWidget):
         note.setWordWrap(True)
         layout.addWidget(note)
         self.read_button = QPushButton("重新读取界面", self)
-        self.read_button.setToolTip("读取胶卷余额和当前候选，不选择旧词缀、不消耗胶卷。")
+        self.read_button.setToolTip("只读取当前候选，不选择旧词缀、不消耗胶卷。")
         self.read_button.clicked.connect(self._request_read)
         layout.addWidget(self.read_button)
-        self.balance_label = QLabel("进入本页后自动读取胶卷余额和当前候选", self)
-        self.balance_label.setWordWrap(True)
-        self.balance_label.setTextFormat(Qt.TextFormat.PlainText)
-        layout.addWidget(self.balance_label)
         form = QFormLayout()
         self.target_combo = QComboBox(self)
         self.target_combo.setEditable(True)
@@ -91,14 +85,14 @@ class AffixRefreshPanel(QWidget):
         self.film_spin = QSpinBox(self)
         self.film_spin.setRange(0, 9999)
         self.film_spin.setValue(self._saved["max_film_cost"])
-        self.film_spin.setToolTip("0 表示仅检查已有候选，不消耗新胶卷。")
-        form.addRow("胶卷消耗上限", self.film_spin)
+        self.film_spin.setToolTip("0 表示仅检查已有候选，不执行刷新。每提交一轮刷新计数一次。")
+        form.addRow("最多刷新轮数", self.film_spin)
         layout.addLayout(form)
-        scope_note = QLabel("目录包含全部词缀，请选择该装备可获得的词缀。胶卷上限为 0 时仅检查已有候选。自动替换暂未开放。", self)
+        scope_note = QLabel("目录包含全部词缀，请选择该装备可获得的词缀。轮数上限为 0 时仅检查已有候选。自动替换暂未开放。", self)
         scope_note.setWordWrap(True)
         layout.addWidget(scope_note)
         self.config_summary_label = QLabel("", self)
-        self.status_label = QLabel("设好目标和胶卷上限后即可开始，任务会先检查游戏界面。", self)
+        self.status_label = QLabel("设好目标和刷新轮数后即可开始，任务会先读取当前候选。", self)
         self.summary_label = QLabel("", self)
         for label in (self.config_summary_label, self.status_label, self.summary_label):
             label.setWordWrap(True)
@@ -162,30 +156,6 @@ class AffixRefreshPanel(QWidget):
         self.target_combo.setCurrentIndex(max(0, self.target_combo.findData(self._saved.get("target_affix_id"))))
         self.target_combo.blockSignals(False)
 
-    def showEvent(self, event) -> None:
-        super().showEvent(event)
-        # Hidden construction only loads local data; dispatch after showing.
-        if not event.spontaneous() and not self._task_running:
-            self._auto_read_needed = True
-            self._queue_auto_read()
-
-    def _queue_auto_read(self) -> None:
-        if (not self._auto_read_needed or self._auto_read_queued
-                or self._runner_busy or self._task_running or not self.isVisible()):
-            return
-        self._auto_read_queued = True
-        QTimer.singleShot(0, self._auto_read)
-
-    def _auto_read(self) -> None:
-        self._auto_read_queued = False
-        if (not self._auto_read_needed or self._runner_busy
-                or self._task_running or not self.isVisible()):
-            return
-        self._request_read()
-
-    def defer_auto_read(self) -> None:
-        self._auto_read_needed = True
-
     def _configuration_changed(self, *_args: Any) -> None:
         target = self._target()
         self.range_label.setText(
@@ -230,7 +200,6 @@ class AffixRefreshPanel(QWidget):
 
     def _request_read(self) -> None:
         if not self._runner_busy and not self._task_running:
-            self._auto_read_needed = False
             self.readRequested.emit()
 
     def _request_run(self) -> None:
@@ -268,7 +237,7 @@ class AffixRefreshPanel(QWidget):
         self._last_stage = "read" if mode == "read" else "preflight"
         self._state = {"status": "running", "stage": self._last_stage, "auto_replace": False}
         if mode == "run":
-            self._state.update(film_spent=0, film_limit=(inputs or {}).get("max_film_cost", 0))
+            self._state.update(refresh_count=0, refresh_limit=(inputs or {}).get("max_film_cost", 0))
         self._log_timer.stop()
         self.log_view.clear()
         self._log_cid = ""
@@ -329,6 +298,11 @@ class AffixRefreshPanel(QWidget):
 
     def _merge(self, payload: Mapping[str, Any]) -> None:
         self._state.update(payload)
+        # Older workers use the film fields for the same per-run counters.
+        if "refresh_count" not in payload and "film_spent" in payload:
+            self._state["refresh_count"] = payload["film_spent"]
+        if "refresh_limit" not in payload and "film_limit" in payload:
+            self._state["refresh_limit"] = payload["film_limit"]
         stage = str(payload.get("stage") or "")
         if stage and stage not in {"completed", "failed", "cancelled", "stopped"}:
             self._last_stage = stage
@@ -345,16 +319,15 @@ class AffixRefreshPanel(QWidget):
 
     def apply_result(self, payload: Mapping[str, Any]) -> None:
         terminal = dict(payload)
-        previous_spent, final_spent = self._state.get("film_spent"), terminal.get("film_spent")
-        if type(previous_spent) is int and type(final_spent) is int:
-            terminal["film_spent"] = max(previous_spent, final_spent)
+        previous_count = self._state.get("refresh_count", self._state.get("film_spent"))
+        final_count = terminal.get("refresh_count", terminal.get("film_spent"))
+        if type(previous_count) is int:
+            terminal["refresh_count"] = max(previous_count, final_count if type(final_count) is int else 0)
+        elif type(final_count) is int:
+            terminal["refresh_count"] = final_count
         if terminal.get("framework_interrupted"):
-            reserved = self._state.get("film_reserved")
-            if type(reserved) is int:
-                final_reserved = terminal.get("film_reserved")
-                terminal["film_reserved"] = max(reserved, final_reserved if type(final_reserved) is int else 0)
-            terminal["result_uncertain"] = bool(self._state.get("result_uncertain") or terminal.get("result_uncertain")
-                                                or terminal.get("film_reserved"))
+            terminal["result_uncertain"] = bool(self._state.get("result_uncertain")
+                                                or terminal.get("result_uncertain"))
         self._merge(terminal)
         self._task_running = self._stopping = False
         self._log_timer.stop()
@@ -362,7 +335,6 @@ class AffixRefreshPanel(QWidget):
         if self._mode == "read":
             snapshot = payload.get("snapshot")
             if payload.get("success") is True and isinstance(snapshot, Mapping) and snapshot.get("valid") is True:
-                self._state["film_remaining"] = snapshot.get("film_remaining")
                 self._state["current_candidate"] = snapshot.get("candidate")
         self._render()
         self._sync_controls()
@@ -382,8 +354,8 @@ class AffixRefreshPanel(QWidget):
             label = "读取完成，命中目标后将停止并保留候选"
         elif state.get("matched") is True and status == "completed" and state.get("reason") == "target_found":
             label = "已命中目标，请手动替换"
-        elif state.get("reason") in {"budget_exhausted", "budget_reached", "film_limit_reached"}:
-            label = "预算用尽，未命中目标"
+        elif state.get("reason") in {"budget_exhausted", "budget_reached", "film_limit_reached", "refresh_limit_reached"}:
+            label = "达到刷新轮数上限，未命中目标"
         elif status in {"cancelled", "stopped"}:
             label = "已停止"
         else:
@@ -391,13 +363,11 @@ class AffixRefreshPanel(QWidget):
         stage = STAGES.get(self._last_stage, self._last_stage)
         message = state.get("message") or state.get("error") or state.get("reason")
         self.status_label.setText(label + (f" · {stage}" if stage else "") + (f"\n{message}" if message else ""))
-        balance = state.get("film_remaining")
-        self.balance_label.setText(f"剩余胶卷：{'未确认' if balance is None else balance}")
         lines = []
-        if "film_spent" in state:
-            lines.append(f"已消耗胶卷：{state['film_spent']} / {state.get('film_limit', '?')}")
-        if state.get("film_reserved"):
-            lines.append(f"已提交、待确认消耗：{state['film_reserved']}")
+        count = state.get("refresh_count", state.get("film_spent"))
+        limit = state.get("refresh_limit", state.get("film_limit", "?"))
+        if type(count) is int:
+            lines.append(f"本次已执行 {count} / {limit} 轮")
         if state.get("result_uncertain"):
             lines.append("操作结果尚未确认，请查看保留的游戏画面。")
         candidate = state.get("current_candidate")
@@ -409,8 +379,6 @@ class AffixRefreshPanel(QWidget):
     def set_runner_busy(self, busy: bool) -> None:
         self._runner_busy = bool(busy)
         self._sync_controls()
-        if not busy:
-            self._queue_auto_read()
 
     def _sync_controls(self, *_args: Any) -> None:
         editable = not self._runner_busy and not self._task_running
@@ -424,10 +392,10 @@ class AffixRefreshPanel(QWidget):
             target = self._target() or {}
             threshold = inputs["threshold"]
             number = f" {threshold}{target.get('unit', '')}" if threshold else ""
-            self.config_summary_label.setText(f"{self.target_combo.currentText()} · {self.comparison_combo.currentText()}{number} · 最多消耗 {inputs['max_film_cost']} 个胶卷 · 命中后停止")
+            self.config_summary_label.setText(f"{self.target_combo.currentText()} · {self.comparison_combo.currentText()}{number} · 最多刷新 {inputs['max_film_cost']} 轮 · 命中后停止")
         except (ValueError, KeyError, TypeError) as exc:
             error = str(exc)
             self.config_summary_label.setText(error)
         self.run_button.setEnabled(editable and not error)
-        self.run_button.setToolTip(error or "启动后先检查窗口和胶卷余额，再自动刷新；命中后停止。")
+        self.run_button.setToolTip(error or "启动后先读取当前候选，再按设定轮数自动刷新；命中后停止。")
         self.cancel_button.setEnabled(self._task_running and not self._stopping)
