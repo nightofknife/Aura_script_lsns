@@ -1627,7 +1627,11 @@ def freight_passenger_summary_text(passenger: Any) -> str:
     attention = freight_passenger_attention(passenger)
     if attention:
         lines.append(attention)
-    reasons = {"target_met": "传单目标已完成", "route_exhausted": "货运行程已结束，剩余目标不补跑", "flyers_exhausted": "传单不足一次派发", "no_candidate": "剩余路线无可用客运区间", "no_eligible_interval": "剩余路线无可用客运区间"}
+    reasons = {"target_met": "传单目标已完成", "target_completed": "传单目标已完成",
+               "route_exhausted": "货运行程已结束，剩余目标不补跑",
+               "flyers_exhausted": "传单不足一次派发", "inventory_exhausted": "传单不足一次派发",
+               "no_candidate": "剩余路线无可用客运区间", "no_eligible_interval": "剩余路线无可用客运区间",
+               "no_eligible_trips": "剩余路线无可用客运区间", "cleanliness_too_low": "清洁度过低，无法揽客"}
     reason = passenger.get("stop_reason")
     if reason:
         lines.append(reasons.get(str(reason), str(reason)))
