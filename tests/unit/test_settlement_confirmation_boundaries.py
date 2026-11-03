@@ -202,6 +202,7 @@ def test_passenger_does_not_dismiss_again_after_positive_absence(monkeypatch):
     monkeypatch.setattr(passenger, "_check_cancelled", lambda: None)
     monkeypatch.setattr(passenger, "_wait_template", lambda *args, **kwargs: {"found": True})
     monkeypatch.setattr(passenger, "_capture_text_items", lambda *args, **kwargs: [])
+    monkeypatch.setattr(passenger, "_wait_main_stable", lambda *args, **kwargs: {"confirmed": False})
     with pytest.raises(passenger.PassengerPcError) as caught:
         passenger.resonance_pc_enter_city_and_settle_passengers(
             app=NS(click=lambda **kwargs: clicks.append(kwargs),

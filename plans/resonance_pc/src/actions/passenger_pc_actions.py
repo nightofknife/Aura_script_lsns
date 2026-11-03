@@ -3,17 +3,23 @@
 from __future__ import annotations
 
 import asyncio
+from contextvars import ContextVar
 import json
 import re
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Tuple
 
+import cv2
+import numpy as np
+
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ._bounded_observation import ObservationBudget, wait_for_observation
 from ._template_observation import observe_template
+from ._navigation_templates import GLOBAL_BACK
+from . import _passenger_destination_vision as destination_vision
 
 class PassengerPcError(RuntimeError):
     """Structured expected failure raised by passenger UI actions."""
@@ -64,11 +70,13 @@ _DISPATCH_CONFIRM_REGION = [490, 585, 320, 110]
 _AMOUNT_MAX_REGION = [900, 310, 130, 110]
 _AMOUNT_CONFIRM_REGION = [620, 445, 660, 140]
 _RECRUIT_SUCCESS_REGION = [100, 505, 520, 180]
+_FLYER_RESULT_BALANCE_REGION = [256, 134, 56, 34]
+_FLYER_HUB_BALANCE_REGION = [930, 10, 155, 60]
 _SETTLEMENT_REGION = [30, 470, 540, 180]
 _VISIT_CITY_REGION = [980, 430, 290, 110]
 
-_DESTINATION_DRAG_UP = ((1160, 525), (1160, 180))
-_DESTINATION_DRAG_DOWN = ((1160, 180), (1160, 525))
+_DESTINATION_DRAG_UP = ((1160, 525), (1160, 295))
+_DESTINATION_DRAG_DOWN = ((1160, 180), (1160, 410))
 _SAFE_EXIT_POINT = (640, 690)
 
 _TEMPLATE_THRESHOLD = 0.80
@@ -80,11 +88,9 @@ _POLL_INTERVAL = 0.35
 _OPEN_MANAGEMENT_MAX_ATTEMPTS = 3
 _OPEN_MANAGEMENT_SCORE_TIMEOUT = 4.0
 _OPEN_MANAGEMENT_RETRY_DELAY = 1.0
-
-_CITY_ALIASES: Dict[str, Tuple[str, ...]] = {
-    "cape_city": ("海角城",),
-    "lanxin_city": ("岚心城", "岚心域"),
-}
+_LOCAL_CANCEL_CHECK: ContextVar[Optional[Callable[[], bool]]] = ContextVar(
+    "passenger_local_cancel_check", default=None,
+)
 
 def _apply_location_config() -> None:
     """Load passenger UI regions while retaining safe built-in defaults."""
@@ -153,7 +159,8 @@ def _raise(code: str, message: str, detail: Optional[Dict[str, Any]] = None) -> 
 
 
 def _check_cancelled() -> None:
-    if is_current_task_cancel_requested():
+    local = _LOCAL_CANCEL_CHECK.get()
+    if (local is not None and local()) or is_current_task_cancel_requested():
         raise asyncio.CancelledError("Resonance PC passenger task was cancelled")
 
 
@@ -172,13 +179,15 @@ def _template_path(template: str) -> str:
     return str(raw if raw.is_absolute() else (_PLAN_ROOT / raw).resolve())
 
 
-def _capture_text_items(app: Any, ocr: Any, region: Sequence[int]) -> List[Dict[str, Any]]:
+def _capture_text_items(app: Any, ocr: Any, region: Sequence[int], *,
+                        preprocess: Optional[Callable[[Any], Any]] = None) -> List[Dict[str, Any]]:
     _check_cancelled()
     rect = _coerce_region(region)
     capture = app.capture(rect=rect)
     if not capture.success:
         _raise("capture_failed", "failed to capture passenger UI region", {"region": list(rect)})
-    recognized = ocr.recognize_all(source_image=capture.image)
+    source = preprocess(capture.image) if preprocess is not None else capture.image
+    recognized = ocr.recognize_all(source_image=source)
     rows: List[Dict[str, Any]] = []
     for item in getattr(recognized, "results", []) or []:
         text = str(getattr(item, "text", "") or "").strip()
@@ -257,6 +266,7 @@ def _click_template_required(
     *,
     error_code: str,
     timeout_sec: float = _PAGE_TIMEOUT,
+    before_click: Optional[Callable[[], None]] = None,
 ) -> Dict[str, Any]:
     budget = ObservationBudget(timeout_sec, monotonic=time.monotonic,
                                check_cancelled=_check_cancelled, immediate_first_probe=True)
@@ -266,6 +276,9 @@ def _click_template_required(
         _raise(error_code, f"required passenger template was not found: {template}", {"match": match})
     if not budget.active():
         _raise(error_code, f"passenger template observation expired before input: {template}", {"match": match})
+    if before_click is not None:
+        before_click()
+        _check_cancelled()
     app.click(x=int(center[0]), y=int(center[1]))
     return match
 
@@ -371,8 +384,129 @@ def _passenger_ratio(items: Iterable[Dict[str, Any]]) -> Optional[Dict[str, int]
 
 
 def _flyer_ratio(items: Iterable[Dict[str, Any]]) -> Optional[Dict[str, int]]:
-    ratios = [ratio for ratio in _parse_ratios(items) if ratio["total"] > 300]
-    return max(ratios, key=lambda ratio: ratio["total"]) if ratios else None
+    # Callers supply only the flyer-header crop, excluding the passenger counter.
+    ratios = _parse_ratios(items)
+    return ratios[0] if len(ratios) == 1 else None
+
+
+def _valid_flyer_ratio(value: Any) -> bool:
+    return (isinstance(value, dict) and type(value.get("current")) is int
+            and type(value.get("total")) is int and value["total"] > 0
+            and 0 <= value["current"] <= value["total"])
+
+
+def _prepare_flyer_digit_image(image: Any) -> np.ndarray:
+    """Keep the native neutral-gray text without clipping its first digit.
+
+    The fixed icon overlaps the text rectangle, so moving the crop right is
+    insufficient. Its blue/yellow ink and small border remnants are removed.
+    Only this confirmed result-page number crop uses this preprocessing.
+    """
+    if not isinstance(image, np.ndarray) or image.dtype != np.uint8 or image.shape != (34, 56, 3):
+        _raise("flyer_digit_capture_invalid", "Flyer digit crop has an unexpected image shape")
+    low = image.min(axis=2).astype(np.int16)
+    high = image.max(axis=2).astype(np.int16)
+    ink = ((high - low <= 12) & (low >= 24) & (high <= 180)).astype(np.uint8)
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
+    retained = np.zeros(ink.shape, dtype=bool)
+    for label in range(1, count):
+        if stats[label, cv2.CC_STAT_HEIGHT] >= 8 and stats[label, cv2.CC_STAT_AREA] >= 8:
+            retained |= labels == label
+    return np.where(retained[:, :, None], image, 255).astype(np.uint8)
+
+
+def _read_recruitment_result_flyer_balance(app: Any, ocr: Any, vision: Any,
+                                          capacity: int) -> Optional[Dict[str, Any]]:
+    # Native UI: fixed centered text at [262,138,44,28] in the 1280x720
+    # client. Confirm the result template, then read its fixed number crop.
+    if type(capacity) is not int or not 0 < capacity <= 999:
+        return None
+    region = list(_FLYER_RESULT_BALANCE_REGION)
+    observations = []
+    result_matches = []
+    values = []
+    for _ in range(2):
+        source = _match_template(app, vision, _RECRUIT_SUCCESS_TEMPLATE, _RECRUIT_SUCCESS_REGION)
+        if not source.get("found"):
+            return None
+        result_matches.append(source)
+        rows = _capture_text_items(app, ocr, region, preprocess=_prepare_flyer_digit_image)
+        observations.append(rows)
+        candidates = [int(str(row.get("text") or "").strip()) for row in rows
+                      if re.fullmatch(r"[0-9]{1,3}", str(row.get("text") or "").strip())]
+        if len(candidates) != 1 or not 0 <= candidates[0] <= capacity:
+            return None
+        values.append(candidates[0])
+    if values[0] != values[1]:
+        return None
+    return {"current": values[0], "total": capacity, "method": "isolated_neutral_digits_two_reads",
+            "region": region, "observations": observations, "result_matches": result_matches}
+
+
+def _read_flyer_balance(app: Any, ocr: Any, *, initial_ratio: Any = None,
+                        attempts: int = 3) -> Dict[str, int]:
+    """Require an observed flyer balance; unreadable is never interpreted as zero."""
+    if _valid_flyer_ratio(initial_ratio):
+        return dict(initial_ratio)
+    last_items: List[Dict[str, Any]] = []
+    for attempt in range(attempts):
+        _check_cancelled()
+        last_items = _capture_text_items(app, ocr, _FLYER_HUB_BALANCE_REGION)
+        value = _flyer_ratio(last_items)
+        if _valid_flyer_ratio(value):
+            return dict(value)
+        if attempt + 1 < attempts:
+            time.sleep(0.5)
+    _raise("flyer_balance_unreadable", "unable to confirm current flyer balance",
+           {"ocr_items": last_items, "attempts": attempts})
+    return {}
+
+
+def _read_flyer_inventory(app: Any, ocr: Any, vision: Any) -> Dict[str, Any]:
+    """Read the recruitment hub balance and restore main, without spending flyers."""
+    if not _match_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION).get("found"):
+        resonance_pc_open_passenger_management(app=app, vision=vision)
+    hub = _open_recruitment_hub_from_score(app, ocr, vision)
+    balance = _read_flyer_balance(app, ocr, initial_ratio=hub.get("flyer_ratio"))
+    cleanup = _return_recruitment_pages_to_main(app, vision)
+    return {"success": True, "page_state": "city_main", "flyers_remaining": balance["current"],
+            "flyer_capacity": balance["total"], "cleanup": cleanup}
+
+
+def _return_recruitment_pages_to_main(app: Any, vision: Any) -> Dict[str, Any]:
+    """The persistent recruitment hub needs Back, unlike the result overlay."""
+    attempts = []
+    for _ in range(4):
+        _check_cancelled()
+        main = _wait_main_stable(app, vision, timeout_sec=0.7)
+        if main.get("confirmed"):
+            return {"success": True, "page_state": "city_main", "attempts": attempts}
+        budget = ObservationBudget(3.0, monotonic=time.monotonic, check_cancelled=_check_cancelled)
+        hub = _match_template(app, vision, _FLYER_MODE_TEMPLATE, _FLYER_MODE_REGION)
+        score = (_match_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION)
+                 if not hub.get("found") else {"found": False})
+        destination = (_match_template(app, vision, _DESTINATION_MARKER_TEMPLATE, _DESTINATION_MARKER_REGION)
+                       if not (hub.get("found") or score.get("found")) else {"found": False})
+        dispatch = (_match_template(app, vision, _DISPATCH_MARKER_TEMPLATE, _DISPATCH_MARKER_REGION)
+                    if not (hub.get("found") or score.get("found") or destination.get("found")) else {"found": False})
+        if not any(page.get("found") for page in (hub, score, destination, dispatch)):
+            _raise("passenger_return_page_unknown", "Cannot leave an unconfirmed recruitment page",
+                   {"main": main, "hub": hub, "score": score, "destination": destination,
+                    "dispatch": dispatch, "attempts": attempts})
+        if score.get("found"):
+            cleanup = _click_blank_and_confirm_main(app, vision, error_code="main_screen_not_restored")
+            attempts.append({"source": "passenger_score", "cleanup": cleanup})
+            return {**cleanup, "page_state": "city_main", "attempts": attempts}
+        back = _wait_template(app, vision, GLOBAL_BACK.path, GLOBAL_BACK.roi,
+                              threshold=GLOBAL_BACK.threshold, timeout_sec=3.0, _budget=budget)
+        center = back.get("center")
+        if not back.get("found") or not isinstance(center, list) or len(center) != 2 or not budget.active():
+            _raise("passenger_return_back_unconfirmed", "Recruitment Back button was not confirmed", back)
+        _check_cancelled()
+        app.click(x=int(center[0]), y=int(center[1]))
+        source = "recruitment_hub" if hub.get("found") else "destination" if destination.get("found") else "dispatch"
+        attempts.append({"source": source, "back": back})
+    _raise("main_screen_not_restored", "Recruitment pages did not return to main", {"attempts": attempts})
 
 
 def _numeric_value_near_label(items: Sequence[Dict[str, Any]], labels: Sequence[str]) -> Optional[int]:
@@ -384,7 +518,7 @@ def _numeric_value_near_label(items: Sequence[Dict[str, Any]], labels: Sequence[
     ]
     for row in label_rows:
         text = str(row.get("text") or "")
-        inline = re.findall(r"\d[\d,，]*", text)
+        inline = re.findall(r"(?<![\d,，.])\d+(?:[,，.]\d{3})*(?![\d,，.])", text)
         if inline:
             return int(re.sub(r"\D", "", inline[-1]))
         center = row.get("center")
@@ -395,27 +529,16 @@ def _numeric_value_near_label(items: Sequence[Dict[str, Any]], labels: Sequence[
             other_center = other.get("center")
             if not isinstance(other_center, list) or len(other_center) != 2:
                 continue
-            numeric = re.fullmatch(r"[\d,，]+", str(other.get("text") or "").strip())
+            numeric = re.fullmatch(r"(?:\d+|\d{1,3}(?:[,，.]\d{3})+)", str(other.get("text") or "").strip())
             if numeric is None:
                 continue
             dx = int(other_center[0]) - int(center[0])
             dy = abs(int(other_center[1]) - int(center[1]))
-            if -40 <= dx <= 500 and dy <= 80:
+            if -40 <= dx <= 500 and dy <= 14:
                 candidates.append((abs(dx) + dy, int(re.sub(r"\D", "", numeric.group(0)))))
         if candidates:
             return min(candidates, key=lambda pair: pair[0])[1]
     return None
-
-
-def _resolve_city_aliases(to_city_name: str) -> Tuple[str, ...]:
-    raw = str(to_city_name or "").strip()
-    if not raw:
-        _raise("destination_not_found", "target passenger city is required")
-    normalized = _normalize_text(raw)
-    for city_key, aliases in _CITY_ALIASES.items():
-        if normalized == _normalize_text(city_key) or any(_normalize_text(alias) in normalized for alias in aliases):
-            return aliases
-    return (raw,)
 
 
 def _find_alias_hit(items: Sequence[Dict[str, Any]], aliases: Sequence[str]) -> Optional[Dict[str, Any]]:
@@ -430,23 +553,16 @@ def _find_alias_hit(items: Sequence[Dict[str, Any]], aliases: Sequence[str]) -> 
     return None
 
 
-def _visit_city_entry_evidence(app: Any, ocr: Any) -> Dict[str, Any]:
-    items = _capture_text_items(app, ocr, _VISIT_CITY_REGION)
-    wanted = {
-        _normalize_text(alias)
-        for alias in ("访问城市", "访问地区", "进入城市")
-    }
-    hit = next(
-        (
-            row
-            for row in items
-            if str(row.get("norm_text") or "") in wanted
-            and isinstance(row.get("center"), list)
-            and len(row["center"]) == 2
-        ),
-        None,
-    )
-    return {"found": hit is not None, "hit": hit, "ocr_items": items}
+def _dismiss_passenger_level_up(app: Any, ocr: Any) -> Dict[str, Any]:
+    budget = ObservationBudget(2.5, monotonic=time.monotonic, check_cancelled=_check_cancelled)
+    items = _capture_text_items(app, ocr, [380, 280, 500, 220])
+    hit = next((row for row in items if _normalize_text(str(row.get("text") or ""))
+                == _normalize_text("客运等级提升")), None)
+    if hit is None or not budget.active():
+        return {"found": False, "ocr_items": items}
+    _check_cancelled()
+    app.click(x=_SAFE_EXIT_POINT[0], y=_SAFE_EXIT_POINT[1])
+    return {"found": True, "clicked": True, "hit": hit, "ocr_items": items}
 
 
 def _drag(app: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
@@ -458,7 +574,7 @@ def _drag(app: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
         end_x=end[0],
         end_y=end[1],
         duration=0.55,
-        hold_before_release_sec=0.25,
+        hold_before_release_sec=0.5,
     )
     time.sleep(0.5)
 
@@ -466,37 +582,53 @@ def _drag(app: Any, start: Tuple[int, int], end: Tuple[int, int]) -> None:
 def _select_destination_city(
     to_city_name: str,
     app: Any,
-    ocr: Any,
     *,
     max_search_steps: int,
 ) -> Dict[str, Any]:
-    aliases = _resolve_city_aliases(to_city_name)
+    try:
+        entry = destination_vision.resolve_destination(to_city_name)
+    except destination_vision.DestinationVisionError as exc:
+        _raise(exc.code, str(exc), exc.detail)
     steps = max(int(max_search_steps), 1)
     direction = "down"
-    previous_signature: Tuple[str, ...] = ()
+    previous_signature = None
     repeated = 0
     trace: List[Dict[str, Any]] = []
     for step in range(steps):
-        items = _capture_text_items(app, ocr, _DESTINATION_CITY_REGION)
-        signature = tuple(sorted({str(row.get("norm_text") or "") for row in items if row.get("norm_text")}))
-        hit = _find_alias_hit(items, aliases)
-        trace.append(
-            {
-                "step": step + 1,
-                "direction": direction,
-                "visible_texts": [str(row.get("text") or "") for row in items],
-                "signature": list(signature),
-            }
-        )
-        if hit is not None:
-            center = hit["center"]
-            app.click(x=int(center[0]), y=int(center[1]))
-            return {"success": True, "hit": hit, "steps": step + 1, "trace": trace}
-        repeated = repeated + 1 if signature and signature == previous_signature else 0
+        try:
+            image = destination_vision.capture_list(app, _DESTINATION_CITY_REGION, _check_cancelled)
+            signature = destination_vision.scroll_signature(image)
+            difference = destination_vision.list_difference(previous_signature, signature)
+            hit = destination_vision.probe_destination(image, entry, _DESTINATION_CITY_REGION, _check_cancelled)
+            trace.append({"step": step + 1, "direction": direction,
+                          "list_difference": difference, "match": hit})
+            if hit["found"]:
+                time.sleep(_POLL_INTERVAL)
+                confirmation_image = destination_vision.capture_list(app, _DESTINATION_CITY_REGION, _check_cancelled)
+                confirmation = destination_vision.probe_destination(
+                    confirmation_image, entry, _DESTINATION_CITY_REGION, _check_cancelled)
+                trace[-1]["confirmation"] = confirmation
+                if (confirmation["found"]
+                        and max(abs(a - b) for a, b in zip(hit["center"], confirmation["center"])) <= 3):
+                    _check_cancelled()
+                    app.click(x=confirmation["center"][0], y=confirmation["center"][1])
+                    return {"success": True, "hit": confirmation, "confirmations": 2,
+                            "steps": step + 1, "trace": trace}
+                # A moving badge is not negative search evidence. Observe again without scrolling.
+                previous_signature = None
+                continue
+        except destination_vision.DestinationVisionError as exc:
+            _raise(exc.code, str(exc), {**exc.detail, "trace": trace})
+        repeated = repeated + 1 if difference is not None and difference <= 2.0 else 0
         previous_signature = signature
+        if direction == "up" and repeated >= 2:
+            break
         if direction == "down" and (repeated >= 2 or step + 1 >= max(1, steps // 2)):
             direction = "up"
             repeated = 0
+            previous_signature = None
+        if step + 1 >= steps:
+            break
         drag_path = _DESTINATION_DRAG_UP if direction == "down" else _DESTINATION_DRAG_DOWN
         _drag(app, drag_path[0], drag_path[1])
     _raise(
@@ -651,7 +783,8 @@ def _select_rightmost_dispatch(app: Any, vision: Any) -> Dict[str, Any]:
     }
 
 
-def _open_recruitment_hub_from_score(app: Any, ocr: Any, vision: Any) -> Dict[str, Any]:
+def _open_recruitment_hub_from_score(app: Any, ocr: Any, vision: Any, *,
+                                     read_balance: bool = True) -> Dict[str, Any]:
     _click_template_required(
         app,
         vision,
@@ -662,7 +795,7 @@ def _open_recruitment_hub_from_score(app: Any, ocr: Any, vision: Any) -> Dict[st
     marker = _wait_template(app, vision, _FLYER_MODE_TEMPLATE, _FLYER_MODE_REGION)
     if not marker.get("found"):
         _raise("passenger_recruit_hub_not_found", "passenger recruitment hub did not appear", {"match": marker})
-    items = _capture_text_items(app, ocr, _FULL_SCREEN)
+    items = _capture_text_items(app, ocr, _FLYER_HUB_BALANCE_REGION) if read_balance else []
     return {
         "success": True,
         "page_state": "recruitment_hub",
@@ -811,14 +944,72 @@ def resonance_pc_recruit_passengers_by_flyer(
     app: Any = None,
     ocr: Any = None,
     vision: Any = None,
+    read_passenger_count: bool = True,
+    known_flyers_before: Optional[int] = None,
+) -> Dict[str, Any]:
+    return _recruit_passengers_by_flyer(
+        to_city_name, max_search_steps=max_search_steps, app=app, ocr=ocr, vision=vision,
+        read_passenger_count=read_passenger_count, known_flyers_before=known_flyers_before,
+    )
+
+
+def _recruit_passengers_by_flyer(
+    to_city_name: str,
+    max_search_steps: int = 12,
+    app: Any = None,
+    ocr: Any = None,
+    vision: Any = None,
+    read_passenger_count: bool = True,
+    submission_observer: Optional[Callable[[], None]] = None,
+    known_flyers_before: Optional[int] = None,
+) -> Dict[str, Any]:
+    if type(read_passenger_count) is not bool:
+        raise ValueError("read_passenger_count must be a boolean")
+    if known_flyers_before is not None and (type(known_flyers_before) is not int or known_flyers_before < 0):
+        raise ValueError("known_flyers_before must be a nonnegative confirmed balance")
+    receipt: Dict[str, Any] = {"submission_state": "not_submitted", "flyers_before": None,
+                               "flyers_remaining": None, "flyers_used": None,
+                               "success_marker_confirmed": False, "page_state": "unknown"}
+
+    def submitted() -> None:
+        receipt["submission_state"] = "submitted_unknown"
+        if submission_observer is not None:
+            submission_observer()
+
+    try:
+        return _recruit_passengers_by_flyer_impl(
+            to_city_name, max_search_steps=max_search_steps, app=app, ocr=ocr, vision=vision,
+            read_passenger_count=read_passenger_count, receipt=receipt, submitted=submitted,
+            known_flyers_before=known_flyers_before,
+        )
+    except BaseException as exc:
+        # Cancellation must retain the same durable consumption boundary as UI failures.
+        detail = getattr(exc, "detail", None)
+        exc.detail = {**(detail if isinstance(detail, dict) else {}),
+                      "recruitment": dict(receipt), "submission_state": receipt["submission_state"]}
+        raise
+
+
+def _recruit_passengers_by_flyer_impl(
+    to_city_name: str, *, max_search_steps: int, app: Any, ocr: Any, vision: Any,
+    read_passenger_count: bool, receipt: Dict[str, Any], submitted: Callable[[], None],
+    known_flyers_before: Optional[int] = None,
 ) -> Dict[str, Any]:
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required")
 
     if not _match_template(app, vision, _SCORE_MARKER_TEMPLATE, _SCORE_MARKER_REGION).get("found"):
         resonance_pc_open_passenger_management(app=app, vision=vision)
-    hub = _open_recruitment_hub_from_score(app, ocr, vision)
-    initial_flyers = int((hub.get("flyer_ratio") or {}).get("current") or 0)
+    hub = _open_recruitment_hub_from_score(app, ocr, vision, read_balance=known_flyers_before is None)
+    if known_flyers_before is None:
+        before = _read_flyer_balance(app, ocr, initial_ratio=hub.get("flyer_ratio"))
+        initial_flyers, balance_limit = before["current"], before["total"]
+    else:
+        initial_flyers = balance_limit = known_flyers_before
+    receipt["flyers_before"] = initial_flyers
+    if initial_flyers < 10:
+        _raise("flyers_exhausted", "fewer than one dispatch batch of flyers remains",
+               {"flyers_before": initial_flyers})
     _click_template_required(
         app,
         vision,
@@ -832,7 +1023,6 @@ def resonance_pc_recruit_passengers_by_flyer(
     destination = _select_destination_city(
         to_city_name,
         app,
-        ocr,
         max_search_steps=max_search_steps,
     )
     _click_template_required(
@@ -860,6 +1050,7 @@ def resonance_pc_recruit_passengers_by_flyer(
         _AMOUNT_CONFIRM_TEMPLATE,
         _AMOUNT_CONFIRM_REGION,
         error_code="flyer_amount_confirm_failed",
+        before_click=submitted,
     )
     success_marker = _wait_template(
         app,
@@ -870,41 +1061,52 @@ def resonance_pc_recruit_passengers_by_flyer(
     )
     if not success_marker.get("found"):
         _raise("recruitment_result_unreadable", "flyer recruitment result did not appear", {"match": success_marker})
+    receipt["success_marker_confirmed"] = True
 
     result_items: List[Dict[str, Any]] = []
     recruited: Optional[int] = None
+    remaining_flyers: Optional[Dict[str, int]] = None
     for _attempt in range(3):
-        result_items = _capture_text_items(app, ocr, _FULL_SCREEN)
-        recruited = _numeric_value_near_label(result_items, ("招揽乘客人数", "揽客人数"))
-        if recruited is not None:
+        remaining_flyers = _read_recruitment_result_flyer_balance(app, ocr, vision, balance_limit)
+        if read_passenger_count:
+            result_items = _capture_text_items(app, ocr, _FULL_SCREEN)
+            recruited = _numeric_value_near_label(result_items, ("招揽乘客人数", "揽客人数"))
+        if _valid_flyer_ratio(remaining_flyers) and (not read_passenger_count or recruited is not None):
             break
-        time.sleep(0.5)
-    if recruited is None:
+        if _attempt < 2:
+            time.sleep(0.5)
+    if not _valid_flyer_ratio(remaining_flyers):
+        _raise("flyer_balance_unreadable", "unable to confirm flyers after recruitment", {"ocr_items": result_items})
+    remaining_flyer_count = remaining_flyers["current"]
+    if remaining_flyer_count > initial_flyers:
+        _raise("flyer_balance_increased", "flyer balance increased across recruitment; consumption is unknown",
+               {"flyers_before": initial_flyers, "flyers_remaining": remaining_flyer_count})
+    receipt.update(flyers_remaining=remaining_flyer_count,
+                   flyers_used=initial_flyers - remaining_flyer_count,
+                   submission_state="result_confirmed")
+    if read_passenger_count and recruited is None:
         _raise("recruitment_result_unreadable", "unable to read recruited passenger count", {"ocr_items": result_items})
 
-    remaining_seats = _passenger_ratio(result_items)
-    remaining_flyers = _flyer_ratio(result_items)
+    remaining_seats = _passenger_ratio(result_items) if read_passenger_count else None
     cleanup = _click_blank_and_confirm_main(app, vision, error_code="main_screen_not_restored")
-    if recruited <= 0:
-        return {
-            "success": False,
-            "status": "blocked",
-            "reason": "no_passengers_recruited",
-            "recruited_passengers": 0,
-            "cleanup": cleanup,
-        }
-    remaining_flyer_count = int((remaining_flyers or {}).get("current") or 0)
+    receipt["page_state"] = "city_main"
+    zero_recruits = read_passenger_count and recruited == 0
     return {
-        "success": True,
-        "status": "completed",
-        "reason": None,
+        "success": not zero_recruits,
+        "status": "blocked" if zero_recruits else "completed",
+        "reason": "no_passengers_recruited" if zero_recruits else None,
+        "page_state": "city_main",
+        "submission_state": "result_confirmed",
+        "success_marker_confirmed": True,
         "to_city_name": str(to_city_name),
-        "recruited_passengers": int(recruited),
-        "seat_capacity": int((remaining_seats or {}).get("total") or 0),
-        "remaining_seats": int((remaining_seats or {}).get("current") or 0),
+        "recruited_passengers": recruited,
+        "seat_capacity": int((remaining_seats or {}).get("total") or 0) if read_passenger_count else None,
+        "remaining_seats": int((remaining_seats or {}).get("current") or 0) if read_passenger_count else None,
         "flyers_before": initial_flyers,
+        "flyers_before_source": "cached_balance" if known_flyers_before is not None else "ocr",
         "flyers_remaining": remaining_flyer_count,
-        "flyers_used": max(initial_flyers - remaining_flyer_count, 0),
+        "flyers_used": initial_flyers - remaining_flyer_count,
+        "flyer_balance_evidence": remaining_flyers,
         "destination": destination,
         "dispatch": dispatch,
         "cleanup": cleanup,
@@ -916,7 +1118,7 @@ def resonance_pc_recruit_passengers_by_flyer(
     name="resonance_pc.enter_city_and_settle_passengers",
     public=True,
     read_only=False,
-    description="Enter the arrived city, require passenger revenue settlement, and return to city main.",
+    description="Confirm and dismiss passenger settlement, without reading income, then return to city main.",
 )
 @requires_services(app="plans/aura_base/app", ocr="plans/aura_base/ocr", vision="plans/aura_base/vision")
 def resonance_pc_enter_city_and_settle_passengers(
@@ -965,12 +1167,14 @@ def resonance_pc_enter_city_and_settle_passengers(
         )
     if not settlement.get("found"):
         _raise("passenger_settlement_not_found", "passenger revenue settlement did not appear", {"match": settlement})
-    items = _capture_text_items(app, ocr, _FULL_SCREEN)
+    # Settlement completion is visual evidence, independent of income numbers.
+    # Retain nullable fields for existing task/result consumers, without OCR.
+    items: List[Dict[str, Any]] = []
     revenue = {
-        "ticket_revenue": _numeric_value_near_label(items, ("车票收益",)),
-        "extra_revenue": _numeric_value_near_label(items, ("车票外收益",)),
-        "total_revenue": _numeric_value_near_label(items, ("总收益",)),
-        "passenger_garbage": _numeric_value_near_label(items, ("乘客垃圾产出",)),
+        "ticket_revenue": None,
+        "extra_revenue": None,
+        "total_revenue": None,
+        "passenger_garbage": None,
     }
 
     dismiss_attempts: List[Dict[str, Any]] = []
@@ -1008,33 +1212,33 @@ def resonance_pc_enter_city_and_settle_passengers(
             _raise("passenger_settlement_observation_failed", "Passenger settlement closure is unknown",
                    {"settlement_match": settlement, "last_match": absent["last_match"],
                     "settlement_confirmed": True, "revenue": revenue, "attempt": attempt})
-        visit_city = (
-            _visit_city_entry_evidence(app, ocr)
-            if absent.get("absent")
-            else {"found": False, "ocr_items": []}
-        )
-        main = (
-            _wait_main_stable(app, vision, timeout_sec=3.0)
-            if visit_city.get("found")
-            else {"confirmed": False, "reason": "visit_city_not_found"}
-        )
+        level_up = {"found": False}
+        main = (_wait_main_stable(app, vision, timeout_sec=0.7)
+                if absent.get("absent") else {"confirmed": False, "reason": "settlement_still_present"})
+        if absent.get("absent") and not main.get("confirmed"):
+            level_up = _dismiss_passenger_level_up(app, ocr)
+            main = _wait_main_stable(app, vision, timeout_sec=3.0)
         dismiss_attempts.append(
             {
                 "attempt": attempt,
                 "absent": absent,
-                "visit_city": visit_city,
                 "main": main,
+                "level_up": level_up,
             }
         )
-        if absent.get("absent") and visit_city.get("found") and main.get("confirmed"):
+        if absent.get("absent") and main.get("confirmed"):
             return {
                 "success": True,
                 "status": "completed",
                 "reason": None,
+                "revenue_reading_enabled": False,
                 **revenue,
                 "ocr_items": items,
                 "settlement_match": settlement,
                 "dismiss_attempts": dismiss_attempts,
             }
-    _raise("settlement_dismiss_failed", "passenger settlement could not be dismissed to city main", {"attempts": dismiss_attempts})
+    _raise("settlement_dismiss_failed", "passenger settlement could not be dismissed to city main",
+           {"attempts": dismiss_attempts, "settlement_confirmed": True,
+            "settlement_closed": bool(dismiss_attempts and dismiss_attempts[-1]["absent"].get("absent")),
+            "revenue": revenue, "ocr_items": items})
     return {}

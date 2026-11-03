@@ -1,0 +1,24 @@
+{
+  "kind": "actual_live_destination_list_roi",
+  "source": ".pytest_tmp/attached-passenger-live-20261103-shoggolith-two-stops/second-stop-destination-09.png",
+  "sha256": "8f40f272d5201a4a0a674daeacfd45aa2f975161f0889ecb6ecae36a4b1372b2",
+  "region": [
+    540,
+    75,
+    710,
+    500
+  ],
+  "template_method": "passenger_city_background_and_badge",
+  "fully_visible_city_keys": [
+    "onederland",
+    "clarity_data_center_administration_bureau",
+    "anita_weapon_research_institute",
+    "anita_energy_research_institute",
+    "anita_rocket_base",
+    "cape_city"
+  ],
+  "clipped_city_keys": [
+    "wilderness_station",
+    "mander_mine"
+  ]
+}

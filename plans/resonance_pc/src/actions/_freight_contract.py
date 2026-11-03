@@ -130,7 +130,8 @@ def fixed_start_stop(request: dict[str, Any]) -> dict[str, Any]:
 
 def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
               auto_bento: bool = False, water_plan: dict[str, Any] | None = None,
-              investment: bool = False, rubbish: bool = False) -> dict[str, Any]:
+              investment: bool = False, rubbish: bool = False,
+              auto_passenger: bool = False) -> dict[str, Any]:
     result = deepcopy(plan)
     planning_status = str(plan.get("status") or "no_plan")
     route = [dict(leg) for leg in plan.get("route", [])]
@@ -169,6 +170,8 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
                            "reason": None if enabled else reason})
         if incoming:
             phase("arrival", True)
+            if auto_passenger:
+                phase("passenger_settlement", True)
             phase("investment", investment and city_id == "11")
             eligible_rubbish = rubbish and city_id in {"7", "14"} and not rubbish_selected
             phase("rubbish_recycling", eligible_rubbish)
@@ -189,6 +192,8 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
             phase("books", bool(following.get("books_used")), books_reason)
             phase("buy", bool(following.get("buy_products")),
                   following.get("selection_reason") or "no_goods_planned")
+            if auto_passenger:
+                phase("passenger_recruit", True)
             phase("travel", True)
         elif not threshold_recovery:
             phase("bento", auto_bento, "disabled")

@@ -14,6 +14,7 @@ from .logic import validate_trade_goods_investment_level, validate_pickup_click_
 from .black_moon_catalog import normalize_black_moon_settings
 from .affix_catalog import normalize_affix_inputs
 from .battle_plan import normalize_battle_editor_inputs
+from packages.resonance_shared.passenger_parameters import DEFAULT_PASSENGER_OPTIONS, normalize_passenger_options
 from packages.resonance_shared.freight_parameters import (
     DEFAULT_RECOVERY_THRESHOLDS,
 )
@@ -94,6 +95,8 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "city_prestige": {"default": 20, "overrides": {}},
     "city_tax_rates_bps": {},
     "product_unlocks": {"mode": "all", "product_ids": []},
+    "auto_passenger": False,
+    "passenger_options": DEFAULT_PASSENGER_OPTIONS,
     "auto_sparkling_water": False,
     "auto_bento": False,
     "prison_product_goods": [],
@@ -120,6 +123,8 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
 
 # Planning inputs declared by preview_trade_plan_pc.yaml.
 TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
+    "auto_passenger",
+    "passenger_options",
     "start_city_id",
     "fatigue_budget",
     "cargo_capacity",
@@ -473,6 +478,9 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     for key in merged:
         if key in values:
             merged[key] = values[key]
+    if type(merged["auto_passenger"]) is not bool:
+        raise ValueError("附加客运开关必须为布尔值。")
+    merged["passenger_options"] = normalize_passenger_options(merged["passenger_options"], enabled=False)
     merged["city_tax_rates_bps"] = validate_city_tax_rates_bps(merged["city_tax_rates_bps"])
     merged["allow_stale_market"] = validate_allow_stale_market(merged["allow_stale_market"])
     if merged["trade_mode"] not in ("free", "fixed"):

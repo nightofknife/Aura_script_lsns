@@ -1,0 +1,840 @@
+{
+  "schema_version": 2,
+  "source": {
+    "kind": "native_passenger_card_background_overlay_and_city_logo",
+    "files": {
+      "Patch/Asset/ui/flier/citymap.asset": "40e92494a1902dc414c9b1c39d743617357ffaa9a857801f246849fd70e33c34",
+      "Patch/Asset/ui/common.asset": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd",
+      "Patch/Asset/ui/flier/soucer_r.asset": "11a6dcd368d917d393659ac494f9d39a82d764e8e01300bca95ee05e7736bf49",
+      "Patch/Asset/ui/flier/group_sendstation.asset": "fbd4c048e7848f44f549859ea34e62ab5945d9a8e72cbbf51f305e02a91e7586",
+      "Patch/BinaryConfig/HomeStationFactory.bin": "8ad6e7b37c84576a978236279391857a8357cda6b80e1c326b8744917585d6d4"
+    },
+    "city_catalog": "data/meta/city_identity_templates.json",
+    "city_catalog_sha256": "36c4bdada00c9136502601121d43c741e30f0623ded96e68aae5061da95668da",
+    "alias_catalog": "data/meta/trade_goods_investment_cities.json",
+    "alias_catalog_sha256": "021942f3201cc5881ec942511cd402b377541f5238175438d70758eea3d3a603"
+  },
+  "render": {
+    "native_card_size": [
+      500,
+      220
+    ],
+    "client_card_size": [
+      333,
+      147
+    ],
+    "native_logo_size": [
+      166,
+      166
+    ],
+    "native_logo_position": [
+      167,
+      2
+    ],
+    "client_crop": [
+      110,
+      0,
+      300,
+      112
+    ],
+    "overlay": {
+      "bundle": "Patch/Asset/ui/flier/soucer_r.asset",
+      "name": "unchoose",
+      "path_id": 449657447872005707,
+      "size": [
+        500,
+        220
+      ]
+    },
+    "resample": "BILINEAR",
+    "selection": "Use ordinary-state template; selected-state brightness difference is tolerated by normalized correlation.",
+    "exclusions": "Rectangle excludes left news tag, outer border and lower city title."
+  },
+  "match": {
+    "roi": [
+      540,
+      75,
+      710,
+      500
+    ],
+    "size": [
+      190,
+      112
+    ],
+    "threshold": 0.8,
+    "method": "TM_CCOEFF_NORMED",
+    "use_grayscale": true,
+    "preprocess": "none"
+  },
+  "cities": [
+    {
+      "city_key": "anita_energy_research_institute",
+      "city_name": "阿妮塔能源研究所",
+      "aliases": [
+        "anita_energy_research_institute",
+        "阿妮塔能源研究所"
+      ],
+      "template": "templates/passenger/destination/cities/anita_energy_research_institute.png",
+      "native_station_id": 83000014,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_anita",
+        "path_id": 8578818880626428736,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_FDZ_2",
+        "path_id": 3924734242000044855,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "freeport",
+      "city_name": "7号自由港",
+      "aliases": [
+        "freeport",
+        "7号自由港",
+        "七号自由港",
+        "7号自由电港",
+        "7号直电港",
+        "7号直由港",
+        "7号自电港"
+      ],
+      "template": "templates/passenger/destination/cities/freeport.png",
+      "native_station_id": 83000020,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_ziyougang",
+        "path_id": 1016655017741637210,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_7FP_2",
+        "path_id": -7541434689727333979,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "clarity_data_center_administration_bureau",
+      "city_name": "澄明数据中心",
+      "aliases": [
+        "clarity_data_center_administration_bureau",
+        "澄明数据中心"
+      ],
+      "template": "templates/passenger/destination/cities/clarity_data_center_administration_bureau.png",
+      "native_station_id": 83000029,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_shujuzhongxin",
+        "path_id": 1993143249560171494,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_CMSJZX_2",
+        "path_id": 7701840208737875622,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "shoggolith_city",
+      "city_name": "修格里城",
+      "aliases": [
+        "shoggolith_city",
+        "修格里城",
+        "修格果城",
+        "修格男城"
+      ],
+      "template": "templates/passenger/destination/cities/shoggolith_city.png",
+      "native_station_id": 83000001,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_xiugeli",
+        "path_id": 3862266002648073250,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_XGLC_2",
+        "path_id": -2437514233008621195,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "brcl_outpost",
+      "city_name": "铁盟哨站",
+      "aliases": [
+        "brcl_outpost",
+        "铁盟哨站"
+      ],
+      "template": "templates/passenger/destination/cities/brcl_outpost.png",
+      "native_station_id": 83000026,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_tiemengshaozhan",
+        "path_id": -9117242179439879305,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_TMSZ_2",
+        "path_id": 6887064517630395645,
+        "size": [
+          200,
+          200
+        ]
+      }
+    },
+    {
+      "city_key": "wilderness_station",
+      "city_name": "荒原站",
+      "aliases": [
+        "wilderness_station",
+        "荒原站"
+      ],
+      "template": "templates/passenger/destination/cities/wilderness_station.png",
+      "native_station_id": 83000003,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_huangyuanzhan",
+        "path_id": -5150954615471777632,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_HYZ_2",
+        "path_id": -3784887793879638197,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "mander_mine",
+      "city_name": "曼德矿场",
+      "aliases": [
+        "mander_mine",
+        "曼德矿场"
+      ],
+      "template": "templates/passenger/destination/cities/mander_mine.png",
+      "native_station_id": 83000053,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_mandekuangchang",
+        "path_id": -7611934225489125411,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_MD_2",
+        "path_id": 7106858524994530873,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "onederland",
+      "city_name": "淘金乐园",
+      "aliases": [
+        "onederland",
+        "淘金乐园"
+      ],
+      "template": "templates/passenger/destination/cities/onederland.png",
+      "native_station_id": 83000004,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_taojinleyuan",
+        "path_id": 6389436164617540381,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_TJLY_2",
+        "path_id": 5456706791645882786,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "anita_weapon_research_institute",
+      "city_name": "阿妮塔战备工厂",
+      "aliases": [
+        "anita_weapon_research_institute",
+        "阿妮塔战备工厂"
+      ],
+      "template": "templates/passenger/destination/cities/anita_weapon_research_institute.png",
+      "native_station_id": 83000012,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_anitazhanbeigongchang",
+        "path_id": -8283627944566692869,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_WQYJS_2",
+        "path_id": -8491399814981509792,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "anita_rocket_base",
+      "city_name": "阿妮塔发射中心",
+      "aliases": [
+        "anita_rocket_base",
+        "阿妮塔发射中心"
+      ],
+      "template": "templates/passenger/destination/cities/anita_rocket_base.png",
+      "native_station_id": 83000010,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_anitafashezhongxin",
+        "path_id": -3980238719469774303,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_HJJD_2",
+        "path_id": -1472468390866517652,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "farstar_bridge",
+      "city_name": "远星大桥",
+      "aliases": [
+        "farstar_bridge",
+        "远星大桥"
+      ],
+      "template": "templates/passenger/destination/cities/farstar_bridge.png",
+      "native_station_id": 83000023,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_yuanxingdaqiao",
+        "path_id": 4206756730145986549,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_YXDQ_2",
+        "path_id": -6026380342799558378,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "tatu_station",
+      "city_name": "塔图站",
+      "aliases": [
+        "tatu_station",
+        "塔图站"
+      ],
+      "template": "templates/passenger/destination/cities/tatu_station.png",
+      "native_station_id": 83000015,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_tatuzhan",
+        "path_id": 6421780005283259317,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_TTZ2",
+        "path_id": 2609355551510871334,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "gronru_city",
+      "city_name": "贡露城",
+      "aliases": [
+        "gronru_city",
+        "贡露城",
+        "格罗努城"
+      ],
+      "template": "templates/passenger/destination/cities/gronru_city.png",
+      "native_station_id": 83000052,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_gonglucheng",
+        "path_id": -1946755108474687266,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_GLC_2",
+        "path_id": 2172642148013168659,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "cape_city",
+      "city_name": "海角城",
+      "aliases": [
+        "cape_city",
+        "海角城"
+      ],
+      "template": "templates/passenger/destination/cities/cape_city.png",
+      "native_station_id": 83000002,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_haijiaocheng",
+        "path_id": -5737901769033900476,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_HJC_2",
+        "path_id": -5031745951002402984,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "black_moon_amusement_park",
+      "city_name": "黑月游乐城",
+      "aliases": [
+        "black_moon_amusement_park",
+        "黑月游乐城"
+      ],
+      "template": "templates/passenger/destination/cities/black_moon_amusement_park.png",
+      "native_station_id": 83000007,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_heiyueyoulecheng",
+        "path_id": 3048056404448170919,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "UICommonCommon_icon_city_HYYLC",
+        "path_id": -1289856047559013920,
+        "size": [
+          300,
+          300
+        ]
+      }
+    },
+    {
+      "city_key": "qiyu_station",
+      "city_name": "栖羽站",
+      "aliases": [
+        "qiyu_station",
+        "栖羽站"
+      ],
+      "template": "templates/passenger/destination/cities/qiyu_station.png",
+      "native_station_id": 83000018,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_qiyuzhan",
+        "path_id": 7129375412144717508,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_QYZ_2",
+        "path_id": -2414443692199411873,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "lanxin_city",
+      "city_name": "岚心城",
+      "aliases": [
+        "lanxin_city",
+        "岚心城",
+        "岚心域"
+      ],
+      "template": "templates/passenger/destination/cities/lanxin_city.png",
+      "native_station_id": 83000006,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_lanxincheng",
+        "path_id": 2901933458659861036,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_LXC_2",
+        "path_id": -1696129410003731825,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "vitilin_forest",
+      "city_name": "维蒂林场",
+      "aliases": [
+        "vitilin_forest",
+        "维蒂林场"
+      ],
+      "template": "templates/passenger/destination/cities/vitilin_forest.png",
+      "native_station_id": 83000005,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_weidilinchang",
+        "path_id": -5224234189974696126,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "UICommonCommon_icon_city_WDLC",
+        "path_id": 1009028577956564989,
+        "size": [
+          330,
+          330
+        ]
+      }
+    },
+    {
+      "city_key": "yunxiuqiao_base",
+      "city_name": "云岫桥基地",
+      "aliases": [
+        "yunxiuqiao_base",
+        "云岫桥基地"
+      ],
+      "template": "templates/passenger/destination/cities/yunxiuqiao_base.png",
+      "native_station_id": 83000017,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_yunxiuqiao",
+        "path_id": -4609539189817140266,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_YXQ_2",
+        "path_id": -1336728807832694176,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "confluence_tower",
+      "city_name": "汇流塔",
+      "aliases": [
+        "confluence_tower",
+        "汇流塔",
+        "沃德镇"
+      ],
+      "template": "templates/passenger/destination/cities/confluence_tower.png",
+      "native_station_id": 83000030,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_huiliuta",
+        "path_id": -1344431323192042474,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_HLT_2",
+        "path_id": -5254500820148199759,
+        "size": [
+          400,
+          400
+        ]
+      }
+    },
+    {
+      "city_key": "wulin_source",
+      "city_name": "武林源",
+      "aliases": [
+        "wulin_source",
+        "武林源"
+      ],
+      "template": "templates/passenger/destination/cities/wulin_source.png",
+      "native_station_id": 83000046,
+      "background": {
+        "bundle": "Patch/Asset/ui/flier/citymap.asset",
+        "name": "city_WLY",
+        "path_id": 1873800128048057875,
+        "size": [
+          500,
+          220
+        ]
+      },
+      "logo": {
+        "bundle": "Patch/Asset/ui/common.asset",
+        "name": "Common_icon_city_wulin",
+        "path_id": -6396745098535748964,
+        "size": [
+          200,
+          200
+        ]
+      }
+    }
+  ],
+  "assets": {
+    "templates/passenger/destination/cities/anita_energy_research_institute.png": {
+      "sha256": "e8098e4ada7281b1fff3add2b2a85c8989289aed2d1eac2eb74760da216702ba",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/freeport.png": {
+      "sha256": "f6f99bc0bac45f902d01e9654809085c8821b208ae2531bca1b396be1fa2bd60",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/clarity_data_center_administration_bureau.png": {
+      "sha256": "ad3470fd515a33214aed472e22179904c4d7e449d34dd085b001b665f7c09957",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/shoggolith_city.png": {
+      "sha256": "f0c96b2b0958f0b4baffee2d82dd7e2affa1964a94a952dfc6cfe53849653556",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/brcl_outpost.png": {
+      "sha256": "4c0ee4f26262b4a4ee6fdcf8c3a8bde68e4e3d1bb9b09230f017cca453164882",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/wilderness_station.png": {
+      "sha256": "9241085067d13a1fceaf518f06be7ef4496ce20d925152df753a30ab3370d2c3",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/mander_mine.png": {
+      "sha256": "132e935ac71328dcea6a4eb0061dbcefacc6a6955a3ad0a1072cca54f1917387",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/onederland.png": {
+      "sha256": "b851fc551fcdba50a5b146c2a25b481272ca06798aeb6c3457ac4226eefcd2d9",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/anita_weapon_research_institute.png": {
+      "sha256": "e2dc4951e038c47948d7f925d4a79e0e6d2cd4c7be8288cbf83a476c48228b80",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/anita_rocket_base.png": {
+      "sha256": "96a8167450a1da8e11149d7fa79d4b722e2cea03871e0039ee6af8d501c7ec66",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/farstar_bridge.png": {
+      "sha256": "88553c4a8d1c7972dc5a90b2cc7661427fabc2e7e4246492cf9f300e5a70817a",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/tatu_station.png": {
+      "sha256": "f98a6078f576f96c25b3b100865a1169d2cf4bc8b37391b13eb00fb32e13d078",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/gronru_city.png": {
+      "sha256": "a983fac6b02b51b040b37a92b0b27cf61234bd8d70a4199bcb2510bf964c11b2",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/cape_city.png": {
+      "sha256": "069454a9e2add18084ec5e79fa0ec2b1c619b077ae42cb4bf5faee917a16cdb1",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/black_moon_amusement_park.png": {
+      "sha256": "13183a91ecb62e3384f76c5d4415079bd00dbf1bca2e65a6eb81570b5ab64a2e",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/qiyu_station.png": {
+      "sha256": "4d88d7d0b8f6ef41a00c1fc738da1c4ac9908831020187f06fece332eca107ac",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/lanxin_city.png": {
+      "sha256": "6169d396f0cad81a855e48653ecb03c4f504e5fbe2cab267f8b77ef6a69c381f",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/vitilin_forest.png": {
+      "sha256": "2b4c9f105c4f2d6e232f6b74f2559c7c01079ce4b2dc16bf1c391080c1463b34",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/yunxiuqiao_base.png": {
+      "sha256": "6600a5f8e7d376026cfb1120e8efb2c668e318f7886bc432cc8d67461bac9b76",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/confluence_tower.png": {
+      "sha256": "490c969b7ce828c5599b30043cda5ed3b19893df4bf1b40e839a259d7cb55ce5",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    },
+    "templates/passenger/destination/cities/wulin_source.png": {
+      "sha256": "bec140710f2680ff9b242aedf9186227b07eef46a1d9115827923af390a94afb",
+      "size": [
+        190,
+        112
+      ],
+      "mode": "RGB"
+    }
+  },
+  "calibration_note": "Offline replay covers ten distinct complete city cards across three actual frames; other cities require live coverage."
+}

@@ -1237,6 +1237,14 @@ exports:
       type: Any
       required: false
       default: null
+    - name: auto_passenger
+      type: Any
+      required: false
+      default: false
+    - name: passenger_options
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.auto_cycle_trade_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_auto_cycle_trade_flow
@@ -1432,6 +1440,14 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_passenger
+      type: Any
+      required: false
+      default: false
+    - name: passenger_options
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -1598,6 +1614,10 @@ exports:
       type: Any
       required: false
       default: gold
+    - name: expect_passenger_settlement
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
@@ -1643,6 +1663,10 @@ exports:
       type: Any
       required: false
       default: 0.5
+    - name: expect_passenger_settlement
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.auto_combined_commerce_flow
     module: plans.resonance_pc.src.actions.combined_commerce_pc_actions
     function: resonance_pc_auto_combined_commerce_flow
@@ -2427,14 +2451,22 @@ exports:
       type: Any
       required: false
       default: 12
+    - name: read_passenger_count
+      type: Any
+      required: false
+      default: true
+    - name: known_flyers_before
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.enter_city_and_settle_passengers
     module: plans.resonance_pc.src.actions.passenger_pc_actions
     function: resonance_pc_enter_city_and_settle_passengers
     public: true
     read_only: false
     timeout: null
-    description: Enter the arrived city, require passenger revenue settlement, and
-      return to city main.
+    description: Confirm and dismiss passenger settlement, without reading income,
+      then return to city main.
     parameters:
     - name: settlement_timeout_sec
       type: Any
@@ -3747,4 +3779,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-10-29T12:07:20Z'
+  generated_at: '2026-11-03T15:26:30Z'

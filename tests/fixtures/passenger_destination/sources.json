@@ -1,0 +1,27 @@
+{
+  "kind": "actual_user_screenshot_roi_not_synthetic",
+  "attachment": "user-destination.png",
+  "source_sha256": "2821ab4fd4e630e50932a8cad8ed0f29455ce2470dff78a33edf72009c1e8761",
+  "client_crop": [
+    25,
+    56,
+    1305,
+    776
+  ],
+  "region": [
+    540,
+    75,
+    710,
+    500
+  ],
+  "fixture": "user_destination_list.png",
+  "fixture_sha256": "ea33015364ef0e232e031ab49bbf7b7065b1a3826bbc83b00be94c6d33a41cd9",
+  "fully_visible_city_keys": [
+    "anita_weapon_research_institute",
+    "brcl_outpost",
+    "clarity_data_center_administration_bureau",
+    "mander_mine",
+    "onederland",
+    "wilderness_station"
+  ]
+}

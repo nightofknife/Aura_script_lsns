@@ -255,9 +255,10 @@ def _result_base(trip_count: int, *, trade_during_trip: bool = False) -> Dict[st
         "expected_fatigue_used": 0,
         "recruited_passengers": 0,
         "flyers_used": 0,
-        "ticket_revenue": 0,
-        "extra_revenue": 0,
-        "total_revenue": 0,
+        "ticket_revenue": None,
+        "extra_revenue": None,
+        "total_revenue": None,
+        "revenue_reading_enabled": False,
         "trade_during_trip": bool(trade_during_trip),
         "trade_legs": [],
         "trade_expected_profit": 0.0,
@@ -600,6 +601,7 @@ def _run_passenger_trips_sync(
     )
 
     total_legs = int(trip_count)
+    known_flyers_before = None
     for leg_index in range(total_legs):
         source = dict(route_by_id[current_city_id])
         destination_id = opposite_city_id[current_city_id]
@@ -666,6 +668,7 @@ def _run_passenger_trips_sync(
                 app=app,
                 ocr=ocr,
                 vision=vision,
+                known_flyers_before=known_flyers_before,
             )
         except PassengerPcError as exc:
             result["fatigue_medicine_used"] = _medicine_rows(medicine_usage)
@@ -679,6 +682,7 @@ def _run_passenger_trips_sync(
                 detail=recruitment,
             )
         loaded_destination = destination
+        known_flyers_before = recruitment.get("flyers_remaining")
         result["recruited_passengers"] += int(recruitment.get("recruited_passengers") or 0)
         result["flyers_used"] += int(recruitment.get("flyers_used") or 0)
         observe_operation("recruit.passenger_task", "揽客结果已返回", "completed",
@@ -758,10 +762,6 @@ def _run_passenger_trips_sync(
                           success=settlement.get("success"), ticket_revenue=settlement.get("ticket_revenue"),
                           extra_revenue=settlement.get("extra_revenue"), total_revenue=settlement.get("total_revenue"))
         loaded_destination = None
-        for key in ("ticket_revenue", "extra_revenue", "total_revenue"):
-            value = settlement.get(key)
-            if value is not None:
-                result[key] += int(value)
         completed_leg = {
             "leg_index": leg_index + 1,
             "trip_index": trip_index,
