@@ -1,8 +1,8 @@
 """Read-only, single-frame recognition for the native affix refresh window.
 
-Only the pending affix uses OCR. Fixed UI and the film balance use bundled
-templates; unchanged candidate crops reuse their exact-pixel OCR result. The
-equipment and the independently scrollable existing-affix list are not read.
+Only the pending affix uses OCR. Fixed UI uses bundled templates; unchanged
+candidate crops reuse their exact-pixel OCR result. Film quantities, equipment
+and the independently scrollable existing-affix list are not read.
 """
 from __future__ import annotations
 
@@ -12,6 +12,7 @@ import hashlib
 import json
 import re
 import unicodedata
+from datetime import datetime, timezone
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
@@ -58,6 +59,29 @@ class AffixRefreshVision:
         self._frame_ocr_calls = 0
         self._frame_cache_hits = 0
         self._ocr_sequence = 0
+        self._last_capture_rgb = None
+        self._last_capture_at = None
+
+    def save_failure_evidence(self, *, cid: str, label: str, error: str) -> dict:
+        """Persist the exact full frame already observed, without recapturing."""
+        from packages.aura_core.observability.failure_evidence import save_evidence_png
+
+        details = {"origin": "affix_refresh_observation", "cid": cid,
+                   "label": label, "error": error,
+                   "captured_at": self._last_capture_at,
+                   "ocr_sequence": self._ocr_sequence,
+                   "scene_may_have_changed": False}
+        if self._last_capture_rgb is None:
+            return {**details, "status": "skipped", "reason": "capture_image_unavailable"}
+        try:
+            # OpenCV encodes BGR; capture and OCR use RGB. Preserve all pixels
+            # at their native size, without annotations or candidate cropping.
+            success, png = cv2.imencode(".png", cv2.cvtColor(self._last_capture_rgb, cv2.COLOR_RGB2BGR))
+            if not success:
+                raise OSError("Full-frame PNG encoding failed")
+            return {**details, **save_evidence_png(png.tobytes())}
+        except Exception as exc:
+            return {**details, "status": "failed", "reason": str(exc)}
 
     def _text(self, image, roi, *, purpose="affix"):
         x, y, width, height = roi
@@ -149,7 +173,17 @@ class AffixRefreshVision:
                 continue
             before, after = description.split("%s")
             pattern = re.escape(before) + r"([0-9]+(?:\.[0-9]+)?)" + re.escape(after.replace("%%", "%"))
-            found = re.fullmatch(pattern, normalized)
+            match_text = normalized
+            corrections = {}
+            if int(affix_id) == 12300797:
+                # Only the native lightning-damage effect accepts these two
+                # observed OCR omissions. Match whole tags, never bare glyphs:
+                # e.g. 【落雷】 and 【轰雷】 must stay untouched.
+                for source, target in (("【雷】", "【引雷】"), ("【轰】", "【轰顶】")):
+                    if source in match_text:
+                        match_text = match_text.replace(source, target)
+                        corrections[source] = target
+            found = re.fullmatch(pattern, match_text)
             if found is None:
                 continue
             try:
@@ -158,7 +192,12 @@ class AffixRefreshVision:
                 step = Decimal(row["step"])
                 if (minimum <= value <= maximum and (minimum == maximum or
                         (step > 0 and (value-minimum) % step == 0))):
-                    matches.append({"id": int(affix_id), "value": _number(value), "text": text})
+                    result = {"id": int(affix_id), "value": _number(value), "text": text}
+                    if corrections:
+                        # Keep OCR text intact; the existing matched-result log
+                        # records both the canonical input and applied aliases.
+                        result.update(corrected_text=match_text, ocr_corrections=corrections)
+                    matches.append(result)
             except (InvalidOperation, ValueError):
                 continue
         if len(matches) != 1:
@@ -189,10 +228,6 @@ class AffixRefreshVision:
         if float(np.mean(blue)) < .55:
             raise _Unreadable("Affix window is dimmed, covered, or not present")
         self._required_template(rgb, "replacement_header")
-        film_label = self.templates.match(rgb, "film_label")
-        film_remaining = self.templates.counter(rgb, "film") if film_label is not None else None
-        if film_label is not None and film_remaining is None:
-            raise _Unreadable("Film digits are not unambiguously matched")
         refresh_match = self.templates.match(rgb, "refresh_label")
         refresh = refresh_match["center"] if refresh_match else None
         # The pending effect line is below its fixed title and excludes both
@@ -204,16 +239,11 @@ class AffixRefreshVision:
         else:
             candidate = self._read_affix(rgb, (284, 232, 525, 27), tuple(self.affixes),
                                          purpose="candidate")
-        if film_remaining is None:
-            pill = rgb[205:250, 870:1030]
-            visible_pill = float(np.mean(np.min(pill, axis=2) >= 190)) > .55
-            if refresh is not None or candidate is None or visible_pill:
-                raise _Unreadable("Film balance is unknown outside a hidden pending-only resource group")
         # Refresh-only observation intentionally supplies no slot, selection,
         # replacement-confirm control, or assertion about lower-list visibility.
         return {"valid": True, "scene": "affix", "replace_mode": True,
                 "equipment": {}, "affixes": [], "candidate": candidate,
-                "film_remaining": film_remaining, "replace_remaining": None,
+                "film_remaining": None, "replace_remaining": None,
                 "selection_index": None, "confirm_enabled": False,
                 "controls": {"refresh": refresh} if refresh is not None else {}}
 
@@ -221,15 +251,25 @@ class AffixRefreshVision:
         """Capture once; all OCR regions and color checks use this same frame."""
         self._frame_ocr_calls = 0
         self._frame_cache_hits = 0
+        # Clear before capture: a capture failure must never save an older frame.
+        self._last_capture_rgb = None
+        self._last_capture_at = None
         try:
             capture = self.app.capture()
             rgb = _get(capture, "image")
+            if (isinstance(rgb, np.ndarray) and rgb.dtype == np.uint8
+                    and rgb.ndim == 3 and rgb.shape[2] == 3 and rgb.size):
+                # Providers can reuse their buffer. Recognize and retain the
+                # same private copy so later evidence matches the OCR input.
+                rgb = rgb.copy()
+                self._last_capture_rgb = rgb
+                self._last_capture_at = datetime.now(timezone.utc).isoformat()
             if (_get(capture, "success", False) is False or _get(capture, "quality_flags")
                     or not isinstance(rgb, np.ndarray)
                     or rgb.shape != (720, 1280, 3) or rgb.dtype != np.uint8):
                 raise _Unreadable("Affix refresh requires a complete 1280x720 RGB client capture")
             # Capture providers may reuse an ndarray and update its pixels in
-            # place. Template/counter caches must be fresh for EVERY capture.
+            # place. Template caches must be fresh for EVERY capture.
             self.templates.begin_frame(rgb)
             header = rgb[295:337, 225:1055].astype(np.int16)
             undimmed = np.mean((header[:, :, 2] >= 210) & (header[:, :, 0] <= 135)
@@ -240,7 +280,7 @@ class AffixRefreshVision:
                                          "affix_cache_hits": self._frame_cache_hits}
                 return result
             # Modal parsing is isolated from main-window OCR. Its darkened
-            # background is never treated as fresh resource evidence.
+            # background is never treated as a readable candidate.
             result = self._dialog(rgb)
             if result is None:
                 raise _Unreadable("Unknown, obstructed, or unsupported affix scene")

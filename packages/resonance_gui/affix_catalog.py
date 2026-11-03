@@ -37,9 +37,10 @@ def normalize_affix_inputs(inputs: Mapping[str, Any]) -> dict[str, Any]:
         threshold = format(decimal_value(threshold), "f")
     else:
         threshold = ""
+    # Keep the saved field name while its value now limits submitted rounds.
     limit = inputs.get("max_film_cost", 20)
     if type(limit) is not int or not 0 <= limit <= 9999:
-        raise ValueError("胶卷消耗上限必须是 0～9999 的整数。")
+        raise ValueError("最多刷新轮数必须是 0～9999 的整数。")
     return {"target_affix_id": target, "comparison": comparison,
             "threshold": threshold, "max_film_cost": limit, "auto_replace": False}
 
