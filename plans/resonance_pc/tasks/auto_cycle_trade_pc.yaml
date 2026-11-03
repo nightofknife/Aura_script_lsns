@@ -1332,10 +1332,121 @@ auto_cycle_trade_pc:
         enum:
         - gold
         - mileage
+      - name: auto_passenger
+        type: boolean
+        default: false
+        required: false
+        description: 在自由货运既定路线上附加整批客运；不改变货运求解和拖车安排。
+      - name: passenger_options
+        type: dict
+        required: false
+        default: {}
+        properties:
+          flyer_target:
+            type: number
+            strict_integer: true
+            min: 0
+            default: 0
+            required: false
+            name: flyer_target
+          transport_level:
+            type: number
+            strict_integer: true
+            min: 1
+            max: 100
+            default: 100
+            required: false
+            name: transport_level
+          seat_capacity:
+            type: number
+            strict_integer: true
+            nullable: true
+            min: 1
+            required: false
+            name: seat_capacity
+          seat_level:
+            type: number
+            strict_integer: true
+            min: 1
+            max: 5
+            default: 5
+            required: false
+            name: seat_level
+          scores:
+            type: dict
+            required: false
+            properties:
+              comfort:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: comfort
+              foodScores:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: foodScores
+              playScores:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: playScores
+              petScores:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: petScores
+              fishScores:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: fishScores
+              plantScores:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: plantScores
+              medicalScores:
+                type: number
+                strict_integer: true
+                min: 0
+                required: false
+                name: medicalScores
+            name: scores
+          furniture_bonus_bps:
+            type: number
+            strict_integer: true
+            min: 0
+            default: 0
+            required: false
+            name: furniture_bonus_bps
+          cleanliness_bps:
+            type: number
+            strict_integer: true
+            min: 0
+            max: 10000
+            default: 10000
+            required: false
+            name: cleanliness_bps
+          news:
+            type: string
+            enum:
+            - none
+            default: none
+            required: false
+            name: news
   steps:
     run:
       action: resonance_pc.auto_cycle_trade_flow
       params:
+        auto_passenger: "{{ inputs.auto_passenger | default(false) }}"
+        passenger_options: "{{ inputs.passenger_options | default({}) }}"
         allow_stale_market: "{{ inputs.allow_stale_market | default(false) }}"
         trade_mode: "{{ inputs.trade_mode }}"
         book_policy: "{{ inputs.book_policy }}"
@@ -1388,6 +1499,10 @@ auto_cycle_trade_pc:
       params:
         trade_result: "{{ nodes.run.output }}"
   returns:
+    auto_passenger: "{{ nodes.finish.output.auto_passenger | default(false) }}"
+    passenger: "{{ nodes.finish.output.passenger | default(none) }}"
+    requires_manual_completion: "{{ nodes.finish.output.requires_manual_completion | default(false) }}"
+    loaded_destination: "{{ nodes.finish.output.loaded_destination | default(none) }}"
     market_source: "{{ nodes.finish.output.market_source | default(none) }}"
     market_refreshed: "{{ nodes.finish.output.market_refreshed | default(false) }}"
     market_stale_reason: "{{ nodes.finish.output.market_stale_reason | default(none) }}"

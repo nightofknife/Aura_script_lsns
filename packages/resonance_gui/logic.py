@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 from packages.resonance_shared.freight_parameters import effective_freight_inputs
+from packages.resonance_shared.passenger_parameters import normalize_passenger_options
 
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
@@ -154,6 +155,9 @@ TRADE_STAGE_LABELS = {
     "market": "刷新市场",
     "planning": "规划路线",
     "reposition": "前往线路起点",
+    "passenger_planning": "安排附加客运",
+    "passenger_recruit": "传单揽客",
+    "passenger_settlement": "客运结算",
     "city_trade": "城市交易",
     "books": "使用进货书",
     "leg": "执行路线",
@@ -173,6 +177,8 @@ TRADE_STAGE_LABELS = {
 }
 
 FREIGHT_PHASE_LABELS = {
+    "passenger_recruit": "传单揽客",
+    "passenger_settlement": "客运结算",
     "arrival": "到达城市",
     "sell": "售出货物",
     "buy": "购买货物",
@@ -537,6 +543,22 @@ def reduce_workflow_freight_progress(
             state.summary[key] = payload[key]
     if isinstance(data.get("resources"), Mapping):
         state.resources.update(copy.deepcopy(dict(data["resources"])))
+    if isinstance(data.get("passenger"), Mapping):
+        state.summary["passenger"] = copy.deepcopy(dict(data["passenger"]))
+    if stage == "passenger_planning":
+        if event_state in {"blocked", "failed", "error", "timeout", "cancelled", "stopping", "stopped",
+                           "waiting_confirmation", "awaiting_confirmation"}:
+            state.state = _freight_view_state(event_state)
+            if state.active_city_index is not None and 0 <= state.active_city_index < len(state.cities):
+                phase = next((item for item in state.cities[state.active_city_index].phases
+                              if item.key == state.active_phase), None)
+                if phase is not None and phase.state not in {"completed", "skipped"}:
+                    phase.state = state.state
+        elif event_state == "completed":
+            passenger = state.summary.get("passenger") or {}
+            plan = passenger.get("plan") or data.get("plan") or {}
+            _update_attached_passenger_phases(state, plan.get("trips") or passenger.get("planned_trips") or [])
+        return state
     progress = data.get("progress")
     if isinstance(progress, Mapping):
         completed, total = progress.get("completed_units"), progress.get("total_units")
@@ -643,6 +665,12 @@ def reduce_workflow_freight_progress(
     if phase is None and not state.explicit_phase_plan and phase_key == "bento" and city_index == len(state.cities) - 1:
         phase = FreightBusinessPhase(key="bento", label=FREIGHT_PHASE_LABELS["bento"])
         city.phases.append(phase)
+    if phase is None and phase_key in {"passenger_recruit", "passenger_settlement"}:
+        phase = FreightBusinessPhase(key=phase_key, label=FREIGHT_PHASE_LABELS[phase_key])
+        before_key = "travel" if phase_key == "passenger_recruit" else "investment"
+        position = next((i for i, item in enumerate(city.phases) if item.key == before_key),
+                        1 if phase_key == "passenger_settlement" and city.phases and city.phases[0].key == "arrival" else len(city.phases))
+        city.phases.insert(position, phase)
     if phase is None:
         return state
 
@@ -652,7 +680,8 @@ def reduce_workflow_freight_progress(
                            and data.get("scope") and data.get("phase") else None)
     new_recovery_check = (recovery_checkpoint is not None
                           and recovery_checkpoint != phase.recovery_checkpoint)
-    if phase.state in {"completed", "skipped"} and view_state == "running" and not new_recovery_check:
+    passenger_reactivation = phase_key in {"passenger_recruit", "passenger_settlement"} and phase.state == "skipped"
+    if phase.state in {"completed", "skipped"} and view_state == "running" and not new_recovery_check and not passenger_reactivation:
         # A later child heartbeat must not undo a confirmed parent completion.
         return copy.deepcopy(current) if current is not None else state
     if new_recovery_check:
@@ -670,6 +699,13 @@ def reduce_workflow_freight_progress(
     elif stage == "trade_goods_investment":
         phase.state = view_state
         phase.detail = trade_goods_investment_detail(data, event_state)
+    elif stage in {"passenger_recruit", "passenger_settlement"}:
+        phase.state = view_state
+        passenger = data.get("passenger") if isinstance(data.get("passenger"), Mapping) else {}
+        destination = passenger.get("loaded_destination")
+        if isinstance(destination, Mapping):
+            destination = destination.get("city_name") or destination.get("to_city") or destination.get("name")
+        phase.detail = str(data.get("message") or data.get("reason") or (f"整批乘客前往 {destination}" if destination else phase.label))
     elif stage == "bento":
         result = data.get("result") if isinstance(data.get("result"), Mapping) else {}
         plan = data.get("plan") if isinstance(data.get("plan"), Mapping) else {}
@@ -935,6 +971,8 @@ def reduce_trade_progress(
         next_state.route = [dict(item) for item in data["route"] if isinstance(item, Mapping)]
     if isinstance(data.get("summary"), Mapping):
         next_state.summary = dict(data["summary"])
+    if isinstance(data.get("passenger"), Mapping):
+        next_state.summary["passenger"] = copy.deepcopy(dict(data["passenger"]))
     return next_state
 
 
@@ -1279,7 +1317,7 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "market_fallback_blocked": bool(result.get("market_fallback_blocked")),
         "market_fetched_at": str(result.get("market_fetched_at") or ""),
         **{key: copy.deepcopy(result.get(key)) for key in (
-            "trade_mode", "request_kind", "input_snapshot", "planning_status", "success", "error",
+            "trade_mode", "request_kind", "input_snapshot", "planning_status", "success", "error", "passenger",
             "book_budget", "book_policy", "negotiation_policy", "expected_profit_exact",
             "expected_fatigue_used_exact", "remaining_expected_fatigue_exact", "city_visits",
             "reposition", "reposition_route", "reposition_expected_fatigue", "reposition_expected_fatigue_exact",
@@ -1357,6 +1395,14 @@ def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, A
     """Project UI state onto the two-mode freight task contract."""
     normalized = copy.deepcopy(dict(inputs or {}))
     normalized.pop("prison_product_goods", None)
+    if "auto_passenger" in normalized or "passenger_options" in normalized:
+        enabled = normalized.get("auto_passenger", False)
+        if type(enabled) is not bool:
+            raise ValueError("附加客运开关必须为布尔值。")
+        if enabled and normalized.get("trade_mode", "free") != "free":
+            raise ValueError("固定线路暂不支持附加客运。")
+        normalized["auto_passenger"] = enabled
+        normalized["passenger_options"] = normalize_passenger_options(normalized.get("passenger_options"), enabled=enabled)
     if "allow_stale_market" in normalized:
         normalized["allow_stale_market"] = validate_allow_stale_market(normalized["allow_stale_market"])
     currency_error = freight_currency_error(normalized)
@@ -1551,3 +1597,116 @@ def render_result_text(payload: Mapping[str, Any] | None) -> str:
     lines.append("")
     lines.append(pretty_json(data))
     return "\n".join(lines)
+
+
+def freight_passenger_summary_text(passenger: Any) -> str:
+    """Keep attached passenger income separate from freight profit."""
+    if not isinstance(passenger, Mapping) or passenger.get("enabled") is False:
+        return ""
+    def number(value):
+        return f"{value:,.2f}".rstrip("0").rstrip(".") if type(value) in (int, float) else "未知"
+    target = passenger.get("target", passenger.get("flyer_target"))
+    consumed = passenger.get("consumed", passenger.get("flyers_used"))
+    inventory = passenger.get("inventory", passenger.get("inventory_remaining"))
+    remaining = passenger.get("remaining_target")
+    lines = ["附加客运（参考估算，与货运净收益分开）"]
+    if consumed is not None:
+        lines.append(f"传单实际消耗 {number(consumed)} / 目标 {number(target)}；剩余目标 {number(remaining)}；库存 {number(inventory)}")
+    else:
+        lines.append(f"传单预计消耗 {number(passenger.get('expected_flyers_used'))} / 目标 {number(target)}；库存按目标量假设")
+    expected = passenger.get("expected_revenue")
+    lines.append(f"客运预计收入 {number(expected)}")
+    if (passenger.get("revenue_reading_enabled") is not False
+            and any(key in passenger for key in ("ticket_revenue", "extra_revenue", "total_revenue"))):
+        lines.append(f"已结算票款 {number(passenger.get('ticket_revenue'))}；额外收入 {number(passenger.get('extra_revenue'))}；合计 {number(passenger.get('total_revenue'))}")
+    destination = passenger.get("loaded_destination")
+    if isinstance(destination, Mapping):
+        destination = destination.get("city_name") or destination.get("to_city") or destination.get("name") or destination.get("city_id")
+    if destination:
+        lines.append(f"整批乘客前往 {destination}，中途不补客、不分批下客")
+    attention = freight_passenger_attention(passenger)
+    if attention:
+        lines.append(attention)
+    reasons = {"target_met": "传单目标已完成", "target_completed": "传单目标已完成",
+               "route_exhausted": "货运行程已结束，剩余目标不补跑",
+               "flyers_exhausted": "传单不足一次派发", "inventory_exhausted": "传单不足一次派发",
+               "no_candidate": "剩余路线无可用客运区间", "no_eligible_interval": "剩余路线无可用客运区间",
+               "no_eligible_trips": "剩余路线无可用客运区间", "cleanliness_too_low": "清洁度过低，无法揽客"}
+    reason = passenger.get("stop_reason")
+    if reason:
+        lines.append(reasons.get(str(reason), str(reason)))
+    trips = passenger.get("trips") or passenger.get("planned_trips") or []
+    if isinstance(trips, list):
+        for trip in trips:
+            if not isinstance(trip, Mapping):
+                continue
+            source, end = trip.get("from_city") or trip.get("from_city_id"), trip.get("to_city") or trip.get("to_city_id")
+            if source or end:
+                lines.append(f"{source or '?'} → {end or '?'}：预计消耗 {number(trip.get('expected_flyers_used'))} 张，预计收入 {number(trip.get('expected_revenue'))}")
+    return "\n".join(lines)
+
+
+def _update_attached_passenger_phases(state: WorkflowFreightProgressState, trips: list) -> None:
+    """Revise only future passenger phases; freight history/revision is unchanged."""
+    keys = {"passenger_recruit", "passenger_settlement"}
+    for city in state.cities:
+        for phase in city.phases:
+            if phase.key in keys and phase.state == "waiting":
+                phase.state, phase.detail = "skipped", "客运安排已更新"
+    for trip in trips:
+        if not isinstance(trip, Mapping):
+            continue
+        for key, index_key in (("passenger_recruit", "from_index"), ("passenger_settlement", "to_index")):
+            index = trip.get(index_key)
+            if type(index) is not int or not 0 <= index < len(state.cities):
+                continue
+            city = state.cities[index]
+            phase = next((item for item in city.phases if item.key == key), None)
+            if phase is None:
+                phase = FreightBusinessPhase(key=key, label=FREIGHT_PHASE_LABELS[key])
+                position = next((i for i, item in enumerate(city.phases) if item.key == "travel"), len(city.phases)) if key == "passenger_recruit" else (1 if city.phases and city.phases[0].key == "arrival" else 0)
+                city.phases.insert(position, phase)
+            if phase.state in {"waiting", "skipped"}:
+                phase.state = "waiting"
+                phase.detail = f"{trip.get('from_city') or trip.get('from_city_id') or '?'} → {trip.get('to_city') or trip.get('to_city_id') or '?'}"
+
+
+def freight_passenger_attention(passenger: Any, *, cancelled: bool = False) -> str:
+    if not isinstance(passenger, Mapping):
+        return ""
+    loaded = passenger.get("loaded_destination")
+    if not loaded or not (cancelled or passenger.get("requires_manual_completion")):
+        return ""
+    if isinstance(loaded, Mapping):
+        name = loaded.get("city_name") or loaded.get("to_city") or loaded.get("city_id") or "原定目的地"
+        uncertain = loaded.get("state") == "submitted_unknown"
+    else:
+        name, uncertain = str(loaded), False
+    state = "派发已提交，可能已载客" if uncertain else "当前仍有未结清乘客"
+    return f"{state}；目的地 {name}，需要人工确认并完成当前客运，勿重复揽客。"
+
+
+def extract_freight_passenger_cleanup_evidence(payload: Mapping[str, Any] | None, *, expected_cid: str = "") -> dict[str, Any]:
+    """Cancellation receipts are UI evidence, never workflow continuation success."""
+    cid = extract_run_id(payload)
+    if expected_cid and cid and cid != expected_cid:
+        return {}
+    public = extract_final_result(payload)
+    if isinstance(public.get("passenger"), Mapping):
+        return copy.deepcopy(dict(public["passenger"]))
+    data = payload
+    for _ in range(6):
+        if not isinstance(data, Mapping):
+            break
+        framework = data.get("framework_data")
+        if isinstance(framework, Mapping) and isinstance(framework.get("freight_passenger"), Mapping):
+            return copy.deepcopy(dict(framework["freight_passenger"]))
+        if isinstance(data.get("final_result"), Mapping):
+            data = data["final_result"]
+        elif isinstance(data.get("run"), Mapping) and isinstance(data["run"].get("detail"), Mapping):
+            data = data["run"]["detail"]
+        elif isinstance(data.get("detail"), Mapping):
+            data = data["detail"]
+        else:
+            break
+    return {}

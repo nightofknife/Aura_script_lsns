@@ -264,13 +264,13 @@ def test_closure_timeout_preserves_receipts_and_never_reuses_books(
 @pytest.mark.parametrize("delay", [2.5, 2.51])
 @pytest.mark.parametrize("found", [False, True])
 @pytest.mark.parametrize("slow_stage", ["capture", "match"])
-def test_passenger_fresh_source_timeout_retains_revenue_and_never_clicks(
+def test_passenger_fresh_source_timeout_retains_settlement_evidence_and_never_reads_income_or_clicks(
         monkeypatch, delay, found, slow_stage):
     clock = install_clock(monkeypatch, passenger)
     app, vision, captures, clicks, _ = rig(clock, delay=delay if slow_stage == "capture" else 0)
     monkeypatch.setattr(passenger, "_wait_template", lambda *args, **kwargs: {"valid": True, "found": True})
-    monkeypatch.setattr(passenger, "_capture_text_items", lambda *args: [])
-    monkeypatch.setattr(passenger, "_numeric_value_near_label", lambda items, aliases: 120)
+    monkeypatch.setattr(passenger, "_capture_text_items", lambda *args: pytest.fail("must not read income"))
+    monkeypatch.setattr(passenger, "_numeric_value_near_label", lambda *args: pytest.fail("must not parse income"))
 
     def match(**options):
         if slow_stage == "match":
@@ -284,5 +284,5 @@ def test_passenger_fresh_source_timeout_retains_revenue_and_never_clicks(
     assert caught.value.code == "passenger_settlement_observation_failed"
     assert caught.value.detail["settlement_confirmed"] is True
     assert caught.value.detail["last_match"]["reason"] == "observation_timeout"
-    assert caught.value.detail["revenue"]["total_revenue"] == 120
+    assert caught.value.detail["revenue"]["total_revenue"] is None
     assert len(captures) == 1 and not clicks

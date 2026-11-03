@@ -55,6 +55,8 @@ _DEPART_CONFIRM_MARKERS = ("立即出发",)
 
 _GO_DESTINATION_TEMPLATE = "templates/navigation/travel/go_destination.png"
 _ARRIVAL_BUTTON_TEMPLATE = "templates/navigation/travel/enter_station.png"
+_PASSENGER_ARRIVAL_TEMPLATE = "templates/passenger/settlement/revenue.png"
+_PASSENGER_ARRIVAL_REGION = [30, 470, 540, 180]
 _TRAVEL_HORN_TEMPLATE = "templates/navigation/travel/horn.png"
 _TRAVEL_HORN_REGION = [960, 640, 80, 80]
 _TRAVEL_HORN_THRESHOLD = 0.90
@@ -1225,6 +1227,7 @@ def resonance_pc_intercity_depart_and_wait(
     use_trailer: bool = False,
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
+    expect_passenger_settlement: bool = False,
 ) -> Dict[str, Any]:
     _check_intercity_cancelled()
     validate_trailer_options(use_trailer, trailer_daily_first_n, trailer_payment)
@@ -1338,6 +1341,7 @@ def resonance_pc_intercity_depart_and_wait(
                 app=app,
                 ocr=ocr,
                 vision=vision,
+                **({"expect_passenger_settlement": True} if expect_passenger_settlement else {}),
                 **({"auto_pickup": True, "auto_pickup_interval_sec": pickup_interval}
                    if auto_pickup and gate_state != "trailer_departed" else {}),
             )
@@ -1579,6 +1583,7 @@ def resonance_pc_wait_intercity_arrival(
     vision: Any = None,
     auto_pickup: bool = False,
     auto_pickup_interval_sec: float = 0.5,
+    expect_passenger_settlement: bool = False,
 ) -> Dict[str, Any]:
     """Wait for station or city-entry templates; retain ocr for existing callers."""
     if app is None or vision is None:
@@ -1589,7 +1594,26 @@ def resonance_pc_wait_intercity_arrival(
             timeout_sec, interval_sec, arrival_template, arrival_template_region,
             arrival_template_threshold, arrival_click_max_attempts,
             arrival_click_verify_interval_sec, app, vision, pickup,
+            expect_passenger_settlement=expect_passenger_settlement,
         )
+
+
+def _confirmed_passenger_arrival(app: Any, vision: Any) -> Dict[str, Any]:
+    """Recognize the automatic arrival overlay, leaving closure to its owner."""
+    observations = []
+    for attempt in range(2):
+        _check_intercity_cancelled()
+        match = _match_template_in_region(app, vision, _PASSENGER_ARRIVAL_TEMPLATE,
+            _PASSENGER_ARRIVAL_REGION, .9, require_valid_capture=True)
+        _check_intercity_cancelled()
+        observations.append(match)
+        if match.get("reason") or match.get("error") or type(match.get("found")) is not bool:
+            _raise_error("arrival_template_match_failed", "Passenger arrival state is unknown", match)
+        if not match["found"]:
+            return {"confirmed": False, "observations": observations}
+        if attempt == 0:
+            _sleep_with_cancel(.15)
+    return {"confirmed": True, "observations": observations}
 
 
 def _wait_intercity_arrival_loop(
@@ -1597,6 +1621,7 @@ def _wait_intercity_arrival_loop(
     arrival_template_region: Optional[List[int]], arrival_template_threshold: float,
     arrival_click_max_attempts: int, arrival_click_verify_interval_sec: float,
     app: Any, vision: Any, pickup: "_TravelPickup",
+    *, expect_passenger_settlement: bool = False,
 ) -> Dict[str, Any]:
 
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
@@ -1613,6 +1638,16 @@ def _wait_intercity_arrival_loop(
     while time.monotonic() <= deadline:
         _check_intercity_cancelled()
         poll_count += 1
+        if expect_passenger_settlement:
+            settlement = _confirmed_passenger_arrival(app, vision)
+            if settlement.get("confirmed"):
+                pickup.end_reason = "passenger_settlement"
+                return {"success": True, "status": "arrived",
+                        "arrival_mode": "passenger_settlement_detected",
+                        "poll_count": poll_count, "elapsed_sec": round(time.monotonic() - started, 3),
+                        "arrival_point": None, "arrival_click_attempts": 0,
+                        "passenger_settlement": settlement, "pickup_click_count": pickup.click_count,
+                        "trace": trace[-20:]}
         station = _click_arrival_template_until_absent(
             app=app,
             vision=vision,

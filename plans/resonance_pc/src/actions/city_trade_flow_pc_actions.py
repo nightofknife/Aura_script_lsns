@@ -71,6 +71,9 @@ from ._freight_contract import (
     fixed_start_stop, integer, normalize_planning_inputs, plan_view, planning_event_data, start_mismatch,
 )
 from ._freight_trailer_policy import FreightTrailerPlan, validate_trailer_options
+from packages.resonance_shared.passenger_parameters import normalize_passenger_options
+from ._freight_passenger_planner import build_passenger_plan
+from ._freight_passenger_session import FreightPassengerSession
 from .sparkling_water_pc_actions import (
     resonance_pc_drink_sparkling_water_from_city_panel, _water_counts,
     SparklingWaterSession, load_sparkling_water_layout, _drink_sparkling_water_from_rest_menu,
@@ -102,6 +105,37 @@ class CityTradeFlowError(RuntimeError):
 
     def to_dict(self) -> Dict[str, Any]:
         return {"code": self.code, "message": self.message, "detail": self.detail}
+
+
+def _attached_passenger_options(enabled: bool, options: Optional[Dict[str, Any]],
+                                trade_mode: str) -> Optional[Dict[str, Any]]:
+    if type(enabled) is not bool:
+        raise ValueError("auto_passenger must be a boolean")
+    if not enabled:
+        return None
+    if trade_mode != "free":
+        raise ValueError("附加客运目前仅支持不定线路（free）货运")
+    return normalize_passenger_options(options)
+
+
+async def _passenger_ensure_main(page_state: str, app: Any, vision: Any) -> str:
+    if page_state == "city_main":
+        try:
+            confirmed = await tracked_to_thread(
+                wait_depart_button, app=app, vision=vision, check_cancelled=_check_trade_cancelled,
+                timeout_sec=5.0)
+        except DepartButtonError as exc:
+            _raise_error(exc.code, exc.message, exc.detail)
+        if not confirmed.get("confirmed"):
+            _raise_error("passenger_main_not_confirmed", "Cannot confirm city main before passenger work", confirmed)
+        return page_state
+    if page_state != "city_panel":
+        _raise_error("passenger_start_page_unknown", "Cannot recruit from an unknown page",
+                     {"page_state": page_state})
+    restored = await tracked_to_thread(resonance_pc_go_city_main_direct, app=app, vision=vision)
+    if restored.get("success") is not True or restored.get("page_state") != "city_main":
+        _raise_error("passenger_main_not_restored", "Passenger operation needs city main", restored)
+    return "city_main"
 
 
 _TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
@@ -181,7 +215,7 @@ class _TradeProgressReporter:
         if self._total_units is not None:
             if stage == "reposition" and state == "completed" and not is_operation:
                 self._completed_units.add((stage, (data.get("reposition") or {}).get("leg_index")))
-            elif stage in {"arrival", "investment", "trade_goods_investment", "rubbish_recycling", "sparkling_water", "black_moon_local_purchase",
+            elif stage in {"arrival", "investment", "trade_goods_investment", "rubbish_recycling", "sparkling_water", "black_moon_local_purchase", "passenger_recruit", "passenger_settlement",
                            "sell", "books", "buy", "travel", "final_sale", "bento"} and state in {"completed", "skipped"} and not is_operation:
                 key = (stage, payload.get("city_index"))
                 if key in self._phase_keys:
@@ -2208,6 +2242,7 @@ async def _execute_route(
     auto_pickup_interval_sec: float = 0.5,
     trailer_plan: FreightTrailerPlan | None = None,
     recovery_session: FreightRecoverySession | None = None,
+    passenger_session: FreightPassengerSession | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     route_state = await resonance_pc_trade_route_execution_init(route=route, state_store=state_store)
@@ -2233,6 +2268,11 @@ async def _execute_route(
             if reporter is not None:
                 await reporter.emit("leg", "started", **progress_fields, data={"leg": dict(leg)})
             try:
+                if index == 0 and passenger_session is not None:
+                    initialized = await passenger_session.initialize(
+                        page_state=page_state, app=app, ocr=ocr, vision=vision,
+                        ensure_main=_passenger_ensure_main)
+                    page_state = initialized["page_state"]
                 if index == 0 and recovery_session is not None:
                     async def start_rest(selection, start_page):
                         return await _execute_freight_rest_stop(
@@ -2291,6 +2331,7 @@ async def _execute_route(
                     engine=engine,
                     context=recovery_context,
                     **({"recovery_session": recovery_session} if recovery_session is not None else {}),
+                    **({"passenger_session": passenger_session} if passenger_session is not None else {}),
                     **({"use_trailer": True, "trailer_daily_first_n": trailer_plan.daily_first_n,
                         "trailer_payment": trailer_plan.payment}
                        if trailer_plan is not None and trailer_plan.should_use("route", index) else {}),
@@ -2308,6 +2349,18 @@ async def _execute_route(
                 confirmed_trade = failure["error"]["detail"].get("city_trade")
                 if isinstance(confirmed_trade, dict):
                     failed_leg["city_trade"] = confirmed_trade
+                confirmed_travel = failure["error"]["detail"].get("travel")
+                if isinstance(confirmed_travel, dict):
+                    failed_leg["travel"] = confirmed_travel
+                    if confirmed_travel.get("success") is True:
+                        await resonance_pc_trade_route_execution_update(
+                            run_key=route_run_key, leg=leg,
+                            travel_status=str(confirmed_travel.get("status") or "ok"),
+                            reason=None, blocked_at=None, fatigue_medicine_used=[],
+                            fatigue_medicine_use_count=0, state_store=state_store)
+                if passenger_session is not None:
+                    passenger_session.mark_failure(exc, travel=confirmed_travel, city_index=index)
+                    failed_leg["passenger"] = passenger_session.snapshot()
                 leg_results.append(failed_leg)
                 page_state = "unknown"
                 if reporter:
@@ -2487,6 +2540,17 @@ async def _execute_route(
             str(rubbish_results[0].get("city_name") or "") if rubbish_results else None
         )
         return summary
+    except BaseException as exc:
+        if passenger_session is not None:
+            snapshot = passenger_session.mark_failure(exc)
+            if recovery_context is not None and isinstance(getattr(recovery_context, "data", None), dict):
+                recovery_context.data["freight_passenger"] = snapshot
+            logger.error("[FreightPassenger] interrupted snapshot=%s",
+                         json.dumps(snapshot, ensure_ascii=False, default=str))
+            if reporter is not None:
+                await reporter.emit("passenger_planning", "cancelled" if isinstance(exc, asyncio.CancelledError) else "failed",
+                                    data={"passenger": snapshot})
+        raise
     finally:
         if route_run_key:
             await resonance_pc_trade_route_execution_cleanup(route_run_key, state_store=state_store)
@@ -2520,6 +2584,7 @@ async def _execute_trade_leg(
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
     recovery_session: FreightRecoverySession | None = None,
+    passenger_session: FreightPassengerSession | None = None,
 ) -> Dict[str, Any]:
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     progress_fields = dict(progress_fields or {})
@@ -2569,6 +2634,18 @@ async def _execute_trade_leg(
             raise
         page_state = recovered["page_state"]
 
+    if passenger_session is not None:
+        try:
+            recruited = await passenger_session.before_departure(
+                index, page_state=page_state, app=app, ocr=ocr, vision=vision,
+                ensure_main=_passenger_ensure_main)
+            page_state = recruited["page_state"]
+        except BaseException as exc:
+            passenger_session.mark_failure(exc, city_index=index)
+            if isinstance(getattr(exc, "detail", None), dict):
+                exc.detail = {**exc.detail, "city_trade": city_trade,
+                              "passenger": passenger_session.snapshot()}
+            raise
     if reporter is not None:
         await reporter.emit("travel", "started", **progress_fields)
     _check_trade_cancelled()
@@ -2576,32 +2653,43 @@ async def _execute_trade_leg(
         travel_fatigue_cost = recovery_session.begin_travel(leg)
         if reporter is not None:
             reporter.resources.update(actual_fatigue=None, estimated_fatigue=None, fatigue_source=None)
-    travel = await tracked_to_thread(
-        resonance_pc_intercity_depart_and_wait,
-        to_city_name=str(leg.get("to_city") or ""),
-        from_city_name=str(leg.get("from_city") or ""),
-        enter_station_timeout_seconds=arrival_timeout_seconds,
-        auto_pickup=auto_pickup,
-        auto_pickup_interval_sec=auto_pickup_interval_sec,
-        location_file_path="data/meta/location_pc.json",
-        city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
-        drag_center=[640, 360],
-        drag_span_px=900,
-        max_search_steps=12,
-        fallback_enabled=True,
-        target_match_mode="contains",
-        click_y_offset=-15,
-        drag_duration_sec=1.0,
-        drag_hold_sec=0.5,
-        use_fatigue_medicine=bool(use_fatigue_medicine),
-        allowed_fatigue_medicines=allowed_fatigue_medicines or [],
-        fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
-        app=app,
-        ocr=ocr,
-        vision=vision,
-        **({"use_trailer": True, "trailer_daily_first_n": trailer_daily_first_n,
-            "trailer_payment": trailer_payment} if use_trailer else {}),
-    )
+    try:
+        travel = await tracked_to_thread(
+            resonance_pc_intercity_depart_and_wait,
+            to_city_name=str(leg.get("to_city") or ""),
+            from_city_name=str(leg.get("from_city") or ""),
+            enter_station_timeout_seconds=arrival_timeout_seconds,
+            auto_pickup=auto_pickup,
+            auto_pickup_interval_sec=auto_pickup_interval_sec,
+            location_file_path="data/meta/location_pc.json",
+            city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
+            drag_center=[640, 360],
+            drag_span_px=900,
+            max_search_steps=12,
+            fallback_enabled=True,
+            target_match_mode="contains",
+            click_y_offset=-15,
+            drag_duration_sec=1.0,
+            drag_hold_sec=0.5,
+            use_fatigue_medicine=bool(use_fatigue_medicine),
+            allowed_fatigue_medicines=allowed_fatigue_medicines or [],
+            fatigue_medicine_max_uses=int(fatigue_medicine_max_uses),
+            app=app,
+            ocr=ocr,
+            vision=vision,
+            **({"expect_passenger_settlement": True}
+               if passenger_session is not None and passenger_session.loaded_destination is not None
+               and passenger_session.loaded_destination.get("city_index") == index + 1 else {}),
+            **({"use_trailer": True, "trailer_daily_first_n": trailer_daily_first_n,
+                "trailer_payment": trailer_payment} if use_trailer else {}),
+        )
+    except BaseException as exc:
+        if passenger_session is not None:
+            passenger_session.mark_failure(exc, city_index=index)
+            if isinstance(getattr(exc, "detail", None), dict):
+                exc.detail = {**exc.detail, "city_trade": city_trade,
+                              "passenger": passenger_session.snapshot()}
+        raise
     if recovery_session is not None:
         recovery_session.observe_travel(travel, travel_fatigue_cost)
     if reporter is not None:
@@ -2623,6 +2711,24 @@ async def _execute_trade_leg(
     page_state = str(travel.get("page_state") or (
         "unknown" if travel_status == "blocked" and travel.get("trailer_service") else "city_main"
     ))
+    if passenger_session is not None:
+        if travel.get("success") is True and travel_status not in {"blocked", "failed", "cancelled"}:
+            try:
+                settled = await passenger_session.after_arrival(
+                    index + 1, page_state=page_state, app=app, ocr=ocr, vision=vision,
+                    ensure_main=_passenger_ensure_main)
+                page_state = settled["page_state"]
+            except BaseException as exc:
+                passenger_session.mark_failure(exc, travel=travel, city_index=index + 1)
+                if isinstance(getattr(exc, "detail", None), dict):
+                    exc.detail = {**exc.detail, "city_trade": city_trade, "travel": travel,
+                                  "passenger": passenger_session.snapshot()}
+                raise
+        else:
+            passenger_session.mark_failure(
+                CityTradeFlowError(str(travel.get("reason") or "passenger_travel_unconfirmed"),
+                                   "Travel with passengers did not complete", {"travel": travel}),
+                travel=travel, city_index=index)
     cape_island_investment: Dict[str, Any] = {
         "triggered": False,
         "status": "not_applicable",
@@ -3096,7 +3202,10 @@ async def _preview_trade_plan_from_start_city(
     city_tax_rates_bps: Optional[Dict[str, Any]] = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
     reporter: _TradeProgressReporter | None = None,
+    auto_passenger: bool = False,
+    passenger_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
+    passenger_options = _attached_passenger_options(auto_passenger, passenger_options, trade_mode)
     request = normalize_planning_inputs(locals())
     normalized_start_city_id = str(start_city_id or "").strip()
     if not normalized_start_city_id:
@@ -3175,9 +3284,12 @@ async def _preview_trade_plan_from_start_city(
             snapshot_id=market.get("snapshot_id"),
             resonance_pc_trade_planner=resonance_pc_trade_planner,
         )
-    plan = plan_view(plan, request, kind="preview")
+    plan = plan_view(plan, request, kind="preview", auto_passenger=auto_passenger)
     _log_freight_plan(plan, request, kind="preview")
     route = plan["route"]
+    if auto_passenger:
+        plan["passenger"] = await tracked_to_thread(
+            build_passenger_plan, route, passenger_options, city_prestige=request.get("city_prestige"))
     if reporter is not None:
         await reporter.emit(
             "planning",
@@ -3187,6 +3299,9 @@ async def _preview_trade_plan_from_start_city(
             snapshot_id=snapshot_id,
             data=planning_event_data(plan),
         )
+    plan["auto_passenger"] = auto_passenger
+    if auto_passenger:
+        plan["passenger_options"] = passenger_options
     result = dict(plan)
     result.update(
         {
@@ -3246,6 +3361,8 @@ async def resonance_pc_preview_trade_plan_flow(
     event_bus: EventBus | None = None,
     context: ExecutionContext | None = None,
     city_tax_rates_bps: Optional[Dict[str, Any]] = None,
+    auto_passenger: bool = False,
+    passenger_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     del event_bus, context
     return await _preview_trade_plan_from_start_city(
@@ -3273,6 +3390,7 @@ async def resonance_pc_preview_trade_plan_flow(
         resonance_pc_market_data=resonance_pc_market_data,
         resonance_pc_trade_planner=resonance_pc_trade_planner,
         reporter=_ACTIVE_PROGRESS_REPORTER.get(),
+        auto_passenger=auto_passenger, passenger_options=passenger_options,
     )
 
 
@@ -3393,9 +3511,12 @@ async def resonance_pc_auto_cycle_trade_flow(
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
     allow_stale_market: bool = False,
+    auto_passenger: bool = False,
+    passenger_options: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
+    passenger_options = _attached_passenger_options(auto_passenger, passenger_options, trade_mode)
     request = normalize_planning_inputs(locals())
     validate_trailer_options(auto_trailer, trailer_daily_first_n, trailer_payment)
     auto_pickup_interval_sec = _normalize_pickup_interval(auto_pickup_interval_sec)
@@ -3578,7 +3699,8 @@ async def resonance_pc_auto_cycle_trade_flow(
                 resonance_pc_trade_planner=resonance_pc_trade_planner,
             )
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento,
-                     investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
+                     investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling,
+                     auto_passenger=auto_passenger)
     _log_freight_plan(plan, request, kind="run")
     current.setdefault("city_id", plan.get("start_city_id"))
     route = plan["route"]
@@ -3600,13 +3722,31 @@ async def resonance_pc_auto_cycle_trade_flow(
     ) if auto_sparkling_water or auto_bento else None)
     plan["sparkling_water_plan"] = water_plan
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento, water_plan=water_plan,
-                     investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling)
+                     investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling,
+                     auto_passenger=auto_passenger)
     plan["sparkling_water_plan"] = water_plan
     trailer_plan = FreightTrailerPlan(
         enabled=auto_trailer, daily_first_n=trailer_daily_first_n, payment=trailer_payment,
         route=route, reposition=plan["reposition"]["route"],
     )
     plan["trailer_plan"] = trailer_plan.snapshot()
+    passenger_session = None
+    if auto_passenger:
+        async def passenger_emit(stage, state, **fields):
+            data = dict(fields.get("data") or {})
+            snapshot = data.get("passenger")
+            if snapshot is not None:
+                if context is not None and isinstance(getattr(context, "data", None), dict):
+                    context.data["freight_passenger"] = snapshot
+                logger.info("[FreightPassenger] stage=%s state=%s snapshot=%s", stage, state,
+                            json.dumps(snapshot, ensure_ascii=False, default=str))
+            if reporter is not None:
+                await reporter.emit(stage, state, **fields)
+        passenger_session = FreightPassengerSession(
+            route, passenger_options, city_prestige=request.get("city_prestige"), emit=passenger_emit)
+        plan["passenger"] = passenger_session.snapshot()
+        plan["passenger_options"] = passenger_options
+    plan["auto_passenger"] = auto_passenger
     plan.update(market_metadata)
     plan["input_snapshot"]["allow_stale_market"] = allow_stale_market
     if stale:
@@ -3713,10 +3853,18 @@ async def resonance_pc_auto_cycle_trade_flow(
             persistent_data=persistent_data,
             recovery_context=context,
             recovery_travel_costs=None,
+            **({"passenger_session": passenger_session} if passenger_session is not None else {}),
             **({"trailer_plan": trailer_plan} if auto_trailer else {}),
             **({"recovery_session": recovery_session} if recovery_session is not None else {}),
         )
         page_state = str(execution.get("page_state") or "city_main")
+
+        if passenger_session is not None and execution.get("status") == "completed":
+            passenger_state = passenger_session.snapshot()
+            if passenger_state.get("loaded_destination") is not None or passenger_state.get("requires_manual_completion"):
+                execution.update(status="failed", reason="passenger_batch_unsettled")
+                passenger_session.mark_failure(CityTradeFlowError(
+                    "passenger_batch_unsettled", "Freight ended with an unsettled passenger batch"))
 
         if str(execution.get("status") or "").lower() == "completed":
             endpoint_city = str(route[-1].get("to_city") or "")
@@ -3890,6 +4038,14 @@ async def resonance_pc_auto_cycle_trade_flow(
             "page_state": page_state,
         }
     )
+    if passenger_session is not None:
+        if execution.get("status") == "completed":
+            result["passenger"] = passenger_session.finish()
+        else:
+            result["passenger"] = passenger_session.snapshot()
+        execution["passenger"] = result["passenger"]
+        result["requires_manual_completion"] = bool(result["passenger"].get("requires_manual_completion"))
+        result["loaded_destination"] = result["passenger"].get("loaded_destination")
     confirmed_books = sum(
         int(((item.get("city_trade") or {}).get("buy") or {}).get("book_result", {}).get("used") or 0)
         for item in execution.get("leg_results") or []

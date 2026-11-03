@@ -53,6 +53,7 @@ from .logic import (
     extract_deep_dive_planned_run_result,
     extract_run_id,
     extract_status,
+    extract_freight_passenger_cleanup_evidence,
     pretty_json,
     render_result_text,
     trade_result_summary,
@@ -789,7 +790,7 @@ class ResonanceMainWindow(QMainWindow):
                     "dispatch": "pc_task",
                 })
 
-        if "trade" in steps and "passenger" in steps:
+        if "trade" in steps and "passenger" in steps and not trade.get("auto_passenger", False):
             first, second = sorted((steps.index("trade"), steps.index("passenger")))
             if second != first + 1:
                 QMessageBox.warning(self, "客货运组合顺序", "货运与客运共用疲劳预算，请将两项任务相邻排列。")
@@ -1544,7 +1545,12 @@ class ResonanceMainWindow(QMainWindow):
                 self.trade_preview_page.finish_preview(payload)
             elif kind == "trade_run":
                 self.trade_page.finish_run(payload)
-                self.workflow_page.update_freight_market_result(trade_result_summary(payload))
+                freight_summary = trade_result_summary(payload)
+                passenger = extract_freight_passenger_cleanup_evidence(
+                    payload, expected_cid=self.trade_page._current_cid)
+                if passenger:
+                    freight_summary["passenger"] = passenger
+                self.workflow_page.update_freight_market_result(freight_summary)
             elif kind == "passenger_run":
                 self.passenger_page.finish_run(payload)
             elif kind == "combined_commerce_run":

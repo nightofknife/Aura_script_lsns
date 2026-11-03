@@ -218,3 +218,33 @@ def test_other_matcher_callers_keep_exception_propagation():
     with pytest.raises(RuntimeError, match='capture backend failed'):
         travel._match_template_in_region(App([RuntimeError('capture backend failed')]),
                                          Vision(), 'fixture.png', REGION, .9)
+
+
+def test_passenger_overlay_confirms_arrival_without_station_click_or_pickup(monkeypatch):
+    checks = []
+    monkeypatch.setattr(travel, '_sleep_with_cancel', lambda _: None)
+    def observe(*args, **kwargs):
+        checks.append((args, kwargs))
+        return {'found': True, 'confidence': .99}
+    monkeypatch.setattr(travel, '_match_template_in_region', observe)
+    monkeypatch.setattr(travel, '_click_arrival_template_until_absent',
+                        lambda **kwargs: pytest.fail('settlement must stay open'))
+    app = NS(click=lambda **kwargs: pytest.fail('arrival detection must not click'))
+    result = travel.resonance_pc_wait_intercity_arrival(timeout_sec=1, app=app, vision=object(),
+                                                       expect_passenger_settlement=True)
+    assert result['arrival_mode'] == 'passenger_settlement_detected'
+    assert result['arrival_click_attempts'] == result['pickup_click_count'] == 0
+    assert len(checks) == 2 and all(kwargs['require_valid_capture'] for _, kwargs in checks)
+
+
+def test_transient_passenger_overlay_does_not_confirm_arrival(monkeypatch):
+    observations = iter([{'found': True}, {'found': False}])
+    monkeypatch.setattr(travel, '_sleep_with_cancel', lambda _: None)
+    monkeypatch.setattr(travel, '_match_template_in_region', lambda *a, **k: next(observations))
+    assert travel._confirmed_passenger_arrival(object(), object())['confirmed'] is False
+
+
+def test_unknown_passenger_overlay_never_confirms_arrival(monkeypatch):
+    monkeypatch.setattr(travel, '_match_template_in_region', lambda *a, **k: {'found': False, 'reason':'capture_failed'})
+    with pytest.raises(travel.IntercityDestinationError, match='arrival_template_match_failed'):
+        travel._confirmed_passenger_arrival(object(), object())

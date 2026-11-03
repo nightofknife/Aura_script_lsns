@@ -56,6 +56,9 @@ from ..logic import (
     FREIGHT_NET_PROFIT_NOTE,
     freight_currency_error,
     freight_settlement_lines,
+    freight_passenger_summary_text,
+    freight_passenger_attention,
+    extract_freight_passenger_cleanup_evidence,
     market_fallback_notice,
     validate_allow_stale_market,
     TradeProgressState,
@@ -77,6 +80,7 @@ from packages.resonance_shared.freight_parameters import (
 )
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog, normalize_black_moon_settings
+from .freight_passenger_panel import FreightPassengerPanel
 from .black_moon_purchase_dialog import BlackMoonPurchaseDialog
 from .compact_parameter_grid import CompactParameterGrid
 from .disclosure_section import DisclosureSection
@@ -720,6 +724,11 @@ class TradePage(QWidget):
         self.preview_state_hint.hide()
         form_stack.addWidget(self.preview_state_hint)
 
+        self.passenger_panel = FreightPassengerPanel(content)
+        self.auto_passenger = self.passenger_panel.enabled
+        form_stack.addWidget(self.passenger_panel)
+        self.passenger_panel.changed.connect(self._on_passenger_inputs_changed)
+
         self.recovery_heading = QLabel("恢复与附加", content)
         self.recovery_heading.hide()
         self.recovery_section = DisclosureSection("恢复与附加行为", content)
@@ -1013,7 +1022,14 @@ class TradePage(QWidget):
         if route and str(self.start_city.currentData() or "") == route[0]:
             description += " 试算起点一致，无需定位。"
         self.fixed_route_hint.setText(description)
+        self.passenger_panel.set_available(state["free"], busy=self._busy)
         self._sync_actions()
+
+    def _on_passenger_inputs_changed(self) -> None:
+        if self._restoring or not self._form_ready:
+            return
+        self._on_planning_inputs_changed()
+        self.save_ui_state()
 
     def _connect_parameter_dependencies(self) -> None:
         planning = (self.fatigue_budget, self.cargo_capacity, self.book_budget, self.book_profit_threshold, self.book_waste_limit,
@@ -1044,7 +1060,7 @@ class TradePage(QWidget):
 
     def _planning_key(self, inputs: Mapping[str, Any] | None = None) -> dict[str, Any]:
         source = inputs if inputs is not None else self.collect_ui_state()
-        planning_keys = (*FREIGHT_PLANNING_KEYS, "start_city_id")
+        planning_keys = (*FREIGHT_PLANNING_KEYS, "start_city_id", "auto_passenger", "passenger_options")
         data = normalize_trade_task_inputs({key: source[key] for key in planning_keys if key in source})
         return deepcopy({key: data[key] for key in planning_keys if key in data})
 
@@ -1357,6 +1373,11 @@ class TradePage(QWidget):
         self.result_captions["average_book_profit"].hide()
         self.result_values["average_book_profit"].hide()
         result_layout.addLayout(grid)
+        self.passenger_summary_label = QLabel("", self.result_band)
+        self.passenger_summary_label.setWordWrap(True)
+        self.passenger_summary_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.passenger_summary_label.hide()
+        result_layout.addWidget(self.passenger_summary_label)
         self.reason_label = QLabel("", self.result_band)
         self.reason_label.setWordWrap(True)
         self.reason_label.setProperty("status", "error")
@@ -1644,6 +1665,7 @@ class TradePage(QWidget):
         else:
             self._unlocked_product_ids = None
         self._update_product_unlock_button()
+        self.passenger_panel.set_options(bool(values.get("auto_passenger", False)), values.get("passenger_options"))
         self.auto_sparkling_water.setChecked(bool(values.get("auto_sparkling_water", False)))
         self._prison_product_goods = list(values.get("prison_product_goods") or [])
         self.prison_products_button.setText(prison_selection_text(self._prison_product_goods))
@@ -1729,7 +1751,11 @@ class TradePage(QWidget):
             raise ValueError("指定终点已不在可选城市内，请重新选择终点。")
         if not _draft and mode != "fixed" and required_end_city_ids == []:
             raise ValueError("请至少指定一个终点，或选择自动终点")
+        passenger_enabled = self.auto_passenger.isChecked() and (mode == "free" or _draft)
+        passenger_options = self.passenger_panel.collect_options(validate=passenger_enabled and not _draft)
         inputs = {
+            "auto_passenger": passenger_enabled,
+            "passenger_options": passenger_options,
             "fatigue_budget": self.fatigue_budget.value(),
             "cargo_capacity": self.cargo_capacity.value(),
             "trade_mode": mode,
@@ -2098,6 +2124,9 @@ class TradePage(QWidget):
     def cancel_requested(self, payload: Mapping[str, Any]) -> None:
         self.run_status_value.setText("超时取消中" if payload.get("timeout") else "取消中")
         self.stage_title.setText("取消中")
+        attention = freight_passenger_attention(self._progress.summary.get("passenger"), cancelled=True)
+        if attention:
+            self.stage_detail.setText(attention)
         self.cancel_button.setEnabled(False)
 
     def finish_run(self, payload: Mapping[str, Any]) -> None:
@@ -2105,6 +2134,11 @@ class TradePage(QWidget):
         self._last_result = dict(payload)
         status = extract_status(payload)
         summary = trade_result_summary(payload)
+        passenger = extract_freight_passenger_cleanup_evidence(payload, expected_cid=self._current_cid)
+        if not passenger and not isinstance(summary.get("passenger"), Mapping):
+            passenger = self._progress.summary.get("passenger")
+        if isinstance(passenger, Mapping):
+            summary["passenger"] = deepcopy(dict(passenger))
         self._current_plan = dict(summary)
         self._plan_inputs = dict(self._last_inputs)
         self._plan_fingerprint = None
@@ -2114,7 +2148,9 @@ class TradePage(QWidget):
         business_status = str(summary.get("status") or status)
         self.run_status_value.setText(self._status_label(business_status))
         self.stage_title.setText(self._status_label(business_status))
-        self.stage_detail.setText(str(summary.get("reason") or "路线执行结束"))
+        detail = str(summary.get("reason") or "路线执行结束")
+        attention = freight_passenger_attention(summary.get("passenger"), cancelled=business_status in {"cancelled", "failed", "error", "timeout"})
+        self.stage_detail.setText(f"{detail}\n{attention}" if attention else detail)
         if summary.get("snapshot_id"):
             self.snapshot_value.setText(str(summary["snapshot_id"]))
         if summary.get("final_city"):
@@ -2239,6 +2275,7 @@ class TradePage(QWidget):
             self.arrival_timeout_minutes,
             self.auto_sparkling_water,
             self.auto_bento,
+            self.passenger_panel,
             self.prison_products_button,
             self.bento_priority_panel,
             *(getattr(self, key) for key in FREIGHT_RECOVERY_THRESHOLD_KEYS),
@@ -2296,6 +2333,11 @@ class TradePage(QWidget):
         })
         if currency_error:
             return currency_error
+        if self.trade_mode() == "free" and self.auto_passenger.isChecked():
+            try:
+                self.passenger_panel.collect_options()
+            except ValueError as exc:
+                return str(exc)
         if not self.preview_mode and self.auto_trailer.isChecked():
             try:
                 self._trailer_count()
@@ -2461,6 +2503,8 @@ class TradePage(QWidget):
 
     def _render_planning_summary(self, summary: Mapping[str, Any]) -> None:
         self._update_market_notice(summary)
+        self.passenger_summary_label.setText(freight_passenger_summary_text(summary.get("passenger")))
+        self.passenger_summary_label.setVisible(bool(self.passenger_summary_label.text()))
         self._render_overview(summary, route=self._progress.route)
         stop_text = self._planning_stop_text(summary)
         if stop_text:
@@ -2482,6 +2526,8 @@ class TradePage(QWidget):
 
     def _render_result(self, summary: Mapping[str, Any]) -> None:
         self._update_market_notice(summary)
+        self.passenger_summary_label.setText(freight_passenger_summary_text(summary.get("passenger")))
+        self.passenger_summary_label.setVisible(bool(self.passenger_summary_label.text()))
         status = str(summary.get("status") or "")
         self.result_values["status"].setText(self._status_label(status))
         self.result_values["status"].setProperty(
@@ -2539,6 +2585,8 @@ class TradePage(QWidget):
         for label in self.result_values.values():
             label.setText("--")
         self.reason_label.clear()
+        self.passenger_summary_label.clear()
+        self.passenger_summary_label.hide()
         self.result_captions["average_book_profit"].hide()
         self.result_values["average_book_profit"].hide()
 
@@ -2555,6 +2603,9 @@ class TradePage(QWidget):
 
     def _progress_detail(self) -> str:
         progress = self._progress
+        attention = freight_passenger_attention(progress.summary.get("passenger"))
+        if attention:
+            return attention
         if progress.stage == "trade_goods_investment":
             return trade_goods_investment_detail(progress.last_data, progress.state)
         if progress.stage == "market":

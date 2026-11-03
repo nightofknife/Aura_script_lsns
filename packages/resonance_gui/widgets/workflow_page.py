@@ -73,6 +73,8 @@ from ..logic import (
     route_product_lines,
     FREIGHT_NET_PROFIT_NOTE,
     freight_settlement_lines,
+    freight_passenger_summary_text,
+    freight_passenger_attention,
     market_fallback_notice,
 )
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
@@ -834,6 +836,10 @@ class WorkflowPage(QWidget):
         self.runtime_plan_contract_note.setWordWrap(True)
         self.runtime_plan_contract_note.setProperty("caption", True)
         layout.addWidget(self.runtime_plan_contract_note)
+        self.runtime_passenger_summary = QLabel(page)
+        self.runtime_passenger_summary.setWordWrap(True)
+        self.runtime_passenger_summary.hide()
+        layout.addWidget(self.runtime_passenger_summary)
 
         meta_row = QHBoxLayout()
         meta_row.setSpacing(8)
@@ -1443,6 +1449,18 @@ class WorkflowPage(QWidget):
             self._passenger_progress.cid = str(cid)
 
     def apply_progress_event(self, kind: str, event: Mapping[str, Any]) -> None:
+        # A cancellation receipt may arrive after the stop button was pressed.
+        # Preserve its passenger evidence while continuing to ignore late operation heartbeats.
+        payload = event.get("payload")
+        data = payload.get("data") if isinstance(payload, Mapping) else None
+        if (self._busy and self._stopping and kind == "trade" and isinstance(data, Mapping)
+                and isinstance(data.get("passenger"), Mapping)):
+            self._freight_progress = reduce_workflow_freight_progress(
+                self._freight_progress, event, expected_cid=self._freight_progress.cid)
+            self._render_runtime_trade_plan()
+            attention = freight_passenger_attention(self._freight_progress.summary.get("passenger"), cancelled=True)
+            if attention:
+                self.current_operation_label.setText(attention)
         if not self._busy or self._stopping or kind not in {"trade", "passenger"}:
             return
         payload = event.get("payload")
@@ -1475,6 +1493,8 @@ class WorkflowPage(QWidget):
             ):
                 self._render_runtime_trade_plan()
                 self.runtime_plan_button.setEnabled(True)
+            elif str(payload.get("stage") or "").startswith("passenger_"):
+                self._render_runtime_trade_plan()
             percent = self._freight_progress.percent
             self._set_internal_progress(
                 self._freight_progress.current_label,
@@ -1519,6 +1539,9 @@ class WorkflowPage(QWidget):
 
     def update_freight_market_result(self, result: Mapping[str, Any]) -> None:
         """Terminal-result fallback when a market progress event was not delivered."""
+        if isinstance(result.get("passenger"), Mapping):
+            self._freight_progress.summary["passenger"] = dict(result["passenger"])
+            self._render_runtime_trade_plan()
         if not result.get("market_source"):
             return
         for key in ("market_source", "market_fetched_at", "market_stale_reason"):
@@ -1531,6 +1554,9 @@ class WorkflowPage(QWidget):
             self._render_runtime_trade_plan()
 
     def finish_workflow(self, *, success: bool, message: str) -> None:
+        attention = freight_passenger_attention(self._freight_progress.summary.get("passenger"), cancelled=not success)
+        if attention:
+            message = f"{message}；{attention}"
         stopped = self._stopping
         if stopped:
             for step, item in self._tree_items.items():
@@ -1663,6 +1689,9 @@ class WorkflowPage(QWidget):
         route = list(self._freight_progress.route)
         summary = dict(self._freight_progress.summary)
         mode = {"free": "不定线路", "fixed": "固定线路"}.get(str(summary.get("trade_mode")), "货运")
+        passenger_text = freight_passenger_summary_text(summary.get("passenger"))
+        self.runtime_passenger_summary.setText(passenger_text)
+        self.runtime_passenger_summary.setVisible(bool(passenger_text))
         notes = [mode, FREIGHT_NET_PROFIT_NOTE, "预计疲劳来自规划，不代表实测。"]
         warning = market_fallback_notice(vars(self._freight_progress))
         if warning:
