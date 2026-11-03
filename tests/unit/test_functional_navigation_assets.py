@@ -4,6 +4,7 @@ The migration changes resource ownership only; visual states remain independent.
 Catalog-owned city, departure, warehouse and trailer assets have separate tests.
 """
 from hashlib import sha256
+import json
 from pathlib import Path
 
 from PIL import Image
@@ -51,4 +52,9 @@ def test_functional_controls_preserve_original_pixels_and_image_mode(relative, e
 def test_passenger_state_bank_has_no_orphans_or_missing_controls():
     expected = {relative for relative, _, _, _ in CONTROLS if relative.startswith("templates/passenger/")}
     assert len(expected) == 14
+    catalog = json.loads((PLAN / "data/meta/passenger_destination_templates.json").read_text("utf-8"))
+    city_templates = {entry["template"] for entry in catalog["cities"]}
+    assert len(city_templates) == len(catalog["cities"]) == 21
+    assert expected.isdisjoint(city_templates)
+    expected |= city_templates
     assert {path.relative_to(PLAN).as_posix() for path in (PLAN / "templates/passenger").rglob("*.png")} == expected
