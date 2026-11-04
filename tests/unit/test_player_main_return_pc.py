@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import asyncio
+from pathlib import Path
 from types import SimpleNamespace as NS
 
+import numpy as np
+from PIL import Image
 import pytest
 
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.resonance_pc.src.actions import passenger_pc_actions as passenger
 from plans.resonance_pc.src.actions import player_data_pc_actions as player
+from plans.resonance_pc.src.actions._mainui_control_vision import load_control_profile
 
 
 @pytest.fixture
@@ -127,3 +131,32 @@ def test_cancelled_return_never_clicks(monkeypatch,clock):
     monkeypatch.setattr(passenger,"is_current_task_cancel_requested",lambda:True)
     with pytest.raises(asyncio.CancelledError):
         passenger._click_blank_and_confirm_main(NS(click=lambda **kwargs:pytest.fail("cancelled click")),None,error_code="test")
+
+
+@pytest.mark.parametrize("control", ["train_maintenance", "passenger_management"])
+def test_shared_main_controls_use_catalog_region_and_global_click_center(control):
+    profile = load_control_profile(control)
+    root = Path(__file__).resolve().parents[2] / "plans/resonance_pc"
+    pixels = np.array(Image.open(root / profile.template).convert("RGB"))
+    captures = []
+    def capture(*, rect):
+        captures.append(rect)
+        image = np.zeros((rect[3], rect[2], 3), np.uint8)
+        image[2:2+pixels.shape[0], 3:3+pixels.shape[1]] = pixels
+        return NS(success=True, image=image)
+    # Consumer-owned region/threshold values must not override the shared contract.
+    result = passenger._match_template(NS(capture=capture), object(), control, [0, 0, 1, 1], .1)
+    assert captures == [profile.region]
+    assert result["valid"] and result["found"]
+    assert result["center"] == [profile.region[0] + 3 + profile.size[0]//2,
+                                profile.region[1] + 2 + profile.size[1]//2]
+
+
+def test_unknown_shared_main_evidence_stops_return_without_click(monkeypatch, clock):
+    clicks = []
+    unknown = {"valid": False, "found": None, "reason": "capture_failed"}
+    monkeypatch.setattr(passenger, "probe_mainui_control", lambda **kw: unknown)
+    with pytest.raises(passenger.PassengerPcError) as error:
+        passenger._click_blank_and_confirm_main(NS(click=lambda **kw: clicks.append(kw)), object(), error_code="test")
+    assert error.value.code == "passenger_template_observation_failed"
+    assert error.value.detail is unknown and not clicks

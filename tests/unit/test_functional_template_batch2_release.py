@@ -14,7 +14,7 @@ PLAN = Path("plans/resonance_pc")
 BANKS = ("navigation", "passenger", "commerce/trade", "commerce/books",
          "commerce/investment", "recovery")
 CATALOGS = (
-    "city_identity_templates.json", "depart_button_template.json",
+    "city_identity_templates.json", "depart_button_template.json", "mainui_control_templates.json",
     "trade_product_templates.json", "player_recovery.json", "love_bento.json",
     "bento_consumption.json", "sparkling_water.json",
 )
@@ -61,7 +61,7 @@ def test_functional_banks_and_catalogs_survive_release_assembly(tmp_path):
     for name in CATALOGS:
         catalog = json.loads((package / "data/meta" / name).read_text(encoding="utf-8"))
         for reference in strings(catalog):
-            if reference.startswith("templates/"):
+            if reference.startswith(("templates/", "data/meta/")):
                 resolved = (package / reference).resolve()
                 assert resolved.is_relative_to(package.resolve())
                 assert resolved.exists(), (name, reference)
