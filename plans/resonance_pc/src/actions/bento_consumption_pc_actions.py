@@ -24,7 +24,7 @@ from ._bento_target_locator import find_target_on_frame
 from .love_bento_pc_actions import LoveBentoScanner, load_love_bento_catalog
 from .player_recovery_pc_actions import RecoveryReader, load_recovery_layout, _roi
 from .player_data_pc_actions import _CLICK_PROFILE
-from .passenger_pc_actions import _MAIN_SCREEN_TEMPLATE, _MAIN_SCREEN_REGION
+from ._mainui_control_vision import match_mainui_control_frame, probe_mainui_control
 from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
 
 
@@ -50,9 +50,6 @@ def load_consumption_layout(vision):
     confidence = layout["ocr_min_confidence"]
     if isinstance(confidence, bool) or not isinstance(confidence, (int, float)) or not 0 < confidence <= 1:
         raise ValueError("Invalid bento OCR confidence threshold")
-    layout["templates"]["main"] = {
-        "path": _MAIN_SCREEN_TEMPLATE, "roi": list(_MAIN_SCREEN_REGION), "threshold": 0.8,
-    }
     for name in ("timeout_sec", "animation_timeout_sec", "poll_interval_sec",
                  "after_click_sec", "total_timeout_sec"):
         value = layout[name]
@@ -159,6 +156,15 @@ class BentoConsumptionSession:
         return self._capture_frame(roi).rgb_image()
 
     def match(self, key, roi=None, *, frame: Frame | None = None):
+        if key == "main":
+            self.guard()
+            hit = (probe_mainui_control(app=self.app, control="train_maintenance", check_cancelled=self.guard)
+                   if frame is None else match_mainui_control_frame(frame.rgb_image(), "train_maintenance"))
+            self.guard()
+            if hit.get("valid") is not True:
+                self.fail("bento_capture_failed" if hit.get("reason") == "capture_failed" else "bento_match_failed",
+                          f"Main-screen observation is unknown: {hit.get('reason')}")
+            return hit
         spec = self.layout["templates"][key]
         roi = spec["roi"] if roi is None else roi
         hit = self.vision.find_template(

@@ -42,7 +42,11 @@
 
 `src/actions/_navigation_templates.py` 维护玩家资料入口、全局返回和返回城市主界面的冻结配置；消费方派生自己的常量或获得独立布局副本。`data/meta/player_recovery.json` 的 `profile` 条目以 `{"profile": "navigation.profile"}` 显式引用共享配置，由恢复布局加载器展开，不在 JSON 重复维护图片、区域与阈值，也不允许同条目覆盖共享参数。
 
-启程按钮的路径、尺寸、捕获区域、匹配方法、颜色与预处理选项、阈值统一来自 `data/meta/depart_button_template.json`。现有两个启程观察器共同要求 RGB 彩色 SQDIFF、无 mask、无预处理；加载器拒绝不支持的组合，避免普通出发与黑月退出观察产生差异。`_depart_button_vision.py` 延迟加载并缓存配置，保留由配置派生的 `REGION`、`THRESHOLD`、`TEMPLATE` 兼容导出；修改配置后需重启读取进程。轮询间隔、连续确认次数、取消及超时仍由原流程维护。
+启程、整备列车、客运管理和喇叭统一由 `src/actions/_mainui_control_vision.py` 判定。`data/meta/mainui_control_templates.json` 集中声明各控件的图片、尺寸、ROI、匹配算法、颜色选项和阈值；其中启程显式引用 `data/meta/depart_button_template.json`，不重复配置。`probe_mainui_control` 捕获客户区 ROI，`match_mainui_control_frame` 读取调用者已有的 1280×720 RGB 整帧，两者进入同一个评分函数。有效未命中为 `valid=True, found=False`，捕获、资源或匹配错误为 `valid=False, found=None`，不能作为控件消失或允许点击的证据。
+
+2026-11-04 重建四个控件为单一 1280×720 尺寸：启程 130×51、整备列车 41×41、客运管理 43×41、喇叭 45×36。均从游戏原生背景、精灵及必要字体按 720/1080 重建，不放大旧模板，不加入旧尺寸回退或运行时多尺度匹配。客运管理仅保留稳定图标，去掉截图场景背景与文字。生成器为 `tools/build_mainui_control_templates.py`，不执行游戏代码、不导出字体文件；元数据保留资源来源与哈希。
+
+货运返回及城际出发经 `_depart_button_vision.py` 保留既有连续确认、取消和超时；黑月退出也调用同一个启程评分入口。客运、便当恢复和监狱成品快照的整备列车判定共用灰度 CCOEFF 阈值 0.86；客运管理使用灰度 CCOEFF 0.80；自动拾取及拖车行驶状态共用彩色 CCOEFF 喇叭阈值 0.90；启程使用彩色 SQDIFF 阈值 0.90。ROI 不再由客运 location 配置覆盖，调用者维护自己的等待、重试和业务状态。配置与图片延迟缓存，修改后需重启进程读取。独立用户截图回归覆盖启程、整备列车及客运管理；测试另覆盖共享捕获/整帧判定、未知态、连续确认与取消、资源打包和原生生成复现。喇叭没有本次用户提供的行驶态截图，未进行实机操作。
 
 共享图片不要求共享识别配置。黑月返回按钮仍使用独立的彩色 SQDIFF 配置，贸易与回收使用原有灰度 CCOEFF 配置；便当恢复与消费的返回列车控件继续保留各自的匹配算法。战斗返回按钮图片及配置也保持独立。
 

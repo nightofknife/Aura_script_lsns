@@ -1,235 +1,159 @@
-"""Offline departure evidence and bounded navigation-input contracts."""
+"""Real new-size departure evidence and bounded navigation-input contracts."""
 from __future__ import annotations
 
 import asyncio
 from pathlib import Path
 from types import SimpleNamespace
 
-import cv2
 import numpy as np
 from PIL import Image
 import pytest
 
-from plans.aura_base.src.services.vision_service import MatchResult, VisionService
 from plans.resonance_pc.src.actions import _depart_button_vision as depart
+from plans.resonance_pc.src.actions import _mainui_control_vision as controls
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import city_travel_pc_actions as travel
 
 
-FIXTURES = Path(__file__).resolve().parents[1] / "fixtures/depart_button"
+FIXTURES = Path(__file__).resolve().parents[1] / "fixtures"
+REGION = (1120, 620, 160, 100)
+
+
+def main_region():
+    crop = np.asarray(Image.open(FIXTURES / "mainui_controls/actual-bottom-right-20261104.png").convert("RGB"))
+    return crop[20:120, 220:380].copy()
 
 
 class App:
-    def __init__(self, image=None):
-        self.image = image if image is not None else np.zeros((100, 160, 3), np.uint8)
-        self.captures = []
-        self.clicks = []
+    def __init__(self, image=None, states=None):
+        self.image = main_region() if image is None else image
+        self.states = list(states or [])
+        self.captures, self.clicks = [], []
         self.success = True
 
     def capture(self, *, rect):
         self.captures.append(rect)
-        return SimpleNamespace(success=self.success, image=self.image)
+        if self.states:
+            present = self.states.pop(0) if len(self.states) > 1 else self.states[0]
+            image = main_region() if present else np.zeros((100, 160, 3), np.uint8)
+        else:
+            image = self.image
+        return SimpleNamespace(success=self.success, image=image)
 
     def click(self, **point):
         self.clicks.append(point)
 
 
-def hit(found=True, confidence=.99, center=(70, 45), **changes):
-    values = dict(found=found, confidence=confidence, center_point=center, debug_info={})
-    values.update(changes)
-    return SimpleNamespace(**values)
-
-
-class SequenceVision:
-    def __init__(self, *results):
-        self.results = list(results) or [hit()]
-        self.calls = []
-
-    def find_template(self, **options):
-        self.calls.append(options)
-        return self.results.pop(0) if len(self.results) > 1 else self.results[0]
-
-
-class CpuVision:
-    def __init__(self):
-        self.core = VisionService()
-        self.calls = []
-
-    def find_template(self, *, source_image, template_image, **options):
-        self.calls.append(options)
-        assert options == dict(threshold=.9, use_grayscale=False,
-                               match_method=cv2.TM_SQDIFF_NORMED, preprocess="none")
-        assert source_image.shape == (100, 160, 3)
-        assert template_image.shape == (42, 106, 3)
-        return self.core._match_template_prepared(source_image, template_image, None, **options)
-
-
 @pytest.fixture(autouse=True)
 def clock(monkeypatch):
     state = SimpleNamespace(now=0., sleeps=[])
-
     def sleep(seconds):
         state.sleeps.append(seconds)
         state.now += seconds
-
     monkeypatch.setattr(depart.time, "monotonic", lambda: state.now)
     monkeypatch.setattr(depart.time, "sleep", sleep)
-    depart._load_template.cache_clear()
+    controls.load_control_profile.cache_clear()
+    controls._load_pixels.cache_clear()
     yield state
-    depart._load_template.cache_clear()
+    controls.load_control_profile.cache_clear()
+    controls._load_pixels.cache_clear()
 
 
-def probe(app=None, vision=None, check_cancelled=lambda: None):
-    return depart.probe_depart_button(app=app or App(), vision=vision or SequenceVision(),
-                                      check_cancelled=check_cancelled)
+def probe(app=None, check_cancelled=lambda: None):
+    return depart.probe_depart_button(app=app or App(), vision=object(), check_cancelled=check_cancelled)
 
 
-def wait(vision=None, app=None, **options):
-    return depart.wait_depart_button(app=app or App(), vision=vision or SequenceVision(),
-                                     check_cancelled=lambda: None, **options)
+def wait(app=None, **options):
+    return depart.wait_depart_button(app=app or App(), vision=object(), check_cancelled=lambda: None, **options)
 
 
-def test_retained_real_crop_matches_generated_template_with_framework_cpu():
-    actual = np.array(Image.open(FIXTURES / "actual-matched-crop.png").convert("RGB"))
-    assert actual.shape == (42, 106, 3)
-    image = np.full((100, 160, 3), 17, np.uint8)
-    image[30:72, 20:126] = actual
-    app, vision = App(image), CpuVision()
-    result = probe(app, vision)
-    assert result["found"] and result["confidence"] >= .9
-    assert result["center"] == [1193, 671]
-    assert app.captures == [depart.REGION] and not app.clicks
-    assert len(vision.calls) == 1
+def test_observed_new_size_crop_matches_without_inputs():
+    app = App()
+    result = probe(app)
+    assert result["valid"] is True and result["found"] is True and result["confidence"] >= .9
+    assert app.captures == [REGION] and not app.clicks
 
 
 def test_return_main_then_open_map_shares_real_departure_evidence(monkeypatch):
-    actual = np.array(Image.open(FIXTURES / "actual-matched-crop.png").convert("RGB"))
-    main_image = np.full((100, 160, 3), 17, np.uint8)
-    main_image[30:72, 20:126] = actual
-
+    expected = probe()["center"]
     class NavigationApp(App):
         def click(self, **point):
             super().click(**point)
-            self.image = main_image if len(self.clicks) == 1 else np.zeros((100, 160, 3), np.uint8)
-
-    app, vision = NavigationApp(), CpuVision()
+            self.image = main_region() if len(self.clicks) == 1 else np.zeros((100, 160, 3), np.uint8)
+    app = NavigationApp(np.zeros((100, 160, 3), np.uint8))
     monkeypatch.setattr(trade, "_check_trade_cancelled", lambda: None)
     monkeypatch.setattr(travel, "_check_intercity_cancelled", lambda: None)
-    monkeypatch.setattr(trade, "_wait_template", lambda *args, **kwargs:
-                        {"found": True, "center": [205, 40]})
-    returned = trade.resonance_pc_go_city_main_direct(app=app, vision=vision)
-    opened = travel._open_intercity_map(app, vision)
+    monkeypatch.setattr(trade, "_wait_template", lambda *args, **kwargs: {"found": True, "center": [205, 40]})
+    returned = trade.resonance_pc_go_city_main_direct(app=app, vision=object())
+    opened = travel._open_intercity_map(app, object())
     assert returned["main_ready"]["confirmed"] and opened["transitioned"]
     assert returned["click_attempts"] == opened["click_attempts"] == 1
-    assert app.clicks == [{"x": 205, "y": 40}, {"x": 1193, "y": 671}]
-    assert len(app.captures) == 7 and all(region == depart.REGION for region in app.captures)
-
-
-@pytest.mark.parametrize("value", [0, 255])
-def test_blank_region_does_not_match_with_real_framework(value):
-    result = probe(App(np.full((100, 160, 3), value, np.uint8)), CpuVision())
-    assert not result["found"] and result["center"] is None
-
-
-@pytest.mark.parametrize("score, expected", [(.89999, False), (.9, True), (.90001, True)])
-def test_threshold_is_inclusive_and_uses_absolute_capture_coordinates(score, expected):
-    vision = SequenceVision(hit(confidence=score))
-    result = probe(vision=vision)
-    assert result["found"] is expected
-    assert result["center"] == ([1190, 665] if expected else None)
-    options = vision.calls[0]
-    assert options["threshold"] == .9
-    assert options["match_method"] == cv2.TM_SQDIFF_NORMED
-    assert options["use_grayscale"] is False and options["preprocess"] == "none"
-    assert "mask" not in options and "mask_image" not in options
-
-
-def test_found_flag_is_required_even_above_threshold():
-    assert not probe(vision=SequenceVision(hit(found=False)))["found"]
+    assert app.clicks == [{"x": 205, "y": 40}, {"x": expected[0], "y": expected[1]}]
+    assert len(app.captures) == 7 and all(region == REGION for region in app.captures)
 
 
 @pytest.mark.parametrize("image", [None, np.zeros((720, 1280, 3), np.uint8),
-                                   np.zeros((100, 160, 4), np.uint8),
-                                   np.zeros((100, 160, 3), np.float32)])
+                                   np.zeros((100, 160, 4), np.uint8), np.zeros((100, 160, 3), np.float32)])
 def test_bad_capture_dimensions_and_type_are_structured_failure(image):
-    app, vision = App(), SequenceVision()
+    app = App()
     app.image = image
     with pytest.raises(depart.DepartButtonError) as error:
-        probe(app, vision)
-    assert error.value.code == "depart_capture_failed" and not vision.calls
+        probe(app)
+    assert error.value.code == "depart_capture_failed" and not app.clicks
 
 
-def test_unsuccessful_capture_never_runs_matching():
-    app, vision = App(), SequenceVision()
+def test_unsuccessful_capture_is_unknown_not_absence():
+    app = App()
     app.success = False
     with pytest.raises(depart.DepartButtonError) as error:
-        probe(app, vision)
-    assert error.value.code == "depart_capture_failed" and not vision.calls
-
-
-@pytest.mark.parametrize("result", [None, hit(confidence=float("nan")),
-                                     hit(confidence=float("inf")),
-                                     hit(debug_info={"error": "match failed"}),
-                                     hit(center=(-1, 40)), hit(center=(160, 40)),
-                                     hit(center=(70, 100)), hit(center=(70,)),
-                                     hit(center=(float("nan"), 40))])
-def test_invalid_matching_result_fails_closed(result):
-    with pytest.raises(depart.DepartButtonError) as error:
-        probe(vision=SequenceVision(result))
-    assert error.value.code == "depart_template_match_failed"
+        probe(app)
+    assert error.value.code == "depart_capture_failed" and not app.clicks
 
 
 @pytest.mark.parametrize("variant", ["missing", "wrong_size", "alpha"])
-def test_missing_or_invalid_template_is_structured_and_does_not_capture(tmp_path, monkeypatch, variant):
-    catalog = depart._PLAN_ROOT / "data/meta/depart_button_template.json"
-    metadata = tmp_path / "data/meta/depart_button_template.json"
-    metadata.parent.mkdir(parents=True)
-    metadata.write_bytes(catalog.read_bytes())
-    monkeypatch.setattr(depart, "_PLAN_ROOT", tmp_path)
+def test_invalid_new_template_is_structured_failure(tmp_path, monkeypatch, variant):
+    for filename in ("mainui_control_templates.json", "depart_button_template.json"):
+        target = tmp_path / "data/meta" / filename
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((controls.PLAN_ROOT / "data/meta" / filename).read_bytes())
     if variant != "missing":
-        path = tmp_path / depart.TEMPLATE
-        path.parent.mkdir(parents=True)
-        shape = (42, 106, 4) if variant == "alpha" else (41, 106, 3)
-        Image.fromarray(np.zeros(shape, np.uint8)).save(path)
-    app = App()
+        target = tmp_path / "templates/navigation/travel/depart.png"
+        target.parent.mkdir(parents=True)
+        shape = (51, 130, 4) if variant == "alpha" else (42, 106, 3)
+        Image.fromarray(np.zeros(shape, np.uint8)).save(target)
+    monkeypatch.setattr(controls, "PLAN_ROOT", tmp_path)
     with pytest.raises(depart.DepartButtonError) as error:
-        probe(app)
-    assert error.value.code == "depart_template_invalid" and not app.captures
+        probe()
+    assert error.value.code == "depart_template_invalid"
 
 
 def test_wait_requires_two_consecutive_matches_and_is_fast(clock):
-    vision = SequenceVision(hit())
-    result = wait(vision)
+    app = App()
+    result = wait(app)
     assert result["confirmed"] and result["confirmations"] == 2
-    assert len(vision.calls) == 2 and result["elapsed_ms"] == 150
+    assert len(app.captures) == 2 and result["elapsed_ms"] == 150
     assert clock.sleeps == [.15]
 
 
 def test_wait_resets_stability_after_a_miss():
-    vision = SequenceVision(hit(), hit(False), hit(), hit())
-    result = wait(vision)
+    app = App(states=[True, False, True, True])
+    result = wait(app)
     assert result["confirmed"] and result["confirmations"] == 2
-    assert len(vision.calls) == 4 and result["elapsed_ms"] == 450
+    assert len(app.captures) == 4 and result["elapsed_ms"] == 450
 
 
-def test_wait_cannot_reduce_confirmation_below_two():
-    vision = SequenceVision(hit())
-    result = wait(vision, stable_matches=1)
-    assert result["confirmed"] and len(vision.calls) == 2
-
-
-def test_wait_supports_stricter_confirmation_count():
-    vision = SequenceVision(hit())
-    assert wait(vision, stable_matches=3)["confirmations"] == 3
-    assert len(vision.calls) == 3
+@pytest.mark.parametrize("requested,required", [(1, 2), (3, 3)])
+def test_wait_enforces_required_distinct_confirmations(requested, required):
+    app = App()
+    result = wait(app, stable_matches=requested)
+    assert result["confirmations"] == required and len(app.captures) == required
 
 
 def test_wait_timeout_is_explicit_without_clicking(clock):
-    app, vision = App(), SequenceVision(hit(False))
-    result = wait(vision, app, timeout_sec=.3)
+    app = App(np.zeros((100, 160, 3), np.uint8))
+    result = wait(app, timeout_sec=.3)
     assert not result["confirmed"] and result["confirmations"] == 0
-    assert result["elapsed_ms"] == 300 and not app.clicks
-    assert clock.now == .3
+    assert result["elapsed_ms"] == 300 and not app.clicks and clock.now == .3
 
 
 def test_zero_timeout_cannot_certify_one_matching_frame():
@@ -239,15 +163,13 @@ def test_zero_timeout_cannot_certify_one_matching_frame():
 
 @pytest.mark.parametrize("cancel_at", [1, 2, 3, 4, 5])
 def test_cancellation_interrupts_probe_or_poll_without_input(cancel_at):
-    app, vision, checks = App(), SequenceVision(), []
-
+    app, checks = App(), []
     def check():
         checks.append(None)
         if len(checks) == cancel_at:
             raise asyncio.CancelledError()
-
     with pytest.raises(asyncio.CancelledError):
-        depart.wait_depart_button(app=app, vision=vision, check_cancelled=check)
+        depart.wait_depart_button(app=app, vision=object(), check_cancelled=check)
     assert not app.clicks
 
 

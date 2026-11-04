@@ -20,6 +20,7 @@ from ._bounded_observation import ObservationBudget, wait_for_observation
 from ._template_observation import observe_template
 from ._navigation_templates import GLOBAL_BACK
 from . import _passenger_destination_vision as destination_vision
+from ._mainui_control_vision import load_control_profile, probe_mainui_control
 
 class PassengerPcError(RuntimeError):
     """Structured expected failure raised by passenger UI actions."""
@@ -40,9 +41,6 @@ class PassengerPcError(RuntimeError):
 _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _FULL_SCREEN = [0, 0, 1280, 720]
 
-_MAIN_BUTTON_TEMPLATE = "templates/passenger/management/entry.png"
-_MAIN_SCREEN_TEMPLATE = "templates/navigation/global/train_maintenance.png"
-_MAIN_SCREEN_REGION = [920, 640, 80, 65]
 _SCORE_MARKER_TEMPLATE = "templates/passenger/management/score_marker.png"
 _RECRUIT_BUTTON_TEMPLATE = "templates/passenger/recruitment/entry.png"
 _FLYER_MODE_TEMPLATE = "templates/passenger/recruitment/flyer_mode.png"
@@ -57,7 +55,6 @@ _AMOUNT_CONFIRM_TEMPLATE = "templates/passenger/amount/confirm.png"
 _RECRUIT_SUCCESS_TEMPLATE = "templates/passenger/recruitment/success.png"
 _SETTLEMENT_TEMPLATE = "templates/passenger/settlement/revenue.png"
 
-_MAIN_BUTTON_REGION = [950, 600, 220, 120]
 _SCORE_MARKER_REGION = [120, 70, 330, 130]
 _RECRUIT_BUTTON_REGION = [1040, 350, 220, 280]
 _FLYER_MODE_REGION = [0, 500, 470, 150]
@@ -95,7 +92,7 @@ _LOCAL_CANCEL_CHECK: ContextVar[Optional[Callable[[], bool]]] = ContextVar(
 def _apply_location_config() -> None:
     """Load passenger UI regions while retaining safe built-in defaults."""
 
-    global _MAIN_BUTTON_REGION, _SCORE_MARKER_REGION, _RECRUIT_BUTTON_REGION
+    global _SCORE_MARKER_REGION, _RECRUIT_BUTTON_REGION
     global _FLYER_MODE_REGION, _DESTINATION_MARKER_REGION, _DESTINATION_NEXT_REGION
     global _DESTINATION_CITY_REGION, _DISPATCH_MARKER_REGION, _DISPATCH_CARD_REGION
     global _DISPATCH_CONFIRM_REGION, _AMOUNT_MAX_REGION, _AMOUNT_CONFIRM_REGION
@@ -112,7 +109,6 @@ def _apply_location_config() -> None:
         return
 
     region_targets = {
-        "main_button_region": "_MAIN_BUTTON_REGION",
         "score_marker_region": "_SCORE_MARKER_REGION",
         "recruit_button_region": "_RECRUIT_BUTTON_REGION",
         "flyer_mode_region": "_FLYER_MODE_REGION",
@@ -218,15 +214,18 @@ def _match_template(
     app: Any,
     vision: Any,
     template: str,
-    region: Sequence[int],
+    region: Optional[Sequence[int]] = None,
     threshold: float = _TEMPLATE_THRESHOLD,
 ) -> Dict[str, Any]:
-    rect = _coerce_region(region)
-    result = observe_template(
-        app=app, vision=vision, template=_template_path(template), region=rect,
-        threshold=threshold, check_cancelled=_check_cancelled, require_center=True,
-    )
-    result["template"] = template
+    if template in {"train_maintenance", "passenger_management"}:
+        result = probe_mainui_control(app=app, control=template, check_cancelled=_check_cancelled)
+    else:
+        rect = _coerce_region(region)
+        result = observe_template(
+            app=app, vision=vision, template=_template_path(template), region=rect,
+            threshold=threshold, check_cancelled=_check_cancelled, require_center=True,
+        )
+        result["template"] = template
     if not result["valid"]:
         _raise("passenger_template_observation_failed", "passenger template observation is unknown", result)
     return result
@@ -236,7 +235,7 @@ def _wait_template(
     app: Any,
     vision: Any,
     template: str,
-    region: Sequence[int],
+    region: Optional[Sequence[int]] = None,
     *,
     timeout_sec: float = _PAGE_TIMEOUT,
     threshold: float = _TEMPLATE_THRESHOLD,
@@ -254,6 +253,9 @@ def _wait_template(
     )
     if result.matched:
         return result.value
+    if template in {"train_maintenance", "passenger_management"}:
+        profile = load_control_profile(template)
+        template, region = profile.template, profile.region
     return {"valid": False, "found": None, "confidence": None, "reason": "observation_timeout",
             "template": template, "region": list(region), "last_match": result.value}
 
@@ -323,7 +325,7 @@ def _wait_main_stable(app: Any, vision: Any, *, timeout_sec: float = 12.0) -> Di
         return confirmations >= 2
 
     result = wait_for_observation(
-        observe=lambda: _match_template(app, vision, _MAIN_SCREEN_TEMPLATE, _MAIN_SCREEN_REGION),
+        observe=lambda: _match_template(app, vision, "train_maintenance"),
         accept=accept, budget=budget, poll_seconds=_POLL_INTERVAL, sleep=time.sleep,
     )
     return {"confirmed": result.matched, "confirmations": confirmations, "match": result.value or {}}
@@ -845,7 +847,7 @@ def resonance_pc_open_passenger_management(app: Any = None, vision: Any = None) 
         if stable.get("confirmed"):
             management_budget = ObservationBudget(3.0, monotonic=time.monotonic, check_cancelled=_check_cancelled)
             management_button = _wait_template(
-                app, vision, _MAIN_BUTTON_TEMPLATE, _MAIN_BUTTON_REGION,
+                app, vision, "passenger_management",
                 timeout_sec=3.0, _budget=management_budget,
             )
             record["management_button"] = management_button
