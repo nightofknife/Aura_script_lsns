@@ -63,8 +63,9 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .update_checker import current_version_label, find_available_update
-from .widgets import BattlePage, PassengerPage, TradePage, SettingsHubPage, SmallTasksPage, WorkflowPage
+from .widgets import BattlePage, PassengerPage, TradePage, SettingsHubPage, SmallTasksPage, WorkflowPage, TutorialPage
 from .widgets.run_detail import RunDetailView
+from .widgets.tutorial_page import TutorialHelpButton
 
 
 class ResonanceMainWindow(QMainWindow):
@@ -250,6 +251,9 @@ class ResonanceMainWindow(QMainWindow):
         self.global_target_label.setProperty("caption", True)
         self.global_target_label.setProperty("status", "warning")
         title_row.addWidget(self.global_target_label)
+        self.tutorial_button = TutorialHelpButton(top_bar)
+        self.tutorial_button.clicked.connect(lambda: self._switch_page("tutorial"))
+        title_row.addWidget(self.tutorial_button)
         top_layout.addLayout(title_row)
 
         nav_row = QHBoxLayout()
@@ -292,12 +296,15 @@ class ResonanceMainWindow(QMainWindow):
         self.history_page = self._build_history_page()
         self.settings_page = SettingsHubPage(self._settings, self.page_stack)
         self.small_tasks_page = SmallTasksPage(self._settings, self.page_stack)
+        self.tutorial_page = TutorialPage(self.page_stack)
+        self.tutorial_page.destinationRequested.connect(self._open_tutorial_destination)
         self.trade_preview_page = self.small_tasks_page.trade_preview_panel
         self._pages = {
             "workflow": self.workflow_page,
             "tools": self.small_tasks_page,
             "history": self.history_page,
             "settings": self.settings_page,
+            "tutorial": self.tutorial_page,
         }
         for page in self._pages.values():
             self.page_stack.addWidget(page)
@@ -378,10 +385,30 @@ class ResonanceMainWindow(QMainWindow):
         self.battle_page.cancelRequested.connect(self.requestCancelCurrent.emit)
 
 
+    def _open_tutorial_destination(self, destination: str) -> None:
+        if destination in {"game_settings", "hotkey_settings"}:
+            self.settings_page.categories.setCurrentRow(0 if destination == "game_settings" else 1)
+            self._switch_page("settings")
+        elif destination in {"trade", "passenger", "battle"}:
+            self.workflow_page._select_task(destination)
+            self._switch_page("workflow")
+        elif destination in {
+            "trade_preview", "player_data_refresh", "team_recommendation",
+            "affix_refresh", "consciousness_deep_dive", "eternal_scuffle",
+        }:
+            self.small_tasks_page.show_task(destination)
+            self._switch_page("tools")
+        elif destination in {"workflow", "tools", "history", "settings"}:
+            self._switch_page(destination)
+
     def _switch_page(self, name: str) -> None:
         self.page_stack.setCurrentWidget(self._pages[name])
-        self.primary_nav_buttons[name].setChecked(True)
-        self.back_to_workflow_button.setVisible(name == "history")
+        self.primary_nav_group.setExclusive(False)
+        for page_name, button in self.primary_nav_buttons.items():
+            button.setChecked(page_name == name)
+        self.primary_nav_group.setExclusive(True)
+        self.tutorial_button.setChecked(name == "tutorial")
+        self.back_to_workflow_button.setVisible(name in {"history", "tutorial"})
         if name == "history":
             self.requestRefreshHistory.emit()
 
