@@ -8,6 +8,7 @@ from .settings_hub_page import SettingsHubPage
 from .small_tasks_page import SmallTasksPage
 from .team_recommendation_panel import TeamRecommendationPanel
 from .workflow_page import WorkflowPage
+from .tutorial_page import TutorialPage
 
 __all__ = [
     "BattlePage",
@@ -19,4 +20,5 @@ __all__ = [
     "SmallTasksPage",
     "TeamRecommendationPanel",
     "WorkflowPage",
+    "TutorialPage",
 ]

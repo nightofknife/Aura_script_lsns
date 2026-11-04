@@ -188,6 +188,44 @@ QLabel[caption="true"] { color: #6c7780; font-size: 11px; }
 QLabel[value="true"] { color: #20252b; font-weight: 600; }
 QLabel#stageTitle { color: #20252b; font-size: 19px; font-weight: 700; }
 QLabel#pageTitle { color: #20252b; font-size: 17px; font-weight: 700; }
+QToolButton#tutorialHelpButton {
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 0;
+    min-width: 32px;
+    max-width: 32px;
+    min-height: 32px;
+    max-height: 32px;
+}
+QToolButton#tutorialHelpButton:hover {
+    background: #e8eddf;
+    border-color: #bbc5ad;
+}
+QToolButton#tutorialHelpButton:checked {
+    background: #e1e8d7;
+    border-color: #a8b99a;
+}
+QToolButton#tutorialHelpButton:pressed {
+    background: #d6e0cb;
+    border-color: #91a480;
+}
+QToolButton#tutorialHelpButton:focus {
+    border-color: #77866b;
+}
+QTreeWidget#tutorialChapters {
+    background: transparent;
+    border: 0;
+    outline: 0;
+}
+QTreeWidget#tutorialChapters::item { padding: 9px 6px; border-left: 3px solid transparent; }
+QTreeWidget#tutorialChapters::item:selected {
+    background: #e1e6d8;
+    border-left-color: #77866b;
+    color: #384335;
+    font-weight: 600;
+}
+QTextBrowser#tutorialReader { background: #fffaf0; }
 QLabel#sectionTitle { color: #2b333a; font-size: 14px; font-weight: 700; }
 QFrame#parameterPanel { background: #f8f3e8; border-right: 1px solid #c9b99d; }
 QLabel#passengerRouteTitle { color: #66745c; font-size: 20px; font-weight: 700; padding-top: 4px; }
