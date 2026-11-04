@@ -296,7 +296,7 @@ class ResonanceMainWindow(QMainWindow):
         self.history_page = self._build_history_page()
         self.settings_page = SettingsHubPage(self._settings, self.page_stack)
         self.small_tasks_page = SmallTasksPage(self._settings, self.page_stack)
-        self.tutorial_page = TutorialPage(self.page_stack)
+        self.tutorial_page = TutorialPage(root)
         self.tutorial_page.destinationRequested.connect(self._open_tutorial_destination)
         self.trade_preview_page = self.small_tasks_page.trade_preview_panel
         self._pages = {
@@ -304,7 +304,6 @@ class ResonanceMainWindow(QMainWindow):
             "tools": self.small_tasks_page,
             "history": self.history_page,
             "settings": self.settings_page,
-            "tutorial": self.tutorial_page,
         }
         for page in self._pages.values():
             self.page_stack.addWidget(page)
@@ -317,6 +316,7 @@ class ResonanceMainWindow(QMainWindow):
         self.freight_trial_button.clicked.connect(self._open_freight_trial)
         self.workflow_page.trade_editor_header.addWidget(self.freight_trial_button)
         layout.addWidget(self.page_stack, 1)
+        layout.addWidget(self.tutorial_page, 1)
         self.setCentralWidget(root)
         self.statusBar().showMessage("雷索纳斯 GUI 就绪")
         self._switch_page("workflow")
@@ -402,7 +402,11 @@ class ResonanceMainWindow(QMainWindow):
             self._switch_page(destination)
 
     def _switch_page(self, name: str) -> None:
-        self.page_stack.setCurrentWidget(self._pages[name])
+        showing_tutorial = name == "tutorial"
+        if not showing_tutorial:
+            self.page_stack.setCurrentWidget(self._pages[name])
+        self.page_stack.setVisible(not showing_tutorial)
+        self.tutorial_page.setVisible(showing_tutorial)
         self.primary_nav_group.setExclusive(False)
         for page_name, button in self.primary_nav_buttons.items():
             button.setChecked(page_name == name)
