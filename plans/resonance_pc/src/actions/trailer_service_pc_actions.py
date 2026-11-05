@@ -10,7 +10,6 @@ from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 
 from ._trailer_service_vision import PAYMENT_POINTS, TrailerRecognitionError, TrailerVision, validate_frame
-from ._mainui_control_vision import match_mainui_control_frame
 from . import city_travel_pc_actions as travel
 
 
@@ -149,10 +148,9 @@ def _departure_observation(reader, frame):
                                     travel._FATIGUE_PANEL_REGION, .90)
     if fatigue["found"]:
         return {"state": "fatigue_panel"}
-    horn = match_mainui_control_frame(frame, "horn")
-    if horn.get("valid") is not True:
-        return None
-    if horn.get("found") is True:
+    horn = reader.match_existing(frame, travel._TRAVEL_HORN_TEMPLATE,
+                                travel._TRAVEL_HORN_REGION, travel._TRAVEL_HORN_THRESHOLD)
+    if horn["found"]:
         return {"state": "traveling"}
     station = reader.match_existing(frame, travel._ARRIVAL_BUTTON_TEMPLATE,
                                    travel._ARRIVAL_BUTTON_REGION, .90)

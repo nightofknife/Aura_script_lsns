@@ -414,6 +414,7 @@
         }
     },
     "passenger_ui": {
+        "main_button_region": [950, 600, 220, 120],
         "score_marker_region": [120, 70, 330, 130],
         "recruit_button_region": [1040, 350, 220, 280],
         "flyer_mode_region": [0, 500, 470, 150],

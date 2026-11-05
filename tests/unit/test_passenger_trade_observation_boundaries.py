@@ -130,13 +130,6 @@ def test_explicit_zero_timeout_retains_exactly_one_read_only_probe(monkeypatch, 
 def test_main_confirmation_cannot_accept_slow_second_positive(monkeypatch):
     clock = install_clock(monkeypatch, passenger)
     app, vision, captures, clicks, _ = rig(clock, delay=.4)
-    def mainui_probe(*, app, control, check_cancelled):
-        assert control == "train_maintenance"
-        check_cancelled()
-        app.capture(rect=(920, 640, 80, 65))
-        check_cancelled()
-        return {"valid": True, "found": True, "confidence": .99}
-    monkeypatch.setattr(passenger, "probe_mainui_control", mainui_probe)
     result = passenger._wait_main_stable(app, vision, timeout_sec=1.0)
     assert not result["confirmed"] and result["confirmations"] == 1
     assert len(captures) == 2 and not clicks

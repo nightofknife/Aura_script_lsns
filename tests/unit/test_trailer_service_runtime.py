@@ -103,6 +103,7 @@ class Reader:
 
     def match_existing(self, frame, template, region, threshold):
         expected = {m.travel._FATIGUE_PANEL_TEMPLATE: "fatigue_panel",
+                    m.travel._TRAVEL_HORN_TEMPLATE: "traveling",
                     m.travel._ARRIVAL_BUTTON_TEMPLATE: "arrival_ready"}[template]
         return {"found": self.state(frame) == expected}
 
@@ -115,11 +116,6 @@ def rig(monkeypatch):
     monkeypatch.setattr(m, "is_current_task_cancel_requested", lambda: False)
     reader = Reader(app)
     monkeypatch.setattr(m, "TrailerVision", lambda **kwargs: reader)
-    def mainui_match(frame, control):
-        assert control == "horn"
-        found = reader.state(frame) == "traveling"
-        return {"valid": True, "found": found, "confidence": .99 if found else .1}
-    monkeypatch.setattr(m, "match_mainui_control_frame", mainui_match)
     return SimpleNamespace(app=app, reader=reader, clock=clock)
 
 
@@ -212,15 +208,6 @@ def test_fast_arrival_is_positive_evidence_without_clicking_arrival_button(rig):
     result = run(rig)
     assert result["departed"] and result["page_state"] == "arrival_ready"
     assert rig.app.events == ["open", "confirm"]
-
-
-def test_unknown_horn_cannot_confirm_departure_or_retry_payment(rig, monkeypatch):
-    monkeypatch.setattr(m, "match_mainui_control_frame", lambda *args: {
-        "valid": False, "found": None, "reason": "template_match_failed"})
-    result = run(rig)
-    assert not result["success"] and not result["departed"]
-    assert result["reason"] == "trailer_departure_unconfirmed"
-    assert result["submitted"] and rig.app.events == ["open", "confirm"]
 
 
 def test_confirm_input_exception_is_uncertain_and_never_retried(rig):

@@ -35,8 +35,7 @@ def clock(monkeypatch):
     monkeypatch.setattr(travel.time, "monotonic", lambda: state.now)
     monkeypatch.setattr(travel.time, "sleep", sleep)
     monkeypatch.setattr(travel, "_check_intercity_cancelled", lambda: None)
-    monkeypatch.setattr(travel, "probe_mainui_control", lambda **kw: {
-        "valid": True, "found": state.present, "confidence": .99 if state.present else .1})
+    monkeypatch.setattr(travel, "_match_template_in_region", lambda **kw: {"found": state.present})
     state.app = SimpleNamespace(click=lambda **kw: state.clicks.append(state.now),
                                 get_window_size=lambda: (1280, 720))
     return state
@@ -71,21 +70,6 @@ def test_horn_missing_and_deadline_prevent_pickup(clock):
     clock.present = True
     clock.now = 5
     pickup.tick(5)
-    assert not clock.clicks
-
-
-@pytest.mark.parametrize("reason,code", [
-    ("capture_failed", "pickup_capture_failed"),
-    ("template_match_failed", "pickup_template_match_failed"),
-])
-def test_unknown_horn_does_not_authorize_pickup_or_become_absence(clock, monkeypatch, reason, code):
-    observed = {"valid": False, "found": None, "reason": reason}
-    monkeypatch.setattr(travel, "probe_mainui_control", lambda **kw: observed)
-    pickup = travel._TravelPickup(clock.app, object(), enabled=True)
-    with pytest.raises(travel.IntercityDestinationError) as error:
-        pickup.tick(5)
-    assert error.value.code == code and error.value.detail is observed
-    assert pickup.horn_present is None and pickup.click_count == 0
     assert not clock.clicks
 
 

@@ -9,7 +9,7 @@ import pytest
 
 from plans.resonance_pc.src.actions import city_travel_pc_actions as m
 from plans.resonance_pc.src.actions._depart_button_vision import DepartButtonError
-from plans.resonance_pc.src.actions._mainui_control_vision import load_control_profile
+from plans.resonance_pc.src.actions import _depart_button_vision as vision
 
 
 @pytest.fixture
@@ -110,11 +110,10 @@ def test_entry_failure_never_runs_city_selector(flow, monkeypatch):
 def test_packaged_departure_template_matches_its_provenance_and_runtime_contract():
     plan = Path(__file__).resolve().parents[2] / "plans/resonance_pc"
     metadata = json.loads((plan / "data/meta/depart_button_template.json").read_text(encoding="utf-8"))
-    profile = load_control_profile("depart")
-    assert metadata["template"] == profile.template
-    assert metadata["sha256"] == sha256((plan / profile.template).read_bytes()).hexdigest()
-    assert metadata["mode"] == "RGB" and metadata["size"] == [130, 51]
+    assert metadata["template"] == vision.TEMPLATE
+    assert metadata["sha256"] == sha256((plan / vision.TEMPLATE).read_bytes()).hexdigest()
+    assert metadata["mode"] == "RGB" and metadata["size"] == [106, 42]
     assert metadata["match"] == {
-        "method": "TM_SQDIFF_NORMED", "threshold": profile.threshold,
-        "use_grayscale": False, "preprocess": "none", "mask": False, "region": list(profile.region)}
+        "method": "TM_SQDIFF_NORMED", "threshold": vision.THRESHOLD,
+        "use_grayscale": False, "preprocess": "none", "mask": False, "region": list(vision.REGION)}
     assert metadata["rendering"]["red_notification_included"] is False

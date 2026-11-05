@@ -1,75 +1,44 @@
 {
   "schema_version": 1,
   "template": "templates/navigation/travel/depart.png",
-  "sha256": "c7805356f061e83e6d8666bbba179570d3305a90beb6cadad2312846d565be36",
+  "sha256": "6242e41eb7aab6e13105f35faf56c17e61b7c4daaad76b572d386fb66cdb1911",
   "mode": "RGB",
-  "size": [
-    130,
-    51
-  ],
+  "size": [106, 42],
   "match": {
     "method": "TM_SQDIFF_NORMED",
     "threshold": 0.9,
     "use_grayscale": false,
     "preprocess": "none",
     "mask": false,
-    "region": [
-      1120,
-      620,
-      160,
-      100
-    ]
+    "region": [1120, 620, 160, 100]
   },
   "rendering": {
     "background": "ui/mainui.asset:main_btn_launch",
     "background_sprite_id": "8698213176149929363",
-    "native_size": [
-      310,
-      160
-    ],
+    "native_size": [310, 160],
     "chinese": {
-      "text": "启程",
+      "text": "\u542f\u7a0b",
       "font": "ui/font/originpack.asset:-2237384480076949585",
       "font_size": 31,
-      "ink_center": [
-        94,
-        56
-      ]
+      "ink_center": [94, 56]
     },
     "english": {
       "text": "START ENGINE ",
       "font": "ui/font.asset:3901983538076812454",
       "font_size": 17,
-      "ink_center": [
-        126.7,
-        82.6
-      ]
+      "ink_center": [126.7, 82.6]
     },
-    "resize": [
-      207,
-      107
-    ],
-    "crop_bounds": [
-      37,
-      26,
-      167,
-      77
-    ],
-    "red_notification_included": false,
-    "ui_local_scale": 1.0,
-    "canvas_scale": "720/1080"
+    "resize": [169, 87],
+    "crop_bounds": [30, 21, 136, 63],
+    "red_notification_included": false
   },
   "source_hashes": {
     "ui/mainui.asset": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176",
     "ui/mainui/mainui.asset": "c68a3b6f9f9b6c21a3cfc7af5f210e84a965c17d5b712464db0c2c7845f81f61"
   },
   "calibration": {
-    "kind": "native_rebuilt_not_runtime_exercised",
-    "reference_client": [
-      1280,
-      720
-    ],
-    "old_scale_compatibility": false,
-    "note": "Reconstructed from native resources; no match score claimed for the new artwork."
+    "kind": "single_user_screenshot_not_live_validation",
+    "screenshot_sha256": "f64c3c25585d8ca271d33d33cfcc0edff01bcbc34da84d283f727f05e13a1149",
+    "score": 0.9732073824852705
   }
 }
