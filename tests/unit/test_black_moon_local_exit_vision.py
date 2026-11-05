@@ -54,7 +54,7 @@ def rest():
 
 def main_frame():
     frame = np.zeros((720, 1280, 3), np.uint8)
-    frame[620:720, 1120:1280] = np.asarray(Image.open(FIXTURES / 'mainui_controls/actual-bottom-right-20261104.png').convert('RGB'))[20:120, 220:380]
+    put(frame, FIXTURES / 'depart_button/actual-matched-crop.png', (1150, 641, 106, 42))
     return frame
 
 
@@ -65,7 +65,7 @@ def test_actual_destination_crops_establish_target(factory, target):
 
 def test_conflicting_shop_and_destination_evidence_is_unknown():
     frame = shop('settled')
-    frame[620:720, 1120:1280] = np.asarray(Image.open(FIXTURES / 'mainui_controls/actual-bottom-right-20261104.png').convert('RGB'))[20:120, 220:380]
+    put(frame, FIXTURES / 'depart_button/actual-matched-crop.png', (1150, 641, 106, 42))
     assert BlackMoonLocalExitVision().observe(frame)['page_state'] == 'unknown'
 
 

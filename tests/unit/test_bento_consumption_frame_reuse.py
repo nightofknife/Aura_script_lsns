@@ -5,17 +5,13 @@ boundary encodes a monotonically increasing capture ID in every pixel and reads
 page state from that captured ID, never from mutable live UI state.
 """
 from collections import defaultdict
-from pathlib import Path
 from types import SimpleNamespace as NS
 
 import numpy as np
-from PIL import Image
 import pytest
 
 from packages.aura_core.context.persistence.persistent_data_service import PersistentDataService
 from plans.resonance_pc.src.actions import bento_consumption_pc_actions as bento
-from plans.aura_base.src.services.observation_service import Frame
-from plans.resonance_pc.src.actions._mainui_control_vision import load_control_profile
 
 
 class PixelUI:
@@ -222,46 +218,3 @@ def test_stability_requires_two_consecutive_new_frames(tmp_path, monkeypatch, cl
         assert ui.reads[12] == [("rating_page", 0, 0), ("star_on", 8, 48), ("star_on", 18, 48)]
         assert ui.reads[11] == ui.reads[13] == ui.reads[14]
         assert ui.reads[15] == [("rating_confirm", 58, 58)]
-
-
-def maintenance_frame():
-    profile = load_control_profile("train_maintenance")
-    root = Path(__file__).resolve().parents[2] / "plans/resonance_pc"
-    pixels = np.array(Image.open(root / profile.template).convert("RGB"))
-    image = np.zeros((720, 1280, 3), np.uint8)
-    x, y = profile.region[:2]
-    image[y+2:y+2+pixels.shape[0], x+3:x+3+pixels.shape[1]] = pixels
-    return image, profile
-
-
-def test_main_observation_reuses_full_rgb_frame_without_capture_or_vision(tmp_path, monkeypatch, clock):
-    session, ui, _ = session_for(tmp_path, monkeypatch)
-    image, profile = maintenance_frame()
-    snapshot = Frame.from_image(image)
-    result = session.match("main", frame=snapshot)
-    assert result["valid"] and result["found"]
-    assert result["region"] == list(profile.region)
-    assert not ui.frames and not ui.events and not ui.reads
-
-
-def test_main_observation_without_frame_captures_only_shared_region(tmp_path, monkeypatch, clock):
-    session, ui, _ = session_for(tmp_path, monkeypatch)
-    image, profile = maintenance_frame()
-    captures = []
-    def capture(rect):
-        captures.append(rect)
-        x, y, w, h = rect
-        return NS(success=True, image=image[y:y+h, x:x+w])
-    monkeypatch.setattr(ui, "capture", capture)
-    result = session.match("main")
-    assert result["valid"] and result["found"]
-    assert captures == [profile.region] and not ui.reads
-
-
-def test_unknown_shared_main_observation_fails_before_bento_input(tmp_path, monkeypatch, clock):
-    session, ui, _ = session_for(tmp_path, monkeypatch)
-    monkeypatch.setattr(bento, "probe_mainui_control", lambda **kw: {
-        "valid": False, "found": None, "reason": "template_match_failed"})
-    with pytest.raises(bento.BentoConsumptionError) as error:
-        session.require_main()
-    assert error.value.code == "bento_match_failed" and not ui.events

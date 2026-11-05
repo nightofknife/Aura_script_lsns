@@ -12,7 +12,6 @@ import cv2
 
 from packages.aura_core.scheduler.operation_scope import OperationScope, current_operation_scope
 from ._navigation_templates import PROFILE_MENU
-from ._mainui_control_vision import match_mainui_control_frame
 from ._prison_warehouse_ledger import normalize_request
 from ._prison_warehouse_runtime import PLAN_ROOT, WarehouseTransferRuntime, WarehouseTransferError
 from .prison_warehouse_pc_actions import _check_cancelled
@@ -88,8 +87,8 @@ class VisiblePrisonProductRuntime(WarehouseTransferRuntime):
                 bgr, "templates/workshop/warehouse/controls/profile_reforming_entry.png",
                 (550, 565, 125, 110), .92)
         else:
-            main = match_mainui_control_frame(self.frame.image, "train_maintenance")
-            if main.get("valid") is True and main.get("found") is True:
+            main = self._match(bgr, "templates/navigation/global/train_maintenance.png", (920, 640, 80, 65), .86)
+            if main["found"]:
                 view["page"] = "main"
                 view["controls"]["profile_avatar"] = {"valid": True, "found": True, "point": [150, 655]}
         return view

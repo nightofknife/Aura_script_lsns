@@ -18,7 +18,6 @@ from packages.aura_core.observability.runtime_trace import log_event, log_poll
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from ._city_panel_vision import CityPanelVisionError, probe_visit_entry
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
-from ._mainui_control_vision import load_control_profile, probe_mainui_control
 from ._operation_progress import observe_operation
 from ._cancellable_wait import sleep_slices
 from ._freight_trailer_policy import validate_trailer_options, verified_quota_skip
@@ -58,6 +57,9 @@ _GO_DESTINATION_TEMPLATE = "templates/navigation/travel/go_destination.png"
 _ARRIVAL_BUTTON_TEMPLATE = "templates/navigation/travel/enter_station.png"
 _PASSENGER_ARRIVAL_TEMPLATE = "templates/passenger/settlement/revenue.png"
 _PASSENGER_ARRIVAL_REGION = [30, 470, 540, 180]
+_TRAVEL_HORN_TEMPLATE = "templates/navigation/travel/horn.png"
+_TRAVEL_HORN_REGION = [960, 640, 80, 80]
+_TRAVEL_HORN_THRESHOLD = 0.90
 _AUTO_PICKUP_POINT = (770, 400)
 _AUTO_PICKUP_INTERVAL = 0.5
 
@@ -1237,7 +1239,7 @@ def resonance_pc_intercity_depart_and_wait(
 
     pickup_interval = _normalize_pickup_interval(auto_pickup_interval_sec)
     allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
-    if auto_pickup and not Path(_resolve_plan_template_path(load_control_profile("horn").template)).is_file():
+    if auto_pickup and not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
         _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
     medicine_limit = max(int(fatigue_medicine_max_uses), 0)
     medicine_usage: Dict[str, int] = {}
@@ -1512,7 +1514,7 @@ class _TravelPickup:
 
     def __enter__(self) -> "_TravelPickup":
         if self.enabled:
-            if not Path(_resolve_plan_template_path(load_control_profile("horn").template)).is_file():
+            if not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
                 _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
             logger.info("[AutoPickup] started point=%s interval=%.2f", _AUTO_PICKUP_POINT, self.interval_sec)
         return self
@@ -1529,12 +1531,14 @@ class _TravelPickup:
         now = time.monotonic()
         if now >= deadline or now < self.next_click_at:
             return
-        match = probe_mainui_control(app=self.app, control="horn", check_cancelled=_check_intercity_cancelled)
-        if match.get("valid") is not True:
-            _raise_error(code="pickup_capture_failed" if match.get("reason") == "capture_failed"
-                         else "pickup_template_match_failed",
-                         message="Travel state for pickup is unknown.", detail=match)
-        present = match.get("found") is True
+        match = _match_template_in_region(
+            app=self.app, vision=self.vision, template=_TRAVEL_HORN_TEMPLATE,
+            region=_TRAVEL_HORN_REGION, threshold=_TRAVEL_HORN_THRESHOLD,
+            use_grayscale=False,
+        )
+        if match.get("reason") == "capture_failed":
+            _raise_error(code="pickup_capture_failed", message="Could not capture travel state for pickup.")
+        present = bool(match.get("found"))
         if present != self.horn_present:
             logger.info("[AutoPickup] %s confidence=%.4f", "resumed" if present else "paused", match.get("confidence", 0.0))
             self.horn_present = present

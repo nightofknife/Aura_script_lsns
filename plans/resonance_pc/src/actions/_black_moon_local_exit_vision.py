@@ -5,7 +5,7 @@ import cv2
 
 from ._black_moon_local_select_vision import BlackMoonLocalSelectVision, _pixels
 from ._black_moon_local_shop_vision import _crop, _image, _response
-from ._mainui_control_vision import match_mainui_control_frame
+from . import _depart_button_vision as departure
 
 
 NAVIGATION_ROOT = Path(__file__).resolve().parents[2] / "templates/navigation/global"
@@ -21,11 +21,11 @@ class BlackMoonLocalExitVision:
         controls = self.shop.prepare
         shop = controls.match(frame, "shop_page")["found"]
         rest = controls.match(frame, "shop_entry")["found"]
+        depart_profile = departure.load_depart_profile()
+        response = _response(_crop(frame, depart_profile.region), departure._load_template(),
+                             method="1-TM_SQDIFF_NORMED")
+        main = bool(response.size and float(response.max()) >= depart_profile.threshold)
         result = {"page_state": "unknown", "shop_ready": False, "total_zero": False}
-        departure = match_mainui_control_frame(frame, "depart")
-        if departure["valid"] is not True:
-            return result
-        main = departure["found"] is True
         if sum((shop, rest, main)) != 1:
             return result
         if rest:
