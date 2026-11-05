@@ -206,9 +206,10 @@ def _reset_list_top(app: Any, reader: InvestmentVision, frame, cards):
         _wait(app, lambda image: (not reader.match(image, "success")["found"]
                                   and reader.match(image, "page_anchor")["found"]))
         _cancel_check()
+        # The input facade selects system dragging or configured bridge inertia handling.
         app.drag(start_x=x + width // 2, start_y=y + 35,
                  end_x=x + width // 2, end_y=y + 35 + span,
-                 duration=.6, hold_before_release_sec=.15, stop_inertia=True)
+                 duration=.6, hold_before_release_sec=.15)
         _pause(.4)
         after, following = _cards(app, reader)
         difference = float(np.abs(frame[y:y + height, x:x + width].astype(float)
@@ -387,7 +388,7 @@ def _scroll(app: Any, reader: InvestmentVision, before: np.ndarray, previous_car
         _cancel_check()
         app.drag(start_x=x + width // 2, start_y=y + height - 35,
                  end_x=x + width // 2, end_y=y + height - 35 - span,
-                 duration=.6, hold_before_release_sec=.15, stop_inertia=True)
+                 duration=.6, hold_before_release_sec=.15)
         _pause(.4)
         after, cards = _cards(app, reader)
         difference = float(np.abs(before[y:y + height, x:x + width].astype(float) - after[y:y + height, x:x + width].astype(float)).mean())
