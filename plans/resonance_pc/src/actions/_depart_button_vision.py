@@ -86,36 +86,31 @@ def __getattr__(name):
 @lru_cache(maxsize=1)
 def _load_template():
     profile = load_depart_profile()
-    path = _PLAN_ROOT / profile.template
+    return _read_template(profile.template, profile.size)
+
+
+@lru_cache(maxsize=1)
+def _load_oversized_template():
+    # Keep the v1.11.25 artwork as diagnostic evidence for the oversized HUD.
+    return _read_template("templates/navigation/travel/depart_oversized.png", (130, 51))
+
+
+def _read_template(reference, size):
+    path = _PLAN_ROOT / reference
     try:
         encoded = np.frombuffer(path.read_bytes(), np.uint8)
         image = cv2.imdecode(encoded, cv2.IMREAD_UNCHANGED)
-        if image is None or image.shape != (profile.size[1], profile.size[0], 3):
-            raise ValueError(f"Departure template must be an opaque {profile.size[0]}x{profile.size[1]} RGB image")
+        if image is None or image.shape != (size[1], size[0], 3):
+            raise ValueError(f"Departure template must be an opaque {size[0]}x{size[1]} RGB image")
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         image.setflags(write=False)
         return image
     except (OSError, ValueError, cv2.error) as exc:
-        raise DepartButtonError("depart_template_invalid", str(exc), {"template": profile.template}) from exc
+        raise DepartButtonError("depart_template_invalid", str(exc), {"template": reference}) from exc
 
 
-def probe_depart_button(*, app, vision, check_cancelled):
-    check_cancelled()
-    profile = load_depart_profile()
+def _match_departure_region(image, template, profile, vision, check_cancelled):
     region = profile.region
-    template = _load_template()
-    started = time.monotonic()
-    logger.debug("[DepartButton] phase=capture_start region=%s", region)
-    capture = app.capture(rect=region)
-    check_cancelled()
-    image = getattr(capture, "image", None)
-    if (not getattr(capture, "success", False) or not isinstance(image, np.ndarray)
-            or image.shape != (region[3], region[2], 3) or image.dtype != np.uint8):
-        raise DepartButtonError("depart_capture_failed", "Unable to capture the departure-button region")
-    capture_ms = round((time.monotonic()-started)*1000, 1)
-    logger.debug("[DepartButton] phase=capture_done elapsed_ms=%s", capture_ms)
-    match_started = time.monotonic()
-    logger.debug("[DepartButton] phase=match_start threshold=%s", profile.threshold)
     hit = vision.find_template(source_image=image, template_image=template,
         threshold=profile.threshold, use_grayscale=profile.use_grayscale,
         match_method=profile.match_method, preprocess=profile.preprocess)
@@ -135,11 +130,39 @@ def probe_depart_button(*, app, vision, check_cancelled):
             center = [region[0]+int(point[0]), region[1]+int(point[1])]
     except (AttributeError, TypeError, ValueError) as exc:
         raise DepartButtonError("depart_template_match_failed", str(exc)) from exc
+    return found, score, center
+
+
+def probe_depart_button(*, app, vision, check_cancelled, diagnose_oversized=False):
+    check_cancelled()
+    profile = load_depart_profile()
+    region = profile.region
+    template = _load_template()
+    started = time.monotonic()
+    logger.debug("[DepartButton] phase=capture_start region=%s", region)
+    capture = app.capture(rect=region)
+    check_cancelled()
+    image = getattr(capture, "image", None)
+    if (not getattr(capture, "success", False) or not isinstance(image, np.ndarray)
+            or image.shape != (region[3], region[2], 3) or image.dtype != np.uint8):
+        raise DepartButtonError("depart_capture_failed", "Unable to capture the departure-button region")
+    capture_ms = round((time.monotonic()-started)*1000, 1)
+    logger.debug("[DepartButton] phase=capture_done elapsed_ms=%s", capture_ms)
+    match_started = time.monotonic()
+    logger.debug("[DepartButton] phase=match_start threshold=%s", profile.threshold)
+    found, score, center = _match_departure_region(image, template, profile, vision, check_cancelled)
     result = {"found": found, "confidence": score, "center": center,
               "region": list(region), "template": profile.template,
               "capture_ms": capture_ms, "match_ms": round((time.monotonic()-match_started)*1000, 1)}
     logger.info("[DepartButton] phase=probe found=%s confidence=%.4f capture_ms=%s match_ms=%s",
                 found, score, result["capture_ms"], result["match_ms"])
+    if diagnose_oversized and not found:
+        oversized, oversized_score, oversized_center = _match_departure_region(
+            image, _load_oversized_template(), profile, vision, check_cancelled,
+        )
+        result["oversized_match"] = {
+            "found": oversized, "confidence": oversized_score, "center": oversized_center,
+        }
     return result
 
 

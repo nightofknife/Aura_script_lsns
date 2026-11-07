@@ -1,0 +1,17 @@
+trade_start_preflight_pc:
+  meta:
+    role: internal
+    domain: 商贸运输
+    title: 跑商起始界面检查
+    description: 检查客户区尺寸并通过启程按钮确认站场主界面。
+    entry_point: false
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    require_start_screen:
+      action: resonance_pc.require_trade_start_screen
+      depends_on: require_resolution
+  returns:
+    ok: "{{ nodes.require_start_screen.output.ok }}"
+    resolution: "{{ nodes.require_resolution.output }}"
+    start_screen: "{{ nodes.require_start_screen.output }}"

@@ -3081,6 +3081,15 @@ exports:
     timeout: null
     description: Require the Resonance PC client area to be exactly 1280x720.
     parameters: []
+  - name: resonance_pc.require_trade_start_screen
+    module: plans.resonance_pc.src.actions.runtime_preflight_pc_actions
+    function: resonance_pc_require_trade_start_screen
+    public: true
+    read_only: true
+    timeout: null
+    description: Require the standard departure button on the city main screen before
+      starting freight.
+    parameters: []
   - name: resonance_pc.drink_sparkling_water_from_city_panel
     module: plans.resonance_pc.src.actions.sparkling_water_pc_actions
     function: resonance_pc_drink_sparkling_water_from_city_panel
@@ -3764,6 +3773,12 @@ exports:
       to that menu.
     role: internal
     domain: 商贸运输
+  - id: trade_start_preflight_pc/trade_start_preflight_pc
+    title: 跑商起始界面检查
+    source: tasks/trade_start_preflight_pc.yaml
+    description: 检查客户区尺寸并通过启程按钮确认站场主界面。
+    role: internal
+    domain: 商贸运输
   - id: use_trailer_service_pc/use_trailer_service_pc
     title: Towing Service (PC)
     source: tasks/use_trailer_service_pc.yaml
@@ -3779,4 +3794,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-03T15:51:41Z'
+  generated_at: '2026-11-07T10:20:00Z'
