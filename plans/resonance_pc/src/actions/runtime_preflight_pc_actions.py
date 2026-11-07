@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Dict, Optional, Tuple
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+
+from ._depart_button_vision import DepartButtonError, probe_depart_button
 
 
 _REQUIRED_CLIENT_SIZE: Tuple[int, int] = (1280, 720)
@@ -119,7 +123,41 @@ def resonance_pc_require_client_resolution(app: Any = None) -> Dict[str, Any]:
     return {"ok": True, **detail}
 
 
+@action_info(
+    name="resonance_pc.require_trade_start_screen",
+    public=True,
+    read_only=True,
+    description="Require the standard departure button on the city main screen before starting freight.",
+)
+@requires_services(app="plans/aura_base/app", vision="plans/aura_base/vision")
+def resonance_pc_require_trade_start_screen(app: Any = None, vision: Any = None) -> Dict[str, Any]:
+    def check_cancelled():
+        if is_current_task_cancel_requested():
+            raise asyncio.CancelledError("Trade start screen check cancelled")
+
+    match = probe_depart_button(app=app, vision=vision, check_cancelled=check_cancelled,
+                                diagnose_oversized=True)
+    if match["found"]:
+        return {"ok": True, "page_state": "city_main", "match": match}
+
+    oversized = match["oversized_match"]
+    logger.warning("[TradeStartScreen] standard_score=%.4f oversized_score=%.4f oversized=%s",
+                   match["confidence"], oversized["confidence"], oversized["found"])
+    if oversized["found"]:
+        raise DepartButtonError(
+            "trade_start_hud_oversized",
+            "窗口已是 1280×720，但「启程」按钮仍偏大。请完全退出游戏，以 1280×720 窗口模式重新进入站场后再启动跑商。",
+            match,
+        )
+    raise DepartButtonError(
+        "trade_start_screen_unconfirmed",
+        "未识别到站场主界面右下角的「启程」按钮。请返回可见「启程」的站场主界面后再启动跑商。",
+        match,
+    )
+
+
 __all__ = [
     "PcClientResolutionError",
     "resonance_pc_require_client_resolution",
+    "resonance_pc_require_trade_start_screen",
 ]

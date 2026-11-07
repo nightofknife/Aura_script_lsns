@@ -1442,8 +1442,14 @@ auto_cycle_trade_pc:
             required: false
             name: news
   steps:
+    preflight:
+      action: aura.run_task
+      params:
+        task_ref: tasks:trade_start_preflight_pc.yaml:trade_start_preflight_pc
+        inputs: {}
     run:
       action: resonance_pc.auto_cycle_trade_flow
+      depends_on: preflight
       params:
         auto_passenger: "{{ inputs.auto_passenger | default(false) }}"
         passenger_options: "{{ inputs.passenger_options | default({}) }}"
