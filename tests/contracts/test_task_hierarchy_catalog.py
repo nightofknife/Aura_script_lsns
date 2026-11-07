@@ -26,7 +26,8 @@ REMOVED = {
 RENAMED = {"consciousness_deep_dive_single_run_test_pc": "consciousness_deep_dive_random_run_pc"}
 ADDED = {"affix_refresh_pc", "affix_refresh_read_pc", "withdraw_product_warehouse_to_train_pc",
          "auto_battle_enter_terminal_pc", "auto_battle_enter_category_pc",
-         "collect_and_withdraw_products_pc", "read_visible_prison_products_pc"}
+         "collect_and_withdraw_products_pc", "read_visible_prison_products_pc",
+         "trade_start_preflight_pc"}
 
 
 def definitions():
@@ -51,12 +52,12 @@ def test_all_64_source_definitions_accounted_without_old_aliases():
     current = definitions()
     assert len(inventory) == len(original) == 64
     assert set(current) == (original - REMOVED.keys() - RENAMED.keys()) | set(RENAMED.values()) | ADDED
-    assert len(current) == 66
+    assert len(current) == 67
     assert all(replacement in current for replacement in (*REMOVED.values(), *RENAMED.values()))
     assert all(spec["meta"]["domain"] for spec in current.values())
     assert Counter(task_role(spec["meta"]) for spec in current.values()) == {
         "lifecycle": 2, "orchestration": 1, "user_task": 13, "user_tool": 3,
-        "developer": 9, "internal": 38,
+        "developer": 9, "internal": 39,
     }
 
 
@@ -64,7 +65,7 @@ def test_runtime_and_manifest_publish_one_matching_canonical_entry_per_definitio
     loader = TaskLoader("resonance_pc", PLAN)
     runtime = loader.get_all_task_definitions()
     assert not loader.get_task_load_errors()
-    assert len(runtime) == 66
+    assert len(runtime) == 67
     generated = ManifestGenerator(PLAN).generate()["exports"]["tasks"]
     assert {row["id"] for row in generated} == set(runtime)
     assert len(generated) == len(runtime)
