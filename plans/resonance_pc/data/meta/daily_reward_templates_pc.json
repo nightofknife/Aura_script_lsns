@@ -1,0 +1,232 @@
+{
+  "schema_version": 1,
+  "client_size": [
+    1280,
+    720
+  ],
+  "provenance": "development/template_sources/rewards/daily/native_provenance.json",
+  "templates": {
+    "main_entry_with_red": {
+      "template": "templates/rewards/daily/main_entry_with_red.png",
+      "mask": "templates/rewards/daily/main_entry_with_red.mask.png",
+      "roi": [
+        145,
+        0,
+        110,
+        80
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        53,
+        49
+      ],
+      "sha256": "a89b0e5a012876cd38738085fee39439808506822d720740291f3f17af0eebf6",
+      "mask_sha256": "416c8eecd42d988667bf6f06052b561548262308129092d2c282f7eab42a6bec"
+    },
+    "daily_tab": {
+      "template": "templates/rewards/daily/daily_tab.png",
+      "mask": "templates/rewards/daily/daily_tab.mask.png",
+      "roi": [
+        320,
+        30,
+        230,
+        90
+      ],
+      "threshold": 0.82,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        136,
+        48
+      ],
+      "sha256": "0f609c65d1c2d939c8314a88d2b18d25df2b34e94d207d1197c60f4bf2881bca",
+      "mask_sha256": "a27fee20a73f5db85ef5199a97c64c87bef5cfdf96cc30f7946a2810c1a8185b"
+    },
+    "claimable": {
+      "template": "templates/rewards/daily/claimable.png",
+      "mask": "templates/rewards/daily/claimable.mask.png",
+      "roi": [
+        120,
+        580,
+        1015,
+        95
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        93,
+        37
+      ],
+      "sha256": "bcc3635dafd90b9f70573b493bc85d051870cdae7e324f11db9f5bfe3c3e6d4e",
+      "mask_sha256": "5489334c8981cd1e05f38118982ad578fec7945e60f0a01234727627732b4d07"
+    },
+    "activity_gold": {
+      "template": "templates/rewards/daily/activity_gold.png",
+      "mask": "templates/rewards/daily/activity_gold.mask.png",
+      "roi": [
+        380,
+        130,
+        730,
+        105
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        58,
+        59
+      ],
+      "sha256": "015360b3011554cfa41568c00191b99cb0e216dcba0bc2503425e968ecc3768b",
+      "mask_sha256": "2ddd6a998fb0ee36c45f5c6275be583e2d9e3cfe5165ecd7c57a36ff4b42b2bf"
+    },
+    "activity_blue": {
+      "template": "templates/rewards/daily/activity_blue.png",
+      "mask": "templates/rewards/daily/activity_blue.mask.png",
+      "roi": [
+        380,
+        130,
+        730,
+        105
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        58,
+        59
+      ],
+      "sha256": "2376a01fc87f7f6624205644231394ca641fae5e6135e4006dd116144429208e",
+      "mask_sha256": "4e4bdd4d8658508276f61814fa7f2f8755054dc653ba47298f6bab1569e3002f"
+    },
+    "reward_title": {
+      "template": "templates/rewards/daily/reward_title.png",
+      "mask": "templates/rewards/daily/reward_title.mask.png",
+      "roi": [
+        475,
+        155,
+        340,
+        115
+      ],
+      "threshold": 0.9,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        236,
+        67
+      ],
+      "sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
+      "mask_sha256": "11f485730a6d29151b39eac044aa72c129be4084c4ba22df84c5fd80ceb89509"
+    },
+    "reward_exit": {
+      "template": "templates/rewards/daily/reward_exit.png",
+      "mask": "templates/rewards/daily/reward_exit.mask.png",
+      "roi": [
+        520,
+        645,
+        240,
+        75
+      ],
+      "threshold": 0.85,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "blur",
+      "size": [
+        140,
+        31
+      ],
+      "sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
+      "mask_sha256": "4141ee2f5849caae47dc41f1b65aecdc01816012cd5b304fc5257e62072d9049"
+    },
+    "city_main": {
+      "template": "templates/rewards/daily/city_main.png",
+      "mask": null,
+      "roi": [
+        140,
+        0,
+        130,
+        85
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        82,
+        46
+      ],
+      "sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2"
+    },
+    "incomplete": {
+      "template": "templates/rewards/daily/incomplete.png",
+      "mask": "templates/rewards/daily/incomplete.mask.png",
+      "roi": [
+        120,
+        580,
+        1015,
+        95
+      ],
+      "threshold": 0.88,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        93,
+        37
+      ],
+      "sha256": "95e25e7776998eb9e6ed7c62e4e0bc1446a73ff925ecc3901c26ca8e454cf746",
+      "mask_sha256": "5489334c8981cd1e05f38118982ad578fec7945e60f0a01234727627732b4d07",
+      "diagnostic_only": true
+    },
+    "go_to": {
+      "template": "templates/rewards/daily/go_to.png",
+      "mask": "templates/rewards/daily/go_to.mask.png",
+      "roi": [
+        120,
+        580,
+        1015,
+        95
+      ],
+      "threshold": 0.8,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        93,
+        40
+      ],
+      "sha256": "fb9d437e58e180ba479077e78ebab75f488e1d98b1705f8719f0bc686c3a0730",
+      "mask_sha256": "d49d49c78ee72e04ae9afc32e2ae02d22cb6aba01fd9426bbfedb111c70032dd",
+      "diagnostic_only": true
+    },
+    "main_entry": {
+      "template": "templates/rewards/daily/main_entry.png",
+      "mask": "templates/rewards/daily/main_entry.mask.png",
+      "roi": [
+        145,
+        0,
+        110,
+        80
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "size": [
+        49,
+        49
+      ],
+      "sha256": "50f599504c238dcb906b1f0aaa6378163f0fba340270f8e412e87e8c58636929",
+      "mask_sha256": "fb8571d77eaa43d993d7f745d5ab422d489bba85478eca674448bb0b157a6c05",
+      "diagnostic_only": true
+    }
+  }
+}

@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "client_size": [
+    1280,
+    720
+  ],
+  "provenance": "development/template_sources/rewards/battle_pass/native_provenance.json",
+  "templates": {
+    "main_entry_with_red": {
+      "roi": [
+        810,
+        0,
+        125,
+        110
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/main_entry_with_red.png",
+      "mask": "templates/rewards/battle_pass/main_entry_with_red.mask.png",
+      "size": [
+        67,
+        67
+      ],
+      "sha256": "6b7705e9f8213f73e496e9fab443b4de6463fec9065bfef326973b1eb386aba7",
+      "mask_sha256": "f75da125eae9ecfd3dc8cbd888b6b2516bb3825c76a437db674efcb9c52646b1"
+    },
+    "manual_on": {
+      "roi": [
+        345,
+        635,
+        250,
+        85
+      ],
+      "threshold": 0.9,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "blur",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/manual_on.png",
+      "mask": "templates/rewards/battle_pass/manual_on.mask.png",
+      "size": [
+        114,
+        25
+      ],
+      "sha256": "d1584fad209d6c7657fc47b77af8813c9dd14d10280ebc714421d3569f013928",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "manual_off": {
+      "roi": [
+        345,
+        635,
+        250,
+        85
+      ],
+      "threshold": 0.9,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "blur",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/manual_off.png",
+      "mask": "templates/rewards/battle_pass/manual_off.mask.png",
+      "size": [
+        114,
+        25
+      ],
+      "sha256": "57c23241612d3fa8fd35dcce5f35588717211e5c1b1126f9ac798606d9f18c53",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "tasks_on": {
+      "roi": [
+        580,
+        635,
+        265,
+        85
+      ],
+      "threshold": 0.9,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "blur",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/tasks_on.png",
+      "mask": "templates/rewards/battle_pass/tasks_on.mask.png",
+      "size": [
+        114,
+        25
+      ],
+      "sha256": "0c4a24d97d3cf488b02fe2daf9963e05a18ce49b2155bba7607da97f22acd93b",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "tasks_off": {
+      "roi": [
+        580,
+        635,
+        265,
+        85
+      ],
+      "threshold": 0.9,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "blur",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/tasks_off.png",
+      "mask": "templates/rewards/battle_pass/tasks_off.mask.png",
+      "size": [
+        114,
+        25
+      ],
+      "sha256": "c1b6f98d13fb6aa83334c389914424b8c4e3f6c23540148c70529c7b82c8bc59",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "tasks_claim_all": {
+      "roi": [
+        1015,
+        630,
+        265,
+        90
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/tasks_claim_all.png",
+      "mask": "templates/rewards/battle_pass/tasks_claim_all.mask.png",
+      "size": [
+        238,
+        59
+      ],
+      "sha256": "6f071cd26a5336fcdf1bd6822aef0b26961c85a85d6a24bbc3562fa47fae2734",
+      "mask_sha256": "1d2573e4c8d161d8cf0d4afbfe46fa8bc2ef0886bf629ca3ef0d5fbf28ed35ef"
+    },
+    "manual_claim_all_red": {
+      "roi": [
+        1015,
+        630,
+        265,
+        90
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "mask_encoding": "float32_npy",
+      "template": "templates/rewards/battle_pass/manual_claim_all_red.png",
+      "mask": "templates/rewards/battle_pass/manual_claim_all_red.weights.npy",
+      "size": [
+        238,
+        61
+      ],
+      "sha256": "23a1afd37c3b665c4c4ec0942b7013392124f69e72456c4bcb5246a7008e087a",
+      "mask_sha256": "91411c98dd62c51c6c68f85b6ea20d523a292cabab69ecaa6489b6a530d1c6de"
+    },
+    "reward_title": {
+      "roi": [
+        475,
+        155,
+        340,
+        115
+      ],
+      "threshold": 0.9,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/reward_title.png",
+      "mask": "templates/rewards/battle_pass/reward_title.mask.png",
+      "size": [
+        236,
+        67
+      ],
+      "sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
+      "mask_sha256": "11f485730a6d29151b39eac044aa72c129be4084c4ba22df84c5fd80ceb89509"
+    },
+    "reward_exit": {
+      "roi": [
+        520,
+        645,
+        240,
+        75
+      ],
+      "threshold": 0.85,
+      "use_grayscale": true,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "blur",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/reward_exit.png",
+      "mask": "templates/rewards/battle_pass/reward_exit.mask.png",
+      "size": [
+        140,
+        31
+      ],
+      "sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
+      "mask_sha256": "4141ee2f5849caae47dc41f1b65aecdc01816012cd5b304fc5257e62072d9049"
+    },
+    "city_main": {
+      "roi": [
+        140,
+        0,
+        130,
+        85
+      ],
+      "threshold": 0.9,
+      "use_grayscale": false,
+      "method": "TM_CCOEFF_NORMED",
+      "preprocess": "none",
+      "mask_encoding": "none",
+      "template": "templates/rewards/battle_pass/city_main.png",
+      "mask": null,
+      "size": [
+        82,
+        46
+      ],
+      "sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2"
+    }
+  }
+}

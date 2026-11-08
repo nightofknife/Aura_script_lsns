@@ -1,0 +1,31 @@
+{
+  "kind": "unchanged_user_supplied_screenshots",
+  "client_crop_xyxy": [
+    1,
+    31,
+    1281,
+    751
+  ],
+  "screenshots": [
+    {
+      "file": "screenshots/01_city_main.png",
+      "sha256": "9681dfa1a4aae2b162ce33fa80fbb756a72cffd28fe1a37e5d59b837ef3365ae"
+    },
+    {
+      "file": "screenshots/02_daily_claimable.png",
+      "sha256": "8979f4ba8c4e9bb4cab30450db4c6be7de475e084092566b3dee696f68ed94ef"
+    },
+    {
+      "file": "screenshots/03_activity_claimable.png",
+      "sha256": "1d52e1c4e338cd57d4fd73a99630e0988fa186109c0cfbd531a2be5fba547880"
+    },
+    {
+      "file": "screenshots/04_reward_overlay.png",
+      "sha256": "ceb2a52ee2dd33b76f47036d13252c1769c48f4f7125457561a99d95b4f98b4d"
+    },
+    {
+      "file": "screenshots/06_city_main_no_red.png",
+      "sha256": "27ac087aa96200b164daf947154c6494f6211c4e156622fc650f9246016c9aa2"
+    }
+  ]
+}

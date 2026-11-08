@@ -1,0 +1,113 @@
+{
+  "reward_title": {
+    "kind": "native_font_title_alpha_luminance",
+    "text": "获得物品",
+    "font": {
+      "font_path_id": -4548631661189831125,
+      "font_name": "SourceHanSerifCN-Heavy",
+      "font_bundle": "ui/font.asset",
+      "font_sha256": "78101f93fb76951da79728a7ece95a974fb8f95f2024fa50792bc79627951a07",
+      "font_size_native": 60,
+      "font_style_prefab": 0
+    },
+    "icon": {
+      "prefab": "ui/common/showitem.asset",
+      "node": "/ShowItem/Group_580/Group_Title/Img_Title",
+      "bundle": "ui/common.asset",
+      "sprite": "common_icon_item",
+      "path_id": 7379400092028253334,
+      "size_native": [
+        100.0,
+        100.0
+      ]
+    },
+    "font_size_client": 40,
+    "antialias_scale": 4,
+    "stroke_client": 0.25,
+    "tracking_client": 0,
+    "glyph_offset_from_icon_client": [
+      71,
+      14
+    ],
+    "icon_size": [
+      67,
+      67
+    ],
+    "context_dilation_radius": 3,
+    "size": [
+      236,
+      67
+    ],
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "none",
+      "roi_xywh": [
+        475,
+        155,
+        340,
+        115
+      ]
+    },
+    "limitations": "Native source only; rasterization/layout fitted on the sole positive screenshot, not independent validation.",
+    "mask_geometry": {
+      "rectangles_xyxy": [
+        [
+          4,
+          8,
+          69,
+          62
+        ],
+        [
+          71,
+          14,
+          236,
+          60
+        ]
+      ],
+      "kind": "component_rectangles"
+    }
+  },
+  "reward_exit": {
+    "render_family": "fixed_origin",
+    "font_size_native": 19.25,
+    "client_oversample": 6,
+    "highres_stroke": 0,
+    "downsample": "BILINEAR",
+    "phase_x_highres": 0,
+    "phase_y_highres": 2,
+    "gap_client": 7,
+    "text_dy_client": 0,
+    "alpha_gamma": 0.6,
+    "halo": 3,
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "roi_xywh": [
+        520,
+        645,
+        240,
+        75
+      ],
+      "preprocess": "blur"
+    },
+    "alpha_floor": 32,
+    "mask_geometry": {
+      "rectangles_xyxy": [
+        [
+          0,
+          0,
+          32,
+          31
+        ],
+        [
+          33,
+          5,
+          140,
+          25
+        ]
+      ],
+      "kind": "component_rectangles"
+    }
+  }
+}

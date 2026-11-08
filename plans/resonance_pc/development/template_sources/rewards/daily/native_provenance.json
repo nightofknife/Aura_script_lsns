@@ -1,0 +1,643 @@
+{
+  "kind": "native_daily_reward_template_candidates",
+  "client_reference": [
+    1280,
+    720
+  ],
+  "scale": 0.6666666666666666,
+  "sources": {
+    "ui/stagequest/images.asset": {
+      "sha256": "4bec9d9ee50eaf9740a3349e42afaff29dc9befb2b8adf1350496b1bac3e499f"
+    },
+    "ui/mainui.asset": {
+      "sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176"
+    },
+    "ui/common.asset": {
+      "sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd"
+    },
+    "ui/font.asset": {
+      "sha256": "bcb454096bb95aaf8880072e87c7eadc214bddc133980f888e96d3b556819a7a"
+    },
+    "ui/font/originpack.asset": {
+      "sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+    },
+    "ui/stagequest/stagequest.asset": {
+      "sha256": "ece877930d428ad1f394a6753be5e506f9b9e9ee44f5a409c8738319b6baa3b6"
+    },
+    "ui/mainui/mainui.asset": {
+      "sha256": "c68a3b6f9f9b6c21a3cfc7af5f210e84a965c17d5b712464db0c2c7845f81f61"
+    },
+    "ui/common/showitem.asset": {
+      "sha256": "e36a8c1a752d6f138f0c2050b02d4aff25e0e0b6c8533d211f0b00006afa65f6"
+    }
+  },
+  "templates": {
+    "main_entry": {
+      "file": "templates/rewards/daily/main_entry.png",
+      "mask": "templates/rewards/daily/main_entry.mask.png",
+      "size": [
+        49,
+        49
+      ],
+      "sha256": "50f599504c238dcb906b1f0aaa6378163f0fba340270f8e412e87e8c58636929",
+      "source": [
+        {
+          "prefab": "ui/mainui/mainui.asset",
+          "node": "/MainUI/Group_Common/Btn_StageQuest",
+          "bundle": "ui/mainui.asset",
+          "sprite": "main_icon_stageQuest",
+          "path_id": 5892038877144784827,
+          "size_native": [
+            74.0,
+            74.0
+          ]
+        }
+      ],
+      "note": "Native icon only; red reminder and live scene excluded. MainUI runtime scaling has not been calibrated.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "fb8571d77eaa43d993d7f745d5ab422d489bba85478eca674448bb0b157a6c05",
+      "mask_policy": {
+        "kind": "source_alpha"
+      }
+    },
+    "main_entry_with_red": {
+      "file": "templates/rewards/daily/main_entry_with_red.png",
+      "mask": "templates/rewards/daily/main_entry_with_red.mask.png",
+      "size": [
+        53,
+        49
+      ],
+      "sha256": "a89b0e5a012876cd38738085fee39439808506822d720740291f3f17af0eebf6",
+      "source": [
+        {
+          "prefab": "ui/mainui/mainui.asset",
+          "node": "/MainUI/Group_Common/Btn_StageQuest",
+          "bundle": "ui/mainui.asset",
+          "sprite": "main_icon_stageQuest",
+          "path_id": 5892038877144784827,
+          "size_native": [
+            74.0,
+            74.0
+          ]
+        },
+        {
+          "prefab": "ui/mainui/mainui.asset",
+          "node": "/MainUI/Group_Common/Btn_StageQuest/Img_Red",
+          "bundle": "ui/common.asset",
+          "sprite": "main_icon_tip",
+          "path_id": 4119282664310322428,
+          "size_native": [
+            30.0,
+            31.0
+          ]
+        }
+      ],
+      "note": "Single native composite of the task icon and its red reminder, at the prefab offset. The red reminder participates in the mask and must be included in color matching. This candidate gates entry only; absence alone cannot establish a known main screen.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "416c8eecd42d988667bf6f06052b561548262308129092d2c282f7eab42a6bec",
+      "mask_policy": {
+        "kind": "binary_opaque_core",
+        "alpha_floor": 224
+      },
+      "use_grayscale": false,
+      "composition_native": {
+        "entry_size": [
+          74,
+          74
+        ],
+        "red_size": [
+          30,
+          31
+        ],
+        "red_top_left": [
+          50,
+          2
+        ],
+        "canvas_size": [
+          80,
+          74
+        ]
+      }
+    },
+    "city_main": {
+      "file": "templates/rewards/daily/city_main.png",
+      "size": [
+        82,
+        46
+      ],
+      "sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2",
+      "source": [
+        {
+          "runtime_file": "plans/resonance_pc/templates/navigation/global/city_main.png",
+          "sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2"
+        }
+      ],
+      "note": "Exact reuse of an existing runtime template; not newly generated native pixels.",
+      "status": "existing_template_reused_without_new_matching_or_live_validation"
+    },
+    "activity_gold": {
+      "file": "templates/rewards/daily/activity_gold.png",
+      "mask": "templates/rewards/daily/activity_gold.mask.png",
+      "size": [
+        58,
+        59
+      ],
+      "sha256": "015360b3011554cfa41568c00191b99cb0e216dcba0bc2503425e968ecc3768b",
+      "source": [
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/Group_Activity/Group_Progress/StaticGrid_Reward/Group_Item_000/Btn_Get",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "DailyQuest_activity_reward_btn_1",
+          "path_id": 7353801561950922345,
+          "size_native": [
+            87.0,
+            88.0
+          ]
+        }
+      ],
+      "note": "Complete native circular state button including gift, color and border; dynamic point label excluded.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "2ddd6a998fb0ee36c45f5c6275be583e2d9e3cfe5165ecd7c57a36ff4b42b2bf",
+      "mask_policy": {
+        "kind": "binary_opaque_core",
+        "alpha_floor": 224
+      }
+    },
+    "activity_blue": {
+      "file": "templates/rewards/daily/activity_blue.png",
+      "mask": "templates/rewards/daily/activity_blue.mask.png",
+      "size": [
+        58,
+        59
+      ],
+      "sha256": "2376a01fc87f7f6624205644231394ca641fae5e6135e4006dd116144429208e",
+      "source": [
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/Group_Activity/Group_Progress/StaticGrid_Reward/Group_Item_000/Btn_UnGet",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "DailyQuest_activity_reward_btn_2",
+          "path_id": 7831901425700835775,
+          "size_native": [
+            87.0,
+            88.0
+          ]
+        }
+      ],
+      "note": "Complete native circular state button including gift, color and border; dynamic point label excluded.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "4e4bdd4d8658508276f61814fa7f2f8755054dc653ba47298f6bab1569e3002f",
+      "mask_policy": {
+        "kind": "binary_opaque_core",
+        "alpha_floor": 224
+      }
+    },
+    "claimable": {
+      "file": "templates/rewards/daily/claimable.png",
+      "mask": "templates/rewards/daily/claimable.mask.png",
+      "size": [
+        93,
+        37
+      ],
+      "sha256": "bcc3635dafd90b9f70573b493bc85d051870cdae7e324f11db9f5bfe3c3e6d4e",
+      "source": [
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_On/Img_Bg",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "DailyQuest_quest_bg_3",
+          "path_id": 3955916114820306144,
+          "size_native": [
+            310.0,
+            601.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_On/Img_Bg/Img_Icon",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "StageQuest_quest_icon_on",
+          "path_id": 5358195584040119131,
+          "size_native": [
+            40.0,
+            40.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_On/Img_Bg/Txt_T",
+          "text": "可领取",
+          "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+          "font_path_id": 6136794397608061395,
+          "font_name": "SourceHanSansCN-Medium",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+          "font_size_native": 26,
+          "font_style_prefab": 0
+        }
+      ],
+      "note": "Native card footer center: state icon and text. Text rasterization differs from Unity; native background texture retained.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "5489334c8981cd1e05f38118982ad578fec7945e60f0a01234727627732b4d07",
+      "mask_policy": {
+        "kind": "source_alpha"
+      }
+    },
+    "incomplete": {
+      "file": "templates/rewards/daily/incomplete.png",
+      "mask": "templates/rewards/daily/incomplete.mask.png",
+      "size": [
+        93,
+        37
+      ],
+      "sha256": "95e25e7776998eb9e6ed7c62e4e0bc1446a73ff925ecc3901c26ca8e454cf746",
+      "source": [
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_Off/Img_Bg",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "DailyQuest_quest_bg_2",
+          "path_id": 5897009205797807519,
+          "size_native": [
+            310.0,
+            601.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_Off/Img_Bg/Img_Icon",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "StageQuest_quest_icon_off",
+          "path_id": -4119509826315606810,
+          "size_native": [
+            40.0,
+            40.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_Off/Img_Bg/Txt_T",
+          "text": "未完成",
+          "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+          "font_path_id": 6136794397608061395,
+          "font_name": "SourceHanSansCN-Medium",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+          "font_size_native": 26,
+          "font_style_prefab": 0
+        }
+      ],
+      "note": "Native card footer center: state icon and text. Text rasterization differs from Unity; native background texture retained.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "5489334c8981cd1e05f38118982ad578fec7945e60f0a01234727627732b4d07",
+      "mask_policy": {
+        "kind": "source_alpha"
+      }
+    },
+    "go_to": {
+      "file": "templates/rewards/daily/go_to.png",
+      "mask": "templates/rewards/daily/go_to.mask.png",
+      "size": [
+        93,
+        40
+      ],
+      "sha256": "fb9d437e58e180ba479077e78ebab75f488e1d98b1705f8719f0bc686c3a0730",
+      "source": [
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_Off/Btn_Jump",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "DailyQuest_quest_btn",
+          "path_id": 5200632939831057424,
+          "size_native": [
+            300.0,
+            101.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_Off/Btn_Jump/Img_Icon",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "StageQuest_quest_icon_jump",
+          "path_id": 7980166805038925225,
+          "size_native": [
+            41.0,
+            40.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Group_Daily/ScrollGrid_Quest/Viewport/Grid/Group_Item_000/Group_Off/Btn_Jump/Txt_T",
+          "text": "前往",
+          "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+          "font_path_id": 6136794397608061395,
+          "font_name": "SourceHanSansCN-Medium",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+          "font_size_native": 26,
+          "font_style_prefab": 0
+        }
+      ],
+      "note": "Blue go-to state; not a claim action.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "d49d49c78ee72e04ae9afc32e2ae02d22cb6aba01fd9426bbfedb111c70032dd",
+      "mask_policy": {
+        "kind": "source_alpha"
+      }
+    },
+    "daily_tab": {
+      "file": "templates/rewards/daily/daily_tab.png",
+      "mask": "templates/rewards/daily/daily_tab.mask.png",
+      "size": [
+        136,
+        48
+      ],
+      "sha256": "0f609c65d1c2d939c8314a88d2b18d25df2b34e94d207d1197c60f4bf2881bca",
+      "source": [
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Btn_Daily/Group_On/Img_Bg",
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "StageQuest_main_btn_2",
+          "path_id": 5426383004812887737,
+          "size_native": [
+            289.0,
+            178.0
+          ]
+        },
+        {
+          "bundle": "ui/stagequest/images.asset",
+          "sprite": "StageQuest_main_icon_1",
+          "path_id": 8244818967570087333,
+          "size_native": [
+            50.0,
+            50.0
+          ]
+        },
+        {
+          "prefab": "ui/stagequest/stagequest.asset",
+          "node": "/StageQuest/Btn_Daily/Group_On/Img_Bg/Txt_T",
+          "text": "每日活跃",
+          "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+          "font_path_id": -2237384480076949585,
+          "font_name": "SourceHanSansCN-Bold",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+          "font_size_native": 30,
+          "font_style_prefab": 1
+        }
+      ],
+      "note": "Selected-tab title marker. Prefab Group_On rotation is +3 degrees. Pillow layout/rasterization is a candidate, not Unity-exact.",
+      "status": "native_candidate_not_matched_or_live_validated",
+      "mask_sha256": "a27fee20a73f5db85ef5199a97c64c87bef5cfdf96cc30f7946a2810c1a8185b",
+      "mask_policy": {
+        "kind": "source_alpha"
+      }
+    },
+    "reward_title": {
+      "file": "templates/rewards/daily/reward_title.png",
+      "mask": "templates/rewards/daily/reward_title.mask.png",
+      "size": [
+        236,
+        67
+      ],
+      "sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
+      "source": [
+        {
+          "prefab": "ui/common/showitem.asset",
+          "node": "/ShowItem/Group_580/Group_Title/Img_Title",
+          "bundle": "ui/common.asset",
+          "sprite": "common_icon_item",
+          "path_id": 7379400092028253334,
+          "size_native": [
+            100.0,
+            100.0
+          ]
+        },
+        {
+          "font_path_id": -4548631661189831125,
+          "font_name": "SourceHanSerifCN-Heavy",
+          "font_bundle": "ui/font.asset",
+          "font_sha256": "78101f93fb76951da79728a7ece95a974fb8f95f2024fa50792bc79627951a07",
+          "font_size_native": 60,
+          "font_style_prefab": 0
+        }
+      ],
+      "note": "Source sprite/font raster only; no supplied screenshot pixels. The context mask retains dark glyph surroundings to avoid flat-white degeneracy. Geometry/rasterization were calibrated on the sole positive screenshot.",
+      "status": "native_candidate_calibrated_on_supplied_screenshot",
+      "mask_sha256": "11f485730a6d29151b39eac044aa72c129be4084c4ba22df84c5fd80ceb89509",
+      "mask_policy": {
+        "rectangles_xyxy": [
+          [
+            4,
+            8,
+            69,
+            62
+          ],
+          [
+            71,
+            14,
+            236,
+            60
+          ]
+        ],
+        "kind": "component_rectangles"
+      },
+      "pixel_encoding": "native_alpha_as_luminance_on_black",
+      "match": {
+        "method": "TM_CCOEFF_NORMED",
+        "use_grayscale": true,
+        "preprocess": "none",
+        "roi_xywh": [
+          475,
+          155,
+          340,
+          115
+        ]
+      },
+      "refinement_recipe": {
+        "kind": "native_font_title_alpha_luminance",
+        "text": "获得物品",
+        "font": {
+          "font_path_id": -4548631661189831125,
+          "font_name": "SourceHanSerifCN-Heavy",
+          "font_bundle": "ui/font.asset",
+          "font_sha256": "78101f93fb76951da79728a7ece95a974fb8f95f2024fa50792bc79627951a07",
+          "font_size_native": 60,
+          "font_style_prefab": 0
+        },
+        "icon": {
+          "prefab": "ui/common/showitem.asset",
+          "node": "/ShowItem/Group_580/Group_Title/Img_Title",
+          "bundle": "ui/common.asset",
+          "sprite": "common_icon_item",
+          "path_id": 7379400092028253334,
+          "size_native": [
+            100.0,
+            100.0
+          ]
+        },
+        "font_size_client": 40,
+        "antialias_scale": 4,
+        "stroke_client": 0.25,
+        "tracking_client": 0,
+        "glyph_offset_from_icon_client": [
+          71,
+          14
+        ],
+        "icon_size": [
+          67,
+          67
+        ],
+        "context_dilation_radius": 3,
+        "size": [
+          236,
+          67
+        ],
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": true,
+          "preprocess": "none",
+          "roi_xywh": [
+            475,
+            155,
+            340,
+            115
+          ]
+        },
+        "limitations": "Native source only; rasterization/layout fitted on the sole positive screenshot, not independent validation.",
+        "mask_geometry": {
+          "rectangles_xyxy": [
+            [
+              4,
+              8,
+              69,
+              62
+            ],
+            [
+              71,
+              14,
+              236,
+              60
+            ]
+          ],
+          "kind": "component_rectangles"
+        }
+      }
+    },
+    "reward_exit": {
+      "file": "templates/rewards/daily/reward_exit.png",
+      "mask": "templates/rewards/daily/reward_exit.mask.png",
+      "size": [
+        140,
+        31
+      ],
+      "sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
+      "source": [
+        {
+          "prefab": "ui/common/showitem.asset",
+          "node": "/ShowItem/Group_Tips/Img_Tips",
+          "bundle": "ui/common.asset",
+          "sprite": "Common_icon_01",
+          "path_id": -2664916920824100955,
+          "size_native": [
+            40.0,
+            40.0
+          ]
+        },
+        {
+          "prefab": "ui/common/showitem.asset",
+          "node": "/ShowItem/Group_Tips/Txt_Tips",
+          "text": "触碰空白区域退出",
+          "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+          "font_path_id": 6136794397608061395,
+          "font_name": "SourceHanSansCN-Medium",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "f748b45d0253b2a9b80315a287daca65874f297122683c9e9eaf2ca16cbc283f",
+          "font_size_native": 20,
+          "font_style_prefab": 0
+        }
+      ],
+      "note": "Source sprite/font raster only; no supplied screenshot pixels. The context mask retains dark glyph surroundings to avoid flat-white degeneracy. Geometry/rasterization were calibrated on the sole positive screenshot.",
+      "status": "native_candidate_calibrated_on_supplied_screenshot",
+      "mask_sha256": "4141ee2f5849caae47dc41f1b65aecdc01816012cd5b304fc5257e62072d9049",
+      "mask_policy": {
+        "rectangles_xyxy": [
+          [
+            0,
+            0,
+            32,
+            31
+          ],
+          [
+            33,
+            5,
+            140,
+            25
+          ]
+        ],
+        "kind": "component_rectangles"
+      },
+      "pixel_encoding": "native_alpha_as_luminance_on_black",
+      "match": {
+        "method": "TM_CCOEFF_NORMED",
+        "use_grayscale": true,
+        "roi_xywh": [
+          520,
+          645,
+          240,
+          75
+        ],
+        "preprocess": "blur"
+      },
+      "refinement_recipe": {
+        "render_family": "fixed_origin",
+        "font_size_native": 19.25,
+        "client_oversample": 6,
+        "highres_stroke": 0,
+        "downsample": "BILINEAR",
+        "phase_x_highres": 0,
+        "phase_y_highres": 2,
+        "gap_client": 7,
+        "text_dy_client": 0,
+        "alpha_gamma": 0.6,
+        "halo": 3,
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": true,
+          "roi_xywh": [
+            520,
+            645,
+            240,
+            75
+          ],
+          "preprocess": "blur"
+        },
+        "alpha_floor": 32,
+        "mask_geometry": {
+          "rectangles_xyxy": [
+            [
+              0,
+              0,
+              32,
+              31
+            ],
+            [
+              33,
+              5,
+              140,
+              25
+            ]
+          ],
+          "kind": "component_rectangles"
+        }
+      }
+    }
+  },
+  "limitations": [
+    "The generator reads native assets only; historical supplied-screenshot calibration results are retained in calibration_summary.json. No game actions are performed.",
+    "Text uses native fonts through Pillow and is not pixel-identical to Unity's dynamic text renderer; selected marker recipes are calibrated on user-supplied screenshots.",
+    "Shader, animation, scene blur and particles are intentionally omitted; no live game actions are performed."
+  ]
+}
