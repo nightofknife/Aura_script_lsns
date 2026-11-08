@@ -62,7 +62,7 @@ def main() -> int:
         runtime_args = ["--self-check"] if runtime_self_check else sys.argv[1:]
         try:
             process = subprocess.Popen([str(runtime_exe), *runtime_args], cwd=str(root), env=env,
-                                       stderr=subprocess.PIPE)
+                                       stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         except OSError as exc:
             logger.exception("[Launcher] phase=runtime_start_failed")
             _show_error(f"Failed to start Aura Resonance GUI:\n{exc}")

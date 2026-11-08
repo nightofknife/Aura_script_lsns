@@ -11,6 +11,7 @@ from PySide6.QtWidgets import QApplication, QComboBox, QLabel, QLineEdit, QMessa
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.app import _light_application_palette
+from packages.resonance_gui.logic import PC_REWARD_COLLECTION_TASK_REF
 from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.widgets.toggle_button import ToggleButton
 from packages.resonance_gui.widgets.workflow_page import WORKFLOW_TASKS, WorkflowPage
@@ -52,7 +53,7 @@ def test_retired_commerce_key_is_ignored_and_canonical_order_restored(repository
     repository.set_value("workflow/enabled", "startup,commerce")
     repository.set_value("workflow/commerce_enabled", "passenger")
     page = WorkflowPage(repository)
-    assert page._task_order == ["close", "startup", "battle", "trade", "passenger"]
+    assert page._task_order == ["rewards", "close", "startup", "battle", "trade", "passenger"]
     assert page.workflow_steps() == ["startup"]
     assert list(page._task_checks) == [task for task, _ in WORKFLOW_TASKS]
     assert "commerce" not in page._task_checks
@@ -88,28 +89,30 @@ def test_drop_event_reorders_tasks_and_persists_numbers(window):
                        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     page.task_rows_host.dropEvent(event)
     assert event.isAccepted()
-    assert page._task_order == ["close", "startup", "trade", "passenger", "battle"]
-    assert [page._task_rows[key].number_label.text() for key in page._task_order] == ["1", "2", "3", "4", "5"]
+    assert page._task_order == ["close", "startup", "trade", "passenger", "battle", "rewards"]
+    assert [page._task_rows[key].number_label.text() for key in page._task_order] == [
+        str(index) for index in range(1, len(page._task_order) + 1)
+    ]
     assert window._settings.value("workflow/task_order").split(",") == page._task_order
     assert page._selected_task == "close"
 
 
-def test_five_tasks_have_flat_runtime_tree_and_busy_lock(window):
+def test_workflow_tasks_have_flat_runtime_tree_and_busy_lock(window):
     page = window.workflow_page
     steps = [key for key, _ in WORKFLOW_TASKS]
     page.begin_workflow(steps, [])
-    assert page.run_tree.topLevelItemCount() == 5
-    assert [page.run_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole) for index in range(5)] == steps
-    assert all(page.run_tree.topLevelItem(index).childCount() == 0 for index in range(5))
-    assert page.task_progress_bar.maximum() == 5
+    assert page.run_tree.topLevelItemCount() == len(steps)
+    assert [page.run_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole) for index in range(len(steps))] == steps
+    assert all(page.run_tree.topLevelItem(index).childCount() == 0 for index in range(len(steps)))
+    assert page.task_progress_bar.maximum() == len(steps)
     page.add_freight_preparation()
     assert page._tree_items["refresh_recovery"].parent() is page._tree_items["trade"]
     page.mark_step("refresh_recovery", "success", "prepared")
     assert page.task_progress_bar.value() == 0
-    assert page.task_progress_bar.maximum() == 5
+    assert page.task_progress_bar.maximum() == len(steps)
     page.mark_step("startup", "success", "ready")
     assert page.task_progress_bar.value() == 1
-    assert "1 / 5" in page.task_progress_label.text()
+    assert f"1 / {len(steps)}" in page.task_progress_label.text()
     assert page.center_panel.isEnabled()  # Viewing remains available.
     assert page.task_rows_host.isEnabled()
     assert all(not button.isEnabled() for button in page._task_checks.values())
@@ -123,6 +126,62 @@ def test_five_tasks_have_flat_runtime_tree_and_busy_lock(window):
     assert page.center_panel.isEnabled()
     assert page.task_rows_host.isEnabled()
     assert window.trade_page.fatigue_budget.isEnabled()
+
+
+@pytest.mark.parametrize("enabled", [("daily_mission",), ("battle_pass",), ("daily_mission", "battle_pass")])
+def test_reward_options_are_saved_and_dispatched_as_one_task(window, enabled):
+    page = window.workflow_page
+    assert not page._task_checks["rewards"].isChecked()
+    for key, check in page._task_checks.items():
+        check.setChecked(key == "rewards")
+    page._select_task("rewards")
+    assert page.config_stack.currentWidget() is page._task_config_pages["rewards"]
+    for component, check in page.reward_checks.items():
+        check.setChecked(component in enabled)
+    expected = {component: component in enabled for component in ("daily_mission", "battle_pass")}
+    page._load_state()
+    assert page.workflow_steps() == ["rewards"]
+    assert page.reward_inputs() == expected
+    dispatches = []
+    window.requestRunPcTask.connect(lambda ref, inputs, _label, timeout: dispatches.append((ref, inputs, timeout)))
+    window._start_workflow()
+    assert dispatches == [(PC_REWARD_COLLECTION_TASK_REF, expected, 0.0)]
+    assert page.run_tree.topLevelItemCount() == 1
+    assert all(not check.isEnabled() for check in page.reward_checks.values())
+    window._on_busy_changed(True)
+    window._on_task_finished({
+        "status": "success",
+        "gui_item": {"task_ref": PC_REWARD_COLLECTION_TASK_REF},
+        "user_data": {
+            component: {"success": True, "component": component, "returned_to_main": True,
+                        "status": "collected" if component == "daily_mission" else "skipped_no_reminder"}
+            for component in enabled
+        },
+    })
+    assert page._tree_items["rewards"].text(1) == ("完成" if "daily_mission" in enabled else "跳过")
+    window._on_busy_changed(False)
+    assert not window._workflow_active
+    assert len(dispatches) == 1
+
+
+def test_incomplete_reward_result_stops_workflow(window):
+    page = window.workflow_page
+    for key, check in page._task_checks.items():
+        check.setChecked(key == "rewards")
+    dispatches = []
+    window.requestRunPcTask.connect(lambda ref, *_: dispatches.append(ref))
+    window._start_workflow()
+    window._on_busy_changed(True)
+    window._on_task_finished({
+        "status": "success",
+        "gui_item": {"task_ref": PC_REWARD_COLLECTION_TASK_REF},
+        "user_data": {"daily_mission": {
+            "success": True, "status": "collected", "component": "daily_mission", "returned_to_main": False,
+        }},
+    })
+    window._on_busy_changed(False)
+    assert page._tree_items["rewards"].text(1) == "失败"
+    assert dispatches == [PC_REWARD_COLLECTION_TASK_REF]
 
 
 def assert_workspace_three_columns(window, tmp_path, size, task):

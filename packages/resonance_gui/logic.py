@@ -137,8 +137,38 @@ PC_AFFIX_REFRESH_TASK_REF = "tasks:affix_refresh_pc.yaml:affix_refresh_pc"
 PC_AFFIX_REFRESH_READ_TASK_REF = "tasks:affix_refresh_pc.yaml:affix_refresh_read_pc"
 PC_DAILY_MISSION_REWARDS_TASK_REF = "tasks:daily_rewards_pc.yaml:collect_daily_mission_rewards_pc"
 PC_BATTLE_PASS_REWARDS_TASK_REF = "tasks:daily_rewards_pc.yaml:collect_battle_pass_rewards_pc"
+PC_REWARD_COLLECTION_TASK_REF = "tasks:daily_rewards_pc.yaml:collect_rewards_pc"
+REWARD_COMPONENT_LABELS = {
+    "daily_mission": "每日奖励领取",
+    "battle_pass": "通行证奖励领取",
+}
 AFFIX_REFRESH_PROGRESS_EVENT = "task.resonance_pc_affix_refresh_progress"
 AFFIX_REFRESH_PROGRESS_SCHEMA = "resonance_pc.affix_refresh_progress.v1"
+
+
+def reward_continuation_detail(result: Mapping[str, Any], inputs: Mapping[str, Any]) -> tuple[str, str]:
+    summaries = []
+    collected = False
+    for component, label in REWARD_COMPONENT_LABELS.items():
+        if not inputs.get(component):
+            continue
+        receipt = result.get(component)
+        if (not isinstance(receipt, Mapping) or receipt.get("success") is not True
+                or receipt.get("component") != component or receipt.get("returned_to_main") is not True):
+            raise ValueError(f"未确认{label}完成并返回主界面。")
+        status = receipt.get("status")
+        if status == "collected":
+            collected = True
+            summaries.append(f"{label}完成")
+        elif status == "nothing_to_claim":
+            summaries.append(f"{label}无可领取奖励")
+        elif status == "skipped_no_reminder":
+            summaries.append(f"{label}无红点，已跳过")
+        else:
+            raise ValueError(f"{label}返回了未知状态。")
+    if not summaries:
+        raise ValueError("请至少选择一项奖励。")
+    return ("success" if collected else "skipped"), "；".join(summaries)
 
 TERMINAL_STATUSES = {"success", "error", "failed", "timeout", "cancelled"}
 STATUS_LABELS = {
