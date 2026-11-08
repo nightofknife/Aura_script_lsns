@@ -354,7 +354,6 @@ class _TaskRow(QFrame):
         self.task_id = task_id
         self.setObjectName("workflowTaskRow")
         self.setProperty("selected", False)
-        self.setMinimumHeight(82)
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._drag_start = QPoint()
         layout = QVBoxLayout(self)

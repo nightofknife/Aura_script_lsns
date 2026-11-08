@@ -251,7 +251,7 @@ def assert_no_sibling_control_overlap(window):
 
 @pytest.mark.parametrize("size", [(1180, 720), (1440, 860)])
 @pytest.mark.parametrize("surface", ["startup", "trade-free", "trade-fixed",
-                                      "passenger", "battle", "close", "settings",
+                                      "passenger", "battle", "rewards", "close", "settings",
                                       *[f"feature-{key}" for key, _ in SMALL_TASKS]])
 def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
     window.resize(*size)
@@ -277,7 +277,9 @@ def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
         assert page.right_panel.height() >= 170
         assert page.center_panel.height() > 0
         assert page.run_button.isVisible()
-        assert all(row.rect().contains(row.enabled_check.geometry()) for row in page._task_rows.values())
+        for row in page._task_rows.values():
+            assert row.height() >= row.minimumSizeHint().height(), row.task_id
+            assert row.rect().contains(row.enabled_check.geometry()), row.task_id
         if surface == "passenger":
             scroll = window.passenger_page.parameter_panel
             for control in (window.passenger_page.trip_count, window.passenger_page.trade_during_trip,
