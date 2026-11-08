@@ -47,6 +47,15 @@ def render_entry(native):
     return image, mask, [icon_source, badge_source]
 
 
+def render_pass_reminder(native):
+    prefab = native.Prefab("ui/bp_quest/battlepass_quest.asset")
+    path = "/BattlePass_Quest/ScrollGrid_Time/Viewport/Grid/Group_Tab_000/Btn_Tab/Img_Red"
+    image, source = prefab.image(path)
+    image = image.resize(tuple(round(side * native.SCALE) for side in image.size), native.Image.Resampling.LANCZOS)
+    mask = image.getchannel("A").point(lambda value: 255 if value >= 224 else 0)
+    return image, mask, [source]
+
+
 def save_render(key, image, mask, source, recipe, profile):
     import numpy as np
     image_path = NATIVE / f"{key}.png"
@@ -109,6 +118,10 @@ def main():
     image, mask, source = render_entry(native)
     templates["main_entry_with_red"], sources["main_entry_with_red"] = save_render(
         "main_entry_with_red", image, mask, source, {"mask_alpha_floor": 224, "client_scale": 2 / 3}, profiles["main_entry_with_red"])
+    image, mask, source = render_pass_reminder(native)
+    templates["pass_reminder"], sources["pass_reminder"] = save_render(
+        "pass_reminder", image, mask, source, {"mask_alpha_floor": 224, "client_scale": native.SCALE},
+        profiles["pass_reminder"])
     for key, recipe in recipes.items():
         renderer = render_tab if recipe["renderer_family"] == "tabs" else render_button
         image, mask, source = renderer(native, recipe)

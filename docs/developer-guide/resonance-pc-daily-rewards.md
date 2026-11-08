@@ -1,6 +1,9 @@
 # 每日任务与活跃奖励收集
 
-用户入口为「独立功能 → 日常奖励收集 → 每日任务奖励」。任务引用是
+在「工作流程」中启用「奖励领取」，并在参数页勾选「每日奖励领取」。
+可同时勾选「通行证奖励领取」。两项都勾选时，流程按每日奖励、通行证奖励的顺序执行。
+组合任务引用为 `tasks:daily_rewards_pc.yaml:collect_rewards_pc`。
+也可从「独立功能 → 日常奖励收集」单次运行。单项任务引用是
 `tasks:daily_rewards_pc.yaml:collect_daily_mission_rewards_pc`，公开动作为
 `resonance_pc.collect_daily_mission_rewards`。同一面板提供独立的「通行证奖励」按钮，
 实现说明见 [通行证奖励收集](resonance-pc-battle-pass-rewards.md)。

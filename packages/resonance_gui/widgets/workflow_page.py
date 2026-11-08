@@ -76,12 +76,14 @@ from ..logic import (
     freight_passenger_summary_text,
     freight_passenger_attention,
     market_fallback_notice,
+    REWARD_COMPONENT_LABELS,
 )
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("startup", "进入主界面"),
     ("trade", "货运"),
     ("passenger", "客运"),
     ("battle", "自动战斗"),
+    ("rewards", "奖励领取"),
     ("close", "关闭游戏"),
 )
 
@@ -352,7 +354,6 @@ class _TaskRow(QFrame):
         self.task_id = task_id
         self.setObjectName("workflowTaskRow")
         self.setProperty("selected", False)
-        self.setMinimumHeight(82)
         self.setCursor(Qt.CursorShape.ArrowCursor)
         self._drag_start = QPoint()
         layout = QVBoxLayout(self)
@@ -733,6 +734,7 @@ class WorkflowPage(QWidget):
         self.close_config_page = self._build_close_config()
         self._task_config_pages = {
             "startup": self.startup_config_page,
+            "rewards": self._build_rewards_config(),
             "close": self.close_config_page,
         }
         for config_page in self._task_config_pages.values():
@@ -985,6 +987,21 @@ class WorkflowPage(QWidget):
         layout.addStretch(1)
         return page
 
+
+    def _build_rewards_config(self) -> QWidget:
+        page = QWidget(self)
+        layout = QVBoxLayout(page)
+        layout.addLayout(self._page_heading(
+            "奖励领取", "选择要领取的奖励。两项都勾选时，先领每日奖励，再领通行证奖励。", page,
+        ))
+        self.reward_checks: dict[str, QCheckBox] = {}
+        for component, label in REWARD_COMPONENT_LABELS.items():
+            check = QCheckBox(label, page)
+            check.toggled.connect(self._save_reward_settings)
+            self.reward_checks[component] = check
+            layout.addWidget(check, alignment=Qt.AlignmentFlag.AlignLeft)
+        layout.addStretch(1)
+        return page
 
     def _build_close_config(self) -> QWidget:
         page = QWidget(self)
@@ -1309,6 +1326,9 @@ class WorkflowPage(QWidget):
             "force_after_timeout": self.close_force.isChecked(),
         }
 
+    def reward_inputs(self) -> dict[str, bool]:
+        return {component: check.isChecked() for component, check in self.reward_checks.items()}
+
 
     def begin_workflow(
         self,
@@ -1417,19 +1437,18 @@ class WorkflowPage(QWidget):
         if state == "running":
             self._active_runtime_kind = step
             self.runtime_task_label.setText(f"正在运行：{dict(WORKFLOW_TASKS).get(step, '货运准备')}")
-            self.compact_task_label.setText({"startup": "启动", "trade": "货运", "passenger": "客运", "battle": "作战", "close": "关闭"}.get(step, "准备"))
+            compact_label = {
+                "startup": "启动", "trade": "货运", "passenger": "客运", "battle": "作战",
+                "rewards": "奖励", "close": "关闭",
+            }.get(step, "准备")
+            self.compact_task_label.setText(compact_label)
             self._operation_started_monotonic = time.monotonic()
             self.current_operation_label.setText(f"当前操作：{detail or state_text}")
             if step not in {"trade", "refresh_recovery"}:
                 self.resource_progress_label.hide()
             self._set_internal_progress(detail or state_text, None)
-        elif state == "success" and step in {
-            "startup",
-            "battle",
-            "close",
-            "passenger",
-            "trade",
-        }:
+        elif ((state == "success" and step in self._task_rows)
+              or (state == "skipped" and step == "rewards")):
             self._set_internal_progress(detail or state_text, 100)
         elif state in {"failed", "cancelled"}:
             self._set_internal_terminal(detail or state_text, state)
@@ -2078,15 +2097,28 @@ class WorkflowPage(QWidget):
         order = [value for value in raw_order.split(",") if value]
         expected_tasks = set(dict(WORKFLOW_TASKS))
         order = list(dict.fromkeys(value for value in order if value in expected_tasks))
-        order += [value for value, _title in WORKFLOW_TASKS if value not in order]
+        for task_id, _title in WORKFLOW_TASKS:
+            if task_id not in order:
+                position = order.index("close") if task_id == "rewards" and "close" in order else len(order)
+                order.insert(position, task_id)
         self._task_order = order
-        enabled_raw = str(self._settings.value("workflow/enabled", default_order) or "")
+        default_enabled = ",".join(task for task, _title in WORKFLOW_TASKS if task != "rewards")
+        enabled_raw = str(self._settings.value("workflow/enabled", default_enabled) or "")
         enabled_values = [value for value in enabled_raw.split(",") if value]
         enabled = set(enabled_values)
         for task_id, check in self._task_checks.items():
             check.setChecked(task_id in enabled)
+        default_rewards = ",".join(REWARD_COMPONENT_LABELS)
+        rewards_raw = str(self._settings.value("workflow/reward_components", default_rewards) or "")
+        for component, check in self.reward_checks.items():
+            check.setChecked(component in rewards_raw.split(","))
         self._rebuild_task_rows()
         self._loading_state = False
+
+    def _save_reward_settings(self, *_args: object) -> None:
+        if not self._loading_state:
+            selected = [component for component, checked in self.reward_inputs().items() if checked]
+            self._settings.set_value("workflow/reward_components", ",".join(selected))
 
     def _save_state(self, *_args: object) -> None:
         if self._loading_state:

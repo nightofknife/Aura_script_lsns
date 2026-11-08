@@ -138,6 +138,7 @@ def test_launcher_runtime_self_check_forwards_only_safe_flag_and_session(tmp_pat
         assert kwargs["env"]["AURA_BASE_PATH"] == str(tmp_path)
         assert kwargs["env"]["QT_QPA_PLATFORM"] == "offscreen"
         assert json.loads(kwargs["env"]["AURA_LOG_DESCRIPTOR"]) == coordinator.get_session_descriptor()
+        assert kwargs["stdout"] == subprocess.DEVNULL
         assert kwargs["stderr"] == subprocess.PIPE
         return Process()
     monkeypatch.setattr(launcher.subprocess, "Popen", popen)

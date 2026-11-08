@@ -128,5 +128,19 @@
     "method": "TM_CCOEFF_NORMED",
     "preprocess": "none",
     "mask_encoding": "none"
+  },
+  "pass_reminder": {
+    "roi": [
+      181,
+      75,
+      28,
+      427
+    ],
+    "threshold": 0.8,
+    "use_grayscale": false,
+    "method": "TM_SQDIFF",
+    "score_scale": 2400,
+    "preprocess": "none",
+    "mask_encoding": "uint8_binary_png"
   }
 }

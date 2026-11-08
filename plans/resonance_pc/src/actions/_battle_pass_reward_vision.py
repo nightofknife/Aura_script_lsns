@@ -11,10 +11,11 @@ import numpy as np
 from ....aura_base.src.services.prepared_template import PreparedTemplate
 from ._daily_reward_vision import DailyRewardError, DailyRewardReader, PLAN, RewardPage
 from ._depart_button_vision import load_depart_profile
+from ._battle_pass_entries import read_reminders, read_selected_row, reminder_control, reminder_observation
 
 
 REQUIRED = ("main_entry_with_red", "manual_on", "manual_off", "tasks_on", "tasks_off",
-            "tasks_claim_all", "manual_claim_all_red", "reward_title", "reward_exit", "city_main")
+            "tasks_claim_all", "manual_claim_all_red", "reward_title", "reward_exit", "city_main", "pass_reminder")
 
 
 class BattlePassRewardError(DailyRewardError):
@@ -23,14 +24,12 @@ class BattlePassRewardError(DailyRewardError):
 
 @dataclass
 class BattlePassPage(RewardPage):
-    entries: tuple = ()
-    selected_key: str | None = None
-    selected_title: str | None = None
+    reminders: tuple[int, ...] = ()
+    selected_row: int | None = None
 
     def summary(self):
         result = super().summary()
-        result.update(selected_key=self.selected_key, selected_title=self.selected_title,
-                      entries=[entry.summary() for entry in self.entries])
+        result.update(selected_row=self.selected_row, reminder_rows=list(self.reminders))
         return result
 
 
@@ -47,11 +46,13 @@ class BattlePassRewardReader(DailyRewardReader):
             for key in REQUIRED:
                 profile = dict(catalog["templates"][key])
                 roi = profile["roi"]
+                method = "TM_SQDIFF" if key == "pass_reminder" else "TM_CCOEFF_NORMED"
                 if (profile.get("diagnostic_only") or len(roi) != 4
                         or any(type(v) is not int for v in roi)
                         or min(roi[:2]) < 0 or min(roi[2:]) <= 0
                         or roi[0]+roi[2] > 1280 or roi[1]+roi[3] > 720
-                        or profile["method"] != "TM_CCOEFF_NORMED"
+                        or profile["method"] != method
+                        or (method == "TM_SQDIFF" and not 0 < profile["score_scale"] < float("inf"))
                         or type(profile["use_grayscale"]) is not bool
                         or not 0 < profile["threshold"] <= 1
                         or profile["preprocess"] not in {"none", "blur"}):
@@ -100,17 +101,22 @@ class BattlePassRewardReader(DailyRewardReader):
             raise BattlePassRewardError("battle_pass_reward_frame_invalid", "通行证奖励需要 1280×720 RGB 客户区截图。")
         hits = {}
 
+        def observe_control(key, roi=None):
+            profile = self.profiles[key]
+            method = profile["method"]
+            hit = self.observation.match_template(frame, self.templates[key], scope=scope,
+                roi=tuple(profile["roi"]) if roi is None else roi, threshold=profile["threshold"],
+                use_grayscale=profile["use_grayscale"], preprocess=profile["preprocess"],
+                match_method=getattr(cv2, method) if isinstance(method, str) else method,
+                score_scale=profile.get("score_scale"))
+            if hit.state == "unknown":
+                raise BattlePassRewardError("battle_pass_reward_recognition_failed", "通行证奖励识别发生技术错误，已停止。",
+                                            {"control": key, "reason": hit.reason})
+            return hit
+
         def match(key):
             if key not in hits:
-                profile = self.profiles[key]
-                method = profile["method"]
-                hits[key] = self.observation.match_template(frame, self.templates[key], scope=scope,
-                    roi=tuple(profile["roi"]), threshold=profile["threshold"],
-                    use_grayscale=profile["use_grayscale"], preprocess=profile["preprocess"],
-                    match_method=getattr(cv2, method) if isinstance(method, str) else method)
-                if hits[key].state == "unknown":
-                    raise BattlePassRewardError("battle_pass_reward_recognition_failed", "通行证奖励识别发生技术错误，已停止。",
-                                                {"control": key, "reason": hits[key].reason})
+                hits[key] = observe_control(key)
             return hits[key].state == "present"
 
         title, exit_hint = match("reward_title"), match("reward_exit")
@@ -123,20 +129,17 @@ class BattlePassRewardReader(DailyRewardReader):
         tasks = tasks_on and manual_off and not manual_on and not tasks_off
         manual = manual_on and tasks_off and not tasks_on and not manual_off
         if (tasks or manual) and match("city_main"):
-            from ._battle_pass_entries import read_entries
-            entries, selected_key, selected_title = read_entries(self.observation, frame, scope)
-            page = BattlePassPage(frame, "tasks" if tasks else "manual", hits,
-                                  entries, selected_key, selected_title)
-            if not entries or not selected_key:
-                page.page_state = "unknown"
-                return page
-            for entry in entries:
-                hits[entry.control] = entry.observation(frame.id)
+            profile = self.profiles["pass_reminder"]
+            reminders = read_reminders(profile["roi"], profile["size"][1],
+                                       lambda roi: observe_control("pass_reminder", roi))
+            for row in reminders:
+                hits[reminder_control(row)] = reminder_observation(row, frame.id)
             if tasks:
                 match("tasks_claim_all")
             else:
                 match("manual_claim_all_red")
-            return page
+            return BattlePassPage(frame, "tasks" if tasks else "manual", hits,
+                                  reminders, read_selected_row(frame))
         if match("main_screen"):
             match("main_entry_with_red")
             return BattlePassPage(frame, "main", hits)

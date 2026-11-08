@@ -64,24 +64,6 @@ exports:
     replace: null
     description: ResonancePc exact full-budget trade planner.
   actions:
-  - name: resonance_pc.collect_battle_pass_rewards
-    module: plans.resonance_pc.src.actions.daily_reward_pc_actions
-    function: resonance_pc_collect_battle_pass_rewards
-    public: true
-    read_only: false
-    timeout: null
-    description: Collect completed daily/weekly tasks and unlocked level rewards for every
-      battle pass only when the main-screen star reminder is visible, then confirm return to main.
-    parameters: []
-  - name: resonance_pc.collect_daily_mission_rewards
-    module: plans.resonance_pc.src.actions.daily_reward_pc_actions
-    function: resonance_pc_collect_daily_mission_rewards
-    public: true
-    read_only: false
-    timeout: null
-    description: Collect daily mission and activity rewards only when the main-screen
-      reminder is visible, then confirm return to the main screen.
-    parameters: []
   - name: resonance_pc.affix_refresh_read
     module: plans.resonance_pc.src.actions.affix_refresh_pc_actions
     function: read_affix_refresh
@@ -2050,6 +2032,24 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.collect_daily_mission_rewards
+    module: plans.resonance_pc.src.actions.daily_reward_pc_actions
+    function: resonance_pc_collect_daily_mission_rewards
+    public: true
+    read_only: false
+    timeout: null
+    description: Collect daily mission/activity rewards only when the main-screen
+      reminder is visible, then confirm return to main.
+    parameters: []
+  - name: resonance_pc.collect_battle_pass_rewards
+    module: plans.resonance_pc.src.actions.daily_reward_pc_actions
+    function: resonance_pc_collect_battle_pass_rewards
+    public: true
+    read_only: false
+    timeout: null
+    description: Collect completed tasks and unlocked rewards for every pass when
+      its main-screen star has a reminder, then return to main.
+    parameters: []
   - name: resonance_pc.eternal_scuffle_initialize
     module: plans.resonance_pc.src.actions.eternal_scuffle_pc_actions
     function: initialize_eternal_scuffle
@@ -3386,18 +3386,6 @@ exports:
       required: false
       default: gold
   tasks:
-  - id: daily_rewards_pc/collect_battle_pass_rewards_pc
-    title: 通行证奖励
-    source: tasks/daily_rewards_pc.yaml
-    description: 仅在主界面星形入口带红点时逐个领取通行证任务与等级奖励，并确认返回主界面。
-    role: user_task
-    domain: 日常奖励
-  - id: daily_rewards_pc/collect_daily_mission_rewards_pc
-    title: 每日任务奖励
-    source: tasks/daily_rewards_pc.yaml
-    description: 从站场主界面启动，仅在任务入口带红点时领取每日任务与活跃奖励，并确认返回主界面。
-    role: user_task
-    domain: 日常奖励
   - id: admit_prisoners_pc/admit_prisoners_pc
     title: Admit Prisoners (PC)
     source: tasks/admit_prisoners_pc.yaml
@@ -3671,6 +3659,24 @@ exports:
     description: Drag the board once by 320px and capture one unlabeled probe image.
     role: developer
     domain: 深潜诊断
+  - id: daily_rewards_pc/collect_rewards_pc
+    title: 奖励领取
+    source: tasks/daily_rewards_pc.yaml
+    description: 按选择依次执行每日奖励领取和通行证奖励领取。
+    role: orchestration
+    domain: 日常奖励
+  - id: daily_rewards_pc/collect_daily_mission_rewards_pc
+    title: 每日任务奖励
+    source: tasks/daily_rewards_pc.yaml
+    description: 从站场主界面启动，仅在任务入口带红点时进入每日活跃页，领取已完成任务与活跃奖励，确认关闭奖励弹层并返回主界面。
+    role: user_task
+    domain: 日常奖励
+  - id: daily_rewards_pc/collect_battle_pass_rewards_pc
+    title: 通行证奖励
+    source: tasks/daily_rewards_pc.yaml
+    description: 从站场主界面启动，仅在星形入口带红点时进入通行证，逐个领取已完成的每日和每周任务奖励、已解锁等级奖励，并确认返回主界面。
+    role: user_task
+    domain: 日常奖励
   - id: enter_reforming_center_pc/enter_reforming_center_pc
     title: Enter Reforming Center (PC)
     source: tasks/enter_reforming_center_pc.yaml
@@ -3824,4 +3830,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-07T10:20:00Z'
+  generated_at: '2026-11-08T14:38:59Z'

@@ -23,6 +23,7 @@ from packages.aura_core.observability.logging.stream_capture import install_capt
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.paths import resolve_application_root
+from packages.resonance_gui.widgets.workflow_page import WORKFLOW_TASKS
 
 
 APP_ICON_RELATIVE_PATH = Path(
@@ -136,7 +137,7 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
     window.show()
     page = window.workflow_page
     for _ in range(2):
-        for task in ("startup", "trade", "passenger", "battle", "close"):
+        for task, _label in WORKFLOW_TASKS:
             page._select_task(task)
             app.processEvents()
         for mode in ("free", "fixed", "free"):
@@ -145,7 +146,7 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
             app.processEvents()
     window.trade_page.target_profit_enabled.setChecked(False)
     page._drop_task("close", 0)
-    page._drop_task("close", 5)
+    page._drop_task("close", len(WORKFLOW_TASKS))
     page._select_task("trade")
     window._open_freight_trial()
     window.small_tasks_page.return_to_trade_button.click()
