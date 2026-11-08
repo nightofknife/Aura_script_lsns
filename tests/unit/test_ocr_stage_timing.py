@@ -172,7 +172,9 @@ def test_service_profiling_adds_report_and_one_summary_log(monkeypatch, enabled)
                          enabled if key == "ocr.profiling.enabled" else default))
     service._engine = _pipeline(monkeypatch)
     logs = []
-    monkeypatch.setattr("plans.aura_base.src.services.ocr_service.logger.info", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        "plans.aura_base.src.services.ocr_service.logger", SimpleNamespace(info=lambda *args: logs.append(args))
+    )
 
     results = asyncio.run(service._recognize_all_and_parse_async(_image()))
 
@@ -191,7 +193,9 @@ def test_service_profiling_disabled_creates_no_report_or_clock_reads(monkeypatch
         get=lambda key, default=None: enabled if key == "ocr.profiling.enabled" else default))
     service._engine = _pipeline(monkeypatch)
     logs = []
-    monkeypatch.setattr("plans.aura_base.src.services.ocr_service.logger.info", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        "plans.aura_base.src.services.ocr_service.logger", SimpleNamespace(info=lambda *args: logs.append(args))
+    )
 
     def fail_clock():
         raise AssertionError("Profiling clock read with profiling disabled")
@@ -209,7 +213,9 @@ def test_service_logs_empty_result_timings(monkeypatch):
                          True if key == "ocr.profiling.enabled" else default))
     service._engine = _pipeline(monkeypatch, box_count=0)
     logs = []
-    monkeypatch.setattr("plans.aura_base.src.services.ocr_service.logger.info", lambda *args: logs.append(args))
+    monkeypatch.setattr(
+        "plans.aura_base.src.services.ocr_service.logger", SimpleNamespace(info=lambda *args: logs.append(args))
+    )
 
     assert asyncio.run(service._recognize_all_and_parse_async(_image())) == []
 
