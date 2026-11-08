@@ -1,0 +1,378 @@
+{
+  "scope": "historical_supplied_screenshot_calibration",
+  "summary": [
+    {
+      "template": "main_entry_with_red",
+      "positive_min": 0.9944361448287964,
+      "negative_max": 0.6788124442100525,
+      "margin": 0.3156237006187439,
+      "threshold": 0.9
+    },
+    {
+      "template": "activity_gold",
+      "positive_min": 0.9819353818893433,
+      "negative_max": 0.6514442563056946,
+      "margin": 0.3304911255836487,
+      "threshold": 0.9
+    },
+    {
+      "template": "activity_blue",
+      "positive_min": 0.9765828847885132,
+      "negative_max": 0.4206618666648865,
+      "margin": 0.5559210181236267,
+      "threshold": 0.9
+    },
+    {
+      "template": "reward_title",
+      "positive_min": 0.9714056253433228,
+      "negative_max": 0.2649953365325928,
+      "margin": 0.70641028881073,
+      "threshold": 0.9
+    },
+    {
+      "template": "reward_exit",
+      "positive_min": 0.9208078980445862,
+      "negative_max": 0.394052118062973,
+      "margin": 0.5267557799816132,
+      "threshold": 0.85
+    }
+  ],
+  "records": [
+    {
+      "template": "main_entry_with_red",
+      "scene": "01_city_main",
+      "expected_present": true,
+      "score": 0.9944361448287964,
+      "passes_threshold": true,
+      "top_left_client": [
+        173,
+        6
+      ]
+    },
+    {
+      "template": "main_entry_with_red",
+      "scene": "02_daily_claimable",
+      "expected_present": false,
+      "score": 0.619002103805542,
+      "passes_threshold": false,
+      "top_left_client": [
+        202,
+        4
+      ]
+    },
+    {
+      "template": "main_entry_with_red",
+      "scene": "03_activity_claimable",
+      "expected_present": false,
+      "score": 0.619002103805542,
+      "passes_threshold": false,
+      "top_left_client": [
+        202,
+        4
+      ]
+    },
+    {
+      "template": "main_entry_with_red",
+      "scene": "04_reward_overlay",
+      "expected_present": false,
+      "score": 0.6788124442100525,
+      "passes_threshold": false,
+      "top_left_client": [
+        200,
+        2
+      ]
+    },
+    {
+      "template": "main_entry_with_red",
+      "scene": "06_city_main_no_red",
+      "expected_present": false,
+      "score": 0.5583769083023071,
+      "passes_threshold": false,
+      "top_left_client": [
+        173,
+        6
+      ]
+    },
+    {
+      "template": "activity_gold",
+      "scene": "01_city_main",
+      "expected_present": false,
+      "score": 0.39043551683425903,
+      "passes_threshold": false,
+      "top_left_client": [
+        388,
+        137
+      ]
+    },
+    {
+      "template": "activity_gold",
+      "scene": "02_daily_claimable",
+      "expected_present": false,
+      "score": 0.23895515501499176,
+      "passes_threshold": false,
+      "top_left_client": [
+        783,
+        168
+      ]
+    },
+    {
+      "template": "activity_gold",
+      "scene": "03_activity_claimable",
+      "expected_present": true,
+      "score": 0.9819353818893433,
+      "passes_threshold": true,
+      "top_left_client": [
+        778,
+        148
+      ]
+    },
+    {
+      "template": "activity_gold",
+      "scene": "04_reward_overlay",
+      "expected_present": false,
+      "score": 0.6514442563056946,
+      "passes_threshold": false,
+      "top_left_client": [
+        777,
+        149
+      ]
+    },
+    {
+      "template": "activity_gold",
+      "scene": "06_city_main_no_red",
+      "expected_present": false,
+      "score": 0.40499407052993774,
+      "passes_threshold": false,
+      "top_left_client": [
+        391,
+        141
+      ]
+    },
+    {
+      "template": "activity_blue",
+      "scene": "01_city_main",
+      "expected_present": false,
+      "score": 0.3204955756664276,
+      "passes_threshold": false,
+      "top_left_client": [
+        604,
+        140
+      ]
+    },
+    {
+      "template": "activity_blue",
+      "scene": "02_daily_claimable",
+      "expected_present": true,
+      "score": 0.9765828847885132,
+      "passes_threshold": true,
+      "top_left_client": [
+        1022,
+        148
+      ]
+    },
+    {
+      "template": "activity_blue",
+      "scene": "03_activity_claimable",
+      "expected_present": true,
+      "score": 0.9765828847885132,
+      "passes_threshold": true,
+      "top_left_client": [
+        1022,
+        148
+      ]
+    },
+    {
+      "template": "activity_blue",
+      "scene": "04_reward_overlay",
+      "expected_present": false,
+      "score": 0.4206618666648865,
+      "passes_threshold": false,
+      "top_left_client": [
+        900,
+        148
+      ]
+    },
+    {
+      "template": "activity_blue",
+      "scene": "06_city_main_no_red",
+      "expected_present": false,
+      "score": 0.3204955756664276,
+      "passes_threshold": false,
+      "top_left_client": [
+        604,
+        140
+      ]
+    },
+    {
+      "template": "reward_title",
+      "scene": "01_city_main",
+      "expected_present": false,
+      "score": 0.1755058914422989,
+      "passes_threshold": false,
+      "top_left_client": [
+        576,
+        188
+      ]
+    },
+    {
+      "template": "reward_title",
+      "scene": "02_daily_claimable",
+      "expected_present": false,
+      "score": 0.26434797048568726,
+      "passes_threshold": false,
+      "top_left_client": [
+        488,
+        174
+      ]
+    },
+    {
+      "template": "reward_title",
+      "scene": "03_activity_claimable",
+      "expected_present": false,
+      "score": 0.2649953365325928,
+      "passes_threshold": false,
+      "top_left_client": [
+        487,
+        174
+      ]
+    },
+    {
+      "template": "reward_title",
+      "scene": "04_reward_overlay",
+      "expected_present": true,
+      "score": 0.9714056253433228,
+      "passes_threshold": true,
+      "top_left_client": [
+        523,
+        174
+      ]
+    },
+    {
+      "template": "reward_title",
+      "scene": "06_city_main_no_red",
+      "expected_present": false,
+      "score": 0.17992638051509857,
+      "passes_threshold": false,
+      "top_left_client": [
+        576,
+        184
+      ]
+    },
+    {
+      "template": "reward_exit",
+      "scene": "01_city_main",
+      "expected_present": false,
+      "score": 0.292488157749176,
+      "passes_threshold": false,
+      "top_left_client": [
+        565,
+        669
+      ]
+    },
+    {
+      "template": "reward_exit",
+      "scene": "02_daily_claimable",
+      "expected_present": false,
+      "score": 0.3936232626438141,
+      "passes_threshold": false,
+      "top_left_client": [
+        545,
+        649
+      ]
+    },
+    {
+      "template": "reward_exit",
+      "scene": "03_activity_claimable",
+      "expected_present": false,
+      "score": 0.394052118062973,
+      "passes_threshold": false,
+      "top_left_client": [
+        544,
+        649
+      ]
+    },
+    {
+      "template": "reward_exit",
+      "scene": "04_reward_overlay",
+      "expected_present": true,
+      "score": 0.9208078980445862,
+      "passes_threshold": true,
+      "top_left_client": [
+        569,
+        668
+      ]
+    },
+    {
+      "template": "reward_exit",
+      "scene": "06_city_main_no_red",
+      "expected_present": false,
+      "score": 0.26643118262290955,
+      "passes_threshold": false,
+      "top_left_client": [
+        572,
+        674
+      ]
+    }
+  ],
+  "profiles": {
+    "main_entry_with_red": {
+      "roi_xywh": [
+        145,
+        0,
+        110,
+        80
+      ],
+      "use_grayscale": false,
+      "preprocess": "none",
+      "threshold": 0.9
+    },
+    "activity_gold": {
+      "roi_xywh": [
+        380,
+        130,
+        730,
+        105
+      ],
+      "use_grayscale": false,
+      "preprocess": "none",
+      "threshold": 0.9
+    },
+    "activity_blue": {
+      "roi_xywh": [
+        380,
+        130,
+        730,
+        105
+      ],
+      "use_grayscale": false,
+      "preprocess": "none",
+      "threshold": 0.9
+    },
+    "reward_title": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "none",
+      "roi_xywh": [
+        475,
+        155,
+        340,
+        115
+      ],
+      "threshold": 0.9
+    },
+    "reward_exit": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "roi_xywh": [
+        520,
+        645,
+        240,
+        75
+      ],
+      "preprocess": "blur",
+      "threshold": 0.85
+    }
+  },
+  "limits": "Reward geometry/rasterization calibrated on the sole positive screenshot; no independent positive holdout or live operation.",
+  "note": "Historical evidence from template preparation; no tests or game actions were run during task implementation."
+}

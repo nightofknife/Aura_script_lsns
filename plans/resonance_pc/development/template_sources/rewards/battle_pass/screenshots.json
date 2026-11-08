@@ -1,0 +1,57 @@
+{
+  "01_mission_reward": {
+    "file": "screenshots/01_mission_reward.png",
+    "sha256": "80c84be981aeb701d341f8ea77d3b2fa152be98c6aea5c6903129bbab5687ac1",
+    "client_crop_xyxy": [
+      1,
+      31,
+      1281,
+      751
+    ],
+    "use": "historical calibration reference only; not template pixels"
+  },
+  "02_level_reward": {
+    "file": "screenshots/02_level_reward.png",
+    "sha256": "38751f6597189fc69bf81efd9b19f7639e423774b91cea63d740a0d2519328a9",
+    "client_crop_xyxy": [
+      1,
+      31,
+      1281,
+      751
+    ],
+    "use": "historical calibration reference only; not template pixels"
+  },
+  "03_tasks": {
+    "file": "screenshots/03_tasks.png",
+    "sha256": "03a4c2a291f43fd3eadabdf3013495418758a1471e0d47e9557e09f76812faf6",
+    "client_crop_xyxy": [
+      1,
+      31,
+      1281,
+      751
+    ],
+    "use": "historical calibration reference only; not template pixels"
+  },
+  "04_manual": {
+    "file": "screenshots/04_manual.png",
+    "sha256": "ac21d52b44d4caa4d7ce367f5820c323097902a4812f030969a4fb866d5fcaed",
+    "client_crop_xyxy": [
+      1,
+      31,
+      1281,
+      751
+    ],
+    "use": "historical calibration reference only; not template pixels"
+  },
+  "05_main": {
+    "file": "screenshots/05_main.png",
+    "sha256": "29a86c32c3471c3c0ab632fc68a2923c062f30a68ed28ed7be6170c839312eb4",
+    "client_crop_xyxy": [
+      1,
+      31,
+      1281,
+      751
+    ],
+    "use": "historical calibration reference only; not template pixels"
+  }
+}

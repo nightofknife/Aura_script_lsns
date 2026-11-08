@@ -1,0 +1,535 @@
+{
+  "kind": "native_battle_pass_templates",
+  "client_reference": [
+    1280,
+    720
+  ],
+  "scale": 0.6666666666666666,
+  "sources": {
+    "ui/common.asset": {
+      "sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd"
+    },
+    "ui/bp_quest.asset": {
+      "sha256": "46c5d6a3699443d2dfe751f908574ce14efd58c3fb531bc4d5b0fe6654560d75"
+    },
+    "ui/bp_quest/quest_slices.asset": {
+      "sha256": "fa409c19151659a50ed52b1fa32b6f7e3e4f050ec799a2e118a7d922b896cb17"
+    },
+    "ui/font/originpack.asset": {
+      "sha256": "78cd645775c9f0dff1b5b94a9e16d1c1bfea86a27f83a60701244fc5daebcaf1"
+    },
+    "ui/bp_quest/battlepass_quest.asset": {
+      "sha256": "8f78c179def351a8845de538a16498dd063272dbe73808f239d5e8009c1dfef5"
+    }
+  },
+  "entry_sources": {
+    "ui/mainui.asset": {
+      "sha256": "4f9ceead9dd40402f3248719070aab42abd0388ff18b32f91b9faa5710814176"
+    },
+    "ui/common.asset": {
+      "sha256": "a4788d3af373bb85be62964b971ab1d271c7a0a3faeb8c31afce54f3a3b89fbd"
+    },
+    "ui/mainui/mainui.asset": {
+      "sha256": "c68a3b6f9f9b6c21a3cfc7af5f210e84a965c17d5b712464db0c2c7845f81f61"
+    }
+  },
+  "templates": {
+    "main_entry_with_red": {
+      "original_candidate_id": "bp_main_entry_with_red",
+      "approved_candidate_sha256": "6b7705e9f8213f73e496e9fab443b4de6463fec9065bfef326973b1eb386aba7",
+      "source": [
+        {
+          "prefab": "ui/mainui/mainui.asset",
+          "node": "/MainUI/Group_Common/Group_TopRight/Btn_Mission/Img_Icon",
+          "bundle": "ui/mainui.asset",
+          "sprite": "main_icon_battlepass",
+          "path_id": -4766326946451188333,
+          "size_native": [
+            100.0,
+            100.0
+          ]
+        },
+        {
+          "prefab": "ui/mainui/mainui.asset",
+          "node": "/MainUI/Group_Common/Group_TopRight/Btn_Mission/Img_Remind",
+          "bundle": "ui/common.asset",
+          "sprite": "main_icon_tip",
+          "path_id": 4119282664310322428,
+          "size_native": [
+            30.0,
+            31.0
+          ]
+        }
+      ],
+      "refinement_recipe": null,
+      "file": "templates/rewards/battle_pass/main_entry_with_red.png",
+      "mask": "templates/rewards/battle_pass/main_entry_with_red.mask.png",
+      "sha256": "6b7705e9f8213f73e496e9fab443b4de6463fec9065bfef326973b1eb386aba7",
+      "mask_sha256": "f75da125eae9ecfd3dc8cbd888b6b2516bb3825c76a437db674efcb9c52646b1"
+    },
+    "manual_on": {
+      "original_candidate_id": "bp_manual_on",
+      "approved_candidate_sha256": "d1584fad209d6c7657fc47b77af8813c9dd14d10280ebc714421d3569f013928",
+      "source": {
+        "icon": {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Bp/Group_On/Img_IconOn",
+          "bundle": "ui/bp_quest/quest_slices.asset",
+          "sprite": "handoutIcon2",
+          "path_id": 4211100412462588516,
+          "size_native": [
+            38.0,
+            37.0
+          ]
+        },
+        "font": {
+          "font_path_id": -2237384480076949585,
+          "font_name": "SourceHanSansCN-Bold",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+          "font_size_native": 30,
+          "font_style_prefab": 0
+        },
+        "text": "环游手册",
+        "selected": true,
+        "branch": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Bp/Group_On",
+        "mask_rectangles_xyxy": [
+          [
+            0,
+            0,
+            25,
+            24
+          ],
+          [
+            29,
+            0,
+            114,
+            25
+          ]
+        ]
+      },
+      "refinement_recipe": {
+        "template_key": "bp_manual_on",
+        "icon_size_client": [
+          25,
+          24
+        ],
+        "font_size_client": 20,
+        "aa": 3,
+        "stroke_client": 0,
+        "text_offset_client": [
+          29,
+          0
+        ],
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": true,
+          "preprocess": "blur",
+          "roi": [
+            345,
+            635,
+            250,
+            85
+          ]
+        },
+        "renderer_family": "tabs"
+      },
+      "file": "templates/rewards/battle_pass/manual_on.png",
+      "mask": "templates/rewards/battle_pass/manual_on.mask.png",
+      "sha256": "d1584fad209d6c7657fc47b77af8813c9dd14d10280ebc714421d3569f013928",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "manual_off": {
+      "original_candidate_id": "bp_manual_off",
+      "approved_candidate_sha256": "57c23241612d3fa8fd35dcce5f35588717211e5c1b1126f9ac798606d9f18c53",
+      "source": {
+        "icon": {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Bp/Group_Off/Img_IconOff",
+          "bundle": "ui/bp_quest/quest_slices.asset",
+          "sprite": "handoutIcon",
+          "path_id": -237906519710815674,
+          "size_native": [
+            38.0,
+            37.0
+          ]
+        },
+        "font": {
+          "font_path_id": -2237384480076949585,
+          "font_name": "SourceHanSansCN-Bold",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+          "font_size_native": 30,
+          "font_style_prefab": 0
+        },
+        "text": "环游手册",
+        "selected": false,
+        "branch": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Bp/Group_Off",
+        "mask_rectangles_xyxy": [
+          [
+            0,
+            0,
+            25,
+            24
+          ],
+          [
+            29,
+            0,
+            114,
+            25
+          ]
+        ]
+      },
+      "refinement_recipe": {
+        "template_key": "bp_manual_off",
+        "icon_size_client": [
+          25,
+          24
+        ],
+        "font_size_client": 20,
+        "aa": 3,
+        "stroke_client": 0,
+        "text_offset_client": [
+          29,
+          0
+        ],
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": true,
+          "preprocess": "blur",
+          "roi": [
+            345,
+            635,
+            250,
+            85
+          ]
+        },
+        "renderer_family": "tabs"
+      },
+      "file": "templates/rewards/battle_pass/manual_off.png",
+      "mask": "templates/rewards/battle_pass/manual_off.mask.png",
+      "sha256": "57c23241612d3fa8fd35dcce5f35588717211e5c1b1126f9ac798606d9f18c53",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "tasks_on": {
+      "original_candidate_id": "bp_tasks_on",
+      "approved_candidate_sha256": "0c4a24d97d3cf488b02fe2daf9963e05a18ce49b2155bba7607da97f22acd93b",
+      "source": {
+        "icon": {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Quest/Group_On/Img_IconOn",
+          "bundle": "ui/bp_quest/quest_slices.asset",
+          "sprite": "missionIcon",
+          "path_id": 7183882664044742071,
+          "size_native": [
+            37.0,
+            37.0
+          ]
+        },
+        "font": {
+          "font_path_id": -2237384480076949585,
+          "font_name": "SourceHanSansCN-Bold",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+          "font_size_native": 30,
+          "font_style_prefab": 0
+        },
+        "text": "任务列表",
+        "selected": true,
+        "branch": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Quest/Group_On",
+        "mask_rectangles_xyxy": [
+          [
+            0,
+            0,
+            25,
+            24
+          ],
+          [
+            29,
+            0,
+            114,
+            25
+          ]
+        ]
+      },
+      "refinement_recipe": {
+        "template_key": "bp_tasks_on",
+        "icon_size_client": [
+          25,
+          24
+        ],
+        "font_size_client": 20,
+        "aa": 3,
+        "stroke_client": 0,
+        "text_offset_client": [
+          29,
+          0
+        ],
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": true,
+          "preprocess": "blur",
+          "roi": [
+            580,
+            635,
+            265,
+            85
+          ]
+        },
+        "renderer_family": "tabs"
+      },
+      "file": "templates/rewards/battle_pass/tasks_on.png",
+      "mask": "templates/rewards/battle_pass/tasks_on.mask.png",
+      "sha256": "0c4a24d97d3cf488b02fe2daf9963e05a18ce49b2155bba7607da97f22acd93b",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "tasks_off": {
+      "original_candidate_id": "bp_tasks_off",
+      "approved_candidate_sha256": "c1b6f98d13fb6aa83334c389914424b8c4e3f6c23540148c70529c7b82c8bc59",
+      "source": {
+        "icon": {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Quest/Group_Off/Img_IconOff",
+          "bundle": "ui/bp_quest/quest_slices.asset",
+          "sprite": "missionIcon2",
+          "path_id": -4250472613834245134,
+          "size_native": [
+            37.0,
+            37.0
+          ]
+        },
+        "font": {
+          "font_path_id": -2237384480076949585,
+          "font_name": "SourceHanSansCN-Bold",
+          "font_bundle": "ui/font/originpack.asset",
+          "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+          "font_size_native": 30,
+          "font_style_prefab": 0
+        },
+        "text": "任务列表",
+        "selected": false,
+        "branch": "/BattlePass_Quest/Group_Reward_Quest/Group_Bottom/Img_BG/Btn_Quest/Group_Off",
+        "mask_rectangles_xyxy": [
+          [
+            0,
+            0,
+            25,
+            24
+          ],
+          [
+            29,
+            0,
+            114,
+            25
+          ]
+        ]
+      },
+      "refinement_recipe": {
+        "template_key": "bp_tasks_off",
+        "icon_size_client": [
+          25,
+          24
+        ],
+        "font_size_client": 20,
+        "aa": 3,
+        "stroke_client": 0,
+        "text_offset_client": [
+          29,
+          0
+        ],
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": true,
+          "preprocess": "blur",
+          "roi": [
+            580,
+            635,
+            265,
+            85
+          ]
+        },
+        "renderer_family": "tabs"
+      },
+      "file": "templates/rewards/battle_pass/tasks_off.png",
+      "mask": "templates/rewards/battle_pass/tasks_off.mask.png",
+      "sha256": "c1b6f98d13fb6aa83334c389914424b8c4e3f6c23540148c70529c7b82c8bc59",
+      "mask_sha256": "a16e85922298073260591b0a7187b30db2f13d24da494d59d93403618bf1d256"
+    },
+    "tasks_claim_all": {
+      "original_candidate_id": "bp_tasks_claim_all",
+      "approved_candidate_sha256": "6f071cd26a5336fcdf1bd6822aef0b26961c85a85d6a24bbc3562fa47fae2734",
+      "source": [
+        {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_BattlePass/Btn_TakeAll",
+          "sprite_bundle": "ui/bp_quest/quest_slices.asset",
+          "sprite": "lightButton",
+          "sprite_path_id": 1220529777354259739,
+          "nine_slice_border_native_lbrt": [
+            15,
+            15,
+            15,
+            15
+          ],
+          "text": {
+            "text": "一键领取",
+            "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+            "font_path_id": -2237384480076949585,
+            "font_name": "SourceHanSansCN-Bold",
+            "font_bundle": "ui/font/originpack.asset",
+            "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+            "font_size_native": 30,
+            "font_style_prefab": 0
+          }
+        }
+      ],
+      "refinement_recipe": {
+        "kind": "claim_all",
+        "text_rectangle_xyxy": [
+          74,
+          14,
+          164,
+          45
+        ],
+        "renderer_family": "buttons",
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": false,
+          "preprocess": "none",
+          "roi": [
+            1015,
+            630,
+            265,
+            90
+          ],
+          "threshold": 0.9,
+          "mask": "bp_tasks_claim_all.mask.png",
+          "mask_encoding": "uint8_binary_png"
+        }
+      },
+      "file": "templates/rewards/battle_pass/tasks_claim_all.png",
+      "mask": "templates/rewards/battle_pass/tasks_claim_all.mask.png",
+      "sha256": "6f071cd26a5336fcdf1bd6822aef0b26961c85a85d6a24bbc3562fa47fae2734",
+      "mask_sha256": "1d2573e4c8d161d8cf0d4afbfe46fa8bc2ef0886bf629ca3ef0d5fbf28ed35ef"
+    },
+    "manual_claim_all_red": {
+      "original_candidate_id": "bp_manual_claim_all_red",
+      "approved_candidate_sha256": "23a1afd37c3b665c4c4ec0942b7013392124f69e72456c4bcb5246a7008e087a",
+      "source": [
+        {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_BattlePass/Btn_TakeAll",
+          "sprite_bundle": "ui/bp_quest/quest_slices.asset",
+          "sprite": "lightButton",
+          "sprite_path_id": 1220529777354259739,
+          "nine_slice_border_native_lbrt": [
+            15,
+            15,
+            15,
+            15
+          ],
+          "text": {
+            "text": "一键领取",
+            "rasterizer": "Pillow/FreeType; not Unity dynamic atlas",
+            "font_path_id": -2237384480076949585,
+            "font_name": "SourceHanSansCN-Bold",
+            "font_bundle": "ui/font/originpack.asset",
+            "font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9",
+            "font_size_native": 30,
+            "font_style_prefab": 0
+          }
+        },
+        {
+          "prefab": "ui/bp_quest/battlepass_quest.asset",
+          "node": "/BattlePass_Quest/Group_Reward_Quest/Group_BattlePass/Btn_TakeAll/Img_RedPoint",
+          "bundle": "ui/common.asset",
+          "sprite": "main_icon_tip",
+          "path_id": 4119282664310322428,
+          "size_native": [
+            30.0,
+            31.0
+          ]
+        }
+      ],
+      "refinement_recipe": {
+        "kind": "claim_all_with_red",
+        "text_rectangle_xyxy": [
+          74,
+          14,
+          164,
+          45
+        ],
+        "red_size_client": [
+          20,
+          21
+        ],
+        "red_offset_from_body_client": [
+          215,
+          -2
+        ],
+        "red_inner_rectangle_xyxy": [
+          3,
+          2,
+          17,
+          19
+        ],
+        "red_mask_weight": 4.0,
+        "renderer_family": "buttons",
+        "match": {
+          "method": "TM_CCOEFF_NORMED",
+          "use_grayscale": false,
+          "preprocess": "none",
+          "roi": [
+            1015,
+            630,
+            265,
+            90
+          ],
+          "threshold": 0.9,
+          "mask": "bp_manual_claim_all_red.weights.npy",
+          "mask_encoding": "float32_npy_relative_weights"
+        }
+      },
+      "file": "templates/rewards/battle_pass/manual_claim_all_red.png",
+      "mask": "templates/rewards/battle_pass/manual_claim_all_red.weights.npy",
+      "sha256": "23a1afd37c3b665c4c4ec0942b7013392124f69e72456c4bcb5246a7008e087a",
+      "mask_sha256": "91411c98dd62c51c6c68f85b6ea20d523a292cabab69ecaa6489b6a530d1c6de"
+    },
+    "reward_title": {
+      "original_candidate_id": "shared_reward_title",
+      "approved_candidate_sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
+      "source": "plans/resonance_pc/templates/rewards/daily/reward_title.png",
+      "refinement_recipe": null,
+      "file": "templates/rewards/battle_pass/reward_title.png",
+      "mask": "templates/rewards/battle_pass/reward_title.mask.png",
+      "sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
+      "mask_sha256": "11f485730a6d29151b39eac044aa72c129be4084c4ba22df84c5fd80ceb89509"
+    },
+    "reward_exit": {
+      "original_candidate_id": "shared_reward_exit",
+      "approved_candidate_sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
+      "source": "plans/resonance_pc/templates/rewards/daily/reward_exit.png",
+      "refinement_recipe": null,
+      "file": "templates/rewards/battle_pass/reward_exit.png",
+      "mask": "templates/rewards/battle_pass/reward_exit.mask.png",
+      "sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
+      "mask_sha256": "4141ee2f5849caae47dc41f1b65aecdc01816012cd5b304fc5257e62072d9049"
+    },
+    "city_main": {
+      "original_candidate_id": "shared_city_main",
+      "approved_candidate_sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2",
+      "source": "plans/resonance_pc/templates/rewards/daily/city_main.png",
+      "refinement_recipe": null,
+      "file": "templates/rewards/battle_pass/city_main.png",
+      "mask": null,
+      "sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2",
+      "mask_sha256": null
+    }
+  },
+  "limitations": [
+    "Copied approved candidates byte-for-byte without rebuilding or rematching during implementation.",
+    "Sprite/font/layout recipes are native-source based; no screenshot crops used as runtime templates.",
+    "Historical screenshot scores reuse calibration scenes; not independent accuracy or live-device validation.",
+    "No lock, incomplete label or generic left reminder is included."
+  ]
+}

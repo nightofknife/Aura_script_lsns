@@ -1,0 +1,169 @@
+{
+  "manual_on": {
+    "template_key": "bp_manual_on",
+    "icon_size_client": [
+      25,
+      24
+    ],
+    "font_size_client": 20,
+    "aa": 3,
+    "stroke_client": 0,
+    "text_offset_client": [
+      29,
+      0
+    ],
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "blur",
+      "roi": [
+        345,
+        635,
+        250,
+        85
+      ]
+    },
+    "renderer_family": "tabs"
+  },
+  "manual_off": {
+    "template_key": "bp_manual_off",
+    "icon_size_client": [
+      25,
+      24
+    ],
+    "font_size_client": 20,
+    "aa": 3,
+    "stroke_client": 0,
+    "text_offset_client": [
+      29,
+      0
+    ],
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "blur",
+      "roi": [
+        345,
+        635,
+        250,
+        85
+      ]
+    },
+    "renderer_family": "tabs"
+  },
+  "tasks_on": {
+    "template_key": "bp_tasks_on",
+    "icon_size_client": [
+      25,
+      24
+    ],
+    "font_size_client": 20,
+    "aa": 3,
+    "stroke_client": 0,
+    "text_offset_client": [
+      29,
+      0
+    ],
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "blur",
+      "roi": [
+        580,
+        635,
+        265,
+        85
+      ]
+    },
+    "renderer_family": "tabs"
+  },
+  "tasks_off": {
+    "template_key": "bp_tasks_off",
+    "icon_size_client": [
+      25,
+      24
+    ],
+    "font_size_client": 20,
+    "aa": 3,
+    "stroke_client": 0,
+    "text_offset_client": [
+      29,
+      0
+    ],
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": true,
+      "preprocess": "blur",
+      "roi": [
+        580,
+        635,
+        265,
+        85
+      ]
+    },
+    "renderer_family": "tabs"
+  },
+  "tasks_claim_all": {
+    "kind": "claim_all",
+    "text_rectangle_xyxy": [
+      74,
+      14,
+      164,
+      45
+    ],
+    "renderer_family": "buttons",
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": false,
+      "preprocess": "none",
+      "roi": [
+        1015,
+        630,
+        265,
+        90
+      ],
+      "threshold": 0.9,
+      "mask": "bp_tasks_claim_all.mask.png",
+      "mask_encoding": "uint8_binary_png"
+    }
+  },
+  "manual_claim_all_red": {
+    "kind": "claim_all_with_red",
+    "text_rectangle_xyxy": [
+      74,
+      14,
+      164,
+      45
+    ],
+    "red_size_client": [
+      20,
+      21
+    ],
+    "red_offset_from_body_client": [
+      215,
+      -2
+    ],
+    "red_inner_rectangle_xyxy": [
+      3,
+      2,
+      17,
+      19
+    ],
+    "red_mask_weight": 4.0,
+    "renderer_family": "buttons",
+    "match": {
+      "method": "TM_CCOEFF_NORMED",
+      "use_grayscale": false,
+      "preprocess": "none",
+      "roi": [
+        1015,
+        630,
+        265,
+        90
+      ],
+      "threshold": 0.9,
+      "mask": "bp_manual_claim_all_red.weights.npy",
+      "mask_encoding": "float32_npy_relative_weights"
+    }
+  }
+}

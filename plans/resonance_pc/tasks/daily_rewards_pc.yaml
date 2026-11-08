@@ -1,0 +1,31 @@
+collect_daily_mission_rewards_pc:
+  meta:
+    role: user_task
+    domain: 日常奖励
+    title: 每日任务奖励
+    description: 从站场主界面启动，仅在任务入口带红点时进入每日活跃页，领取已完成任务与活跃奖励，确认关闭奖励弹层并返回主界面。
+    entry_point: true
+    concurrency: exclusive
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    collect:
+      action: resonance_pc.collect_daily_mission_rewards
+      depends_on: require_resolution
+  returns: "{{ nodes.collect.output }}"
+
+collect_battle_pass_rewards_pc:
+  meta:
+    role: user_task
+    domain: 日常奖励
+    title: 通行证奖励
+    description: 从站场主界面启动，仅在星形入口带红点时进入通行证，逐个领取已完成的每日和每周任务奖励、已解锁等级奖励，并确认返回主界面。
+    entry_point: true
+    concurrency: exclusive
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    collect:
+      action: resonance_pc.collect_battle_pass_rewards
+      depends_on: require_resolution
+  returns: "{{ nodes.collect.output }}"

@@ -36,6 +36,8 @@ from .logic import (
     PC_AFFIX_REFRESH_TASK_REF,
     PC_AFFIX_REFRESH_READ_TASK_REF,
     PC_BATTLE_TASK_REF,
+    PC_DAILY_MISSION_REWARDS_TASK_REF,
+    PC_BATTLE_PASS_REWARDS_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
@@ -355,6 +357,8 @@ class ResonanceMainWindow(QMainWindow):
         self.small_tasks_page.runEternalScuffleRequested.connect(self._run_small_task_eternal_scuffle)
         self.small_tasks_page.readAffixRefreshRequested.connect(self._read_small_task_affix_refresh)
         self.small_tasks_page.runAffixRefreshRequested.connect(self._run_small_task_affix_refresh)
+        self.small_tasks_page.runDailyMissionRewardsRequested.connect(self._run_small_task_daily_rewards)
+        self.small_tasks_page.runBattlePassRewardsRequested.connect(self._run_small_task_battle_pass_rewards)
         self.small_tasks_page.cacheRequested.connect(
             self._read_small_task_player_data_cache
         )
@@ -395,6 +399,7 @@ class ResonanceMainWindow(QMainWindow):
         elif destination in {
             "trade_preview", "player_data_refresh", "team_recommendation",
             "affix_refresh", "consciousness_deep_dive", "eternal_scuffle",
+            "daily_rewards",
         }:
             self.small_tasks_page.show_task(destination)
             self._switch_page("tools")
@@ -505,6 +510,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.cancelRequested.connect(self._on_workflow_cancel_requested)
         self._bridge.cancelRequested.connect(self._on_affix_refresh_cancel_requested)
+        self._bridge.cancelRequested.connect(self._on_daily_rewards_cancel_requested)
         self._bridge.taskFinished.connect(self._on_task_finished)
         self._bridge.taskFailed.connect(self._on_task_failed)
         self._bridge.busyChanged.connect(self._on_busy_changed)
@@ -973,6 +979,30 @@ class ResonanceMainWindow(QMainWindow):
         self.small_tasks_page.begin_eternal_scuffle_run(inputs)
         self.requestRunPcTask.emit(PC_ETERNAL_SCUFFLE_TASK_REF, dict(inputs), "无垠乱斗", float(self._preferences.timeout_sec))
 
+    def _run_small_task_daily_rewards(self) -> None:
+        if self._busy or self._workflow_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再领取每日任务奖励。")
+            return
+        self._small_task_active_ref = PC_DAILY_MISSION_REWARDS_TASK_REF
+        self.small_tasks_page.begin_daily_rewards_run()
+        self.requestRunPcTask.emit(
+            PC_DAILY_MISSION_REWARDS_TASK_REF, {}, "每日任务奖励", 0.0,
+        )
+
+    def _on_daily_rewards_cancel_requested(self, _payload: dict[str, Any]) -> None:
+        if self._small_task_active_ref in {PC_DAILY_MISSION_REWARDS_TASK_REF, PC_BATTLE_PASS_REWARDS_TASK_REF}:
+            self.small_tasks_page.daily_rewards_panel.mark_stopping()
+
+    def _run_small_task_battle_pass_rewards(self) -> None:
+        if self._busy or self._workflow_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再领取通行证奖励。")
+            return
+        self._small_task_active_ref = PC_BATTLE_PASS_REWARDS_TASK_REF
+        self.small_tasks_page.begin_daily_rewards_run("battle_pass")
+        self.requestRunPcTask.emit(
+            PC_BATTLE_PASS_REWARDS_TASK_REF, {}, "通行证奖励", 0.0,
+        )
+
 
     def _run_deep_dive_scan(self) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
@@ -1086,6 +1116,8 @@ class ResonanceMainWindow(QMainWindow):
             PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF: page.show_consciousness_deep_dive_sensitivity_probe_error,
             PC_TEAM_RECOMMENDATION_TASK_REF: page.show_team_recommendation_error,
             PC_ETERNAL_SCUFFLE_TASK_REF: page.show_eternal_scuffle_error,
+            PC_DAILY_MISSION_REWARDS_TASK_REF: page.show_daily_rewards_error,
+            PC_BATTLE_PASS_REWARDS_TASK_REF: page.show_daily_rewards_error,
         }
         handlers.get(task_ref, page.show_player_data_error)(message)
 
@@ -1445,6 +1477,18 @@ class ResonanceMainWindow(QMainWindow):
                     self._show_small_task_error(task_ref, message)
             if small_task_owns_result:
                 self._small_task_active_ref = ""
+            if task_ref in {PC_DAILY_MISSION_REWARDS_TASK_REF, PC_BATTLE_PASS_REWARDS_TASK_REF} and small_task_owns_result:
+                runner_status = extract_status(payload)
+                reward_label = "通行证" if task_ref == PC_BATTLE_PASS_REWARDS_TASK_REF else "每日任务"
+                if (runner_status != "success" or payload.get("gui_timeout_cancelled")
+                        or payload.get("gui_soft_stop_requested")):
+                    self.small_tasks_page.show_daily_rewards_error(
+                        str(payload.get("error") or player_data_result.get("message")
+                            or player_data_result.get("reason") or f"{reward_label}奖励收集已取消或中断。"),
+                        cancelled=runner_status == "cancelled" or bool(payload.get("gui_soft_stop_requested")),
+                    )
+                else:
+                    self.small_tasks_page.apply_daily_rewards_result(player_data_result)
             if task_ref in {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF} and small_task_owns_result:
                 affix_result = player_data_result.get("affix_refresh")
                 runner_status = extract_status(payload)
@@ -1673,6 +1717,11 @@ class ResonanceMainWindow(QMainWindow):
             return
         self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
         stage = str(payload.get("stage") or "")
+        if stage == "cancel_task" and self._small_task_active_ref in {
+                PC_DAILY_MISSION_REWARDS_TASK_REF, PC_BATTLE_PASS_REWARDS_TASK_REF}:
+            self.small_tasks_page.daily_rewards_panel.cancel_failed(str(payload.get("error") or "未知错误"))
+            self.run_detail.show_text(pretty_json(payload))
+            return
         if (stage == "cancel_task" and self._small_task_active_ref in
                 {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF}):
             self.small_tasks_page.affix_refresh_panel.cancel_failed(str(payload.get("error") or "未知错误"))

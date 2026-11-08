@@ -1,0 +1,132 @@
+{
+  "main_entry_with_red": {
+    "roi": [
+      810,
+      0,
+      125,
+      110
+    ],
+    "threshold": 0.9,
+    "use_grayscale": false,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "none",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "manual_on": {
+    "roi": [
+      345,
+      635,
+      250,
+      85
+    ],
+    "threshold": 0.9,
+    "use_grayscale": true,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "blur",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "manual_off": {
+    "roi": [
+      345,
+      635,
+      250,
+      85
+    ],
+    "threshold": 0.9,
+    "use_grayscale": true,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "blur",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "tasks_on": {
+    "roi": [
+      580,
+      635,
+      265,
+      85
+    ],
+    "threshold": 0.9,
+    "use_grayscale": true,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "blur",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "tasks_off": {
+    "roi": [
+      580,
+      635,
+      265,
+      85
+    ],
+    "threshold": 0.9,
+    "use_grayscale": true,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "blur",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "tasks_claim_all": {
+    "roi": [
+      1015,
+      630,
+      265,
+      90
+    ],
+    "threshold": 0.9,
+    "use_grayscale": false,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "none",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "manual_claim_all_red": {
+    "roi": [
+      1015,
+      630,
+      265,
+      90
+    ],
+    "threshold": 0.9,
+    "use_grayscale": false,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "none",
+    "mask_encoding": "float32_npy"
+  },
+  "reward_title": {
+    "roi": [
+      475,
+      155,
+      340,
+      115
+    ],
+    "threshold": 0.9,
+    "use_grayscale": true,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "none",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "reward_exit": {
+    "roi": [
+      520,
+      645,
+      240,
+      75
+    ],
+    "threshold": 0.85,
+    "use_grayscale": true,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "blur",
+    "mask_encoding": "uint8_binary_png"
+  },
+  "city_main": {
+    "roi": [
+      140,
+      0,
+      130,
+      85
+    ],
+    "threshold": 0.9,
+    "use_grayscale": false,
+    "method": "TM_CCOEFF_NORMED",
+    "preprocess": "none",
+    "mask_encoding": "none"
+  }
+}

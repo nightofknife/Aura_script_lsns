@@ -29,6 +29,7 @@ from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
 from .eternal_scuffle_panel import EternalScufflePanel
 from .affix_refresh_panel import AffixRefreshPanel
 from .data_collection_panel import DataCollectionPanel
+from .daily_rewards_panel import DailyRewardsPanel
 from .player_data_panel import PlayerDataPanel
 from .team_recommendation_panel import TeamRecommendationPanel
 from .trade_page import TradePage
@@ -40,6 +41,7 @@ CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
 DATA_COLLECTION_TASK_ID = "data_collection"
 ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 AFFIX_REFRESH_TASK_ID = "affix_refresh"
+DAILY_REWARDS_TASK_ID = "daily_rewards"
 TRADE_PREVIEW_TASK_ID = "trade_preview"
 SMALL_TASKS: tuple[tuple[str, str], ...] = (
     (USER_DATA_TASK_ID, "刷新用户数据"),
@@ -48,6 +50,7 @@ SMALL_TASKS: tuple[tuple[str, str], ...] = (
     (CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"),
     (ETERNAL_SCUFFLE_TASK_ID, "无垠乱斗"),
     (AFFIX_REFRESH_TASK_ID, "刷新词缀"),
+    (DAILY_REWARDS_TASK_ID, "日常奖励收集"),
 )
 TASK_TOOLTIPS = {
     USER_DATA_TASK_ID: "选择更新范围并刷新用户数据；在数据快照中查看最近一次结果。",
@@ -56,6 +59,7 @@ TASK_TOOLTIPS = {
     CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "执行完整随机循环，或在当前关卡实时规划运行。",
     ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
     AFFIX_REFRESH_TASK_ID: "按目标和胶卷上限自动刷新词缀，命中后停止，由你手动替换。",
+    DAILY_REWARDS_TASK_ID: "从站场主界面分别启动每日任务奖励或通行证奖励收集。",
     DATA_COLLECTION_TASK_ID: "采集识海深潜页面数据或探测拖动灵敏度。",
 }
 
@@ -101,6 +105,8 @@ class SmallTasksPage(QWidget):
     runEternalScuffleRequested = Signal(object)
     readAffixRefreshRequested = Signal()
     runAffixRefreshRequested = Signal(object)
+    runDailyMissionRewardsRequested = Signal()
+    runBattlePassRewardsRequested = Signal()
     runConsciousnessDeepDiveCaptureRequested = Signal(object)
     runConsciousnessDeepDiveSensitivityProbeRequested = Signal()
     cancelRequested = Signal()
@@ -201,6 +207,13 @@ class SmallTasksPage(QWidget):
         self.affix_refresh_panel.cancelRequested.connect(self.cancelRequested.emit)
         self.detail_stack.addWidget(self.affix_refresh_panel)
         self._task_pages[AFFIX_REFRESH_TASK_ID] = self.affix_refresh_panel
+
+        self.daily_rewards_panel = DailyRewardsPanel(self.detail_stack)
+        self.daily_rewards_panel.runRequested.connect(self.runDailyMissionRewardsRequested.emit)
+        self.daily_rewards_panel.runBattlePassRequested.connect(self.runBattlePassRewardsRequested.emit)
+        self.daily_rewards_panel.cancelRequested.connect(self.cancelRequested.emit)
+        self.detail_stack.addWidget(self.daily_rewards_panel)
+        self._task_pages[DAILY_REWARDS_TASK_ID] = self.daily_rewards_panel
 
         self.trade_preview_panel = TradePage(settings, self.detail_stack, preview_mode=True)
         self.return_to_trade_button = QPushButton("← 返回货运", self.trade_preview_panel)
@@ -377,6 +390,21 @@ class SmallTasksPage(QWidget):
         self.eternal_scuffle_panel.begin_run(inputs)
         self._sync_controls()
 
+    def begin_daily_rewards_run(self, component: str = "daily_mission") -> None:
+        self._active_task_id = DAILY_REWARDS_TASK_ID
+        self.daily_rewards_panel.begin_run(component)
+        self._sync_controls()
+
+    def apply_daily_rewards_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.daily_rewards_panel.apply_result(payload)
+        self._sync_controls()
+
+    def show_daily_rewards_error(self, message: str, *, cancelled: bool = False) -> None:
+        self._active_task_id = ""
+        self.daily_rewards_panel.show_error(message, cancelled=cancelled)
+        self._sync_controls()
+
     def apply_eternal_scuffle_result(self, payload: Mapping[str, Any]) -> None:
         self._active_task_id = ""
         self.eternal_scuffle_panel.apply_result(payload)
@@ -482,6 +510,7 @@ class SmallTasksPage(QWidget):
         self.consciousness_deep_dive_panel.set_runner_busy(busy)
         self.eternal_scuffle_panel.set_runner_busy(busy)
         self.affix_refresh_panel.set_runner_busy(busy)
+        self.daily_rewards_panel.set_runner_busy(busy)
         if self.data_collection_panel is not None:
             self.data_collection_panel.set_runner_busy(busy)
             self.deep_dive_developer_panel.set_runner_busy(busy)
@@ -507,6 +536,7 @@ __all__ = [
     "AFFIX_REFRESH_TASK_ID",
     "CONSCIOUSNESS_DEEP_DIVE_TASK_ID",
     "DATA_COLLECTION_TASK_ID",
+    "DAILY_REWARDS_TASK_ID",
     "SMALL_TASKS",
     "SmallTasksPage",
     "TEAM_RECOMMENDATION_TASK_ID",

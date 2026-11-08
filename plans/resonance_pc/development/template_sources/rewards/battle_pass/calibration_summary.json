@@ -1,0 +1,112 @@
+{
+  "kind": "historical_supplied_screenshot_calibration",
+  "implementation_replay_performed": false,
+  "summary": [
+    {
+      "template": "manual_claim_all_red",
+      "positive_min": 0.9783602952957153,
+      "negative_max": 0.5192811489105225,
+      "margin": 0.45907914638519287,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "tasks_off",
+      "positive_min": 0.9887315630912781,
+      "negative_max": 0.5306180715560913,
+      "margin": 0.45811349153518677,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "manual_off",
+      "positive_min": 0.992154598236084,
+      "negative_max": 0.5843391418457031,
+      "margin": 0.40781545639038086,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "card_claim",
+      "positive_min": 0.9861190319061279,
+      "negative_max": 0.3721792697906494,
+      "margin": 0.6139397621154785,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "tasks_claim_all",
+      "positive_min": 0.9512804746627808,
+      "negative_max": 0.046985652297735214,
+      "margin": 0.9042948223650455,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "manual_on",
+      "positive_min": 0.9822526574134827,
+      "negative_max": 0.5510940551757812,
+      "margin": 0.4311586022377014,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "tasks_on",
+      "positive_min": 0.9782743453979492,
+      "negative_max": 0.5207812786102295,
+      "margin": 0.4574930667877197,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": false
+    },
+    {
+      "template": "main_entry_with_red",
+      "positive_min": 0.9589947462081909,
+      "negative_max": 0.6037278175354004,
+      "margin": 0.3552669286727905,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": true
+    },
+    {
+      "template": "city_main",
+      "positive_min": 0.9398215413093567,
+      "negative_max": 0.6311188340187073,
+      "margin": 0.3087027072906494,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": true
+    },
+    {
+      "template": "reward_title",
+      "positive_min": 0.9651867151260376,
+      "negative_max": 0.2769918143749237,
+      "margin": 0.6881949007511139,
+      "threshold": 0.9,
+      "passed": true,
+      "preserved": true
+    },
+    {
+      "template": "reward_exit",
+      "positive_min": 0.9112213850021362,
+      "negative_max": 0.4420412480831146,
+      "margin": 0.4691801369190216,
+      "threshold": 0.85,
+      "passed": true,
+      "preserved": true
+    }
+  ],
+  "limitations": [
+    "Only five supplied scenes; tuning and replay use the same screenshots, not independent validation.",
+    "Scores are matching similarities, not recognition probabilities.",
+    "No genuine star-without-red screenshot is available; the star asset was preserved.",
+    "Ordinary claim-all controls are identical across pages; gate with page/tab anchors.",
+    "No live game input or runtime changes."
+  ]
+}
