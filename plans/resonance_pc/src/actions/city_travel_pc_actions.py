@@ -1228,6 +1228,8 @@ def resonance_pc_intercity_depart_and_wait(
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
     expect_passenger_settlement: bool = False,
+    *,
+    pickup_on_trailer_only: bool = False,
 ) -> Dict[str, Any]:
     _check_intercity_cancelled()
     validate_trailer_options(use_trailer, trailer_daily_first_n, trailer_payment)
@@ -1239,7 +1241,8 @@ def resonance_pc_intercity_depart_and_wait(
 
     pickup_interval = _normalize_pickup_interval(auto_pickup_interval_sec)
     allowed_names = _normalize_allowed_fatigue_medicines(allowed_fatigue_medicines)
-    if auto_pickup and not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
+    pickup_requested = auto_pickup and (use_trailer or not pickup_on_trailer_only)
+    if pickup_requested and not Path(_resolve_plan_template_path(_TRAVEL_HORN_TEMPLATE)).is_file():
         _raise_error(code="pickup_template_missing", message="Travel horn template is missing.")
     medicine_limit = max(int(fatigue_medicine_max_uses), 0)
     medicine_usage: Dict[str, int] = {}
@@ -1332,6 +1335,7 @@ def resonance_pc_intercity_depart_and_wait(
                           gate_state=gate_state, departure_attempts=departure_attempts,
                           confirmed=gate_state == "trailer_departed")
         if gate_state in {"confirm_clicked", "assume_traveling", "trailer_departed"}:
+            pickup_enabled = pickup_requested and (not pickup_on_trailer_only or gate_state == "trailer_departed")
             observe_operation("travel.wait_arrival",
                               "拖车出发已确认，等待到站" if gate_state == "trailer_departed" else "等待到站（出发未单独核实）",
                               "started", gate_state=gate_state, departure_confirmed=gate_state == "trailer_departed")
@@ -1343,7 +1347,7 @@ def resonance_pc_intercity_depart_and_wait(
                 vision=vision,
                 **({"expect_passenger_settlement": True} if expect_passenger_settlement else {}),
                 **({"auto_pickup": True, "auto_pickup_interval_sec": pickup_interval}
-                   if auto_pickup and gate_state != "trailer_departed" else {}),
+                   if pickup_enabled else {}),
             )
             observe_operation("travel.wait_arrival", "到站等待返回", "completed",
                               arrival_status=arrival.get("status"),

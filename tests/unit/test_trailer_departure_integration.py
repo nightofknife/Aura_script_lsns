@@ -10,6 +10,9 @@ from tests.unit.test_departure_gate_flow import flow, run
 from tests.unit.test_trailer_freight_policy import skip
 
 
+WAIT_FOR_ARRIVAL = m.resonance_pc_wait_intercity_arrival
+
+
 def departed(**changes):
     return {"success": True, "status": "departed", "submitted": True, "departed": True,
             "reason": "departure_confirmed", "page_state": "traveling", **changes}
@@ -27,26 +30,51 @@ def setup(monkeypatch, flow, result):
     return calls
 
 
-def test_tow_success_bypasses_ordinary_departure_and_pickup(flow, monkeypatch):
+@pytest.mark.parametrize(("auto_pickup", "pickup_on_trailer_only"), [(False, False), (True, False), (True, True)])
+def test_tow_success_bypasses_ordinary_departure_and_honors_pickup(flow, monkeypatch, auto_pickup,
+                                                               pickup_on_trailer_only):
     calls = setup(monkeypatch, flow, departed())
+
     def arrive(**kwargs):
-        assert not kwargs.get("auto_pickup")
+        assert kwargs.get("auto_pickup", False) is auto_pickup
+        assert kwargs.get("auto_pickup_interval_sec") == (2.5 if auto_pickup else None)
         flow.events.append("arrival")
         return {"status": "arrived"}
+
     monkeypatch.setattr(m, "resonance_pc_wait_intercity_arrival", arrive)
-    result = run(flow, use_trailer=True, trailer_daily_first_n=3, trailer_payment="mileage", auto_pickup=True)
+    result = run(flow, use_trailer=True, trailer_daily_first_n=3, trailer_payment="mileage",
+                 auto_pickup=auto_pickup, auto_pickup_interval_sec=2.5, pickup_on_trailer_only=pickup_on_trailer_only)
     assert result["success"] and result["travel_method"] == "trailer"
-    assert calls[0]["daily_first_n"] == 3 and calls[0]["payment"] == "mileage"
+    assert len(calls) == 1 and calls[0]["daily_first_n"] == 3 and calls[0]["payment"] == "mileage"
     assert flow.events == ["open_map", ("select", "栖羽站", "海角城"), "arrival"]
 
 
+def test_tow_already_at_station_does_not_pick_up(flow, monkeypatch):
+    setup(monkeypatch, flow, departed(page_state="arrival_ready"))
+    monkeypatch.setattr(m, "resonance_pc_wait_intercity_arrival", WAIT_FOR_ARRIVAL)
+    monkeypatch.setattr(m, "_click_arrival_template_until_absent", lambda **kwargs:
+                        {"confirmed": True, "click_attempts": 1, "arrival_point": (1100, 670)})
+    monkeypatch.setattr(m._TravelPickup, "tick", lambda *args: pytest.fail("Arrival must precede pickup"))
+    result = run(flow, use_trailer=True, auto_pickup=True)
+    assert result["arrival"]["arrival_mode"] == "station_button_clicked"
+    assert result["arrival"]["pickup_click_count"] == 0
+
+
 @pytest.mark.parametrize("reason", ["quota_exhausted", "daily_limit_reached"])
-def test_quota_skip_falls_through_to_normal_on_the_already_selected_map(flow, monkeypatch, reason):
+@pytest.mark.parametrize("pickup_on_trailer_only", [False, True])
+def test_quota_skip_falls_through_to_normal_on_the_already_selected_map(flow, monkeypatch, reason,
+                                                                      pickup_on_trailer_only):
     calls = setup(monkeypatch, flow, skip(reason))
-    result = run(flow, use_trailer=True)
+    arrivals = []
+    monkeypatch.setattr(m, "resonance_pc_wait_intercity_arrival", lambda **kwargs:
+                        arrivals.append(kwargs) or {"status": "arrived"})
+    result = run(flow, use_trailer=True, auto_pickup=True, auto_pickup_interval_sec=2.5,
+                 pickup_on_trailer_only=pickup_on_trailer_only)
     assert result["success"] and result["travel_method"] == "normal"
     assert result["trailer_service"]["reason"] == reason and len(calls) == 1
     assert flow.events == ["open_map", ("select", "栖羽站", "海角城"), "normal_go"]
+    assert arrivals[0].get("auto_pickup", False) is not pickup_on_trailer_only
+    assert arrivals[0].get("auto_pickup_interval_sec") == (None if pickup_on_trailer_only else 2.5)
 
 
 @pytest.mark.parametrize("value", [
@@ -58,7 +86,7 @@ def test_quota_skip_falls_through_to_normal_on_the_already_selected_map(flow, mo
 def test_unknown_payment_or_departure_never_drives_or_waits_as_if_departed(flow, monkeypatch, value):
     setup(monkeypatch, flow, value)
     monkeypatch.setattr(m, "resonance_pc_wait_intercity_arrival", lambda **kwargs: pytest.fail("Not departed"))
-    result = run(flow, use_trailer=True)
+    result = run(flow, use_trailer=True, auto_pickup=True)
     assert not result["success"] and result["status"] == "blocked"
     assert "normal_go" not in flow.events and not flow.clicks
 

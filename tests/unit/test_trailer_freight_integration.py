@@ -118,9 +118,12 @@ def test_reposition_quota_skip_is_shared_with_remaining_trade_route(freight, har
                 **({"trailer_service": skip()} if kwargs.get("use_trailer") else {})}
     monkeypatch.setattr(trade, "resonance_pc_intercity_depart_and_wait", travel)
     result = run_full(auto_sparkling_water=False, trade_mode="fixed", reposition_to_route=True,
-                      fixed_route_city_ids=["15", "11", "15"], **OPTIONS)
+                      fixed_route_city_ids=["15", "11", "15"], auto_pickup=True, auto_pickup_interval_sec=2.5,
+                      **OPTIONS)
     assert result["success"] and len(freight) == 5
     assert [index for index, call in enumerate(freight) if call.get("use_trailer")] == [0]
+    assert all(call["auto_pickup"] and call["auto_pickup_interval_sec"] == 2.5 for call in freight)
+    assert [call.get("pickup_on_trailer_only", False) for call in freight] == [True, False, False, False, False]
     assert result["trailer_plan"]["selected_legs"][0]["phase"] == "reposition"
     assert result["execution"]["trailer_service"]["disabled_reason"] == "daily_limit_reached"
 

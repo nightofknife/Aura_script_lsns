@@ -32,9 +32,9 @@ def rig(monkeypatch):
         state.calls.append("ready")
         return {"ready": True}
 
-    def node(*, node_index, **kwargs):
-        state.calls.append("sell_node" if node_index == 2 else "buy_node")
-        state.page = "sell_page" if node_index == 2 else "buy_page"
+    def node(*, kind, **kwargs):
+        state.calls.append("sell_node" if kind == "sell" else "buy_node")
+        state.page = "sell_page" if kind == "sell" else "buy_page"
         state.settlement_closed = False
         return {"clicked": True}
 
@@ -73,7 +73,7 @@ def rig(monkeypatch):
 
     monkeypatch.setattr(trade, "_enter_exchange", enter)
     monkeypatch.setattr(trade, "_wait_for_shop_menu_ready", ready)
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", node)
+    monkeypatch.setattr(trade, "_open_trade_page", node)
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", sell)
     monkeypatch.setattr(trade, "resonance_pc_buy_goods_on_buy_page", buy)
     monkeypatch.setattr(trade, "read_trade_fatigue", read)

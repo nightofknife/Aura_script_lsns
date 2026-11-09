@@ -67,6 +67,7 @@ from ._player_data_persistence import load_pc_user_info
 from ._trade_buy_selection import (
     TradeBuySelectionError, load_product_templates, select_buy_products,
 )
+from ._trade_page_entry import BUY_TARGET, TradePageEntryError, open_trade_page
 from ._freight_contract import (
     fixed_start_stop, integer, normalize_planning_inputs, plan_view, planning_event_data, start_mismatch,
 )
@@ -334,9 +335,9 @@ def _report_worker(stage: str, state: str, **fields: Any) -> None:
 
 
 _SHOP_MENU_REGION = [720, 280, 280, 420]
-_BUY_BUTTON_TEMPLATE = "templates/commerce/books/buy_page_ready.png"
-_BUY_BUTTON_REGION = [850, 590, 380, 110]
-_BUY_BUTTON_THRESHOLD = 0.8
+_BUY_BUTTON_TEMPLATE = "templates/" + BUY_TARGET[0]
+_BUY_BUTTON_REGION = list(BUY_TARGET[1])
+_BUY_BUTTON_THRESHOLD = BUY_TARGET[2]
 # Native title crop [878, 91, 90, 26] from
 # artifacts/auto_cycle_trade_600_20260706_173232/current_buy_fail.png.
 _BUY_CONFIRM_PANEL_TEMPLATE = "templates/commerce/trade/buy/preview_title.png"
@@ -1077,9 +1078,28 @@ def resonance_pc_click_shop_menu_node(node_index: int, wait_sec: float = 1.0, ap
     x = _SHOP_NODE_X
     y = _SHOP_NODE_FIRST_Y + (index - 1) * _SHOP_NODE_GAP_Y
     _check_trade_cancelled()
-    app.click(x=x, y=y)
+    result = app.click(x=x, y=y)
+    _check_trade_cancelled()
+    if (result is False or getattr(result, "success", True) is False
+            or isinstance(result, dict) and result.get("success") is False):
+        _raise_error("shop_menu_input_failed", "交易菜单点击发送失败", {"x": x, "y": y})
     _sleep_with_cancel(max(float(wait_sec), 0.0))
     return {"success": True, "page_state": "shop_node_page", "node_index": index, "x": x, "y": y}
+
+
+def _open_trade_page(*, kind: str, app: Any, vision: Any) -> Dict[str, Any]:
+    try:
+        return open_trade_page(
+            kind=kind, app=app, vision=vision,
+            click=lambda: resonance_pc_click_shop_menu_node(
+                node_index=1 if kind == "buy" else 2, wait_sec=0.0, app=app),
+            check_cancelled=_check_trade_cancelled, sleep=_sleep_with_cancel,
+            context=dict(_WORKER_PROGRESS_CONTEXT.get()),
+        )
+    except TradePageEntryError as exc:
+        error = CityTradeFlowError(exc.code, exc.message, exc.detail)
+        attach_evidence(error, evidence_from(exc))
+        raise error from exc
 
 
 @action_info(
@@ -1570,7 +1590,7 @@ def _execute_city_trade_inside_current_city_scoped(
         enter_shop = shop_entry
         # Investment returns from an inner page; never retry a city coordinate here.
         shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
-    sell_node = resonance_pc_click_shop_menu_node(node_index=2, app=app)
+    sell_node = _open_trade_page(kind="sell", app=app, vision=vision)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
         negotiation_max_attempts=negotiation_max_attempts,
@@ -1602,7 +1622,7 @@ def _execute_city_trade_inside_current_city_scoped(
             products,
             dict(_WORKER_PROGRESS_CONTEXT.get()),
         )
-        buy_node = resonance_pc_click_shop_menu_node(node_index=1, app=app)
+        buy_node = _open_trade_page(kind="buy", app=app, vision=vision)
         buy = resonance_pc_buy_goods_on_buy_page(
             product_list=products,
             books_used=int(books_used or 0),
@@ -3080,6 +3100,8 @@ async def _execute_freight_reposition(
     route: List[Dict[str, Any]], *, page_state: str, app, ocr, vision,
     arrival_timeout_seconds: float, use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]], fatigue_medicine_max_uses: int,
+    auto_pickup: bool = False,
+    auto_pickup_interval_sec: float = 0.5,
     trailer_plan: FreightTrailerPlan | None = None,
     recovery_session: FreightRecoverySession | None = None,
 ) -> Dict[str, Any]:
@@ -3119,7 +3141,9 @@ async def _execute_freight_reposition(
                 location_file_path="data/meta/location_pc.json", city_search_region=[130, 120, 1000, 500],
                 drag_center=[640, 360], drag_span_px=900, max_search_steps=12,
                 fallback_enabled=True, target_match_mode="contains", click_y_offset=-15,
-                drag_duration_sec=1.0, drag_hold_sec=0.5, auto_pickup=False,
+                drag_duration_sec=1.0, drag_hold_sec=0.5,
+                auto_pickup=auto_pickup, auto_pickup_interval_sec=auto_pickup_interval_sec,
+                pickup_on_trailer_only=True,
                 use_fatigue_medicine=use_fatigue_medicine,
                 allowed_fatigue_medicines=allowed_fatigue_medicines or [],
                 fatigue_medicine_max_uses=fatigue_medicine_max_uses, app=app, ocr=ocr, vision=vision,
@@ -3815,6 +3839,8 @@ async def resonance_pc_auto_cycle_trade_flow(
             plan["reposition"]["route"], page_state=page_state,
             app=app, ocr=ocr, vision=vision,
             arrival_timeout_seconds=normalized_arrival_timeout_seconds,
+            auto_pickup=auto_pickup,
+            auto_pickup_interval_sec=auto_pickup_interval_sec,
             use_fatigue_medicine=use_fatigue_medicine,
             allowed_fatigue_medicines=allowed_fatigue_medicines,
             fatigue_medicine_max_uses=fatigue_medicine_max_uses,

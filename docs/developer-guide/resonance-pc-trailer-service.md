@@ -109,8 +109,9 @@ freight run, across reposition and trading, without further quota checks or
 replacement candidates. Starting a new freight task creates a new run-local policy.
 
 Confirmed towing skips the ordinary departure button and proceeds to the existing
-arrival waiter, without automatic pickup. Normal travel keeps its original pickup
-behavior. If a submitted towing attempt reaches the fatigue panel, stop with
+arrival waiter. Trade legs use the same automatic pickup setting and interval for
+both towing and normal travel. Repositioning legs use the pickup setting only
+after confirmed towing. If a submitted towing attempt reaches the fatigue panel, stop with
 `trailer_submission_requires_review` and preserve that panel. There is no native
 evidence that the charge was rejected; even an unchanged quota can lag settlement,
 so this flow never automatically recovers fatigue and submits a second payment.
