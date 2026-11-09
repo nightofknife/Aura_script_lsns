@@ -214,6 +214,28 @@
         46
       ],
       "sha256": "c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2"
+    },
+    "pass_reminder": {
+      "roi": [
+        181,
+        75,
+        28,
+        427
+      ],
+      "threshold": 0.8,
+      "use_grayscale": false,
+      "method": "TM_SQDIFF",
+      "score_scale": 2400,
+      "preprocess": "none",
+      "mask_encoding": "uint8_binary_png",
+      "template": "templates/rewards/battle_pass/pass_reminder.png",
+      "mask": "templates/rewards/battle_pass/pass_reminder.mask.png",
+      "size": [
+        20,
+        21
+      ],
+      "sha256": "57fb68649cfc7289e3fc12df01d68530f4a74e07cf0518afcf5ff8338d12828f",
+      "mask_sha256": "7c9da8079447fc491632b35f07410d4e617608968456856d005168f8377f775d"
     }
   }
 }

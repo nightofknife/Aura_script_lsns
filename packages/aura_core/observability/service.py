@@ -398,22 +398,11 @@ class ObservabilityService:
                 metrics_changed = metrics_changed or self._update_metrics_from_event(name, p)
 
             elif name == "queue.completed":
-                run = self._obs_runs.setdefault(
-                    cid,
-                    {
-                        "cid": cid,
-                        "trace_id": trace_id,
-                        "trace_label": trace_label,
-                        "source": source,
-                        "parent_cid": parent_cid,
-                        "plan_name": p.get("plan_name"),
-                        "task_name": p.get("task_name"),
-                        "started_at": None,
-                        "finished_at": None,
-                        "status": "running",
-                        "nodes": [],
-                    },
-                )
+                # The queue callback can arrive after task.finished. It adds
+                # timing to an existing run without creating active work.
+                run = self._obs_completed.get(cid) or self._obs_runs.get(cid)
+                if run is None:
+                    return
                 if p.get("queue_wait_ms") is not None:
                     run["queue_wait_ms"] = p.get("queue_wait_ms")
                 if p.get("exec_ms") is not None:

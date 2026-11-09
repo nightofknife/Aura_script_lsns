@@ -1,3 +1,35 @@
+collect_rewards_pc:
+  meta:
+    role: orchestration
+    domain: 日常奖励
+    title: 奖励领取
+    description: 按选择依次执行每日奖励领取和通行证奖励领取。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: daily_mission
+        type: boolean
+        required: false
+        default: true
+      - name: battle_pass
+        type: boolean
+        required: false
+        default: true
+  steps:
+    daily_mission:
+      when: "{{ inputs.daily_mission }}"
+      action: resonance_pc.collect_daily_mission_rewards
+    battle_pass:
+      depends_on: {daily_mission: "success|skipped"}
+      when: >-
+        {{ inputs.battle_pass and (not inputs.daily_mission or
+        (nodes.daily_mission.output.success is sameas true and
+        nodes.daily_mission.output.returned_to_main is sameas true)) }}
+      action: resonance_pc.collect_battle_pass_rewards
+  returns:
+    daily_mission: "{{ nodes.daily_mission.output if inputs.daily_mission else none }}"
+    battle_pass: "{{ nodes.battle_pass.output if inputs.battle_pass else none }}"
+
 collect_daily_mission_rewards_pc:
   meta:
     role: user_task

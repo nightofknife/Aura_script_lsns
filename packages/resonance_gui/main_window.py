@@ -49,6 +49,7 @@ from .logic import (
     PC_PLAYER_DATA_LATEST_TASK_REF,
     PC_PLAYER_DATA_REFRESH_TASK_REF,
     PC_TEAM_RECOMMENDATION_TASK_REF,
+    PC_REWARD_COLLECTION_TASK_REF,
     extract_final_result,
     extract_deep_dive_scan_result,
     extract_deep_dive_plan_result,
@@ -62,6 +63,7 @@ from .logic import (
     normalize_trade_task_inputs,
     validate_recovery_refresh,
     battle_continuation_detail,
+    reward_continuation_detail,
 )
 from .style import APP_STYLE
 from .update_checker import current_version_label, find_available_update
@@ -722,6 +724,11 @@ class ResonanceMainWindow(QMainWindow):
             if "battle" in steps:
                 validating = "自动战斗"
                 snapshots["battle"] = self.battle_page.collect_inputs()
+            if "rewards" in steps:
+                validating = "奖励领取"
+                snapshots["rewards"] = self.workflow_page.reward_inputs()
+                if not any(snapshots["rewards"].values()):
+                    raise ValueError("请选择每日奖励领取或通行证奖励领取。")
             validating = "保存设置"
             if "trade" in steps:
                 self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
@@ -760,6 +767,11 @@ class ResonanceMainWindow(QMainWindow):
                 pending.append({
                     "step": "battle", "inputs": dict(snapshots["battle"]),
                     "label": "自动战斗", "dispatch": "battle",
+                })
+            elif step == "rewards":
+                pending.append({
+                    "step": step, "task_ref": PC_REWARD_COLLECTION_TASK_REF, "inputs": run_snapshots[step],
+                    "label": "奖励领取", "dispatch": "pc_task", "timeout_sec": 0.0,
                 })
             elif step == "close":
                 pending.append({
@@ -821,7 +833,7 @@ class ResonanceMainWindow(QMainWindow):
             self.requestRunPcBattle.emit(dict(current["inputs"]), 0.0)
         else:
             self.requestRunPcTask.emit(
-                str(current["task_ref"]), dict(current["inputs"]), current["label"], timeout
+                str(current["task_ref"]), inputs, current["label"], float(current.get("timeout_sec", timeout))
             )
 
     def _run_small_task_player_data(self, inputs: object) -> None:
@@ -1477,6 +1489,19 @@ class ResonanceMainWindow(QMainWindow):
                             f"（CID: {extract_run_id(payload)}）",
                         )
                         self._workflow_current = None
+            elif step == "rewards":
+                try:
+                    item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
+                    if item.get("task_ref") != PC_REWARD_COLLECTION_TASK_REF:
+                        raise ValueError("奖励领取返回了不匹配的任务结果。")
+                    if not succeeded or payload.get("gui_timeout_cancelled") or payload.get("gui_soft_stop_requested"):
+                        raise ValueError(str(result.get("reason") or payload.get("error") or "奖励领取未完成。"))
+                    state, detail = reward_continuation_detail(result, current["inputs"])
+                except ValueError as exc:
+                    self._abort_workflow(str(exc))
+                else:
+                    self.workflow_page.mark_step(step, state, detail)
+                    self._workflow_current = None
             elif step == "battle":
                 try:
                     gui_item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
@@ -1574,12 +1599,10 @@ class ResonanceMainWindow(QMainWindow):
         if not self._workflow_active:
             self.workflow_page.run_button.setEnabled(not busy)
         if self._workflow_active and not busy:
-            if (
-                not self._workflow_stopping
-                and self._workflow_current is not None
-                and self._workflow_current.get("step") == "refresh_recovery"
-            ):
-                self._abort_workflow("货运前数据刷新已停止，但没有返回可用结果。")
+            if not self._workflow_stopping and self._workflow_current is not None:
+                current = self._workflow_current
+                if current["step"] in {"refresh_recovery", "rewards"}:
+                    self._abort_workflow(f"{current['label']}已停止，但没有返回可用结果。")
             if self._workflow_stopping:
                 self._finish_workflow(
                     False,

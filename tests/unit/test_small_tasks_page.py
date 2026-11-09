@@ -328,6 +328,6 @@ def test_workflow_migrates_removed_player_data_configuration(tmp_path) -> None:
     repository = ResonanceConfigRepository(settings)
 
     page = WorkflowPage(repository)
-    assert page._task_order == ["startup", "battle", "close", "trade"]
+    assert page._task_order == ["startup", "battle", "rewards", "close", "trade"]
     assert "player_data" not in page._task_checks
     page.close()

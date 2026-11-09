@@ -1,4 +1,4 @@
-"""Reminder-gated traversal of all active passes with bounded, confirmed input."""
+"""Collect rewards from visible pass reminders with bounded, confirmed input."""
 from __future__ import annotations
 
 import asyncio
@@ -6,10 +6,9 @@ import time
 
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.operation_scope import OperationTimeout
-from ....aura_base.src.services.interaction_service import InputSession
-from ....aura_base.src.services.observation_service import Observation
 from ._daily_reward_flow import DailyRewardFlow
 from ._battle_pass_reward_vision import BattlePassRewardError, BattlePassRewardReader
+from ._battle_pass_entries import LIST_ROI, reminder_control
 
 
 PASS_PAGES = {"tasks", "manual"}
@@ -24,23 +23,20 @@ class BattlePassRewardFlow(DailyRewardFlow):
     log_label = "BattlePassRewards"
 
     def __init__(self, app, observation, interaction):
-        self.processed = {}
-        self.active_key = None
-        self.scrolls = 0
-        self.scroll_session = InputSession()
+        self.processed = []
+        self.active_row = None
         super().__init__(app, observation, interaction)
 
     def error(self, code, message):
         error = super().error(code, message)
-        error.detail.update(active_pass=self.active_key, processed_passes=list(self.processed.values()),
-                            list_scrolls=self.scrolls)
+        error.detail.update(active_row=self.active_row, processed_passes=list(self.processed))
         return error
 
     @staticmethod
     def equivalent(previous, current):
         if (previous.frame.id == current.frame.id or previous.page_state != current.page_state
-                or previous.selected_key != current.selected_key or set(previous.hits) != set(current.hits)
-                or len(previous.entries) != len(current.entries)):
+                or previous.selected_row != current.selected_row or previous.reminders != current.reminders
+                or set(previous.hits) != set(current.hits)):
             return False
         for key, hit in current.hits.items():
             old = previous.hits[key]
@@ -48,57 +44,29 @@ class BattlePassRewardFlow(DailyRewardFlow):
                 return False
             if hit.state == "present" and any(abs(a-b) > 2 for a,b in zip(old.client_center, hit.client_center)):
                 return False
-        return all(a.key == b.key and abs(a.center[1]-b.center[1]) <= 2
-                   for a,b in zip(previous.entries, current.entries))
+        return True
 
     def _current_pass(self, page, kind=None):
-        return page.selected_key == self.active_key and page.page_state in ({kind} if kind else PASS_PAGES)
+        return (self.active_row is not None and page.selected_row is not None
+                and abs(page.selected_row - self.active_row) <= 3
+                and page.page_state in ({kind} if kind else PASS_PAGES))
 
-    @staticmethod
-    def _same_list(before, after):
-        return (len(before.entries) == len(after.entries) and bool(before.entries)
-                and all(a.key == b.key and abs(a.center[1]-b.center[1]) <= 2
-                        for a,b in zip(before.entries, after.entries)))
-
-    def _scroll(self, *, down):
-        """Two acknowledged, unchanged gestures establish a clamped boundary.
-
-        A single missing/partial OCR result cannot prove the end of the list.
-        Native ScrollGrid_Time is vertical and clamped; use overlapping drags.
-        """
-        self.stage = "scroll_passes_down" if down else "scroll_passes_up"
-        for _ in range(2):
-            before = self.confirmed_page(PASS_PAGES, timeout=8.)
-            if not before.entries or not before.selected_key:
-                raise self.error("battle_pass_reward_list_unconfirmed", "无法确认通行证列表，已停止滚动。")
-            start_y, end_y = (440, 140) if down else (140, 440)
-            scope = self.scope.child(12.)
-            source = Observation("present", frame_id=before.frame.id, client_center=(110, start_y),
-                                 semantic_key="battle_pass_list")
-            self.interaction.send_input(
-                lambda: self.app.drag(start_x=110, start_y=start_y, end_x=110, end_y=end_y,
-                                      duration=.5, hold_before_release_sec=.4, stop_inertia=True),
-                scope=scope, frame=before.frame, observation=source, point=source.client_center,
-                session=self.scroll_session)
-            self.scrolls += 1
-            scope.sleep(.7)
-            after = self.confirmed_page(PASS_PAGES, timeout=8.)
-            if after.selected_key != before.selected_key:
-                raise self.error("battle_pass_reward_scroll_changed_selection", "滚动时通行证选择发生意外变化，已停止。")
-            if not self._same_list(before, after):
-                return True
-        return False
-
-    def _list_top(self):
-        for _ in range(16):
-            if not self._scroll(down=False):
-                return
-        raise self.error("battle_pass_reward_list_top_unconfirmed", "未能在上限内确认通行证列表顶部，已停止。")
-
-    def _select(self, entry):
-        self.active_key = entry.key
+    def _select(self, row):
+        self.active_row = row
         self.transition("select_pass", lambda p: p.page_state in PASS_PAGES,
-                        lambda p: self._current_pass(p), entry.control)
+                        lambda p: self._current_pass(p), reminder_control(row))
+
+    def _confirm_reminder_cleared(self):
+        self.stage = "confirm_pass_reminder_cleared"
+        scope = self.scope.child(5.)
+        result = self.interaction.confirm(
+            lambda: self.observe(scope), scope=scope, stable_scans=2, poll_seconds=.25,
+            before_probe=False, equivalent=self.equivalent,
+            accept=lambda p: self._current_pass(p) and all(abs(row - self.active_row) > 3 for row in p.reminders),
+            is_unknown=lambda p: p.page_state == "unknown",
+        )
+        if result is None:
+            raise self.error("battle_pass_reward_reminder_not_cleared", "未确认当前通行证红点消失，已停止。")
 
     def _tab(self, kind):
         other = "manual" if kind == "tasks" else "tasks"
@@ -132,8 +100,8 @@ class BattlePassRewardFlow(DailyRewardFlow):
         return {"success": True, "component": "battle_pass", "status": status, "reason": reason,
                 "claim_clicks": self.clicks["claim_tasks"] + self.clicks["claim_manual"],
                 "reward_overlays": self.reward_overlays, "returned_to_main": True,
-                "passes_processed": len(self.processed), "passes": list(self.processed.values()),
-                "list_scrolls": self.scrolls, "stage_clicks": dict(self.clicks),
+                "passes_processed": len(self.processed), "passes": list(self.processed),
+                "list_scrolls": 0, "stage_clicks": dict(self.clicks),
                 "elapsed_ms": round((time.monotonic()-self.started)*1000)}
 
     def run(self):
@@ -144,35 +112,30 @@ class BattlePassRewardFlow(DailyRewardFlow):
                     logger.info("[BattlePassRewards] skipped: confirmed main screen without star reminder")
                     return self.result("skipped_no_reminder", "no_battle_pass_reminder")
                 self.transition("enter_passes", lambda p: p.page_state == "main" and p.present("main_entry_with_red"),
-                                lambda p: p.page_state in PASS_PAGES, "main_entry_with_red")
-                self._list_top()
-                for _ in range(64):
+                                lambda p: p.page_state in PASS_PAGES and (p.selected_row is not None or bool(p.reminders)),
+                                "main_entry_with_red")
+                while True:
                     page = self.confirmed_page(PASS_PAGES, timeout=8.)
-                    remaining = [entry for entry in page.entries if entry.key not in self.processed]
-                    if remaining:
-                        if len(self.processed) >= 32:
-                            raise self.error("battle_pass_reward_pass_limit", "通行证数量超过执行上限，已停止。")
-                        entry = remaining[0]
-                        self._select(entry)
-                        tasks_before, levels_before = self.clicks["claim_tasks"], self.clicks["claim_manual"]
-                        self._collect("tasks")
-                        self._collect("manual")
-                        self.processed[entry.key] = {"title": entry.title,
-                            "task_claim_clicks": self.clicks["claim_tasks"]-tasks_before,
-                            "level_claim_clicks": self.clicks["claim_manual"]-levels_before}
-                        logger.info("[BattlePassRewards] processed pass=%s", entry.title)
-                        continue
-                    if self._scroll(down=True):
-                        continue
-                    final = self.confirmed_page(PASS_PAGES, timeout=8.)
-                    if any(entry.key not in self.processed for entry in final.entries):
-                        continue
-                    self.transition("return_main", lambda p: p.page_state in PASS_PAGES
-                                    and all(entry.key in self.processed for entry in p.entries),
-                                    lambda p: p.page_state == "main", "city_main")
-                    collected = self.clicks["claim_tasks"] + self.clicks["claim_manual"]
-                    return self.result("collected" if collected else "nothing_to_claim")
-                raise self.error("battle_pass_reward_traversal_limit", "通行证列表遍历超过上限，已停止。")
+                    if not page.reminders:
+                        self.transition("return_main", lambda p: p.page_state in PASS_PAGES and not p.reminders,
+                                        lambda p: p.page_state == "main", "city_main")
+                        collected = self.clicks["claim_tasks"] + self.clicks["claim_manual"]
+                        return self.result("collected" if collected else "nothing_to_claim")
+
+                    row = page.reminders[0]
+                    if row >= LIST_ROI[1] + LIST_ROI[3] - 9:
+                        raise self.error("battle_pass_reward_reminder_unreachable", "红点对应的卡片未完整显示，已停止。")
+                    if len(self.processed) >= 32:
+                        raise self.error("battle_pass_reward_pass_limit", "通行证数量超过执行上限，已停止。")
+                    self._select(row)
+                    tasks_before, levels_before = self.clicks["claim_tasks"], self.clicks["claim_manual"]
+                    self._collect("tasks")
+                    self._collect("manual")
+                    self._confirm_reminder_cleared()
+                    self.processed.append({"row_y": row,
+                        "task_claim_clicks": self.clicks["claim_tasks"] - tasks_before,
+                        "level_claim_clicks": self.clicks["claim_manual"] - levels_before})
+                    logger.info("[BattlePassRewards] cleared reminder row_y=%s", row)
         except asyncio.CancelledError:
             raise
         except OperationTimeout as exc:
