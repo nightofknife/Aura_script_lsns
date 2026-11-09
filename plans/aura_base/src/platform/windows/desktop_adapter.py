@@ -160,7 +160,7 @@ class WindowsDesktopAdapter(RuntimeAdapter):
     def capture(self, rect: tuple[int, int, int, int] | None = None) -> CaptureResult:
         return self._run_read_operation("capture", lambda: self.capture_backend.capture(rect=rect))
 
-    def capture_diagnostic(self) -> CaptureResult:
+    def capture_diagnostic(self, *, allow_cold_capture: bool = False) -> CaptureResult:
         """Read only the existing target; never restore, resize or rebuild it."""
         if not self._operation_lock.acquire(blocking=False):
             raise TargetRuntimeError("diagnostic_busy", "Target is processing another operation.")
@@ -169,21 +169,32 @@ class WindowsDesktopAdapter(RuntimeAdapter):
             cached = getattr(self.capture_backend, "capture_stream_frame", None)
             if callable(cached):
                 import time
-                snapshot = cached()
-                if snapshot is None or time.monotonic() - snapshot["arrived_at_monotonic"] > 1.5:
+                try:
+                    snapshot = cached()
+                except TargetRuntimeError as exc:
+                    if not allow_cold_capture or exc.code != "windows_capture_stream_not_started":
+                        raise
+                    snapshot = None
+                if snapshot is not None and time.monotonic() - snapshot["arrived_at_monotonic"] <= 1.5:
+                    return snapshot["capture"]
+                if not allow_cold_capture:
                     raise TargetRuntimeError("diagnostic_frame_unavailable", "No recent target frame is available.")
-                return snapshot["capture"]
+                capture_once = getattr(self.capture_backend, "capture_diagnostic_once", None)
+                if not callable(capture_once):
+                    raise TargetRuntimeError("diagnostic_frame_unavailable", "No diagnostic cold capture is available.")
+                capture = capture_once
             # Desktop rectangle captures (GDI/DXGI) cannot prove that the
             # pixels belong to this window rather than an overlapping app.
             # Only PrintWindow's existing handle-bound backend is suitable.
-            if self.capture_backend.backend_name != "printwindow":
+            elif self.capture_backend.backend_name != "printwindow":
                 raise TargetRuntimeError("diagnostic_window_content_unconfirmed", "Desktop pixels may belong to an overlapping window.")
-            capture = self.capture_backend.capture
+            else:
+                capture = self.capture_backend.capture
         finally:
             self._operation_lock.release()
-        # PrintWindow owns no long-lived camera/session object. A native stall
-        # retains no runtime lock and cannot block close/rebind/input.
-        return capture(rect=None)
+        # Cold WGC owns a temporary camera; PrintWindow has no persistent one.
+        # Neither may retain a runtime lock across native capture or cleanup.
+        return capture()
 
     def capture_stream_frame(self, after_generation: int = -1, *, expected_session_id: int | None = None) -> dict[str, Any] | None:
         """Poll warmed-up WGC frames concurrently with input.

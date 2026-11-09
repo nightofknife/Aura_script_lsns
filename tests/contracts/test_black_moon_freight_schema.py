@@ -7,7 +7,6 @@ import yaml
 from jinja2.nativetypes import NativeEnvironment
 
 from packages.aura_core.scheduler.validation import InputValidator
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions.black_moon_local_select_pc_actions import normalize_purchase_table
 from tools.black_moon_purchase_schema import purchase_table_schema, render_purchase_table_input
 
@@ -26,29 +25,23 @@ def task(name):
     )[name]
 
 
-def freight_schema(combined_task=False):
-    if combined_task:
-        fields = task("auto_combined_commerce_pc")["meta"]["inputs"]
-        trade = next(row for row in fields if row["name"] == "trade_inputs")
-        return trade["properties"]["black_moon_purchase_table"]
+def freight_schema():
     return next(
         row for row in task("auto_cycle_trade_pc")["meta"]["inputs"]
         if row["name"] == "black_moon_purchase_table"
     )
 
 
-@pytest.mark.parametrize("combined_task", [False, True])
-def test_catalog_generated_complete_false_schema(combined_task):
-    schema = freight_schema(combined_task)
+def test_catalog_generated_complete_false_schema():
+    schema = freight_schema()
     assert schema == purchase_table_schema("black_moon_purchase_table")
     assert len(schema["properties"]) == 140
     assert len(schema["default"]) == 140
     assert set(schema["default"].values()) == {False}
 
 
-@pytest.mark.parametrize("combined_task", [False, True])
-def test_known_partial_table_expands_but_unknown_id_rejected(combined_task):
-    schema = freight_schema(combined_task)
+def test_known_partial_table_expands_but_unknown_id_rejected():
+    schema = freight_schema()
     validator = InputValidator(None)
     ok, values, error = validator.validate_input_value(
         schema, {"purchase_order_book": True}, "black_moon_purchase_table"
@@ -83,37 +76,15 @@ def test_freight_map_forwarding_all_modes(mode):
     assert "black_moon_local_purchase_items" not in params
 
 
-def test_combined_execution_whitelist_copies_map_and_excludes_preview():
-    spec = task("auto_combined_commerce_pc")
-    ok, values = InputValidator(None).validate_inputs_against_meta(
-        spec["meta"]["inputs"],
-        {"trade_inputs": {
-            "auto_black_moon_local_purchase": True,
-            "black_moon_purchase_table": {"purchase_order_book": True},
-            "black_moon_purchase_record_scope": "account_test",
-        }},
-    )
-    assert ok, values
-    source = values["trade_inputs"]
-    execution = combined._filtered(source, combined._TRADE_INPUT_KEYS)
-    assert FIELDS <= execution.keys()
-    assert execution["black_moon_purchase_table"]["purchase_order_book"] is True
-    assert execution["black_moon_purchase_table"] is not source["black_moon_purchase_table"]
-    assert not FIELDS.intersection(combined._filtered(execution, combined._PREVIEW_INPUT_KEYS))
-    assert not FIELDS.intersection(combined._PASSENGER_INPUT_KEYS)
-    assert "black_moon_local_purchase_items" not in combined._TRADE_INPUT_KEYS
 
 
-def test_legacy_list_is_rejected_in_both_public_schemas():
+def test_legacy_list_is_rejected_in_freight_schema():
     validator = InputValidator(None)
     assert not validator.validate_inputs_against_meta(
         task("auto_cycle_trade_pc")["meta"]["inputs"],
         {"black_moon_local_purchase_items": ["purchase_order_book"]},
     )[0]
-    assert not validator.validate_inputs_against_meta(
-        task("auto_combined_commerce_pc")["meta"]["inputs"],
-        {"trade_inputs": {"black_moon_local_purchase_items": ["purchase_order_book"]}},
-    )[0]
+
 
 
 @pytest.mark.parametrize("value", [1, 0, "true", "false", [], None])

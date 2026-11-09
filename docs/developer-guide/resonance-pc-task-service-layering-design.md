@@ -353,6 +353,6 @@ WM_CLOSE 仅发送到已核验 HWND；关闭后确认目标退出，PID/HWND 重
 | 转场与生产工坊补点 | [模板转场](../../plans/resonance_pc/src/actions/_template_click_transition.py)、[工坊补人](../../plans/resonance_pc/src/actions/product_workshop_staff_pc_actions.py) |
 | 取消和在飞工作收尾 | [乱斗 runtime](../../plans/resonance_pc/src/actions/_eternal_scuffle_runtime.py)、[词缀 runtime](../../plans/resonance_pc/src/actions/_affix_refresh_runtime.py) |
 | action 与任务执行边界 | [ActionInjector](../../packages/aura_core/engine/action_injector.py)、[NodeExecutor](../../packages/aura_core/engine/node_executor.py)、[任务 action](../../plans/aura_base/src/actions/task_actions.py) |
-| 商贸组合与手工执行装配 | [组合商贸](../../plans/resonance_pc/src/actions/combined_commerce_pc_actions.py)、[城市交易](../../plans/resonance_pc/src/actions/city_trade_flow_pc_actions.py) |
+| 货运执行装配 | [城市交易](../../plans/resonance_pc/src/actions/city_trade_flow_pc_actions.py)；独立客运与客货联合编排见[退役记录](resonance-pc-passenger-retirement.md) |
 | 输入后端与地图手势 | [桥接 app](../../plans/resonance_pc/src/services/bridge_app_service.py)、[地图拖动](../../plans/resonance_pc/src/actions/_intercity_map_drag.py) |
 | 启动与关闭 | [游戏生命周期](../../plans/resonance_pc/src/actions/game_startup_pc_actions.py)、[ProcessManager](../../plans/aura_base/src/services/process_manager_service.py) |

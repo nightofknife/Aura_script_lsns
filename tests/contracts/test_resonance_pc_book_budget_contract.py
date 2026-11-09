@@ -9,7 +9,6 @@ import yaml
 
 from packages.aura_core.scheduler.validation import InputValidator
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions import trade_planner_pc_actions as planner
 from plans.resonance_pc.src.services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
 
@@ -91,27 +90,3 @@ def test_generated_registration_has_new_inputs_not_old_aliases():
         assert params["book_profit_threshold"]["default"] == 500000
         assert params["book_waste_limit"]["default"] == 0
         assert params["fatigue_budget"]["default"] == 700 and params["cargo_capacity"]["default"] == 750
-
-
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-@pytest.mark.parametrize("budget", [0, 6, None])
-def test_retained_combined_task_forwards_canonical_budget_and_recovery(order, budget):
-    assert "auto_book" not in combined._TRADE_INPUT_KEYS
-    assert {"trade_mode", "book_budget"} <= combined._PREVIEW_INPUT_KEYS
-    snapshot = {"status": {"fatigue": {"current": 101, "max": 856}},
-                "recovery": {"sparkling_water": {"remaining_free_uses": 6, "daily_free_limit": 6}},
-                "metadata": {"persisted": True}}
-    ok, inputs = InputValidator(None).validate_inputs_against_meta(
-        task("auto_combined_commerce_pc")["meta"]["inputs"],
-        {"order": order, "total_fatigue_budget": 700,
-         "trade_inputs": {"book_budget": budget, "trade_mode": "free",
-                          "book_policy": "fill", "book_waste_limit": 200,
-                          "auto_sparkling_water": True, "required_end_city_ids": ["15"]},
-         "passenger_inputs": {"passenger_city_a_id": "11", "passenger_city_b_id": "15", "trip_count": 1},
-         "recovery_snapshot": snapshot})
-    assert ok, inputs
-    assert inputs["trade_inputs"]["book_budget"] == budget
-    assert inputs["trade_inputs"]["book_waste_limit"] == 200
-    assert "book_waste_limit" in combined._PREVIEW_INPUT_KEYS
-    assert inputs["trade_inputs"]["auto_sparkling_water"] is True
-    assert inputs["recovery_snapshot"] == snapshot

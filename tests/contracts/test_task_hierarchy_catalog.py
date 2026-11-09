@@ -1,4 +1,4 @@
-"""The approved 64-source inventory has one explicit, executable placement."""
+"""The approved source inventory has one explicit, executable placement."""
 import json
 from collections import Counter
 from pathlib import Path
@@ -27,7 +27,8 @@ RENAMED = {"consciousness_deep_dive_single_run_test_pc": "consciousness_deep_div
 ADDED = {"affix_refresh_pc", "affix_refresh_read_pc", "withdraw_product_warehouse_to_train_pc",
          "auto_battle_enter_terminal_pc", "auto_battle_enter_category_pc",
          "collect_and_withdraw_products_pc", "read_visible_prison_products_pc",
-         "trade_start_preflight_pc"}
+         "trade_start_preflight_pc", "collect_daily_mission_rewards_pc",
+         "collect_battle_pass_rewards_pc"}
 
 
 def definitions():
@@ -46,17 +47,17 @@ def references(value):
             yield from references(item)
 
 
-def test_all_64_source_definitions_accounted_without_old_aliases():
+def test_all_source_definitions_accounted_without_retired_aliases():
     inventory = json.loads((ROOT / "tests/fixtures/task_hierarchy_source_inventory.json").read_text(encoding="utf-8"))
     original = {row["key"] for row in inventory}
     current = definitions()
-    assert len(inventory) == len(original) == 64
+    assert len(inventory) == len(original) == 62
     assert set(current) == (original - REMOVED.keys() - RENAMED.keys()) | set(RENAMED.values()) | ADDED
     assert len(current) == 67
     assert all(replacement in current for replacement in (*REMOVED.values(), *RENAMED.values()))
     assert all(spec["meta"]["domain"] for spec in current.values())
     assert Counter(task_role(spec["meta"]) for spec in current.values()) == {
-        "lifecycle": 2, "orchestration": 1, "user_task": 13, "user_tool": 3,
+        "lifecycle": 2, "user_task": 14, "user_tool": 3,
         "developer": 9, "internal": 39,
     }
 

@@ -1,7 +1,6 @@
 """Reusable widgets for the Resonance GUI."""
 from .battle_page import BattlePage
 from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
-from .passenger_page import PassengerPage
 from .player_data_panel import PlayerDataPanel
 from .trade_page import TradePage
 from .settings_hub_page import SettingsHubPage
@@ -13,7 +12,6 @@ from .tutorial_page import TutorialPage
 __all__ = [
     "BattlePage",
     "ConsciousnessDeepDivePanel",
-    "PassengerPage",
     "PlayerDataPanel",
     "TradePage",
     "SettingsHubPage",

@@ -61,14 +61,10 @@ from ..config_repository import ResonanceConfigRepository
 from ..battle_plan import battle_editor_day_summary
 from .toggle_button import ToggleButton as QCheckBox
 from .market_warning_label import MarketWarningLabel
-from ..passenger_catalog import load_passenger_route_catalog
 from ..logic import (
-    PASSENGER_STAGE_LABELS,
-    PassengerProgressState,
     WorkflowFreightProgressState,
     expected_profit_per_fatigue,
     average_book_profit_text,
-    reduce_passenger_progress,
     reduce_workflow_freight_progress,
     route_product_lines,
     FREIGHT_NET_PROFIT_NOTE,
@@ -80,7 +76,6 @@ from ..logic import (
 WORKFLOW_TASKS: tuple[tuple[str, str], ...] = (
     ("startup", "进入主界面"),
     ("trade", "货运"),
-    ("passenger", "客运"),
     ("battle", "自动战斗"),
     ("close", "关闭游戏"),
 )
@@ -496,7 +491,6 @@ class WorkflowPage(QWidget):
     runRequested = Signal()
     stopRequested = Signal()
     openTradeRequested = Signal()
-    openPassengerRequested = Signal()
     openBattleRequested = Signal()
     settingsRequested = Signal()
     saveParametersRequested = Signal()
@@ -519,12 +513,9 @@ class WorkflowPage(QWidget):
         self._task_order = [task_id for task_id, _title in WORKFLOW_TASKS]
         self._selected_task = "startup"
         self._tree_items: dict[str, QTreeWidgetItem] = {}
-        self._progress_items: dict[tuple[str, str], QTreeWidgetItem] = {}
         self._freight_progress = WorkflowFreightProgressState()
-        self._passenger_progress = PassengerProgressState()
         self._trade_investment_enabled = False
         self._trade_rubbish_recycling_enabled = False
-        self._passenger_route_catalog = load_passenger_route_catalog()
         self._active_runtime_kind = ""
         self._operation_started_monotonic = time.monotonic()
         self._operation_identity: tuple = ()
@@ -743,17 +734,9 @@ class WorkflowPage(QWidget):
             self.trade_editor_layout,
             self.trade_editor_header,
         ) = self._build_embedded_editor_page("货运参数")
-        (
-            self.passenger_editor_page,
-            self.passenger_editor_layout,
-            self.passenger_editor_header,
-        ) = self._build_embedded_editor_page("客运参数")
-        self._task_config_pages.update(
-            trade=self.trade_editor_page, passenger=self.passenger_editor_page
-        )
+        self._task_config_pages["trade"] = self.trade_editor_page
         self.runtime_trade_plan_page = self._build_runtime_trade_plan_page()
         self.center_stack.addWidget(self.trade_editor_page)
-        self.center_stack.addWidget(self.passenger_editor_page)
         self.center_stack.addWidget(self.runtime_trade_plan_page)
         layout.addWidget(self.center_stack)
         return panel
@@ -884,22 +867,13 @@ class WorkflowPage(QWidget):
         self._clear_runtime_trade_plan()
         return page
 
-    def attach_parameter_editors(
-        self, trade_panel: QWidget, passenger_panel: QWidget
-    ) -> None:
-        for panel, target_layout in (
-            (trade_panel, self.trade_editor_layout),
-            (passenger_panel, self.passenger_editor_layout),
-        ):
-            panel.setMinimumWidth(0)
-            panel.setMaximumWidth(16777215)
-            target_layout.addWidget(panel, 1)
+    def attach_parameter_editors(self, trade_panel: QWidget) -> None:
+        trade_panel.setMinimumWidth(0)
+        trade_panel.setMaximumWidth(16777215)
+        self.trade_editor_layout.addWidget(trade_panel, 1)
 
     def show_trade_editor(self) -> None:
         self._select_task("trade")
-
-    def show_passenger_editor(self) -> None:
-        self._select_task("passenger")
 
     def show_runtime_trade_plan(self) -> None:
         self.center_stack.setCurrentWidget(self.runtime_trade_plan_page)
@@ -1160,18 +1134,14 @@ class WorkflowPage(QWidget):
             self.operation_elapsed_label.setText(f"当前阶段已耗时 {seconds // 60:02d}:{seconds % 60:02d}")
 
     def _show_current_operation(self, kind: str, state: Any) -> None:
-        label = getattr(state, "current_operation_name", "") or (
-            state.current_label if kind == "trade" else state.stage_label
-        )
+        label = getattr(state, "current_operation_name", "") or state.current_label
         detail = getattr(state, "current_operation_detail", "")
         status = getattr(state, "current_operation_state", "")
         city = getattr(state, "current_city", "")
-        if kind == "trade" and state.active_city_index is not None:
+        if state.active_city_index is not None:
             city = next((f"第 {visit.index + 1} 站 · {visit.name}" for visit in state.cities if visit.index == state.active_city_index), city)
-        elif kind == "passenger":
-            city = self._passenger_detail()
         identity = (kind, getattr(state, "route_revision", 0), getattr(state, "active_city_index", None),
-                    getattr(state, "leg_index", None), getattr(state, "current_operation_key", ""), label, status)
+                    getattr(state, "current_operation_key", ""), label, status)
         if identity != self._operation_identity:
             self._operation_identity = identity
             self._operation_started_monotonic = time.monotonic()
@@ -1193,14 +1163,14 @@ class WorkflowPage(QWidget):
         operation = data.get("operation") if isinstance(data, Mapping) else None
         if not isinstance(operation, Mapping) or not operation.get("key"):
             return
-        key = (kind, data.get("route_revision", 0), payload.get("city_index") if kind == "trade" else None,
-               payload.get("leg_index") if kind == "passenger" else None, payload.get("stage"), operation["key"])
+        key = (kind, data.get("route_revision", 0), payload.get("city_index"),
+               payload.get("stage"), operation["key"])
         self._operation_records[key] = dict(operation)
 
     def _append_operations(self, parent: QTreeWidgetItem, kind: str, stage: str,
-                           *, city_index=None, leg_index=None, revision=0) -> None:
+                           *, city_index=None, revision=0) -> None:
         for key, operation in self._operation_records.items():
-            if key[:5] != (kind, revision, city_index, leg_index, stage):
+            if key[:4] != (kind, revision, city_index, stage):
                 continue
             label = str(operation.get("label") or operation["key"])
             state = str(operation.get("state") or "running")
@@ -1313,7 +1283,6 @@ class WorkflowPage(QWidget):
     def begin_workflow(
         self,
         steps: list[str],
-        commerce_steps: list[str],
         trade_inputs: Mapping[str, Any] | None = None,
     ) -> None:
         if self.center_stack.currentWidget() is self.runtime_trade_plan_page:
@@ -1341,7 +1310,6 @@ class WorkflowPage(QWidget):
         self.progress_stack.setCurrentWidget(self.run_tree)
         self.run_tree.clear()
         self._tree_items.clear()
-        self._progress_items.clear()
         self._trade_investment_enabled = bool(
             dict(trade_inputs or {}).get("auto_cape_island_investment", False)
         )
@@ -1356,7 +1324,6 @@ class WorkflowPage(QWidget):
             rubbish_recycling_enabled=self._trade_rubbish_recycling_enabled,
             bento_enabled=bool(dict(trade_inputs or {}).get("auto_bento", False)),
         )
-        self._passenger_progress = PassengerProgressState()
         self.resource_progress_label.clear()
         self.market_warning_label.clear()
         self.market_warning_label.hide()
@@ -1376,9 +1343,6 @@ class WorkflowPage(QWidget):
         self.task_progress_bar.setFormat("")
         self._set_internal_progress("等待第一个任务", None)
         self.append_log("流程已启动，参数快照已锁定。")
-        if commerce_steps:
-            ordered = " → ".join("货运" if kind == "trade" else "客运" for kind in commerce_steps)
-            self.append_log(f"客货运组合：{ordered}，共用货运疲劳预算；交接检查通过后继续。")
         self._sync_compact_controls()
 
     def add_freight_preparation(self) -> None:
@@ -1417,7 +1381,7 @@ class WorkflowPage(QWidget):
         if state == "running":
             self._active_runtime_kind = step
             self.runtime_task_label.setText(f"正在运行：{dict(WORKFLOW_TASKS).get(step, '货运准备')}")
-            self.compact_task_label.setText({"startup": "启动", "trade": "货运", "passenger": "客运", "battle": "作战", "close": "关闭"}.get(step, "准备"))
+            self.compact_task_label.setText({"startup": "启动", "trade": "货运", "battle": "作战", "close": "关闭"}.get(step, "准备"))
             self._operation_started_monotonic = time.monotonic()
             self.current_operation_label.setText(f"当前操作：{detail or state_text}")
             if step not in {"trade", "refresh_recovery"}:
@@ -1427,7 +1391,6 @@ class WorkflowPage(QWidget):
             "startup",
             "battle",
             "close",
-            "passenger",
             "trade",
         }:
             self._set_internal_progress(detail or state_text, 100)
@@ -1445,8 +1408,6 @@ class WorkflowPage(QWidget):
             return
         if kind == "trade":
             self._freight_progress.cid = str(cid)
-        elif kind == "passenger":
-            self._passenger_progress.cid = str(cid)
 
     def apply_progress_event(self, kind: str, event: Mapping[str, Any]) -> None:
         # A cancellation receipt may arrive after the stop button was pressed.
@@ -1461,81 +1422,51 @@ class WorkflowPage(QWidget):
             attention = freight_passenger_attention(self._freight_progress.summary.get("passenger"), cancelled=True)
             if attention:
                 self.current_operation_label.setText(attention)
-        if not self._busy or self._stopping or kind not in {"trade", "passenger"}:
+        if not self._busy or self._stopping or kind != "trade":
             return
         payload = event.get("payload")
         if not isinstance(payload, Mapping):
             return
-        if kind == "trade":
-            previous_sequence = self._freight_progress.sequence
-            self._freight_progress = reduce_workflow_freight_progress(
-                self._freight_progress,
-                event,
-                expected_cid=self._freight_progress.cid,
-                investment_enabled=self._trade_investment_enabled,
-                goods_investment_enabled=self._freight_progress.goods_investment_enabled,
-                rubbish_recycling_enabled=self._trade_rubbish_recycling_enabled,
-            )
-            if self._freight_progress.sequence == previous_sequence:
-                return
-            self._remember_operation(kind, payload)
-            if self.step_is_waiting(kind):
-                self.mark_step(kind, "running", "开始货运")
-            self._render_freight_progress()
-            self._active_runtime_kind = kind
-            self._show_current_operation(kind, self._freight_progress)
-            warning = market_fallback_notice(vars(self._freight_progress))
-            self.market_warning_label.setText(warning)
-            self.market_warning_label.setVisible(bool(warning))
-            if (
-                str(payload.get("stage") or "") == "planning"
-                and str(payload.get("state") or "").lower() == "completed"
-            ):
-                self._render_runtime_trade_plan()
-                self.runtime_plan_button.setEnabled(True)
-            elif str(payload.get("stage") or "").startswith("passenger_"):
-                self._render_runtime_trade_plan()
-            percent = self._freight_progress.percent
-            self._set_internal_progress(
-                self._freight_progress.current_label,
-                percent,
-                state=(
-                    self._freight_progress.state
-                    if self._freight_progress.state in {"failed", "cancelled"}
-                    else "running"
-                ),
-            )
-            self.append_log(self._progress_log_line(payload, self._freight_progress.current_label))
-            return
-
-        previous_sequence = self._passenger_progress.sequence
-        self._passenger_progress = reduce_passenger_progress(
-            self._passenger_progress,
+        previous_sequence = self._freight_progress.sequence
+        self._freight_progress = reduce_workflow_freight_progress(
+            self._freight_progress,
             event,
-            expected_cid=self._passenger_progress.cid,
+            expected_cid=self._freight_progress.cid,
+            investment_enabled=self._trade_investment_enabled,
+            goods_investment_enabled=self._freight_progress.goods_investment_enabled,
+            rubbish_recycling_enabled=self._trade_rubbish_recycling_enabled,
         )
-        if self._passenger_progress.sequence == previous_sequence:
+        if self._freight_progress.sequence == previous_sequence:
             return
         self._remember_operation(kind, payload)
         if self.step_is_waiting(kind):
-            self.mark_step(kind, "running", "开始客运")
-        self._render_passenger_progress()
+            self.mark_step(kind, "running", "开始货运")
+        self._render_freight_progress()
         self._active_runtime_kind = kind
-        self._show_current_operation(kind, self._passenger_progress)
-        label = self._passenger_progress.stage_label
-        detail = self._passenger_detail()
+        self._show_current_operation(kind, self._freight_progress)
+        warning = market_fallback_notice(vars(self._freight_progress))
+        self.market_warning_label.setText(warning)
+        self.market_warning_label.setVisible(bool(warning))
+        if (
+            str(payload.get("stage") or "") == "planning"
+            and str(payload.get("state") or "").lower() == "completed"
+        ):
+            self._render_runtime_trade_plan()
+            self.runtime_plan_button.setEnabled(True)
+        elif str(payload.get("stage") or "").startswith("passenger_"):
+            self._render_runtime_trade_plan()
+        percent = self._freight_progress.percent
         self._set_internal_progress(
-            f"客运 · {label}" + (f" · {detail}" if detail else ""),
-            self._passenger_percent(),
+            self._freight_progress.current_label,
+            percent,
             state=(
-                "failed"
-                if self._passenger_progress.state in {"blocked", "failed", "error"}
-                else self._passenger_progress.state
-                if self._passenger_progress.state == "cancelled"
+                self._freight_progress.state
+                if self._freight_progress.state in {"failed", "cancelled"}
                 else "running"
             ),
         )
-        self.append_log(self._progress_log_line(payload, f"{label} · {detail}" if detail else label))
+        self.append_log(self._progress_log_line(payload, self._freight_progress.current_label))
+        return
 
     def update_freight_market_result(self, result: Mapping[str, Any]) -> None:
         """Terminal-result fallback when a market progress event was not delivered."""
@@ -1886,35 +1817,6 @@ class WorkflowPage(QWidget):
             return f"{value:,}"
         return str(value)
 
-    def _render_passenger_progress(self) -> None:
-        self.progress_stack.setCurrentWidget(self.run_tree)
-        parent = self._tree_items.get("passenger")
-        if parent is None:
-            return
-        stage = self._passenger_progress.stage
-        leg = self._passenger_progress.leg_index
-        leg_key = ("passenger_leg", str(leg or 0))
-        leg_item = self._progress_items.get(leg_key)
-        if leg_item is None:
-            detail = self._passenger_detail()
-            leg_item = QTreeWidgetItem([detail or "客运准备", ""])
-            parent.addChild(leg_item)
-            self._progress_items[leg_key] = leg_item
-        key = ("passenger", f"{leg or 0}:{stage}")
-        item = self._progress_items.get(key)
-        if item is None:
-            item = QTreeWidgetItem([PASSENGER_STAGE_LABELS.get(stage, stage), "等待"])
-            leg_item.addChild(item)
-            self._progress_items[key] = item
-        item.setText(1, self._tree_state_text(self._passenger_progress.state))
-        item.takeChildren()
-        self._append_operations(item, "passenger", stage, leg_index=leg,
-                                revision=self._passenger_progress.route_revision)
-        self._style_progress_item(item, self._passenger_progress.state, row_kind="phase")
-        parent.setExpanded(True)
-        leg_item.setExpanded(True)
-        item.setExpanded(True)
-
     @staticmethod
     def _style_progress_item(
         item: QTreeWidgetItem,
@@ -1956,15 +1858,6 @@ class WorkflowPage(QWidget):
                 font = item.font(column)
                 font.setBold(True)
                 item.setFont(column, font)
-
-    def _passenger_percent(self) -> int | None:
-        return self._passenger_progress.percent
-
-    def _passenger_detail(self) -> str:
-        state = self._passenger_progress
-        cities = " → ".join(value for value in (state.source_city, state.destination_city) if value)
-        leg = f"航段 {state.leg_index}/{state.leg_count}" if state.leg_index and state.leg_count else ""
-        return " · ".join(value for value in (leg, cities) if value)
 
     @staticmethod
     def _tree_state_text(state: str) -> str:

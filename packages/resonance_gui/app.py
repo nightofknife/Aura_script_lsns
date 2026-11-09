@@ -136,7 +136,7 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
     window.show()
     page = window.workflow_page
     for _ in range(2):
-        for task in ("startup", "trade", "passenger", "battle", "close"):
+        for task in ("startup", "trade", "battle", "close"):
             page._select_task(task)
             app.processEvents()
         for mode in ("free", "fixed", "free"):
@@ -145,7 +145,7 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
             app.processEvents()
     window.trade_page.target_profit_enabled.setChecked(False)
     page._drop_task("close", 0)
-    page._drop_task("close", 5)
+    page._drop_task("close", 4)
     page._select_task("trade")
     window._open_freight_trial()
     window.small_tasks_page.return_to_trade_button.click()
@@ -167,8 +167,8 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
     page._set_inspector_collapsed(False)
     if "离线界面自检" not in page.log_view.toPlainText():
         raise RuntimeError("Inspector folding discarded logs")
-    page.begin_workflow(["trade"], [])
-    page._select_task("passenger")
+    page.begin_workflow(["trade"])
+    page._select_task("battle")
     if window.trade_page.fatigue_budget.isEnabled():
         raise RuntimeError("Workflow editors were not locked")
     page.set_stopping()

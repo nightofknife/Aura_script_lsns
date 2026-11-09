@@ -5,13 +5,9 @@ import copy
 import pytest
 
 from packages.resonance_gui.logic import (
-    PASSENGER_PROGRESS_EVENT,
-    PASSENGER_PROGRESS_SCHEMA,
     TRADE_PROGRESS_EVENT,
     TRADE_PROGRESS_SCHEMA,
-    PassengerProgressState,
     WorkflowFreightProgressState,
-    reduce_passenger_progress,
     reduce_workflow_freight_progress,
 )
 
@@ -23,11 +19,6 @@ def freight(sequence, stage, state="progress", **payload):
     }}
 
 
-def passenger(sequence, stage, state="progress", **payload):
-    event = freight(sequence, stage, state, **payload)
-    event["name"] = PASSENGER_PROGRESS_EVENT
-    event["payload"]["schema"] = PASSENGER_PROGRESS_SCHEMA
-    return event
 
 
 def plan(sequence=1, revision=1, route=None):
@@ -37,7 +28,7 @@ def plan(sequence=1, revision=1, route=None):
                    data={"route": route, "route_revision": revision})
 
 
-REDUCERS = [(reduce_workflow_freight_progress, freight), (reduce_passenger_progress, passenger)]
+REDUCERS = [(reduce_workflow_freight_progress, freight)]
 
 
 @pytest.mark.parametrize("reduce,event", REDUCERS)
@@ -156,35 +147,12 @@ def test_repeated_plan_snapshot_does_not_reset_confirmed_phases():
     assert state.cities[0].phases[1].state == "completed"
 
 
-def test_passenger_parent_completion_is_not_task_success_or_hundred_percent():
-    state = reduce_passenger_progress(None, passenger(1, "travel", "completed", leg_index=0, leg_count=1,
-        data={"progress": {"completed_units": 2, "total_units": 2}}))
-    assert state.percent == 99
-    assert state.state_label == "运行中"
-    state = reduce_passenger_progress(state, passenger(2, "task", "completed"))
-    assert state.percent == 100
-    assert state.state_label == "已完成"
 
 
-def test_passenger_child_task_completion_is_not_task_success():
-    state = reduce_passenger_progress(None, passenger(1, "task", "completed", data={"operation": {
-        "key": "task.confirming", "label": "确认任务", "state": "completed"}}))
-    assert state.percent is None
-    assert not state.task_succeeded
 
 
-def test_passenger_replanning_keeps_independent_revision_snapshots():
-    state = reduce_passenger_progress(None, passenger(1, "resolve_start", data={"route_revision": 1,
-        "route": [{"from_city": "A", "to_city": "B"}]}))
-    state = reduce_passenger_progress(state, passenger(2, "resolve_start", data={"route_revision": 2,
-        "route": [{"from_city": "B", "to_city": "C"}]}))
-    assert state.history_revisions == [{"route_revision": 1, "route": [{"from_city": "A", "to_city": "B"}],
-                                       "timestamp": None, "state": "progress"}]
-    assert state.route_revision == 2
 
 
 def test_initial_model_defaults_remain_unknown():
     assert WorkflowFreightProgressState().percent is None
-    assert PassengerProgressState().percent is None
     assert WorkflowFreightProgressState().current_operation_detail == ""
-    assert PassengerProgressState().history_revisions == []

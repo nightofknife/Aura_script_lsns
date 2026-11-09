@@ -6,7 +6,6 @@ from typing import Any
 import pytest
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade_flow
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions import trade_planner_pc_actions as planner_actions
 from plans.resonance_pc.src.services import resonance_pc_trade_planner_service as planner_module
 
@@ -176,97 +175,3 @@ def test_execute_flow_forwards_unlimited_books(monkeypatch: pytest.MonkeyPatch) 
     assert "auto_book" not in captured
     assert captured["book_budget"] is None
     assert captured["book_profit_threshold"] == 500000
-
-
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-def test_combined_commerce_forwards_unlimited_books_in_both_orders(
-    monkeypatch: pytest.MonkeyPatch,
-    order: str,
-) -> None:
-    trade_calls: list[dict[str, Any]] = []
-    preview_calls: list[dict[str, Any]] = []
-
-    monkeypatch.setattr(
-        combined,
-        "_build_passenger_route",
-        lambda **_kwargs: {"city_a_id": "11", "city_b_id": "15", "trip_fatigue": 20},
-    )
-    monkeypatch.setattr(combined, "_read_current_city", lambda *_args: {"city_key": "cape_city"})
-    monkeypatch.setattr(
-        combined,
-        "_passenger_forecast",
-        lambda **_kwargs: {"expected_fatigue": 20, "end_city": {"city_id": "15"}},
-    )
-
-    async def fake_preview(**kwargs: Any) -> dict[str, Any]:
-        preview_calls.append(dict(kwargs))
-        return {"success": True, "status": "planned", "planning_status": "ok", "route": [{"to_city_id": "3"}]}
-
-    async def fake_trade(inputs: dict[str, Any], **_kwargs: Any) -> dict[str, Any]:
-        trade_calls.append(dict(inputs))
-        destination = "11" if inputs.get("required_end_city_ids") == ["11", "15"] else "3"
-        return {
-            "success": True,
-            "status": "completed",
-            "route": [{"to_city_id": destination}],
-            "selected_end_city_id": destination,
-            "execution": {"completed_leg_count": 1},
-            "final_sale": {"success": True, "page_state": "city_main"},
-            "page_state": "city_main",
-            "expected_fatigue_used": 60,
-        }
-
-    async def fake_passenger(_inputs: dict[str, Any], **_kwargs: Any) -> dict[str, Any]:
-        return {
-            "success": True,
-            "status": "completed",
-            "requested_trips": 1,
-            "completed_trips": 1,
-            "requires_manual_completion": False,
-            "loaded_destination": None,
-            "page_state": "city_main",
-            "end_city": {"city_id": "15"},
-            "expected_fatigue_used": 20,
-        }
-
-    monkeypatch.setattr(combined, "_preview_trade_plan_from_start_city", fake_preview)
-    monkeypatch.setattr(combined, "_run_trade", fake_trade)
-    monkeypatch.setattr(combined, "_run_passenger", fake_passenger)
-    dependency = object()
-    result = asyncio.run(
-        combined.resonance_pc_auto_combined_commerce_flow(
-            order=order,
-            total_fatigue_budget=100,
-            trade_inputs={
-                "available_city_ids": ["3", "11", "15"],
-                "required_end_city_ids": ["3"],
-                "book_budget": None,
-                "auto_cape_island_investment": False,
-                "auto_rubbish_recycling": False,
-            },
-            passenger_inputs={
-                "passenger_city_a_id": "11",
-                "passenger_city_b_id": "15",
-                "trip_count": 1,
-            },
-            app=dependency,
-            ocr=dependency,
-            vision=dependency,
-            resonance_pc_city_shop_data=dependency,
-            resonance_pc_market_data=dependency,
-            resonance_pc_trade_planner=dependency,
-            state_store=dependency,
-            event_bus=dependency,
-            context=dependency,
-            engine=dependency,
-        )
-    )
-
-    assert result["status"] == "completed"
-    assert "auto_book" not in trade_calls[0]
-    assert trade_calls[0]["book_budget"] is None
-    if order == "passenger_first":
-        assert "auto_book" not in preview_calls[0]
-        assert preview_calls[0]["book_budget"] is None
-    else:
-        assert preview_calls == []

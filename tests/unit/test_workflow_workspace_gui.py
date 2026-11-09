@@ -47,12 +47,12 @@ def window(repository, monkeypatch):
 
 
 def test_retired_commerce_key_is_ignored_and_canonical_order_restored(repository):
-    repository.set_value("workflow/task_order", "close,commerce,startup,battle")
+    repository.set_value("workflow/task_order", "close,commerce,passenger,startup,battle")
     repository.set_value("workflow/commerce_order", "passenger,trade")
     repository.set_value("workflow/enabled", "startup,commerce")
     repository.set_value("workflow/commerce_enabled", "passenger")
     page = WorkflowPage(repository)
-    assert page._task_order == ["close", "startup", "battle", "trade", "passenger"]
+    assert page._task_order == ["close", "startup", "battle", "trade"]
     assert page.workflow_steps() == ["startup"]
     assert list(page._task_checks) == [task for task, _ in WORKFLOW_TASKS]
     assert "commerce" not in page._task_checks
@@ -88,33 +88,32 @@ def test_drop_event_reorders_tasks_and_persists_numbers(window):
                        Qt.MouseButton.LeftButton, Qt.KeyboardModifier.NoModifier)
     page.task_rows_host.dropEvent(event)
     assert event.isAccepted()
-    assert page._task_order == ["close", "startup", "trade", "passenger", "battle"]
-    assert [page._task_rows[key].number_label.text() for key in page._task_order] == ["1", "2", "3", "4", "5"]
+    assert page._task_order == ["close", "startup", "trade", "battle"]
+    assert [page._task_rows[key].number_label.text() for key in page._task_order] == ["1", "2", "3", "4"]
     assert window._settings.value("workflow/task_order").split(",") == page._task_order
     assert page._selected_task == "close"
 
 
-def test_five_tasks_have_flat_runtime_tree_and_busy_lock(window):
+def test_four_tasks_have_flat_runtime_tree_and_busy_lock(window):
     page = window.workflow_page
     steps = [key for key, _ in WORKFLOW_TASKS]
-    page.begin_workflow(steps, [])
-    assert page.run_tree.topLevelItemCount() == 5
-    assert [page.run_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole) for index in range(5)] == steps
-    assert all(page.run_tree.topLevelItem(index).childCount() == 0 for index in range(5))
-    assert page.task_progress_bar.maximum() == 5
+    page.begin_workflow(steps)
+    assert page.run_tree.topLevelItemCount() == 4
+    assert [page.run_tree.topLevelItem(index).data(0, Qt.ItemDataRole.UserRole) for index in range(4)] == steps
+    assert all(page.run_tree.topLevelItem(index).childCount() == 0 for index in range(4))
+    assert page.task_progress_bar.maximum() == 4
     page.add_freight_preparation()
     assert page._tree_items["refresh_recovery"].parent() is page._tree_items["trade"]
     page.mark_step("refresh_recovery", "success", "prepared")
     assert page.task_progress_bar.value() == 0
-    assert page.task_progress_bar.maximum() == 5
+    assert page.task_progress_bar.maximum() == 4
     page.mark_step("startup", "success", "ready")
     assert page.task_progress_bar.value() == 1
-    assert "1 / 5" in page.task_progress_label.text()
+    assert "1 / 4" in page.task_progress_label.text()
     assert page.center_panel.isEnabled()  # Viewing remains available.
     assert page.task_rows_host.isEnabled()
     assert all(not button.isEnabled() for button in page._task_checks.values())
     assert not window.trade_page.fatigue_budget.isEnabled()
-    assert not window.passenger_page.trip_count.isEnabled()
     assert page.run_button.isEnabled()
     order = list(page._task_order)
     page._drop_task("close", 0)
@@ -134,8 +133,8 @@ def assert_workspace_three_columns(window, tmp_path, size, task):
     assert page.center_panel.geometry().right() < page.right_panel.geometry().left()
     assert page.right_panel.width() >= 250
     assert page.run_button.isVisible()
-    if task in {"trade", "passenger"}:
-        editor = window.trade_page if task == "trade" else window.passenger_page
+    if task == "trade":
+        editor = window.trade_page
         assert editor.parameter_panel.width() > 240
         assert page.center_panel.isAncestorOf(editor.parameter_panel)
     else:
@@ -143,38 +142,27 @@ def assert_workspace_three_columns(window, tmp_path, size, task):
     assert window.grab().save(str(tmp_path / f"workspace-{task}-{size[0]}.png"))
 
 
-def test_business_tasks_share_budget_without_restoring_auto_book(window, monkeypatch):
+def test_freight_workflow_freezes_inputs_without_joint_budget_or_auto_book(window, monkeypatch):
     page = window.workflow_page
     for key, check in page._task_checks.items():
-        check.setChecked(key in {"trade", "passenger"})
-    page._drop_task("passenger", 1)
+        check.setChecked(key == "trade")
     trade = window.trade_page
     trade.fatigue_budget.setValue(333)
     trade.cargo_capacity.setValue(950)
-    window.passenger_page.trip_count.setValue(3)
-    window.passenger_page.trade_during_trip.setChecked(True)
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
     pending = window._workflow_pending
-    assert [row["step"] for row in pending] == ["passenger"]
-    assert [row["dispatch"] for row in pending] == ["combined_commerce"]
-    assert "refresh_recovery" not in page._tree_items
-    commerce = pending[0]
-    assert commerce["inputs"]["order"] == "passenger_first"
-    assert commerce["inputs"]["total_fatigue_budget"] == 333
-    assert "parent" not in commerce and "budget_pending" not in commerce
-    assert "fatigue_budget" not in commerce["inputs"]
-    assert commerce["inputs"]["passenger_inputs"]["trade_during_trip"] is True
-    assert commerce["inputs"]["trade_inputs"]["fatigue_budget"] == 333
-    assert commerce["inputs"]["trade_inputs"]["cargo_capacity"] == 950
-    assert all("auto_book" not in row["inputs"] for row in pending)
-    assert not hasattr(trade, "auto_book")
+    assert len(pending) == 1
+    assert pending[0]["step"] == pending[0]["dispatch"] == "trade"
+    inputs = pending[0]["inputs"]
+    assert inputs["fatigue_budget"] == 333
+    assert inputs["cargo_capacity"] == 950
+    assert "total_fatigue_budget" not in inputs and "trade_inputs" not in inputs
+    assert "auto_book" not in inputs and not hasattr(trade, "auto_book")
     assert not any("自动进货书" in button.text() for button in window.findChildren(ToggleButton))
-    assert page.run_tree.topLevelItemCount() == 2
+    assert page.run_tree.topLevelItemCount() == 1
     trade.fatigue_budget.setValue(999)
-    window.passenger_page.trip_count.setValue(6)
-    assert commerce["inputs"]["passenger_inputs"]["trip_count"] == 3
-    assert commerce["inputs"]["trade_inputs"]["fatigue_budget"] == 333
+    assert inputs["fatigue_budget"] == 333
 
 
 def assert_no_sibling_control_overlap(window):
@@ -192,7 +180,7 @@ def assert_no_sibling_control_overlap(window):
 
 @pytest.mark.parametrize("size", [(1180, 720), (1440, 860)])
 @pytest.mark.parametrize("surface", ["startup", "trade-free", "trade-fixed",
-                                      "passenger", "battle", "close", "settings",
+                                      "battle", "close", "settings",
                                       *[f"feature-{key}" for key, _ in SMALL_TASKS]])
 def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
     window.resize(*size)
@@ -219,14 +207,7 @@ def test_full_window_visual_qa_all_surfaces(window, tmp_path, size, surface):
         assert page.center_panel.height() > 0
         assert page.run_button.isVisible()
         assert all(row.rect().contains(row.enabled_check.geometry()) for row in page._task_rows.values())
-        if surface == "passenger":
-            scroll = window.passenger_page.parameter_panel
-            for control in (window.passenger_page.trip_count, window.passenger_page.trade_during_trip,
-                            window.passenger_page.auto_reposition,
-                            *window.passenger_page.endpoint_selector_buttons.values()):
-                assert scroll.viewport().rect().contains(control.mapTo(scroll.viewport(), control.rect().topLeft()))
-                assert scroll.viewport().rect().contains(control.mapTo(scroll.viewport(), control.rect().bottomRight()))
-    if surface in {"trade-free", "passenger", "battle"}:
+    if surface in {"trade-free", "battle"}:
         task = "trade" if surface == "trade-free" else surface
         assert_workspace_three_columns(window, tmp_path, size, task)
     if surface.startswith("trade-"):
@@ -271,7 +252,7 @@ def test_freight_trial_link_navigates_without_changing_parameters_or_calculating
     previous_preview = window.trade_preview_page.collect_ui_state()
     calls, runs = [], []
     window.requestPreviewPcTrade.connect(lambda inputs, _timeout: calls.append(inputs))
-    for signal in (window.requestRunPcTask, window.requestRunPcTrade, window.requestRunPcPassenger):
+    for signal in (window.requestRunPcTask, window.requestRunPcTrade):
         signal.connect(lambda *_args: runs.append(True))
     window.trade_preview_page.tabs.setCurrentIndex(1)
     window.freight_trial_button.click()

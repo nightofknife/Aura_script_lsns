@@ -73,9 +73,6 @@ def test_tax_map_round_trip_projection_and_immutable_snapshot(page, repository, 
     assert values["city_tax_rates_bps"]["14"] == 750
     source["city_tax_rates_bps"]["19"] = 900
     assert page._city_tax_rates_bps["19"] == 700
-    combined = ResonanceMainWindow._combined_commerce_inputs(order="trade_first", trade=values, passenger={})
-    assert combined["trade_inputs"]["city_tax_rates_bps"]["14"] == 750
-    assert "city_tax_rates_bps" not in combined["passenger_inputs"]
 
 
 def test_percent_editor_zero_override_and_restore_rules(page):

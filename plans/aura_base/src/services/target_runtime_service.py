@@ -47,7 +47,7 @@ class TargetRuntimeService:
         register_capture_provider(self._capture_failure_png)
 
     def _capture_failure_png(self, request: dict) -> dict:
-        """Diagnostic provider must not create/rebind a session on an error path."""
+        """Capture the bound target without creating/rebinding a runtime session."""
         if not self._lock.acquire(blocking=False):
             raise TargetRuntimeError("diagnostic_busy", "Runtime session is busy.")
         try:
@@ -63,7 +63,12 @@ class TargetRuntimeService:
                 raise TargetRuntimeError("diagnostic_unsupported", "This target has no read-only diagnostic capture.")
         finally:
             self._lock.release()
-        result = capture()
+        if isinstance(session, WindowsDesktopAdapter) and request.get("error_code") in {
+            "pc_client_resolution_mismatch", "pc_client_resolution_unavailable",
+        }:
+            result = capture(allow_cold_capture=True)
+        else:
+            result = capture()
         if not result.success or result.image is None:
             raise TargetRuntimeError("diagnostic_capture_failed", "Target frame is unavailable.")
         import cv2

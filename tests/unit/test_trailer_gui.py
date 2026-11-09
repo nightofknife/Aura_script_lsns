@@ -138,7 +138,7 @@ def test_preview_is_separate_and_changes_do_not_invalidate_plan(page, repository
         dispose(preview)
 
 
-def test_workflow_and_combined_forward_only_to_freight(repository, monkeypatch):
+def test_workflow_forwards_trailer_options_to_freight(repository, monkeypatch):
     app = QApplication.instance() or QApplication([])
     monkeypatch.setattr(ResonanceMainWindow, "_wire_bridge", lambda self: None)
     window = ResonanceMainWindow(settings=repository, initialize_on_startup=False)
@@ -148,19 +148,15 @@ def test_workflow_and_combined_forward_only_to_freight(repository, monkeypatch):
         page.trailer_daily_first_n.setText("7")
         page.trailer_payment.setCurrentIndex(1)
         for task, button in window.workflow_page._task_checks.items():
-            button.setChecked(task in ("trade", "passenger"))
+            button.setChecked(task == "trade")
         pending = []
         monkeypatch.setattr(window, "_begin_workflow", lambda tasks, *args: pending.extend(tasks))
         window._start_workflow()
-        assert [step["dispatch"] for step in pending] == ["combined_commerce"]
-        combined = pending[0]["inputs"]
-        assert combined["trade_inputs"]["trailer_daily_first_n"] == 7
-        assert combined["trade_inputs"]["trailer_payment"] == "mileage"
-        assert not KEYS & combined["passenger_inputs"].keys()
+        assert [step["dispatch"] for step in pending] == ["trade"]
+        inputs = pending[0]["inputs"]
+        assert inputs["trailer_daily_first_n"] == 7 and inputs["trailer_payment"] == "mileage"
         page.trailer_daily_first_n.setText("4")
-        assert combined["trade_inputs"]["auto_trailer"] is True
-        assert combined["trade_inputs"]["trailer_daily_first_n"] == 7
-        assert not KEYS & combined["passenger_inputs"].keys()
+        assert inputs["auto_trailer"] is True and inputs["trailer_daily_first_n"] == 7
     finally:
         window._close_ready = True
         dispose(window)

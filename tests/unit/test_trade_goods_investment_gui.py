@@ -18,7 +18,6 @@ from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.widgets.small_tasks_page import SMALL_TASKS
 from packages.resonance_gui.widgets.trade_page import TradePage
 from packages.resonance_gui.widgets.workflow_page import WORKFLOW_TASKS, WorkflowPage
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 
 
 @pytest.fixture
@@ -115,12 +114,6 @@ def test_missing_level_loads_default_and_malformed_json_keeps_existing_fallback(
     assert repository.load_trade_inputs()["trade_goods_investment_mode"] == 10
 
 
-def test_combined_forwarding_is_freight_only_and_not_preview():
-    values = {"auto_trade_goods_investment": True, "trade_goods_investment_mode": 20}
-    assert combined._filtered(values, combined._TRADE_INPUT_KEYS) == values
-    assert combined._filtered(values, combined._PASSENGER_INPUT_KEYS) == {}
-    assert combined._filtered(values, combined._PREVIEW_INPUT_KEYS) == {}
-    assert not set(values) & set(TRADE_PREVIEW_INPUT_KEYS)
 
 
 def test_preview_emission_does_not_reintroduce_execution_options(repository):
@@ -172,7 +165,7 @@ def test_workflow_places_investment_after_arrival_not_initial_city():
 def test_workflow_start_preserves_option(repository):
     widget = WorkflowPage(repository)
     try:
-        widget.begin_workflow(["trade"], [], trade_inputs={"auto_trade_goods_investment": True})
+        widget.begin_workflow(["trade"], trade_inputs={"auto_trade_goods_investment": True})
         assert widget._freight_progress.goods_investment_enabled
     finally:
         dispose(widget)

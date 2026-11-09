@@ -20,9 +20,10 @@ its parameters. Help opens only on request.
 
 The main navigation contains Workflow, Independent Features, Run History and Settings.
 
-- Workflow: enable and reorder startup, freight, passenger, battle and close
-  tasks. Freight and passenger have full parameter editors; when combined,
-  they share the freight fatigue budget. Battle provides separate weekday plans.
+- Workflow: enable and reorder startup, freight, battle and close tasks. Freight
+  has a full parameter editor and can carry optional passengers along its free
+  route without changing freight planning or its fatigue budget. Battle provides
+  separate weekday plans.
 - Independent Features: refresh player data, preview freight, recommend teams,
   refresh an equipment affix, run Deep Dive and Eternal Scuffle, or collect data. These
   entries use a flat task list and a wide detail panel.
@@ -74,7 +75,7 @@ step before freight execution. The workflow reports completion after final
 sales and any enabled bento cleanup have finished. Expected route values and
 confirmed execution resources are displayed separately.
 
-Freight, passenger, battle and workflow inputs use typed Qt controls. Nested
+Freight, attached-passenger, battle and workflow inputs use typed Qt controls. Nested
 JSON editing remains available only in the lower-level workbench where it is
 useful for arbitrary task inputs.
 

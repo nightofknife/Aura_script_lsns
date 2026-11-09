@@ -36,7 +36,7 @@
 | --- | --- | --- | --- | --- |
 | U01 | 工作流程／进入主界面 | `game_startup_pc.yaml:enter_main` | 保留 | 流程生命周期步骤，也供其他任务准备起点 |
 | U02 | 工作流程／货运 | `auto_cycle_trade_pc` | 保留 | 用户任务；规划、旅行、买卖、恢复等归内部操作 |
-| U03 | 工作流程／客运 | `auto_passenger_trips_pc` | 保留 | 用户任务；支持单独运行和流程编排 |
+| U03 | 原独立客运 | `auto_passenger_trips_pc` | 已退役 | 不再提供独立入口；货运内附加客运保留 |
 | U04 | 工作流程／自动战斗 | `auto_battle_dispatch_pc` | 保留 | 用户任务；任务单统一配置，内部分类与批次不再平铺为普通任务 |
 | U05 | 工作流程／关闭游戏 | `game_startup_pc.yaml:close_game` | 保留 | 流程生命周期步骤，保留停止与收尾语义 |
 | U06 | 独立功能／刷新用户数据 | `player_data_refresh` | 保留 | 用户数据工具；读取能力同时供货运准备等流程复用 |
@@ -93,9 +93,9 @@
 | `admit_prisoners_pc.yaml` | 用户任务 | 保留 | 一键收容，尚无普通 GUI 入口 |
 | `auto_battle_combat_pc.yaml` | 内部操作 | 降级 | 已进入战斗后的执行；战斗调度多处复用 |
 | `auto_battle_input_preview_pc.yaml` | 内部校验 | 合并 | 并入战斗配置预览；GUI 引用迁移后再取消独立入口 |
-| `auto_combined_commerce_pc.yaml` | 内部组合流程 | 合并 | 统一到流程编排策略；保留共享疲劳预算与交接检查，不能用普通顺序运行简单替代 |
+| `auto_combined_commerce_pc.yaml` | 原内部组合流程 | 已退役 | 联合疲劳预算与交接编排删除，见[清理记录](resonance-pc-passenger-retirement.md) |
 | `auto_cycle_trade_pc.yaml` | 用户任务 | 保留 | 完整货运；与预览、组合商贸共用输入和业务接口 |
-| `auto_passenger_trips_pc.yaml` | 用户任务 | 保留 | 两城交替客运；组合商贸直接调用其 Python flow |
+| `auto_passenger_trips_pc.yaml` | 原用户任务 | 已退役 | 两城交替客运和专用 Python 编排删除；共享揽客、结算继续供附加客运使用 |
 | `bento_consumption_pc.yaml` | 内部恢复操作 | 降级 | 货运结束处理仍调用；可保留高级手动工具 |
 | `black_moon_local_prepare_pc.yaml` | 内部采购操作 | 合并 | 与完整采购共用准备阶段，取消重复任务身份 |
 | `black_moon_local_purchase_pc.yaml` | 内部采购子流程 | 保留 | 货运通过 `aura.run_task` 调用；保留按周记录、选品确认和页面恢复 |
@@ -207,7 +207,7 @@
 | O04 | 买货、卖货、砍价抬价、进货书：货运 flow 中的 buy/sell、`trade_negotiation_pc_actions.py`、`purchase_book_pc_actions.py`、`_trade_buy_selection.py`、`_trade_sell_state.py` | 保留 | 商贸业务操作，保留数量、资源消耗和失败阶段结果 |
 | O05 | 行情刷新、缓存、快照、商品查询：`market_data_pc_actions.py` 与行情 service | 合并 | 归行情数据服务及诊断查询，不作为普通业务任务平铺 |
 | O06 | 路线规划、循环执行状态、模拟：`trade_planner_pc_actions.py`、trade planner/solver services | 合并 | 单一输入和结算契约；求解器是基础能力，simulate 是开发入口，不直接删除旧求解分支 |
-| O07 | 货运、客运、组合商贸大 flow：`city_trade_flow_pc_actions.py`、`passenger_flow_pc_actions.py`、`combined_commerce_pc_actions.py` | 合并 | 统一流程边界，保留共享预算、资源恢复及交接；避免 YAML 与 Python 各维护一套编排 |
+| O07 | 货运 flow：`city_trade_flow_pc_actions.py` | 保留 | 货运资源恢复和附加客运继续运行；原独立客运与联合预算编排已退役 |
 | O08 | 客运管理、传单揽客、进城结算：`passenger_pc_actions.py` | 保留 | 客运内部业务操作，与货运共用旅行及可选倒货 |
 | O09 | 资料、角色、仓库、装备扫描：`player_data_pc_actions.py`、`character_pc_actions.py`、`inventory_pc_actions.py`、`_player_data_persistence.py` | 合并 | 统一数据采集与缓存接口，保留各页面识别实现；用户刷新和配队均依赖 |
 | O10 | 疲劳恢复读取、便当识别与消费：`player_recovery_pc_actions.py`、`love_bento_pc_actions.py`、`bento_consumption_pc_actions.py`、`bento_auto_recovery_pc_actions.py`、`_bento_*`、`_freight_recovery_policy.py` | 合并 | 统一恢复策略与结果，保留实时读取及库存记录；自动消费直接 import 旧 consumption 会话与布局，不能整文件删除 |

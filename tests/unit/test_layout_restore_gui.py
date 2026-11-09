@@ -48,15 +48,15 @@ def test_disabled_invalid_tasks_do_not_block_freight(window, monkeypatch):
     assert calls[0][0]["fatigue_budget"] == 700
     assert calls[0][0]["cargo_capacity"] == 750
     assert not window.trade_page.fatigue_budget.isEnabled()
-    window.workflow_page._select_task("passenger")
-    assert "客运" in window.workflow_page.editing_label.text()
+    window.workflow_page._select_task("battle")
+    assert "战斗" in window.workflow_page.editing_label.text()
     assert "货运" in window.workflow_page.runtime_task_label.text()
     assert window.trade_page.advanced_toggle.isEnabled()
 
 
 def test_stopping_waits_for_runner_and_converges_task_row(window):
     page = window.workflow_page
-    page.begin_workflow(["trade"], [])
+    page.begin_workflow(["trade"])
     window._workflow_active = True
     window._busy = True
     window._workflow_current = {"step": "trade", "label": "货运", "dispatch": "trade"}
@@ -80,7 +80,7 @@ def test_arrival_setting_has_one_value_and_game_path_label_updates(window):
 
 def test_stop_cancels_queued_dispatch_before_busy_acknowledgement(window):
     page = window.workflow_page
-    page.begin_workflow(["trade"], [])
+    page.begin_workflow(["trade"])
     window._workflow_active = True
     window._busy = False
     window._workflow_current = {"step": "trade", "label": "货运", "dispatch": "trade"}
@@ -98,9 +98,9 @@ def test_stop_cancels_queued_dispatch_before_busy_acknowledgement(window):
 
 def test_progress_never_navigates_away_from_parameter_editor(window):
     page = window.workflow_page
-    page._select_task("passenger")
+    page._select_task("battle")
     selected = page.center_stack.currentWidget()
-    page.begin_workflow(["trade"], [])
+    page.begin_workflow(["trade"])
     page.set_active_progress_cid("trade", "test")
     page.apply_progress_event("trade", {"name": TRADE_PROGRESS_EVENT, "payload": {
         "schema": TRADE_PROGRESS_SCHEMA, "cid": "test", "sequence": 1,

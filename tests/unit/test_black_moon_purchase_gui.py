@@ -305,17 +305,16 @@ def test_start_save_failure_does_not_dispatch(page, repository, monkeypatch):
     assert not dispatched
 
 
-def test_combined_entry_save_failure_does_not_dispatch(repository, monkeypatch):
+def test_freight_entry_save_failure_does_not_dispatch(repository, monkeypatch):
     monkeypatch.setattr(ResonanceMainWindow, "_wire_bridge", lambda self: None)
     errors, dispatched = [], []
     widget = ResonanceMainWindow(settings=repository, initialize_on_startup=False)
     try:
         widget.requestRunPcTrade.connect(lambda *args: dispatched.append(args))
-        widget.requestRunPcCombinedCommerce.connect(lambda *args: dispatched.append(args))
         monkeypatch.setattr(QMessageBox, "warning", lambda *args: errors.append(args[2]))
         monkeypatch.setattr(repository, "sync_checked", lambda: (_ for _ in ()).throw(OSError("不可写")))
         for task_id, check in widget.workflow_page._task_checks.items():
-            check.setChecked(task_id in {"trade", "passenger"})
+            check.setChecked(task_id == "trade")
         widget._start_workflow()
         assert len(errors) == 1 and "不可写" in errors[0]
         assert not dispatched
@@ -355,11 +354,6 @@ def test_two_modes_share_configuration_and_snapshot_is_independent(page, catalog
     assert inputs["black_moon_purchase_record_scope"] == "default"
     page._black_moon_table[catalog.item_ids[0]] = False
     assert inputs["black_moon_purchase_table"][catalog.item_ids[0]]
-    combined = ResonanceMainWindow._combined_commerce_inputs(order="trade_first", trade=inputs,
-                                                            passenger={"trip_count": 1})
-    inputs["black_moon_purchase_table"][catalog.item_ids[0]] = False
-    assert combined["trade_inputs"]["black_moon_purchase_table"][catalog.item_ids[0]]
-    assert not set(EXECUTION_KEYS) & combined["passenger_inputs"].keys()
 
 
 def test_busy_read_only_and_cannot_commit(page, catalog, dialog):

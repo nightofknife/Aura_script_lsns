@@ -104,21 +104,21 @@ def test_preview_contains_attachment_and_old_settings_default_off(tmp_path):
         app.processEvents()
 
 
-@pytest.mark.parametrize("order", [["trade", "passenger"], ["passenger", "battle", "trade"]])
-def test_workflow_allows_independent_passenger_without_combined_budget(window, monkeypatch, order):
+def test_workflow_keeps_attached_passenger_on_freight_without_budget_reallocation(window, monkeypatch):
     window.trade_page.passenger_panel.seat_capacity.setValue(64)
     window.trade_page.auto_passenger.setChecked(True)
     window.trade_page.fatigue_budget.setValue(701)
-    window.workflow_page._task_order = [*order, *(key for key in window.workflow_page._task_order if key not in order)]
     for key, check in window.workflow_page._task_checks.items():
-        check.setChecked(key in order)
+        check.setChecked(key == "trade")
     monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
     window._start_workflow()
-    assert [row["dispatch"] for row in window._workflow_pending] == order
-    freight = next(row for row in window._workflow_pending if row["dispatch"] == "trade")
-    assert freight["inputs"]["fatigue_budget"] == 701
-    assert freight["inputs"]["auto_passenger"] is True
-    assert all(row["dispatch"] != "combined_commerce" for row in window._workflow_pending)
+    assert [row["dispatch"] for row in window._workflow_pending] == ["trade"]
+    inputs = window._workflow_pending[0]["inputs"]
+    assert inputs["fatigue_budget"] == 701 and inputs["auto_passenger"] is True
+    assert inputs["passenger_options"]["seat_capacity"] == 64
+    assert "passenger" not in window.workflow_page._task_checks
+    window.trade_page.passenger_panel.seat_capacity.setValue(128)
+    assert inputs["passenger_options"]["seat_capacity"] == 64
 
 
 def test_progress_updates_attachment_without_replacing_freight_route_or_revision():
@@ -244,7 +244,7 @@ def test_workflow_terminal_framework_receipt_keeps_manual_completion_warning(win
     window._workflow_active = True
     window._workflow_stopping = True
     window._workflow_current = {"step": "trade", "dispatch": "trade", "inputs": {}}
-    window.workflow_page.begin_workflow(["trade"], [], {})
+    window.workflow_page.begin_workflow(["trade"], {})
     window.workflow_page.set_stopping()
     window.trade_page._current_cid = "attached"
     window._on_task_finished({"cid": "attached", "status": "cancelled", "detail": {

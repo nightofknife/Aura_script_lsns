@@ -140,9 +140,10 @@ async def capture_failure(value: Any, *, origin: str = "framework_fallback",
     else:
         responses: queue.Queue = queue.Queue(maxsize=1)
         context = contextvars.copy_context()
+        capture_request = {**scope, "error_code": ref["error_code"]}
         def collect() -> None:
             try:
-                responses.put((True, context.run(provider, scope)))
+                responses.put((True, context.run(provider, capture_request)))
             except Exception as exc:
                 responses.put((False, str(exc)))
             finally:

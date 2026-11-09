@@ -817,7 +817,7 @@ class TradePage(QWidget):
         self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
         self.auto_trailer = QCheckBox("自动拖车", content)
         self.allow_stale_market = QCheckBox("允许历史行情", content)
-        self.allow_stale_market.setToolTip("默认关闭：价格刷新失败就停止货运。开启后允许使用本地历史快照继续规划和买卖；行情可能过期、实际收益可能偏离计划。没有可用快照时仍停止。仅影响正式货运，试算和客运不受此开关影响。")
+        self.allow_stale_market.setToolTip("默认关闭：价格刷新失败就停止货运。开启后允许使用本地历史快照继续规划和买卖；行情可能过期、实际收益可能偏离计划。没有可用快照时仍停止。仅影响正式货运，试算不受此开关影响。")
         self.additional_options = QWidget(content)
         options_layout = QGridLayout(self.additional_options)
         options_layout.setContentsMargins(0, 0, 0, 0)

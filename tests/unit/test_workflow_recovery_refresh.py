@@ -90,7 +90,7 @@ def configure(window, kinds=("trade",)):
     page = window.workflow_page
     for key, check in page._task_checks.items():
         check.setChecked(key in kinds)
-    page._task_order = ["startup", *kinds, *[key for key in ("trade", "passenger", "battle") if key not in kinds], "close"]
+    page._task_order = ["startup", *kinds, *[key for key in ("trade", "battle") if key not in kinds], "close"]
     page._rebuild_task_rows()
 
 
@@ -98,14 +98,14 @@ def finish_preceding_tasks(window):
     while window._workflow_current and window._workflow_current["step"] == "startup":
         step = window._workflow_current["step"]
         window._active_game_name = PC_GAME_NAME
-        window._active_kind = "passenger_run" if step == "passenger" else "workflow_task"
+        window._active_kind = "workflow_task"
         window._busy = True
         window._on_task_finished({"status": "success", "gui_item": {"kind": window._active_kind}})
         window._on_busy_changed(False)
 
 
 @pytest.mark.parametrize("startup", [False, True])
-@pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade"), ("passenger",), ("battle",)])
+@pytest.mark.parametrize("kinds", [("trade",), ("battle",)])
 def test_disabled_recovery_skips_all_freight_preparation(window, monkeypatch, startup, kinds):
     configure(window, kinds)
     window.trade_page.auto_sparkling_water.setChecked(False)
@@ -165,18 +165,16 @@ def finish_refresh(window, result):
 
 
 @pytest.mark.parametrize("kinds", [
-    ("trade",), ("trade", "passenger"), ("passenger", "trade"),
+    ("trade",),
 ])
 def test_refresh_is_first_once_and_uses_fixed_selection(window, kinds):
     configure(window, kinds)
     saved = {"stages": ["inventory"], "profile_sections": ["fatigue"], "inventory_categories": ["items"]}
     window._settings.save_player_data_inputs(saved)
     before = window._settings.load_player_data_inputs()
-    calls, passengers = [], []
+    calls = []
     window.requestRunPcTask.connect(lambda *args: calls.append(args))
-    window.requestRunPcPassenger.connect(lambda *args: passengers.append(args))
     window._start_workflow()
-    assert passengers == []
     finish_preceding_tasks(window)
     assert len(calls) == 1
     assert calls[0][0] == PC_PLAYER_DATA_REFRESH_TASK_REF
@@ -222,26 +220,26 @@ def test_success_preserves_snapshot_logs_resources_and_dispatches_trade(window, 
     assert window.workflow_page.task_progress_bar.maximum() == 1
 
 
-def test_startup_precedes_combined_preparation_for_passenger_first(window):
-    configure(window, ("passenger", "trade"))
+def test_startup_precedes_freight_preparation(window):
+    configure(window)
     window.workflow_page._task_checks["startup"].setChecked(True)
     events = []
     window.requestRunPcTask.connect(
         lambda task_ref, *_args: events.append("prepare" if task_ref == PC_PLAYER_DATA_REFRESH_TASK_REF else "startup")
     )
-    window.requestRunPcPassenger.connect(lambda *_args: events.append("passenger"))
+    window.requestRunPcTrade.connect(lambda *_args: events.append("trade"))
     window._start_workflow()
     assert events == ["startup"]
-    assert window._workflow_current["step"] == "startup"
     finish_preceding_tasks(window)
     assert events == ["startup", "prepare"]
     page = window.workflow_page
-    assert page.task_progress_bar.maximum() == 3
+    assert page.task_progress_bar.maximum() == 2
     assert page.task_progress_bar.value() == 1
     assert page._tree_items["refresh_recovery"].parent() is page._tree_items["trade"]
     finish_refresh(window, payload())
-    assert window._workflow_current["step"] == "passenger"
-    assert window._workflow_current["dispatch"] == "combined_commerce"
+    assert events == ["startup", "prepare", "trade"]
+    assert window._workflow_current["step"] == "trade"
+    assert window._workflow_current["dispatch"] == "trade"
     assert page.task_progress_bar.value() == 1
 
 
@@ -375,7 +373,7 @@ def test_failure_keeps_only_existing_configured_close_cleanup(window, monkeypatc
 
 @pytest.mark.parametrize("enabled", [False, True])
 @pytest.mark.parametrize("bento_enabled", [False, True])
-@pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade")])
+@pytest.mark.parametrize("kinds", [("trade",)])
 def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled, bento_enabled, kinds):
     configure(window, kinds)
     window.trade_page.auto_sparkling_water.setChecked(enabled)
@@ -383,11 +381,9 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
     window.trade_page.auto_bento.setChecked(True)
     window.trade_page.bento_move_buttons["love_bentos", -1].click()
     window.trade_page.auto_bento.setChecked(bento_enabled)
-    refreshes, calls, passengers = [], [], []
+    refreshes, calls = [], []
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window.requestRunPcTrade.connect(lambda inputs, _timeout: calls.append(inputs))
-    window.requestRunPcCombinedCommerce.connect(lambda inputs, _timeout: calls.append(inputs))
-    window.requestRunPcPassenger.connect(lambda inputs, _timeout: passengers.append(inputs))
     for current in (120, 230):
         window._start_workflow()
         saved = window._settings.load_trade_inputs()
@@ -417,7 +413,6 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
             assert window._workflow_recovery_snapshot["player_data"]["metadata"]["persisted"]
         assert window._settings.load_trade_inputs() == saved
         assert "recovery_snapshot" not in saved
-        assert all("recovery_snapshot" not in inputs and "auto_bento" not in inputs and "bento_priority" not in inputs for inputs in passengers)
         window._finish_workflow(True, "done")
     assert len(calls) == 2
     if enabled or bento_enabled:
@@ -431,7 +426,6 @@ def test_sparkling_checkbox_syncs_persists_and_never_enables_freight_medicine(wi
     assert full.text() == "自动喝气泡水"
     assert not full.isChecked()
     assert window._settings.load_trade_inputs()["auto_sparkling_water"] is False
-    passenger_before = window.passenger_page.collect_inputs()
     full.setChecked(True)
     reloaded = ResonanceConfigRepository(window._settings.settings)
     assert reloaded.load_trade_inputs()["auto_sparkling_water"] is True
@@ -439,7 +433,6 @@ def test_sparkling_checkbox_syncs_persists_and_never_enables_freight_medicine(wi
     assert window.trade_page.collect_inputs()["use_fatigue_medicine"] is False
     full.setChecked(False)
     assert reloaded.load_trade_inputs()["auto_sparkling_water"] is False
-    assert window.passenger_page.collect_inputs() == passenger_before
 
 
 def test_old_medicine_setting_does_not_opt_in_to_sparkling_water(window):
@@ -461,7 +454,6 @@ def test_opted_in_standalone_freight_refreshes_before_actual_run(window, entry, 
     window.trade_page.auto_bento.setChecked(bento)
     trades, refreshes = [], []
     window.requestRunPcTrade.connect(lambda inputs, _timeout: trades.append(inputs))
-    window.requestRunPcCombinedCommerce.connect(lambda inputs, _timeout: trades.append(inputs))
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window._workflow_recovery_snapshot = {"player_data": {"stale": True}}
     window.trade_page._request_start()
@@ -516,32 +508,17 @@ def test_standalone_freight_preflight_blocks_on_failure(window, problem, option)
     assert not window._workflow_active
 
 
-def test_unchecked_standalone_trade_and_passenger_never_inject_old_snapshot(window):
-    trades, passengers, refreshes = [], [], []
+def test_unchecked_standalone_trade_never_injects_old_snapshot(window):
+    trades, refreshes = [], []
     window._workflow_recovery_snapshot = {"player_data": {"stale": True}}
     window.requestRunPcTrade.connect(lambda inputs, _timeout: trades.append(inputs))
-    window.requestRunPcPassenger.connect(lambda inputs, _timeout: passengers.append(inputs))
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window._run_pc_trade(window.trade_page.collect_inputs(), 0.0)
-    window._run_pc_passenger(window.passenger_page.collect_inputs(), 0.0)
-    assert len(trades) == len(passengers) == 1
-    assert refreshes == []
+    assert len(trades) == 1 and refreshes == []
     assert "recovery_snapshot" not in trades[0]
-    assert "recovery_snapshot" not in passengers[0]
     assert window._workflow_recovery_snapshot == {}
 
 
-def test_workflow_passenger_does_not_receive_snapshot(window):
-    configure(window, ("passenger",))
-    window.trade_page.auto_bento.setChecked(True)
-    calls = []
-    window.requestRunPcPassenger.connect(lambda inputs, _timeout: calls.append(inputs))
-    window._start_workflow()
-    assert len(calls) == 1
-    assert "recovery_snapshot" not in calls[0]
-    assert "auto_sparkling_water" not in calls[0]
-    assert "auto_bento" not in calls[0]
-    assert "bento_priority" not in calls[0]
 
 
 def test_trade_preview_strips_runtime_recovery_fields_without_refresh(window, monkeypatch):
@@ -584,20 +561,14 @@ def test_trade_preview_strips_runtime_recovery_fields_without_refresh(window, mo
     assert source == before
 
 
-@pytest.mark.parametrize("combined_run", [False, True])
-def test_bridge_preserves_actual_trade_recovery_inputs(window, monkeypatch, combined_run):
+def test_bridge_preserves_actual_trade_recovery_inputs(window, monkeypatch):
     bridge = RunnerBridge(runner_factory=lambda: pytest.fail("must not launch a live runner"))
     dispatched = []
     monkeypatch.setattr(bridge, "_run_item", dispatched.append)
-    source = {"recovery_snapshot": payload()["user_data"]["player_data"]}
-    trade = {"auto_sparkling_water": True, "auto_bento": True,
-             "bento_priority": ["love_bentos", "work_meals"]}
-    if combined_run:
-        source["trade_inputs"] = trade
-        bridge.run_pc_combined_commerce(source)
-    else:
-        source.update(trade)
-        bridge.run_pc_trade(source)
+    source = {"recovery_snapshot": payload()["user_data"]["player_data"],
+              "auto_sparkling_water": True, "auto_bento": True,
+              "bento_priority": ["love_bentos", "work_meals"]}
+    bridge.run_pc_trade(source)
     assert dispatched[0]["inputs"] == source
 
 
@@ -637,7 +608,7 @@ def test_recovery_refresh_does_not_require_prison_results(window, stock):
     assert "监狱成品" not in window.workflow_page.log_view.toPlainText()
 
 
-@pytest.mark.parametrize("kinds", [("trade",), ("trade", "passenger"), ("passenger", "trade")])
+@pytest.mark.parametrize("kinds", [("trade",)])
 def test_selected_prison_goods_remain_saved_but_never_refresh_during_freight(window, kinds):
     configure(window, kinds)
     values = window.trade_page.collect_ui_state()
@@ -647,7 +618,6 @@ def test_selected_prison_goods_remain_saved_but_never_refresh_during_freight(win
     refreshes, business = [], []
     window.requestRunPcTask.connect(lambda *args: refreshes.append(args))
     window.requestRunPcTrade.connect(lambda inputs, timeout: business.append(inputs))
-    window.requestRunPcCombinedCommerce.connect(lambda inputs, timeout: business.append(inputs))
     window._start_workflow()
     assert len(refreshes) == 1
     assert refreshes[0][1]["stages"] == ["profile"]
@@ -770,10 +740,8 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
     assert window._settings.load_trade_inputs()["auto_bento"] is False
     assert "bento_priority" not in page.collect_inputs()
     assert page.collect_ui_state()["bento_priority"] == ["work_meals", "love_bentos"]
-    passenger_before = window.passenger_page.collect_inputs()
     calls = []
-    for signal in (window.requestRunPcTask, window.requestRunPcTrade,
-                   window.requestRunPcCombinedCommerce, window.requestRunPcPassenger):
+    for signal in (window.requestRunPcTask, window.requestRunPcTrade):
         signal.connect(lambda *args: calls.append(args))
     full.setChecked(True)
     assert full.isChecked()
@@ -816,8 +784,6 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
         restored.close()
         restored.deleteLater()
         QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
-    assert window.passenger_page.collect_inputs() == passenger_before
-    assert not any("便当" in check.text() for check in window.passenger_page.findChildren(QCheckBox))
     assert calls == []
 
 
@@ -864,7 +830,7 @@ def test_bento_progress_keeps_final_sale_completed(window, outcome):
     from PySide6.QtWidgets import QLabel
 
     page = window.workflow_page
-    page.begin_workflow(["trade"], [], trade_inputs={"auto_bento": True})
+    page.begin_workflow(["trade"], trade_inputs={"auto_bento": True})
     events = [
         freight_event(0, "planning", "completed", data={"route": [
             {"from_city": "海角城", "to_city": "岚心城", "buy_products": ["test"]},

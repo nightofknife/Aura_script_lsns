@@ -18,10 +18,6 @@ from packages.resonance_shared.passenger_parameters import normalize_passenger_o
 PC_GAME_NAME = "resonance_pc"
 PC_TRADE_TASK_REF = "tasks:auto_cycle_trade_pc.yaml:auto_cycle_trade_pc"
 PC_TRADE_PREVIEW_TASK_REF = "tasks:preview_trade_plan_pc.yaml:preview_trade_plan_pc"
-PC_PASSENGER_TASK_REF = "tasks:auto_passenger_trips_pc.yaml:auto_passenger_trips_pc"
-PC_COMBINED_COMMERCE_TASK_REF = (
-    "tasks:auto_combined_commerce_pc.yaml:auto_combined_commerce_pc"
-)
 PC_BATTLE_TASK_REF = "tasks:auto_battle_dispatch_pc.yaml:auto_battle_dispatch_pc"
 BATTLE_RESULT_SCHEMA = "resonance_pc.battle_plan_result.v1"
 STRUCTURAL_NATIVE_RESULT_SCHEMA = "resonance_pc.structural_native_result.v1"
@@ -128,8 +124,6 @@ PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF = (
 )
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
-PASSENGER_PROGRESS_EVENT = "task.resonance_pc_passenger_progress"
-PASSENGER_PROGRESS_SCHEMA = "resonance_pc.passenger_progress.v1"
 PC_ETERNAL_SCUFFLE_TASK_REF = "tasks:eternal_scuffle_pc.yaml:eternal_scuffle_pc"
 ETERNAL_SCUFFLE_PROGRESS_EVENT = "task.resonance_pc_eternal_scuffle_progress"
 ETERNAL_SCUFFLE_PROGRESS_SCHEMA = "resonance_pc.eternal_scuffle_progress.v1"
@@ -875,17 +869,6 @@ def _fail_active_freight_phase(state: WorkflowFreightProgressState, detail: str,
                 phase.detail = detail
             return
 
-PASSENGER_STAGE_LABELS = {
-    "resolve_start": "识别起点",
-    "reposition": "前往线路端点",
-    "trade": "中途倒货",
-    "recruit": "传单揽客",
-    "travel": "跨城行驶",
-    "settlement": "客运结算",
-    "final_sale": "终点清仓",
-    "task": "客运任务",
-}
-
 
 @dataclass
 class TradeProgressState:
@@ -976,112 +959,6 @@ def reduce_trade_progress(
     if isinstance(data.get("passenger"), Mapping):
         next_state.summary["passenger"] = copy.deepcopy(dict(data["passenger"]))
     return next_state
-
-
-@dataclass
-class PassengerProgressState(ProgressDisplayState):
-    """Reduced presentation state for one passenger run."""
-
-    cid: str = ""
-    sequence: int = -1
-    stage: str = "resolve_start"
-    state: str = "idle"
-    trip_index: int | None = None
-    leg_index: int | None = None
-    leg_count: int = 0
-    source_city: str = ""
-    destination_city: str = ""
-    recruited_count: int | None = None
-    seat_capacity: int | None = None
-    expected_fatigue_used: int = 0
-    expected_fatigue_total: int = 0
-    leg_revenue: int | None = None
-    total_revenue: int = 0
-    requires_manual_completion: bool = False
-    last_data: dict[str, Any] = field(default_factory=dict)
-    events: list[dict[str, Any]] = field(default_factory=list)
-    timestamp: str | None = None
-    stage_started_at: str | None = None
-    operation_started_at: str | None = None
-    current_operation: dict[str, Any] = field(default_factory=dict)
-    route_revision: int = 0
-    route: list[dict[str, Any]] = field(default_factory=list)
-    route_history: list[dict[str, Any]] = field(default_factory=list)
-    resources: dict[str, Any] = field(default_factory=dict)
-    backend_completed_units: int | None = None
-    backend_total_units: int | None = None
-    task_succeeded: bool = False
-    _stage_identity: tuple[Any, ...] = field(default_factory=tuple, repr=False)
-
-    @property
-    def stage_label(self) -> str:
-        return PASSENGER_STAGE_LABELS.get(self.stage, self.stage or "待开始")
-
-    @property
-    def percent(self) -> int | None:
-        if self.task_succeeded:
-            return 100
-        if self.backend_total_units is None or self.backend_completed_units is None:
-            return None
-        return min(99, round(self.backend_completed_units * 100 / max(self.backend_total_units, 1)))
-
-
-def reduce_passenger_progress(
-    current: PassengerProgressState | None,
-    event: Mapping[str, Any] | None,
-    *,
-    expected_cid: str = "",
-) -> PassengerProgressState:
-    state = copy.deepcopy(current) if current is not None else PassengerProgressState(cid=str(expected_cid or ""))
-    envelope = dict(event or {})
-    if str(envelope.get("name") or "") != PASSENGER_PROGRESS_EVENT:
-        return state
-    payload = envelope.get("payload")
-    if not isinstance(payload, Mapping):
-        return state
-    payload = dict(payload)
-    if str(payload.get("schema") or "") != PASSENGER_PROGRESS_SCHEMA:
-        return state
-    if _progress_event_is_stale(state, payload, expected_cid):
-        return state
-    data = dict(payload.get("data") or {}) if isinstance(payload.get("data"), Mapping) else {}
-    revision = data.get("route_revision", state.route_revision)
-    route = data.get("route")
-    if isinstance(route, list):
-        route = [dict(item) for item in route if isinstance(item, Mapping)]
-        if route != state.route or revision != state.route_revision:
-            _archive_progress_route(state)
-            state.route = copy.deepcopy(route)
-            state.backend_completed_units = None
-            state.backend_total_units = None
-    _update_progress_display(state, payload, data)
-    state.cid = str(payload.get("cid") or state.cid)
-    state.sequence = payload["sequence"]
-    state.stage = str(payload.get("stage") or state.stage)
-    state.state = _operation_parent_state(str(payload.get("state") or state.state).lower(), data)
-    state.task_succeeded = state.stage == "task" and state.state in {"completed", "success"}
-    state.route_revision = revision
-    for key in ("trip_index", "leg_index", "recruited_count", "seat_capacity", "leg_revenue"):
-        if key in payload:
-            setattr(state, key, _optional_int(payload[key]))
-    for key in ("leg_count", "expected_fatigue_used", "expected_fatigue_total", "total_revenue"):
-        if key in payload:
-            setattr(state, key, _int_or(payload[key], getattr(state, key)))
-    for key in ("source_city", "destination_city"):
-        if key in payload:
-            setattr(state, key, str(payload[key] or ""))
-    if "requires_manual_completion" in payload:
-        state.requires_manual_completion = bool(payload["requires_manual_completion"])
-    if isinstance(data.get("resources"), Mapping):
-        state.resources.update(copy.deepcopy(dict(data["resources"])))
-    progress = data.get("progress")
-    if isinstance(progress, Mapping):
-        completed, total = progress.get("completed_units"), progress.get("total_units")
-        if type(completed) is int and type(total) is int and total > 0 and 0 <= completed <= total:
-            state.backend_completed_units, state.backend_total_units = completed, total
-    state.last_data = copy.deepcopy(data)
-    state.events.append(copy.deepcopy(envelope))
-    return state
 
 
 def extract_final_result(payload: Mapping[str, Any] | None) -> dict[str, Any]:

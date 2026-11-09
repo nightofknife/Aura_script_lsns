@@ -152,17 +152,6 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "product_unlocks",
 )
 
-DEFAULT_PASSENGER_INPUTS: dict[str, Any] = {
-    "passenger_city_a_id": "11",
-    "passenger_city_b_id": "15",
-    "trip_count": 1,
-    "trade_during_trip": True,
-    "reposition_to_route": True,
-    "use_fatigue_medicine": False,
-    "allowed_fatigue_medicines": [],
-    "fatigue_medicine_max_uses": 4,
-    "arrival_timeout_seconds": 1800,
-}
 
 PLAYER_DATA_STAGE_ORDER: tuple[str, ...] = (
     "location",
@@ -354,21 +343,7 @@ class ResonanceConfigRepository:
         normalized = _merge_trade_preview_inputs(inputs)
         self._save_freight_inputs_json(TRADE_PREVIEW_INPUTS_KEY, normalized)
 
-    def load_passenger_inputs(self) -> dict[str, Any]:
-        raw = self.settings.value("passenger/inputs_json", "")
-        if raw:
-            try:
-                parsed = json.loads(str(raw))
-                if isinstance(parsed, dict):
-                    return _merge_passenger_inputs(parsed)
-            except (TypeError, ValueError):
-                pass
-        return _merge_passenger_inputs({})
 
-    def save_passenger_inputs(self, inputs: dict[str, Any]) -> None:
-        normalized = _merge_passenger_inputs(inputs)
-        self.settings.setValue("passenger/inputs_json", json.dumps(normalized, ensure_ascii=False))
-        self.settings.sync()
 
     def load_player_data_inputs(self) -> dict[str, Any]:
         raw = self.settings.value("player_data/inputs_json", "")
@@ -563,43 +538,6 @@ def _merge_trade_preview_inputs(values: dict[str, Any]) -> dict[str, Any]:
     return {key: merged[key] for key in TRADE_PREVIEW_INPUT_KEYS}
 
 
-def _merge_passenger_inputs(values: dict[str, Any]) -> dict[str, Any]:
-    merged = json.loads(json.dumps(DEFAULT_PASSENGER_INPUTS, ensure_ascii=False))
-    for key in merged:
-        if key in values:
-            merged[key] = values[key]
-    try:
-        merged["trip_count"] = max(int(merged["trip_count"]), 1)
-    except (TypeError, ValueError):
-        merged["trip_count"] = 1
-    city_a_id = str(merged.get("passenger_city_a_id") or "11").strip()
-    city_b_id = str(merged.get("passenger_city_b_id") or "15").strip()
-    if city_a_id not in ALL_PC_TRADE_CITY_IDS:
-        city_a_id = "11"
-    if city_b_id not in ALL_PC_TRADE_CITY_IDS:
-        city_b_id = "15"
-    if city_a_id == city_b_id:
-        city_b_id = "15" if city_a_id != "15" else "11"
-    merged["passenger_city_a_id"] = city_a_id
-    merged["passenger_city_b_id"] = city_b_id
-    merged["reposition_to_route"] = bool(merged["reposition_to_route"])
-    merged["trade_during_trip"] = bool(merged["trade_during_trip"])
-    merged["use_fatigue_medicine"] = bool(merged["use_fatigue_medicine"])
-    raw_medicines = merged.get("allowed_fatigue_medicines")
-    merged["allowed_fatigue_medicines"] = [
-        str(value).strip()
-        for value in (raw_medicines if isinstance(raw_medicines, list) else [])
-        if str(value).strip()
-    ]
-    try:
-        merged["fatigue_medicine_max_uses"] = max(int(merged["fatigue_medicine_max_uses"]), 0)
-    except (TypeError, ValueError):
-        merged["fatigue_medicine_max_uses"] = 4
-    try:
-        merged["arrival_timeout_seconds"] = max(int(merged["arrival_timeout_seconds"]), 1)
-    except (TypeError, ValueError):
-        merged["arrival_timeout_seconds"] = 1800
-    return merged
 
 
 def normalize_prison_product_goods(value: Any) -> list[str]:

@@ -17,10 +17,8 @@ from packages.aura_core.scheduler.cancellation import (
     clear_task_cancel, has_pending_sync_actions,
 )
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions import _city_panel_vision as city_vision
 from packages.resonance_gui.logic import TradeProgressState, reduce_trade_progress
-from tests.unit.test_resonance_pc_sparkling_water_handoff import harness as combined_harness
 from tests.unit.test_resonance_pc_sparkling_water_trade import (
     harness as trade_harness, routes, run_full, snapshot,
 )
@@ -576,28 +574,6 @@ def test_failed_arrival_blocks_terminal_work(freight):
     assert "final_sale" not in freight.operations and "bentos" not in freight.operations
 
 
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-def test_combined_auto_bento_is_rejected_before_any_game_action(
-    freight, combined_harness, monkeypatch, order,
-):
-    inputs, calls, _ = combined_harness
-    inputs.update(context=freight.runtime.context, engine=freight.runtime.engine,
-                  total_fatigue_budget=900)
-    inputs["trade_inputs"].update(auto_sparkling_water=True, auto_bento=True,
-                                  bento_priority=["work_meals"], bento_start_threshold=700, bento_stop_threshold=200)
-    from tests.unit.test_resonance_pc_sparkling_water_trade import Market
-    from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonancePcCityShopDataService
-    inputs["resonance_pc_market_data"] = Market()
-    inputs["resonance_pc_city_shop_data"] = ResonancePcCityShopDataService()
-    monkeypatch.setattr(combined, "resonance_pc_auto_cycle_trade_flow",
-                        trade.resonance_pc_auto_cycle_trade_flow)
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order=order, persistent_data=freight.runtime.store,
-        recovery_snapshot=snapshot(),
-    ))
-    assert result["status"] == "blocked" and result["reason"] == "combined_auto_bento_unsupported"
-    assert result["failure_stage"] == "preflight"
-    assert freight.operations == [] and calls == {"trade": [], "passenger": [], "preview": []}
 
 
 @pytest.mark.parametrize("opened", [

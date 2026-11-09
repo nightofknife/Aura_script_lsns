@@ -7,8 +7,6 @@ import yaml
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions
 from plans.resonance_pc.src.actions import city_travel_pc_actions
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions
-from plans.resonance_pc.src.actions import passenger_flow_pc_actions
 from plans.resonance_pc.src.actions import passenger_pc_actions
 from plans.resonance_pc.src.actions import reforming_center_pc_actions
 from plans.resonance_pc.src.actions import _battle_dispatch_runtime
@@ -89,8 +87,6 @@ def test_removed_pc_action_and_drag_controller_are_not_exported() -> None:
         city_travel_pc_actions.resonance_pc_select_intercity_destination,
         city_travel_pc_actions.resonance_pc_intercity_depart_and_wait,
         passenger_pc_actions.resonance_pc_recruit_passengers_by_flyer,
-        passenger_flow_pc_actions.resonance_pc_auto_passenger_trips_flow,
         city_trade_flow_pc_actions.resonance_pc_auto_cycle_trade_flow,
-        combined_commerce_pc_actions.resonance_pc_auto_combined_commerce_flow,
     ):
         assert "controller" not in action.__aura_action__["services"]

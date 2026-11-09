@@ -6,7 +6,6 @@ from types import SimpleNamespace
 import pytest
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
-from plans.resonance_pc.src.actions import passenger_flow_pc_actions as passenger
 from tests.unit.test_resonance_pc_sparkling_water_trade import harness, routes, run_full
 
 
@@ -366,53 +365,3 @@ def test_two_modes_continue_route_and_surface_purchase_warnings(
     assert buy_rig.names().count("books") == 2
     assert [row["book_result"]["used"] for row in buys] == [2, 2]
     assert buy_rig.names().count("bargain") == (0 if empty else 2)
-
-
-@pytest.mark.parametrize("empty", [False, True], ids=["partial", "skipped"])
-def test_passenger_city_trade_uses_new_shared_purchase_without_books_or_negotiation(
-        buy_rig, monkeypatch, empty):
-    partial_selection(buy_rig, empty=empty)
-    monkeypatch.setattr(passenger, "_prepare_passenger_trade_plan", lambda **kwargs: {
-        "status": "planned", "buy_products": list(buy_rig.requested)})
-    monkeypatch.setattr(passenger, "resonance_pc_open_city_panel_from_main", lambda **kwargs: {
-        "success": True, "page_state": "city_panel"})
-    monkeypatch.setattr(trade, "_enter_exchange", lambda **kwargs: {"menu_ready": {"success": True}})
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", lambda **kwargs: {})
-    monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", lambda **kwargs: {
-        "success": True, "page_state": "shop_page", "sold_confirmed": False,
-        "sell_result": "empty_cargo"})
-    monkeypatch.setattr(trade, "resonance_pc_go_city_main_direct", lambda **kwargs: {
-        "success": True, "page_state": "city_main"})
-    result = passenger._execute_passenger_trade_at_city(
-        current_city_id="15", destination_city_id="11", final_sale=False,
-        route_by_id={"15": {"city_name": "city-a"}, "11": {"city_name": "city-b"}},
-        app=object(), ocr=object(), vision=object(), city_shop_data=object(),
-        market_data=object(), trade_planner=object())
-    assert result["success"] is True
-    assert result["execution"]["page_state"] == "city_main"
-    purchase = result["execution"]["buy"]
-    assert purchase["buy_result"] == ("skipped" if empty else "partial")
-    assert purchase["missing_products"] == buy_rig.selection["missing_products"]
-    assert purchase["warnings"] == buy_rig.selection["warnings"]
-    assert "books" not in buy_rig.names() and "bargain" not in buy_rig.names()
-    assert buy_rig.names().count("settlement") == (0 if empty else 1)
-
-
-def test_passenger_current_city_reuses_identity_confirmed_by_opener(monkeypatch):
-    calls = []
-    city = {"success": True, "city_name": "city-a", "city_key": "city-a"}
-
-    def open_panel(*, app, vision):
-        calls.append("open")
-        return {"success": True, "page_state": "city_panel", "city": dict(city)}
-
-    def return_main(*, app, vision):
-        calls.append("return")
-        return {"success": True, "page_state": "city_main"}
-
-    monkeypatch.setattr(passenger, "resonance_pc_open_city_panel_from_main", open_panel)
-    monkeypatch.setattr(passenger, "resonance_pc_go_city_main_direct", return_main)
-    monkeypatch.setattr(trade, "resonance_pc_read_city_name_on_city_panel",
-                        lambda **kwargs: pytest.fail("The opener already confirmed this city"))
-    assert passenger._read_current_city(object(), object()) == city
-    assert calls == ["open", "return"]

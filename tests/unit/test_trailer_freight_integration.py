@@ -10,7 +10,6 @@ import yaml
 
 from packages.aura_core.scheduler.validation import InputValidator
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions import _freight_trailer_policy as policy
 from tests.unit.test_resonance_pc_sparkling_water_trade import harness, run_full
 from tests.unit.test_trailer_freight_policy import skip
@@ -135,10 +134,6 @@ def test_public_freight_rejects_invalid_configuration_before_game(harness, field
     assert harness[0] == []
 
 
-def test_combined_forwards_to_freight_only_and_never_planner_preview():
-    assert combined._filtered(OPTIONS, combined._TRADE_INPUT_KEYS) == OPTIONS
-    assert combined._filtered(OPTIONS, combined._PASSENGER_INPUT_KEYS) == {}
-    assert combined._filtered(OPTIONS, combined._PREVIEW_INPUT_KEYS) == {}
 
 
 def test_task_schemas_and_rendered_action_share_contract():
@@ -150,11 +145,6 @@ def test_task_schemas_and_rendered_action_share_contract():
                 for key, value in task["steps"]["run"]["params"].items()}
     inspect.signature(trade.resonance_pc_auto_cycle_trade_flow).bind(**rendered)
     assert {key: rendered[key] for key in OPTIONS} == OPTIONS
-    nested = yaml.safe_load((tasks / "auto_combined_commerce_pc.yaml").read_text("utf-8"))["auto_combined_commerce_pc"]
-    trade_schema = next(row for row in nested["meta"]["inputs"] if row["name"] == "trade_inputs")
-    ok, value, _ = InputValidator(None).validate_input_value(trade_schema, OPTIONS, "trade_inputs")
-    assert ok and {key: value[key] for key in OPTIONS} == OPTIONS
     for bad in (True, 0, -1, "3", 1.5):
         invalid = {**OPTIONS, "trailer_daily_first_n": bad}
         assert not InputValidator(None).validate_inputs_against_meta(task["meta"]["inputs"], invalid)[0]
-        assert not InputValidator(None).validate_input_value(trade_schema, invalid, "trade_inputs")[0]

@@ -13,8 +13,6 @@ from jinja2.nativetypes import NativeEnvironment
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.scheduler.validation import InputValidator
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
-from plans.resonance_pc.src.actions import passenger_flow_pc_actions as passenger
 from plans.resonance_pc.src.services.resonance_pc_freight_parameters import FREIGHT_PLANNING_KEYS
 from tests.unit.test_resonance_pc_sparkling_water_trade import harness, routes, run_full
 
@@ -135,7 +133,7 @@ def test_event_delivery_failure_does_not_bypass_block(harness, monkeypatch):
     assert harness[0] == ["open_panel"]
 
 
-def test_preview_still_allows_cache_and_passenger_still_skips_buy(monkeypatch):
+def test_preview_still_allows_cache(monkeypatch):
     install_market(monkeypatch)
     monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", lambda **kw: {"status": "ok", "route": routes()})
     bus = Bus()
@@ -145,18 +143,9 @@ def test_preview_still_allows_cache_and_passenger_still_skips_buy(monkeypatch):
     assert result["success"] is True and result["market_source"] == "fallback_cache"
     market = next(e for e in bus.events if e["stage"] == "market" and e["state"] == "completed")
     assert market["data"]["fetched_at"] == CACHE["fetched_at"]
-    monkeypatch.setattr(passenger, "resonance_pc_market_refresh", lambda **kw: deepcopy(CACHE))
-    monkeypatch.setattr(passenger, "resonance_pc_trade_plan_optimal_route", lambda **kw: pytest.fail("no cached passenger plan"))
-    result = passenger._prepare_passenger_trade_plan(
-        source_city_id="15", destination_city_id="11", route_by_id={"15": {}, "11": {}},
-        market_data=object(), trade_planner=object())
-    assert result["reason"] == "stale_market_rejected" and result["buy_products"] == []
 
 
 def test_flag_schema_default_forwarding_and_execution_only_contract():
-    assert "allow_stale_market" in combined._TRADE_INPUT_KEYS
-    assert "allow_stale_market" not in combined._PREVIEW_INPUT_KEYS
-    assert "allow_stale_market" not in combined._PASSENGER_INPUT_KEYS
     assert "allow_stale_market" not in FREIGHT_PLANNING_KEYS
     spec = yaml.safe_load((ROOT / "plans/resonance_pc/tasks/auto_cycle_trade_pc.yaml").read_text("utf-8"))["auto_cycle_trade_pc"]
     validator = InputValidator(None)
@@ -165,39 +154,3 @@ def test_flag_schema_default_forwarding_and_execution_only_contract():
         ok, inputs = validator.validate_inputs_against_meta(spec["meta"]["inputs"], provided)
         assert ok, inputs
         assert env.from_string(spec["steps"]["run"]["params"]["allow_stale_market"]).render(inputs=inputs) is expected
-    combined_spec = yaml.safe_load((ROOT / "plans/resonance_pc/tasks/auto_combined_commerce_pc.yaml").read_text("utf-8"))["auto_combined_commerce_pc"]
-    trade_schema = next(item for item in combined_spec["meta"]["inputs"] if item["name"] == "trade_inputs")
-    assert trade_schema["properties"]["allow_stale_market"]["default"] is False
-
-
-def _combined_args():
-    return dict(total_fatigue_budget=100, app=object(), ocr=object(), vision=object(),
-                resonance_pc_city_shop_data=object(), resonance_pc_market_data=object(),
-                resonance_pc_trade_planner=object(), state_store=object(), event_bus=object(),
-                context=object(), engine=object())
-
-
-@pytest.mark.parametrize("value", ["false", "true", 1, None])
-def test_combined_rejects_non_bool_before_starting_tasks(monkeypatch, value):
-    monkeypatch.setattr(combined, "_build_passenger_route", lambda **kw: pytest.fail("preflight first"))
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        trade_inputs={"allow_stale_market": value}, **_combined_args()))
-    assert result["success"] is False and result["reason"] == "invalid_trade_inputs"
-
-
-def test_combined_forwards_flag_and_does_not_run_passenger_after_cache_block(monkeypatch):
-    monkeypatch.setattr(combined, "_build_passenger_route", lambda **kw: {
-        "city_a_id": "11", "city_b_id": "15", "trip_fatigue": 20})
-    async def freight(inputs, **kwargs):
-        assert inputs["allow_stale_market"] is False
-        return {"success": False, "status": "blocked", "reason": "stale_market_disallowed",
-                "market_fallback_blocked": True, "route": []}
-    async def passenger_forbidden(*args, **kwargs):
-        pytest.fail("must stop sequence after freight cache rejection")
-    monkeypatch.setattr(combined, "_run_trade", freight)
-    monkeypatch.setattr(combined, "_run_passenger", passenger_forbidden)
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        order="trade_first", trade_inputs={"allow_stale_market": False,
-                                           "available_city_ids": ["11", "15"]}, **_combined_args()))
-    assert result["success"] is False and result["reason"] == "trade_failed"
-    assert result["trade"]["market_fallback_blocked"] is True

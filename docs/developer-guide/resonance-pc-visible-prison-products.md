@@ -27,7 +27,7 @@ flowchart TD
 
 数据独立保存到 `user-info.json` 的 `prison_products`，包含 `goods`（`goods_id`、`goods`、`quantity`）、`requested_goods`、`not_observed`、`unresolved`、`coverage_notes`、`refreshed_at`、`visible_complete` 和 `returned_to_profile`。部分读取也保存本次明确结果并移除旧成功时间，避免将旧值当成本次刷新。其余用户数据按原规则合并保留。
 
-货运直接启动、工作流货运以及客货运组合均不读取监狱成品。没有开启恢复资源时直接执行货运；开启时只选 `profile`，保持疲劳、汽水、便当的原校验，客货运组合在整个组合前准备。现有 GUI 商品选择仍保存为 `prison_product_goods`，不会加入货运前刷新或正式货运任务参数。普通用户数据页面仍可独立勾选 `prison_products` 阶段并选择商品。
+货运直接启动和工作流货运均不读取监狱成品。没有开启恢复资源时直接执行货运；开启时只选 `profile`，保持疲劳、汽水、便当的原校验。现有 GUI 商品选择仍保存为 `prison_product_goods`，不会加入货运前刷新或正式货运任务参数。普通用户数据页面仍可独立勾选 `prison_products` 阶段并选择商品。
 
 货运仅校验本次启用的恢复资源刷新，不校验监狱成品结果。独立监狱读取的可见范围、数量有效性、保存及返回菜单确认要求保持不变。行情仍在货运内部规划路线前刷新。
 
