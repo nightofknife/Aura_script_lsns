@@ -280,8 +280,8 @@ def test_registered_child_then_real_city_trade_does_not_reenter_exchange(monkeyp
         return await original(**params)
 
     engine.orchestrator.execute_task = record_task
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node",
-                        lambda **params: operations.append(f"node:{params['node_index']}") or {"success": True})
+    monkeypatch.setattr(trade, "_open_trade_page",
+                        lambda **params: operations.append(f"node:{1 if params['kind'] == 'buy' else 2}") or {"success": True})
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page",
                         lambda **params: operations.append("sell") or
                         {"success": True, "sold_confirmed": True, "page_state": "shop_page"})

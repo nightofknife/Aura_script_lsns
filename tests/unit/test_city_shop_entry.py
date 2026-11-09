@@ -187,7 +187,7 @@ def test_exchange_wrapper_and_normal_trade_share_one_confirmation(rig, monkeypat
     shops = SimpleNamespace(resolve_shop_point=lambda **kwargs: dict(POINT))
     monkeypatch.setattr(trade, "_probe_shop_menu", lambda *args: hit(bool(rig.clicks)))
     monkeypatch.setattr(trade, "_wait_for_shop_menu_ready", lambda *args: pytest.fail("Duplicate menu wait"))
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", lambda **kwargs: operations.append("node") or {})
+    monkeypatch.setattr(trade, "_open_trade_page", lambda **kwargs: operations.append("node") or {})
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", lambda **kwargs: operations.append("sell") or
                         {"success": True, "page_state": "shop_page", "sold_confirmed": True})
     monkeypatch.setattr(trade, "resonance_pc_go_city_main_direct", lambda **kwargs: operations.append("main") or
@@ -201,7 +201,7 @@ def test_exchange_wrapper_and_normal_trade_share_one_confirmation(rig, monkeypat
 
 def test_exchange_timeout_never_enters_sell_or_investment(rig, monkeypatch):
     monkeypatch.setattr(trade, "_probe_shop_menu", lambda *args: hit())
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", lambda **kwargs: pytest.fail("Entry not ready"))
+    monkeypatch.setattr(trade, "_open_trade_page", lambda **kwargs: pytest.fail("Entry not ready"))
     monkeypatch.setattr(trade, "_run_trade_goods_investment_task", lambda **kwargs: pytest.fail("Entry not ready"))
     params = dict(current_city="岚心城", buy_products=[], books_used=0, sell_raise_to_cap=False,
                   buy_bargain_to_cap=False, app=SimpleNamespace(click=lambda **kwargs: rig.clicks.append(rig.now)),

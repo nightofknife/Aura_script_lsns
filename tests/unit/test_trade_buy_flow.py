@@ -275,7 +275,7 @@ def city_rig(monkeypatch):
     monkeypatch.setattr(trade, "_enter_exchange", result("enter", {"menu_ready": {"ready": True}}))
     monkeypatch.setattr(trade, "_wait_for_shop_menu_ready", lambda *args:
                         pytest.fail("Confirmed entry must not repeat menu readiness"))
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", result("node", {}))
+    monkeypatch.setattr(trade, "_open_trade_page", result("node", {}))
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", result("sell", {
         "success": True, "page_state": "shop_page", "sold_confirmed": False,
         "sell_result": "empty_cargo", "selection": {"status": "empty_cargo"},
@@ -340,7 +340,7 @@ def test_two_modes_continue_route_and_surface_purchase_warnings(
     monkeypatch.setattr(trade, "_execute_trade_leg", _REAL_EXECUTE_TRADE_LEG)
     monkeypatch.setattr(trade, "_execute_city_trade_inside_current_city", _REAL_CITY_TRADE)
     monkeypatch.setattr(trade, "_enter_exchange", lambda **kwargs: {"menu_ready": {"success": True}})
-    monkeypatch.setattr(trade, "resonance_pc_click_shop_menu_node", lambda **kwargs: {})
+    monkeypatch.setattr(trade, "_open_trade_page", lambda **kwargs: {})
     monkeypatch.setattr(trade, "resonance_pc_sell_goods_on_sell_page", lambda **kwargs: {
         "success": True, "page_state": "shop_page", "sold_confirmed": False,
         "sell_result": "empty_cargo"})
