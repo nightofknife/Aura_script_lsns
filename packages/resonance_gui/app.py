@@ -168,8 +168,8 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
     page._set_inspector_collapsed(False)
     if "离线界面自检" not in page.log_view.toPlainText():
         raise RuntimeError("Inspector folding discarded logs")
-    page.begin_workflow(["trade"], [])
-    page._select_task("passenger")
+    page.begin_workflow(["trade"])
+    page._select_task("battle")
     if window.trade_page.fatigue_budget.isEnabled():
         raise RuntimeError("Workflow editors were not locked")
     page.set_stopping()

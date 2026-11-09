@@ -7,7 +7,6 @@ import pytest
 from packages.aura_core.context.execution import ExecutionContext
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import city_travel_pc_actions as travel
-from plans.resonance_pc.src.actions import passenger_flow_pc_actions as passenger
 from plans.resonance_pc.src.actions._operation_progress import observe_operation, operation_progress
 from tests.unit.test_departure_gate_flow import flow, run
 from tests.unit.test_trade_buy_flow import buy_rig, partial_selection
@@ -55,7 +54,7 @@ def test_trade_timestamp_revision_sequence_and_child_progress_are_separate():
     asyncio.run(exercise())
 
 
-@pytest.mark.parametrize("reporter_class", [trade._TradeProgressReporter, passenger._PassengerProgressReporter])
+@pytest.mark.parametrize("reporter_class", [trade._TradeProgressReporter])
 def test_bus_publish_failure_is_nonfatal(reporter_class):
     async def exercise():
         reporter = reporter_class(FakeBus(fail=True), "cid", asyncio.get_running_loop())
@@ -76,7 +75,7 @@ def test_infeasible_plan_does_not_advance_revision():
     asyncio.run(exercise())
 
 
-@pytest.mark.parametrize("reporter_class", [trade._TradeProgressReporter, passenger._PassengerProgressReporter])
+@pytest.mark.parametrize("reporter_class", [trade._TradeProgressReporter])
 def test_child_worker_scheduling_does_not_add_two_second_wait(monkeypatch, reporter_class):
     results, callbacks = [], []
     class Future:
@@ -111,34 +110,22 @@ def test_optional_observer_failure_and_scope_restore_do_not_affect_business():
     assert [operation["key"] for operation in observations] == ["buy.selection", "buy.confirming"]
 
 
-@pytest.mark.parametrize("kind", ["trade", "passenger"])
-def test_observation_keeps_existing_bus_cid_and_worker_context(kind):
+def test_observation_keeps_existing_bus_cid_and_worker_context():
     async def exercise():
         bus = FakeBus()
-        if kind == "trade":
-            decorator = trade._with_trade_progress
-            async def action(**kwargs):
-                reporter = trade._ACTIVE_PROGRESS_REPORTER.get()
-                await reporter.emit("travel", "started", city_index=2, current_city="A")
-                await asyncio.to_thread(observe_operation, "travel.wait_arrival", "等待到站", "started")
-                return {"success": True, "status": "completed"}
-        else:
-            decorator = passenger._with_passenger_progress
-            async def action(**kwargs):
-                reporter = passenger._ACTIVE_PROGRESS.get()
-                await reporter.emit("trade", "started", leg_index=2, source_city="A")
-                await asyncio.to_thread(observe_operation, "buy.selection", "核实商品", "completed")
-                return {"success": True, "status": "completed"}
-        result = await decorator(action)(event_bus=bus, context=ExecutionContext(cid="run-1"))
-        await asyncio.sleep(0)  # drain non-blocking observation scheduled by the worker
+        @trade._with_trade_progress
+        async def action(**kwargs):
+            reporter = trade._ACTIVE_PROGRESS_REPORTER.get()
+            await reporter.emit("travel", "started", city_index=2, current_city="A")
+            await asyncio.to_thread(observe_operation, "travel.wait_arrival", "等待到站", "started")
+            return {"success": True, "status": "completed"}
+        result = await action(event_bus=bus, context=ExecutionContext(cid="run-1"))
+        await asyncio.sleep(0)
         assert result["success"] is True
         children = [event.payload for event in bus.events if "operation" in event.payload["data"]]
         assert len(children) == 1
         assert children[0]["cid"] == "run-1" and children[0]["state"] == "progress"
-        if kind == "trade":
-            assert children[0]["stage"] == "travel" and children[0]["city_index"] == 2
-        else:
-            assert children[0]["stage"] == "trade" and children[0]["leg_index"] == 2
+        assert children[0]["stage"] == "travel" and children[0]["city_index"] == 2
     asyncio.run(exercise())
 
 

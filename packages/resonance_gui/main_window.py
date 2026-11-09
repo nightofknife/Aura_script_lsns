@@ -67,7 +67,7 @@ from .logic import (
 )
 from .style import APP_STYLE
 from .update_checker import current_version_label, find_available_update
-from .widgets import BattlePage, PassengerPage, TradePage, SettingsHubPage, SmallTasksPage, WorkflowPage, TutorialPage
+from .widgets import BattlePage, TradePage, SettingsHubPage, SmallTasksPage, WorkflowPage, TutorialPage
 from .widgets.run_detail import RunDetailView
 from .widgets.tutorial_page import TutorialHelpButton
 
@@ -82,8 +82,6 @@ class ResonanceMainWindow(QMainWindow):
     requestRunPcTask = Signal(str, object, object, float)
     requestRunPcTrade = Signal(object, float)
     requestPreviewPcTrade = Signal(object, float)
-    requestRunPcPassenger = Signal(object, float)
-    requestRunPcCombinedCommerce = Signal(object, float)
     requestRunPcBattle = Signal(object, float)
     requestCancelCurrent = Signal()
     requestBridgeClose = Signal()
@@ -288,11 +286,7 @@ class ResonanceMainWindow(QMainWindow):
         self.page_stack = QStackedWidget(root)
         self.workflow_page = WorkflowPage(self._settings, self.page_stack)
         self.trade_page = TradePage(self._settings, self.workflow_page)
-        self.passenger_page = PassengerPage(self._settings, self.workflow_page)
-        self.workflow_page.attach_parameter_editors(
-            self.trade_page.parameter_panel,
-            self.passenger_page.parameter_panel,
-        )
+        self.workflow_page.attach_parameter_editors(self.trade_page.parameter_panel)
         self.workflow_page.tradeEndCityAvailabilityChanged.connect(
             self.trade_page.set_end_city_constraint_available
         )
@@ -329,7 +323,6 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page.saveParametersRequested.connect(self._save_current_task_parameters)
         self.workflow_page.stopRequested.connect(self._stop_workflow)
         self.workflow_page.openTradeRequested.connect(self._open_trade_editor)
-        self.workflow_page.openPassengerRequested.connect(self._open_passenger_editor)
         self.workflow_page.openBattleRequested.connect(lambda: self._open_battle_editor())
         self.small_tasks_page.previewTradeRequested.connect(self._preview_pc_trade)
         self.small_tasks_page.returnToTradeRequested.connect(self._open_trade_editor)
@@ -385,8 +378,6 @@ class ResonanceMainWindow(QMainWindow):
 
         self.trade_page.startRequested.connect(self._run_pc_trade)
         self.trade_page.cancelRequested.connect(self.requestCancelCurrent.emit)
-        self.passenger_page.startRequested.connect(self._run_pc_passenger)
-        self.passenger_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.battle_page.startRequested.connect(self._run_pc_battle)
         self.battle_page.cancelRequested.connect(self.requestCancelCurrent.emit)
 
@@ -395,7 +386,7 @@ class ResonanceMainWindow(QMainWindow):
         if destination in {"game_settings", "hotkey_settings"}:
             self.settings_page.categories.setCurrentRow(0 if destination == "game_settings" else 1)
             self._switch_page("settings")
-        elif destination in {"trade", "passenger", "battle"}:
+        elif destination in {"trade", "battle"}:
             self.workflow_page._select_task(destination)
             self._switch_page("workflow")
         elif destination in {
@@ -440,7 +431,6 @@ class ResonanceMainWindow(QMainWindow):
         self.history_filter.addItem("全部类型", "all")
         self.history_filter.addItem("跑商", "trade")
         self.history_filter.addItem("跑商试算", "trade_preview")
-        self.history_filter.addItem("客运", "passenger")
         self.history_filter.addItem("战斗", "battle")
         self.history_filter.currentIndexChanged.connect(self._render_history)
         top.addWidget(self.history_filter)
@@ -479,8 +469,6 @@ class ResonanceMainWindow(QMainWindow):
         self.requestRunPcTask.connect(self._bridge.run_pc_task)
         self.requestRunPcTrade.connect(self._bridge.run_pc_trade)
         self.requestPreviewPcTrade.connect(self._bridge.preview_pc_trade)
-        self.requestRunPcPassenger.connect(self._bridge.run_pc_passenger)
-        self.requestRunPcCombinedCommerce.connect(self._bridge.run_pc_combined_commerce)
         self.requestRunPcBattle.connect(self._bridge.run_pc_battle)
         self.requestCancelCurrent.connect(self._bridge.cancel_current)
         self.requestBridgeClose.connect(self._bridge.close)
@@ -496,19 +484,15 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.taskDispatched.connect(self._on_task_dispatched)
         self._bridge.runUpdated.connect(self._on_run_updated)
         self._bridge.tradeProgress.connect(self._on_trade_progress)
-        self._bridge.passengerProgress.connect(self.passenger_page.apply_progress)
         self._bridge.eternalScuffleProgress.connect(self.small_tasks_page.eternal_scuffle_panel.apply_progress)
         self._bridge.affixRefreshProgress.connect(self.small_tasks_page.affix_refresh_panel.apply_progress)
         self._bridge.deepDiveLoopProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_loop_progress)
         self._bridge.deepDivePlannedRunProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_planned_run_progress)
         self._bridge.tradeProgress.connect(self._on_workflow_trade_progress)
-        self._bridge.passengerProgress.connect(self._on_workflow_passenger_progress)
         self._bridge.targetStatusChanged.connect(self.trade_page.set_target_status)
-        self._bridge.targetStatusChanged.connect(self.passenger_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self.battle_page.set_target_status)
         self._bridge.targetStatusChanged.connect(self._set_global_target_status)
         self._bridge.cancelRequested.connect(self._on_trade_cancel_requested)
-        self._bridge.cancelRequested.connect(self.passenger_page.cancel_requested)
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.cancelRequested.connect(self._on_workflow_cancel_requested)
         self._bridge.cancelRequested.connect(self._on_affix_refresh_cancel_requested)
@@ -523,10 +507,6 @@ class ResonanceMainWindow(QMainWindow):
     def _on_workflow_trade_progress(self, event: dict[str, Any]) -> None:
         if self._active_kind != "trade_preview":
             self.workflow_page.apply_progress_event("trade", event)
-
-    @Slot(dict)
-    def _on_workflow_passenger_progress(self, event: dict[str, Any]) -> None:
-        self.workflow_page.apply_progress_event("passenger", event)
 
 
     def _run_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
@@ -586,10 +566,7 @@ class ResonanceMainWindow(QMainWindow):
             "dispatch": "pc_task",
         }
 
-    def _start_freight_recovery_workflow(
-        self, trade: dict[str, Any], passenger: dict[str, Any] | None = None,
-    ) -> None:
-        kinds = ["trade"] if passenger is None else ["trade", "passenger"]
+    def _start_freight_recovery_workflow(self, trade: dict[str, Any]) -> None:
         prepare = self._recovery_refresh_step(trade)
         pending = []
         if prepare is not None:
@@ -598,12 +575,7 @@ class ResonanceMainWindow(QMainWindow):
         pending.append({
             "step": "trade", "label": "货运", "dispatch": "trade", "inputs": deepcopy(trade),
         })
-        if passenger is not None:
-            pending.append({
-                "step": "passenger", "label": "客运", "dispatch": "passenger",
-                "inputs": deepcopy(passenger),
-            })
-        self._begin_workflow(pending, kinds, [], trade)
+        self._begin_workflow(pending, ["trade"], trade)
 
     def _preview_pc_trade(self, inputs: object, _unused_timeout: float) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
@@ -635,30 +607,11 @@ class ResonanceMainWindow(QMainWindow):
         page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
         page.cancel_requested(payload)
 
-    def _run_pc_passenger(self, inputs: object, _unused_timeout: float) -> None:
-        self.requestRunPcPassenger.emit(inputs, float(self._preferences.timeout_sec))
-
-    @staticmethod
-    def _combined_commerce_inputs(
-        *,
-        order: str,
-        trade: dict[str, Any],
-        passenger: dict[str, Any],
-    ) -> dict[str, Any]:
-        return {
-            "order": str(order),
-            "total_fatigue_budget": int(trade.get("fatigue_budget", 0)),
-            "trade_inputs": normalize_trade_task_inputs(trade),
-            "passenger_inputs": dict(passenger),
-        }
 
     def _open_trade_editor(self) -> None:
         self.workflow_page.show_trade_editor()
         self._switch_page("workflow")
 
-    def _open_passenger_editor(self) -> None:
-        self.workflow_page.show_passenger_editor()
-        self._switch_page("workflow")
 
     def _sync_input_bridge_setting(self) -> None:
         active = self._busy or self._workflow_active
@@ -729,8 +682,6 @@ class ResonanceMainWindow(QMainWindow):
         try:
             if task == "trade":
                 self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
-            elif task == "passenger":
-                self._settings.save_passenger_inputs(self.passenger_page.collect_inputs())
             elif task == "battle":
                 self._settings.save_battle_inputs(self.battle_page.collect_inputs())
             elif task == "startup":
@@ -753,8 +704,6 @@ class ResonanceMainWindow(QMainWindow):
         if not steps:
             QMessageBox.warning(self, "流程为空", "请至少启用一个任务。")
             return
-        commerce_steps: list[str] = []
-
         snapshots: dict[str, dict[str, Any]] = {}
         validating = ""
         try:
@@ -772,9 +721,6 @@ class ResonanceMainWindow(QMainWindow):
             if "trade" in steps:
                 validating = "货运"
                 snapshots["trade"] = self.trade_page.collect_task_inputs()
-            if "passenger" in steps:
-                validating = "客运"
-                snapshots["passenger"] = self.passenger_page.collect_inputs()
             if "battle" in steps:
                 validating = "自动战斗"
                 snapshots["battle"] = self.battle_page.collect_inputs()
@@ -786,8 +732,6 @@ class ResonanceMainWindow(QMainWindow):
             validating = "保存设置"
             if "trade" in steps:
                 self._settings.save_trade_inputs(self.trade_page.collect_ui_state())
-            if "passenger" in steps:
-                self._settings.save_passenger_inputs(snapshots["passenger"])
             if "battle" in steps:
                 self._settings.save_battle_inputs(snapshots["battle"])
             self._settings.sync_checked()
@@ -810,15 +754,14 @@ class ResonanceMainWindow(QMainWindow):
                     "label": "进入主界面",
                     "dispatch": "pc_task",
                 })
-            elif step in {"trade", "passenger"}:
-                if step == "trade":
-                    prepare = self._recovery_refresh_step(trade)
-                    if prepare is not None:
-                        prepare["parent"] = "trade"
-                        pending.append(prepare)
+            elif step == "trade":
+                prepare = self._recovery_refresh_step(trade)
+                if prepare is not None:
+                    prepare["parent"] = "trade"
+                    pending.append(prepare)
                 pending.append({
                     "step": step, "inputs": dict(run_snapshots[step]),
-                    "label": "货运" if step == "trade" else "客运", "dispatch": step,
+                    "label": "货运", "dispatch": step,
                 })
             elif step == "battle":
                 pending.append({
@@ -839,30 +782,11 @@ class ResonanceMainWindow(QMainWindow):
                     "dispatch": "pc_task",
                 })
 
-        if "trade" in steps and "passenger" in steps and not trade.get("auto_passenger", False):
-            first, second = sorted((steps.index("trade"), steps.index("passenger")))
-            if second != first + 1:
-                QMessageBox.warning(self, "客货运组合顺序", "货运与客运共用疲劳预算，请将两项任务相邻排列。")
-                return
-            commerce_steps = [steps[first], steps[second]]
-            order = "trade_first" if commerce_steps[0] == "trade" else "passenger_first"
-            commerce_rows = [row for row in pending if row["step"] in {"trade", "passenger"}]
-            first_row = next(i for i, row in enumerate(pending) if row is commerce_rows[0])
-            insert_at = sum(row["step"] not in {"trade", "passenger", "refresh_recovery"} for row in pending[:first_row])
-            pending = [row for row in pending if row["step"] not in {"trade", "passenger"}]
-            # Recovery belongs before the combined runtime, including passenger-first.
-            preparation = [row for row in pending if row["step"] == "refresh_recovery"]
-            pending = [row for row in pending if row["step"] != "refresh_recovery"]
-            insert_at = min(insert_at, len(pending))
-            pending[insert_at:insert_at] = preparation + [{
-                "step": commerce_steps[0], "label": "客货运组合", "dispatch": "combined_commerce",
-                "inputs": self._combined_commerce_inputs(order=order, trade=snapshots["trade"], passenger=snapshots["passenger"]),
-            }]
-        self._begin_workflow(pending, steps, commerce_steps, snapshots.get("trade"))
+        self._begin_workflow(pending, steps, snapshots.get("trade"))
 
     def _begin_workflow(
         self, pending: list[dict[str, Any]], steps: list[str],
-        commerce_steps: list[str], trade_inputs: dict[str, Any] | None,
+        trade_inputs: dict[str, Any] | None,
     ) -> None:
         display_steps = list(steps)
         self._workflow_pending = pending
@@ -872,11 +796,7 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_stopping = False
         self._workflow_current = None
         self._workflow_failed_message = ""
-        self.workflow_page.begin_workflow(
-            display_steps,
-            commerce_steps,
-            trade_inputs,
-        )
+        self.workflow_page.begin_workflow(display_steps, trade_inputs)
         if any(row["step"] == "refresh_recovery" for row in pending):
             self.workflow_page.add_freight_preparation()
         self._switch_page("workflow")
@@ -892,9 +812,6 @@ class ResonanceMainWindow(QMainWindow):
                 self._finish_workflow(True, "全部启用任务已完成。")
             return
         current = self._workflow_pending.pop(0)
-        if not bool(current.get("inputs_ready", True)):
-            self._abort_workflow("组合流程尚未获得可用的货运疲劳预算。")
-            return
         self._workflow_current = current
         step = str(current["step"])
         parent = str(current.get("parent") or "")
@@ -904,16 +821,12 @@ class ResonanceMainWindow(QMainWindow):
         timeout = float(self._preferences.timeout_sec)
         dispatch = str(current["dispatch"])
         inputs = dict(current["inputs"])
-        if dispatch in {"trade", "combined_commerce"}:
+        if dispatch == "trade":
             player = self._workflow_recovery_snapshot.get("player_data")
             if player is not None and self._workflow_recovery_snapshot.get("recovery_requested") is True:
                 inputs["recovery_snapshot"] = deepcopy(player)
         if dispatch == "trade":
             self.requestRunPcTrade.emit(normalize_trade_task_inputs(inputs), timeout)
-        elif dispatch == "passenger":
-            self.requestRunPcPassenger.emit(dict(current["inputs"]), timeout)
-        elif dispatch == "combined_commerce":
-            self.requestRunPcCombinedCommerce.emit(inputs, timeout)
         elif dispatch == "battle":
             # The backend owns per-battle/transition budgets. A daily plan may
             # legitimately last longer than the GUI's generic task timeout.
@@ -1140,12 +1053,9 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_stopping = True
         self.workflow_page.set_stopping()
         if self._workflow_current is not None:
-            current_steps = (
-                ("trade", "passenger") if self._workflow_current.get("dispatch") == "combined_commerce"
-                else (str(self._workflow_current["step"]),)
+            self.workflow_page.mark_step(
+                str(self._workflow_current["step"]), "stopping", "等待执行端停止确认"
             )
-            for step in current_steps:
-                self.workflow_page.mark_step(step, "stopping", "等待执行端停止确认")
             parent = str(self._workflow_current.get("parent") or "")
             if parent:
                 self.workflow_page.mark_step(parent, "stopping", "等待执行端停止确认")
@@ -1186,7 +1096,6 @@ class ResonanceMainWindow(QMainWindow):
         self._workflow_current = None
         self.workflow_page.finish_workflow(success=success, message=message)
         self.trade_page.set_busy(False)
-        self.passenger_page.set_busy(False)
         self.battle_page.set_busy(False)
         self._workflow_failed_message = ""
         self.small_tasks_page.affix_refresh_panel.set_runner_busy(self._busy)
@@ -1198,12 +1107,9 @@ class ResonanceMainWindow(QMainWindow):
             self._workflow_stopping = True
             self.workflow_page.set_stopping()
             if self._workflow_current is not None:
-                steps = (
-                    ("trade", "passenger") if self._workflow_current.get("dispatch") == "combined_commerce"
-                    else (str(self._workflow_current["step"]),)
+                self.workflow_page.mark_step(
+                    str(self._workflow_current["step"]), "stopping", "任务已请求停止，等待执行端确认"
                 )
-                for step in steps:
-                    self.workflow_page.mark_step(step, "stopping", "任务已请求停止，等待执行端确认")
 
     def _run_pc_battle(self, inputs: object, _unused_timeout: float) -> None:
         self.requestRunPcBattle.emit(inputs, 0.0)
@@ -1289,6 +1195,7 @@ class ResonanceMainWindow(QMainWindow):
         ).lower()
         if "preview_trade_plan_pc" in task_identity:
             return "trade_preview"
+        # Retired task kinds remain readable in history, without run entrypoints.
         if "passenger" in task_identity:
             return "passenger"
         if "battle" in task_identity:
@@ -1319,19 +1226,6 @@ class ResonanceMainWindow(QMainWindow):
                     self.workflow_page.set_active_progress_cid("trade", extract_run_id(payload))
                 if not self._workflow_active:
                     self._open_trade_editor()
-            elif kind == "passenger_run":
-                self.passenger_page.begin_run(payload)
-                if self._workflow_active:
-                    self.workflow_page.set_active_progress_cid("passenger", extract_run_id(payload))
-                if not self._workflow_active:
-                    self._open_passenger_editor()
-            elif kind == "combined_commerce_run":
-                self.trade_page.begin_run(payload)
-                self.passenger_page.begin_run(payload)
-                if self._workflow_active:
-                    cid = extract_run_id(payload)
-                    self.workflow_page.set_active_progress_cid("trade", cid)
-                    self.workflow_page.set_active_progress_cid("passenger", cid)
             elif kind == "battle_run":
                 self.battle_page.begin_run(payload)
                 if not self._workflow_active:
@@ -1351,107 +1245,9 @@ class ResonanceMainWindow(QMainWindow):
             self.trade_preview_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
             self.trade_page.update_run(payload)
-        elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("passenger_"):
-            self.passenger_page.update_run(payload)
-        elif self._active_game_name == PC_GAME_NAME and self._active_kind == "combined_commerce_run":
-            self.trade_page.update_run(payload)
-            self.passenger_page.update_run(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("battle_"):
             self.battle_page.update_run(payload)
 
-    @staticmethod
-    def _combined_child_payload(
-        payload: dict[str, Any],
-        child: dict[str, Any],
-        *,
-        kind: str,
-    ) -> dict[str, Any]:
-        child_status = str(child.get("status") or "").strip().lower()
-        succeeded = (
-            child.get("success") is True
-            and child_status == "completed"
-        )
-        item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
-        return {
-            **dict(payload),
-            "status": "success" if succeeded else "failed",
-            "gui_item": {**dict(item), "kind": f"{kind}_run"},
-            "final_result": {"user_data": dict(child)},
-        }
-
-    def _finish_combined_pages(self, payload: dict[str, Any], result: dict[str, Any]) -> None:
-        trade = result.get("trade") if isinstance(result.get("trade"), dict) else {}
-        passenger = (
-            result.get("passenger") if isinstance(result.get("passenger"), dict) else {}
-        )
-        self.trade_page.finish_run(
-            self._combined_child_payload(payload, trade, kind="trade")
-        )
-        self.workflow_page.update_freight_market_result(trade)
-        self.passenger_page.finish_run(
-            self._combined_child_payload(payload, passenger, kind="passenger")
-        )
-
-    @staticmethod
-    def _combined_reason_text(result: dict[str, Any]) -> str:
-        reason = str(result.get("reason") or "客货运组合未成功完成")
-        labels = {
-            "passenger_route_invalid": "客运线路参数无效。",
-            "passenger_endpoint_unavailable": "客运线路端点未全部包含在货运可用城市中。",
-            "insufficient_trade_fatigue": "完成客运后没有可用于货运的疲劳。",
-            "current_city_unknown": "无法识别当前城市，不能计算客货运组合方案。",
-            "trade_preflight_no_plan": "当前行情下没有可在客运后启动的货运方案。",
-            "trade_failed": "货运任务执行失败。",
-            "trade_handoff_invalid": "货运结束状态不满足客货运交接条件。",
-            "passenger_failed": "客运任务执行失败。",
-            "passenger_handoff_invalid": "客运结束状态不满足客货运交接条件。",
-            "passenger_forecast_mismatch": "客运实际终点或疲劳与运行前预测不一致。",
-            "post_passenger_trade_no_plan": "客运结束后的最新行情已无可执行货运方案。",
-        }
-        return labels.get(reason, reason)
-
-    def _finish_combined_workflow_result(
-        self,
-        *,
-        result: dict[str, Any],
-        succeeded: bool,
-    ) -> None:
-        trade = result.get("trade") if isinstance(result.get("trade"), dict) else {}
-        passenger = (
-            result.get("passenger") if isinstance(result.get("passenger"), dict) else {}
-        )
-        if succeeded:
-            missing = next((kind for kind, child in (("trade", trade), ("passenger", passenger))
-                            if child.get("success") is not True or child.get("status") != "completed"), "")
-            if result.get("success") is not True or missing:
-                result = {**result, "failure_stage": f"{missing or 'trade'}_result",
-                          "reason": "组合任务未返回完整的货运与客运完成结果。"}
-                succeeded = False
-        for kind, child, label in (
-            ("trade", trade, "货运"),
-            ("passenger", passenger, "客运"),
-        ):
-            if child.get("success") is True and str(child.get("status") or "") == "completed":
-                self.workflow_page.mark_step(kind, "success", f"{label}已完成")
-        if succeeded:
-            self._workflow_current = None
-            return
-
-        failure_stage = str(result.get("failure_stage") or "")
-        failed_kind = "passenger" if failure_stage.startswith("passenger") else "trade"
-        if failure_stage == "preflight":
-            order = str(result.get("order") or "trade_first")
-            failed_kind = "passenger" if order == "passenger_first" else "trade"
-        reason = self._combined_reason_text(result)
-        self.workflow_page.mark_step(failed_kind, "failed", reason)
-        if self._workflow_current is not None:
-            self._workflow_current["step"] = failed_kind
-        for kind, child in (("trade", trade), ("passenger", passenger)):
-            if kind != failed_kind and not child:
-                self.workflow_page.mark_step(kind, "skipped", "组合交接未通过，后续任务未执行")
-        if failure_stage == "preflight":
-            QMessageBox.warning(self, "客货运组合不可执行", reason)
-        self._abort_workflow(reason)
 
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
         if self._closing:
@@ -1638,10 +1434,6 @@ class ResonanceMainWindow(QMainWindow):
                 if passenger:
                     freight_summary["passenger"] = passenger
                 self.workflow_page.update_freight_market_result(freight_summary)
-            elif kind == "passenger_run":
-                self.passenger_page.finish_run(payload)
-            elif kind == "combined_commerce_run":
-                self._finish_combined_pages(payload, extract_final_result(payload))
             elif kind == "battle_run":
                 self.battle_page.finish_run(payload)
         if self._workflow_active and self._workflow_current is not None:
@@ -1697,8 +1489,6 @@ class ResonanceMainWindow(QMainWindow):
                             f"（CID: {extract_run_id(payload)}）",
                         )
                         self._workflow_current = None
-            elif str(current.get("dispatch") or "") == "combined_commerce":
-                self._finish_combined_workflow_result(result=result, succeeded=succeeded)
             elif step == "rewards":
                 try:
                     item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
@@ -1772,11 +1562,6 @@ class ResonanceMainWindow(QMainWindow):
             self._abort_workflow(str(payload.get("error") or "任务执行异常"))
         if stage == "run_pc_battle":
             self.battle_page.show_failure(payload)
-        elif stage == "run_pc_passenger":
-            self.passenger_page.show_failure(payload)
-        elif stage == "run_pc_combined_commerce":
-            self.trade_page.show_failure(payload)
-            self.passenger_page.show_failure(payload)
         elif stage == "preview_pc_trade":
             self.trade_preview_page.show_failure(payload)
         elif stage == "run_pc_trade":
@@ -1786,17 +1571,9 @@ class ResonanceMainWindow(QMainWindow):
             and self._active_kind.startswith("battle_")
         ):
             self.battle_page.show_failure(payload)
-        elif (
-            self._active_game_name == PC_GAME_NAME
-            and self._active_kind.startswith("passenger_")
-        ):
-            self.passenger_page.show_failure(payload)
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
             page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
             page.show_failure(payload)
-        elif self._active_game_name == PC_GAME_NAME and self._active_kind == "combined_commerce_run":
-            self.trade_page.show_failure(payload)
-            self.passenger_page.show_failure(payload)
         self.run_detail.show_text(pretty_json(payload))
 
     def _on_busy_changed(self, busy: bool) -> None:
@@ -1815,7 +1592,6 @@ class ResonanceMainWindow(QMainWindow):
                 self._small_task_active_ref = ""
         locked = busy or self._workflow_active
         self.trade_page.set_busy(locked)
-        self.passenger_page.set_busy(locked)
         self.battle_page.set_busy(locked)
         if self._workflow_active:
             self.workflow_page._set_editing_enabled(False)

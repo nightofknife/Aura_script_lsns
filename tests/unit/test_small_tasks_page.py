@@ -219,7 +219,6 @@ def test_main_window_opens_small_tasks_without_losing_global_controls(tmp_path) 
         assert window.workflow_page.workflow_steps() == [
             "startup",
             "trade",
-            "passenger",
             "battle",
             "close",
         ]
@@ -329,6 +328,6 @@ def test_workflow_migrates_removed_player_data_configuration(tmp_path) -> None:
     repository = ResonanceConfigRepository(settings)
 
     page = WorkflowPage(repository)
-    assert page._task_order == ["startup", "battle", "rewards", "close", "trade", "passenger"]
+    assert page._task_order == ["startup", "battle", "rewards", "close", "trade"]
     assert "player_data" not in page._task_checks
     page.close()

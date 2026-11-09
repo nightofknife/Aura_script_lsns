@@ -29,14 +29,10 @@ from .logic import (
     ETERNAL_SCUFFLE_PROGRESS_SCHEMA,
     PC_ETERNAL_SCUFFLE_TASK_REF,
     PC_BATTLE_TASK_REF,
-    PC_COMBINED_COMMERCE_TASK_REF,
     PC_GAME_NAME,
-    PC_PASSENGER_TASK_REF,
     PC_TRADE_PREVIEW_TASK_REF,
     PC_TRADE_TASK_REF,
     TERMINAL_STATUSES,
-    PASSENGER_PROGRESS_EVENT,
-    PASSENGER_PROGRESS_SCHEMA,
     TRADE_PROGRESS_EVENT,
     TRADE_PROGRESS_SCHEMA,
     extract_run_id,
@@ -62,7 +58,6 @@ class RunnerBridge(QObject):
     taskFinished = Signal(dict)
     taskFailed = Signal(dict)
     tradeProgress = Signal(dict)
-    passengerProgress = Signal(dict)
     eternalScuffleProgress = Signal(dict)
     affixRefreshProgress = Signal(dict)
     deepDiveLoopProgress = Signal(dict)
@@ -245,43 +240,6 @@ class RunnerBridge(QObject):
         item["kind"] = "trade_run"
         self._run_item(item)
 
-    @Slot(object, float)
-    def run_pc_passenger(self, inputs: object, timeout_sec: float = 0.0) -> None:
-        if self._busy:
-            self.taskFailed.emit({"stage": "run_pc_passenger", "error": "已有任务正在运行。"})
-            return
-        run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
-        item = self._make_item(
-            PC_GAME_NAME,
-            PC_PASSENGER_TASK_REF,
-            run_inputs,
-            "PC 独立客运",
-            timeout_sec,
-        )
-        item["kind"] = "passenger_run"
-        self._run_item(item)
-
-    @Slot(object, float)
-    def run_pc_combined_commerce(self, inputs: object, timeout_sec: float = 0.0) -> None:
-        if self._busy:
-            self.taskFailed.emit(
-                {"stage": "run_pc_combined_commerce", "error": "已有任务正在运行。"}
-            )
-            return
-        run_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
-        if isinstance(run_inputs.get("trade_inputs"), dict):
-            trade_inputs = dict(run_inputs["trade_inputs"])
-            trade_inputs.pop("start_city_id", None)
-            run_inputs["trade_inputs"] = trade_inputs
-        item = self._make_item(
-            PC_GAME_NAME,
-            PC_COMBINED_COMMERCE_TASK_REF,
-            run_inputs,
-            "PC 客货运组合",
-            timeout_sec,
-        )
-        item["kind"] = "combined_commerce_run"
-        self._run_item(item)
 
     @Slot(object, float)
     def preview_pc_trade(self, inputs: object, timeout_sec: float = 0.0) -> None:
@@ -446,13 +404,9 @@ class RunnerBridge(QObject):
             if item["game_name"] == PC_GAME_NAME:
                 if item["task_ref"] in {PC_TRADE_TASK_REF, PC_TRADE_PREVIEW_TASK_REF}:
                     dispatch_inputs = normalize_trade_task_inputs(dispatch_inputs)
-                elif item["task_ref"] == PC_COMBINED_COMMERCE_TASK_REF:
-                    trade = dispatch_inputs.get("trade_inputs")
-                    if isinstance(trade, dict):
-                        dispatch_inputs["trade_inputs"] = normalize_trade_task_inputs(trade)
             if (
                 item["game_name"] == PC_GAME_NAME
-                and item["task_ref"] in {PC_TRADE_TASK_REF, PC_COMBINED_COMMERCE_TASK_REF}
+                and item["task_ref"] == PC_TRADE_TASK_REF
                 and dispatch_inputs.get("recovery_snapshot") is not None
             ):
                 dispatch_inputs["recovery_snapshot"] = recovery_snapshot_task_input(
@@ -552,25 +506,17 @@ class RunnerBridge(QObject):
                 self._scuffle_sequence = sequence
                 self.eternalScuffleProgress.emit(dict(event))
                 continue
-            if name not in {TRADE_PROGRESS_EVENT, PASSENGER_PROGRESS_EVENT}:
+            if name != TRADE_PROGRESS_EVENT:
                 continue
             payload = event.get("payload")
             if not isinstance(payload, dict):
                 continue
             schema = str(payload.get("schema") or "")
-            expected_schema = (
-                TRADE_PROGRESS_SCHEMA
-                if name == TRADE_PROGRESS_EVENT
-                else PASSENGER_PROGRESS_SCHEMA
-            )
-            if schema != expected_schema:
+            if schema != TRADE_PROGRESS_SCHEMA:
                 continue
             if str(payload.get("cid") or "") != self._current_cid:
                 continue
-            if name == TRADE_PROGRESS_EVENT:
-                self.tradeProgress.emit(dict(event))
-            else:
-                self.passengerProgress.emit(dict(event))
+            self.tradeProgress.emit(dict(event))
 
     def _request_cancel(self, *, reason: str) -> None:
         self._cancel_sent = True

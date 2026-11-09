@@ -31,8 +31,7 @@
 | `src/services/resonance_pc_trade_solver_common.py`、dense/sparse | 当前围绕最大利润进行状态比较、支配剪枝和终态选择。 | 收益模式保留精确后端；目标收益和固定线路使用适合自身目标的精确搜索。 |
 | `src/actions/trade_planner_pc_actions.py` | 规划 action 与路线执行状态混合。 | 提取运行状态管理，公开 action 只做注入、转发和序列化。 |
 | `tasks/auto_cycle_trade_pc.yaml` | `run -> bento child task -> finish`。便当是完整任务的一部分，action 返回并不代表完整货运已结束。 | 所有模式通过同一个完整任务入口执行，并在便当收尾后报告任务完成。 |
-| `src/actions/combined_commerce_pc_actions.py` | 直接调用货运 action，并显式拒绝 `auto_bento`。 | 新 GUI 按独立货运、客运排队；不把四模式继续扩展为组合任务内部策略。旧入口另做调用审计。 |
-| `src/actions/passenger_flow_pc_actions.py` | 导入货运文件中的私有单城交易函数。 | 改为依赖提取后的共享交易模块。 |
+| 独立客运及客货联合编排 | 已退役，不再导出任务或 action。 | 货运内附加客运保留，见[清理记录](resonance-pc-passenger-retirement.md)。 |
 
 当前规划输出包含 `buys[*].quantity`，但执行主要接受商品名称、书数和协商标志。满仓指标首先是计划值，不冒充实测货舱数量。执行时必须检查目标商品是否完整选中、用书是否完成及购买是否确认。
 

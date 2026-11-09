@@ -12,7 +12,6 @@ from plans.resonance_pc.src.actions.city_trade_flow_pc_actions import (
     resonance_pc_auto_cycle_trade_flow,
     resonance_pc_finish_auto_cycle_trade,
 )
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions._sparkling_water_policy import validate_recovery_snapshot
 
 
@@ -64,51 +63,31 @@ def test_freight_inputs_forward_thresholds_without_budget_adjustment(enabled, pr
     assert "bento_plan" not in spec["returns"]
 
 
-def test_defaults_and_combined_schema_only_extend_freight():
+def test_defaults_and_schema_extend_freight():
     spec = task("auto_cycle_trade_pc")
     inputs = {row["name"]: row for row in spec["meta"]["inputs"]}
     assert inputs["auto_bento"]["default"] is False
     assert inputs["bento_priority"]["default"] == ["work_meals", "love_bentos"]
-    flow_parameters = inspect.signature(resonance_pc_auto_cycle_trade_flow).parameters
-    assert flow_parameters["auto_bento"].default is False
-    combined_inputs = {row["name"]: row for row in task("auto_combined_commerce_pc")["meta"]["inputs"]}
-    freight = combined_inputs["trade_inputs"]["properties"]
-    passenger = combined_inputs["passenger_inputs"]["properties"]
-    assert freight["auto_bento"]["default"] is False
-    assert freight["bento_priority"]["default"] == ["work_meals", "love_bentos"]
+    parameters = inspect.signature(resonance_pc_auto_cycle_trade_flow).parameters
+    assert parameters["auto_bento"].default is False
     for key in THRESHOLDS:
-        assert flow_parameters[key].default == DEFAULT_THRESHOLDS[key]
-        for schema in (inputs[key], freight[key]):
-            assert schema["default"] == DEFAULT_THRESHOLDS[key]
-            assert schema["nullable"] is True
-            assert schema["strict_integer"] is True
-            assert schema["min"] == 0
-    recovery_keys = {"auto_bento", "bento_priority", *THRESHOLDS}
-    assert recovery_keys <= combined._TRADE_INPUT_KEYS
-    assert not recovery_keys.intersection(passenger)
-    assert not recovery_keys.intersection(combined._PREVIEW_INPUT_KEYS)
-    assert not recovery_keys.intersection(combined._PASSENGER_INPUT_KEYS)
+        assert parameters[key].default == DEFAULT_THRESHOLDS[key]
+        assert inputs[key]["default"] == DEFAULT_THRESHOLDS[key]
+        assert inputs[key]["nullable"] is True and inputs[key]["strict_integer"] is True
+        assert inputs[key]["min"] == 0
     assert "base_fatigue_reserve" not in inputs
-    assert "base_fatigue_reserve" not in freight
+    assert "recovery_priority" not in inputs and "recovery_priority" not in parameters
     ok, values = InputValidator(None).validate_inputs_against_meta(spec["meta"]["inputs"], {})
     assert ok is True
     assert {key: render_params(spec, values)[key] for key in THRESHOLDS} == DEFAULT_THRESHOLDS
-    assert "recovery_priority" not in inputs
-    assert "recovery_priority" not in freight
-    assert "recovery_priority" not in flow_parameters
-    assert "recovery_priority" not in combined._TRADE_INPUT_KEYS
 
 
 @pytest.mark.parametrize("key", THRESHOLDS)
 @pytest.mark.parametrize("value", [-1, True, 3.5, "300"])
-def test_both_freight_schemas_reject_non_integer_or_negative_thresholds(key, value):
-    validator = InputValidator(None)
-    for name, supplied in (
-        ("auto_cycle_trade_pc", {key: value}),
-        ("auto_combined_commerce_pc", {"trade_inputs": {key: value}}),
-    ):
-        ok, _ = validator.validate_inputs_against_meta(task(name)["meta"]["inputs"], supplied)
-        assert ok is False
+def test_freight_schema_rejects_non_integer_or_negative_thresholds(key, value):
+    ok, _ = InputValidator(None).validate_inputs_against_meta(
+        task("auto_cycle_trade_pc")["meta"]["inputs"], {key: value})
+    assert ok is False
 
 
 def test_finish_only_normalizes_the_shared_flow_result():
@@ -155,17 +134,13 @@ def test_gui_recovery_snapshot_passes_freight_input_validation(water, bento):
             validate_recovery_snapshot(snapshot)
 
 
-def test_bento_only_snapshot_is_valid_at_both_combined_input_boundaries():
+def test_bento_only_snapshot_is_valid_for_freight():
     snapshot = recovery_snapshot_task_input({
         "status": {"fatigue": {"current": 420, "max": 856}},
-        "recovery": {"bento_count": {"count": 9}},
-        "metadata": {"persisted": True},
-    })
-    schema = task("auto_combined_commerce_pc")["meta"]["inputs"]
-    for supplied in ({"recovery_snapshot": snapshot},
-                     {"trade_inputs": {"recovery_snapshot": snapshot}}):
-        ok, _ = InputValidator(None).validate_inputs_against_meta(schema, supplied)
-        assert ok is True
+        "recovery": {"bento_count": {"count": 9}}, "metadata": {"persisted": True}})
+    ok, _ = InputValidator(None).validate_inputs_against_meta(
+        task("auto_cycle_trade_pc")["meta"]["inputs"], {"recovery_snapshot": snapshot})
+    assert ok is True
 
 
 def test_recovery_snapshot_stays_optional_and_bad_bento_counts_are_rejected():
@@ -196,8 +171,6 @@ def test_manifest_exports_thresholds_without_legacy_recovery_controls():
 
 def test_recovery_order_is_not_a_task_input_or_runtime_parameter():
     freight = {row["name"] for row in task("auto_cycle_trade_pc")["meta"]["inputs"]}
-    combined_inputs = {row["name"]: row for row in task("auto_combined_commerce_pc")["meta"]["inputs"]}
     assert "recovery_priority" not in freight
-    assert "recovery_priority" not in combined_inputs["trade_inputs"]["properties"]
     assert "recovery_priority" not in inspect.signature(resonance_pc_auto_cycle_trade_flow).parameters
     assert "bento_priority" in freight

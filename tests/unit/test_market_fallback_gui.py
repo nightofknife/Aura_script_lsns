@@ -72,9 +72,6 @@ def test_switch_default_persistence_snapshot_and_dispatch(page, repository, monk
     assert runner.calls[0]["inputs"]["allow_stale_market"] is enabled
     page.allow_stale_market.setChecked(not enabled)
     assert runner.calls[0]["inputs"]["allow_stale_market"] is enabled
-    combined = ResonanceMainWindow._combined_commerce_inputs(order="trade_first", trade=inputs, passenger={})
-    assert combined["trade_inputs"]["allow_stale_market"] is enabled
-    assert "allow_stale_market" not in combined["passenger_inputs"]
     page.set_busy(True)
     assert not page.allow_stale_market.isEnabled()
     page.set_busy(False)
@@ -148,13 +145,15 @@ def test_trade_warning_is_visible_during_later_stages_and_retained_at_finish(pag
 def test_workflow_warning_survives_page_switch_progress_and_finish(page, repository, blocked):
     workflow = WorkflowPage(repository)
     try:
-        workflow.begin_workflow(["trade", "passenger"], [])
+        workflow.begin_workflow(["trade", "battle"])
         workflow.set_active_progress_cid("trade", "run")
         workflow.apply_progress_event("trade", event(1, state="blocked" if blocked else "completed", data=MARKET))
         text = workflow.market_warning_label.text()
         assert "快照时间" in text
         assert ("未使用历史行情继续" if blocked else "本次使用历史行情") in text
-        workflow._select_task("passenger")
+        # This standalone workspace owns built-in editors; the main window
+        # attaches the battle editor separately.
+        workflow._select_task("close")
         assert workflow.market_warning_label.text() == text
         if not blocked:
             workflow.apply_progress_event("trade", event(2, stage="planning", data={
@@ -163,7 +162,7 @@ def test_workflow_warning_survives_page_switch_progress_and_finish(page, reposit
             assert "历史行情" in workflow.runtime_plan_contract_note.text()
         workflow.finish_workflow(success=not blocked, message="完成" if not blocked else "已阻断")
         assert workflow.market_warning_label.text() == text
-        workflow.begin_workflow(["trade"], [])
+        workflow.begin_workflow(["trade"])
         assert workflow.market_warning_label.isHidden()
     finally:
         dispose(workflow)
@@ -175,18 +174,14 @@ def test_result_summary_distinguishes_refused_cache():
     assert "本次使用历史行情" not in rejected["warnings"][0]
 
 
-@pytest.mark.parametrize("combined", [False, True])
-def test_terminal_result_restores_warning_if_progress_event_was_missed(page, repository, monkeypatch, combined):
+def test_terminal_result_restores_warning_if_progress_event_was_missed(page, repository, monkeypatch):
     monkeypatch.setattr(ResonanceMainWindow, "_wire_bridge", lambda self: None)
     window = ResonanceMainWindow(settings=repository, initialize_on_startup=False)
     try:
         window._active_game_name = PC_GAME_NAME
         result = {"status": "success", "success": True, **RESULT}
         payload = {"status": "success", "gui_item": {"kind": "trade_run"}, "final_result": {"user_data": result}}
-        if combined:
-            window._finish_combined_pages(payload, {"trade": result, "passenger": {"status": "success"}})
-        else:
-            window._on_task_finished(payload)
+        window._on_task_finished(payload)
         assert "本次使用历史行情" in window.workflow_page.market_warning_label.text()
         assert "本次使用历史行情" in window.trade_page.market_warning_label.text()
     finally:
@@ -203,7 +198,7 @@ def test_real_backend_event_contract_reaches_gui_with_fake_game_services(page, r
     workflow = WorkflowPage(repository)
     try:
         page.begin_run({"cid": "run"})
-        workflow.begin_workflow(["trade"], [])
+        workflow.begin_workflow(["trade"])
         workflow.set_active_progress_cid("trade", "run")
         for payload in bus.events:
             envelope = {"name": TRADE_PROGRESS_EVENT, "payload": payload}
@@ -232,7 +227,7 @@ def test_warning_layout_keeps_run_control_visible(page, repository, monkeypatch,
         window.resize(1180, 720)
         window.show()
         workflow = window.workflow_page
-        workflow.begin_workflow(["trade"], [])
+        workflow.begin_workflow(["trade"])
         workflow.set_active_progress_cid("trade", "run")
         workflow.apply_progress_event("trade", event(1, data=MARKET))
         QApplication.processEvents()

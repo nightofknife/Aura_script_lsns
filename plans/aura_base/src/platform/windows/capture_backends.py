@@ -254,6 +254,42 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
         finally:
             self._session_lock.release()
 
+    def capture_diagnostic_once(self) -> CaptureResult:
+        """Capture the bound window without starting or rebuilding its runtime camera."""
+        self.target.ensure_valid()
+        hwnd = int(self.target.hwnd)
+        client_rect = self.target.get_client_rect()
+        # Use the compatible profile for this independent, short-lived camera.
+        # No shared runtime/session lock is held while starting or stopping it.
+        session = PersistentWgcSession(
+            hwnd=hwnd,
+            module_name=self.module_name,
+            capture_cursor=self.capture_cursor,
+            draw_border=None,
+            secondary_window=None,
+            minimum_update_interval_ms=None,
+            dirty_region=None,
+        )
+        try:
+            session.start_if_needed()
+            session.wait_for_fresh_frame(0, min(self.frame_timeout_ms, 1000))
+            frame = _coerce_rgb_frame(session.snapshot_full_frame(), backend=self.backend_name)
+            self.target.ensure_valid()
+            if int(self.target.hwnd) != hwnd or self.target.get_client_rect() != client_rect:
+                raise TargetRuntimeError("diagnostic_target_changed", "The target geometry changed during diagnostic capture.")
+            image = self._crop_wgc_frame_to_client(frame)
+            if int(self.target.hwnd) != hwnd or self.target.get_client_rect() != client_rect:
+                raise TargetRuntimeError("diagnostic_target_changed", "The target geometry changed during diagnostic capture.")
+            return CaptureResult(
+                success=True,
+                image=image,
+                window_rect=client_rect,
+                relative_rect=client_rect,
+                backend=self.backend_name,
+            )
+        finally:
+            session.close()
+
     def capture(self, rect: tuple[int, int, int, int] | None = None) -> CaptureResult:
         self.target.ensure_valid()
         roi = _normalize_client_roi(self.target, rect)

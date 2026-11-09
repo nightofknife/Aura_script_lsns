@@ -12,5 +12,5 @@ Start here:
 
 The GUI is launched through the `gui resonance` command, while its primary
 Windows-client workflows execute tasks from `resonance_pc`. It provides a
-guided workflow, freight and passenger configuration, battle dispatch, player
+guided workflow, freight and attached-passenger configuration, battle dispatch, player
 data, run history, settings, and a legacy JSON workbench for lower-level tasks.

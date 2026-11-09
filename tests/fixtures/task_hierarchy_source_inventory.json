@@ -60,16 +60,8 @@
     "key": "auto_battle_input_preview_pc"
   },
   {
-    "file": "auto_combined_commerce_pc.yaml",
-    "key": "auto_combined_commerce_pc"
-  },
-  {
     "file": "auto_cycle_trade_pc.yaml",
     "key": "auto_cycle_trade_pc"
-  },
-  {
-    "file": "auto_passenger_trips_pc.yaml",
-    "key": "auto_passenger_trips_pc"
   },
   {
     "file": "bento_consumption_pc.yaml",

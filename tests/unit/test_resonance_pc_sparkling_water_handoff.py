@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 import yaml
 
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade_flow
 
 
@@ -26,166 +25,16 @@ def recovery_snapshot():
     }
 
 
-@pytest.fixture
-def harness(monkeypatch):
-    calls = {"trade": [], "passenger": [], "preview": []}
-    passenger_result = {
-        "success": True, "status": "completed", "requested_trips": 1,
-        "completed_trips": 1, "loaded_destination": None, "page_state": "city_main",
-        "requires_manual_completion": False, "end_city": {"city_id": "15"},
-        "expected_fatigue_used": 27,
-    }
-    monkeypatch.setattr(combined, "_build_passenger_route", lambda **kwargs: {
-        "city_a_id": "11", "city_b_id": "15", "trip_fatigue": 20,
-    })
-    monkeypatch.setattr(combined, "_read_current_city", lambda *args: {"city_id": "11"})
-    monkeypatch.setattr(combined, "_passenger_forecast", lambda **kwargs: {
-        "expected_fatigue": 27, "route_fatigue": 20, "reposition_fatigue": 7,
-        "end_city": {"city_id": "15"},
-    })
-
-    async def preview(**kwargs):
-        calls["preview"].append(kwargs)
-        return {"success": True, "status": "planned", "planning_status": "ok",
-                "route": [{"to_city_id": "11"}]}
-
-    async def passenger(**kwargs):
-        calls["passenger"].append(kwargs)
-        return deepcopy(passenger_result)
-
-    async def trade(**kwargs):
-        calls["trade"].append(kwargs)
-        return {
-            "success": True, "status": "completed", "route": [{"to_city_id": "11"}],
-            "execution": {"completed_leg_count": 1},
-            "final_sale": {"success": True, "page_state": "city_main"},
-            "page_state": "city_main", "expected_fatigue_used": 40,
-        }
-
-    monkeypatch.setattr(combined, "_preview_trade_plan_from_start_city", preview)
-    monkeypatch.setattr(combined, "resonance_pc_auto_passenger_trips_flow", passenger)
-    monkeypatch.setattr(combined, "resonance_pc_auto_cycle_trade_flow", trade)
-    service = object()
-    inputs = {
-        "total_fatigue_budget": 100,
-        "trade_inputs": {
-            "auto_sparkling_water": True, "available_city_ids": ["11", "15"],
-            "sparkling_water_start_threshold": 500, "sparkling_water_stop_threshold": 150,
-            "bento_start_threshold": 700, "bento_stop_threshold": 250,
-            "auto_cape_island_investment": False, "auto_rubbish_recycling": False,
-        },
-        "passenger_inputs": {"trip_count": 1, "passenger_city_a_id": "11", "passenger_city_b_id": "15"},
-        **{key: service for key in (
-            "app", "ocr", "vision", "resonance_pc_city_shop_data", "resonance_pc_market_data",
-            "resonance_pc_trade_planner", "state_store", "event_bus", "context", "engine",
-        )},
-    }
-    return inputs, calls, passenger_result
 
 
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-@pytest.mark.parametrize("enabled", [False, True])
-def test_combined_copies_snapshot_and_adjusts_only_completed_passenger_usage(
-    harness, recovery_snapshot, order, enabled,
-):
-    inputs, calls, _ = harness
-    inputs["trade_inputs"]["auto_sparkling_water"] = enabled
-    original = deepcopy(recovery_snapshot)
-    persistent_data = object()
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order=order, recovery_snapshot=recovery_snapshot, persistent_data=persistent_data,
-    ))
-    assert result["status"] == "completed"
-    assert recovery_snapshot == original
-    assert len(calls["trade"]) == 1
-    trade = calls["trade"][0]
-    expected = deepcopy(original)
-    if order == "passenger_first":
-        expected["status"]["fatigue"]["current"] += 27
-    assert trade["recovery_snapshot"] == expected
-    assert trade["recovery_snapshot"] is not recovery_snapshot
-    assert trade["persistent_data"] is persistent_data
-    assert trade["auto_sparkling_water"] is enabled
-    for key in ("sparkling_water_start_threshold", "sparkling_water_stop_threshold",
-                "bento_start_threshold", "bento_stop_threshold"):
-        assert trade[key] == inputs["trade_inputs"][key]
-        assert key not in combined._PREVIEW_INPUT_KEYS
-    assert trade["fatigue_budget"] == (80 if order == "trade_first" else 73)
-    trade["recovery_snapshot"]["recovery"]["sparkling_water"]["remaining_free_uses"] = 0
-    assert recovery_snapshot == original
-    for child in calls["preview"] + calls["passenger"]:
-        assert "recovery_snapshot" not in child
-        assert "persistent_data" not in child
-        assert "auto_sparkling_water" not in child
 
 
-@pytest.mark.parametrize("failure", ["failed", "incomplete", "unsettled", "mismatch"])
-def test_passenger_failure_never_hands_snapshot_to_trade(harness, recovery_snapshot, failure):
-    inputs, calls, passenger = harness
-    original = deepcopy(recovery_snapshot)
-    if failure == "failed":
-        passenger.update(success=False, status="failed")
-    elif failure == "incomplete":
-        passenger["completed_trips"] = 0
-    elif failure == "unsettled":
-        passenger["loaded_destination"] = "11"
-    else:
-        passenger["expected_fatigue_used"] = 26
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order="passenger_first", recovery_snapshot=recovery_snapshot,
-    ))
-    assert result["status"] == "blocked"
-    assert result["reason"] == {
-        "failed": "passenger_failed",
-        "incomplete": "passenger_handoff_invalid",
-        "unsettled": "passenger_handoff_invalid",
-        "mismatch": "passenger_forecast_mismatch",
-    }[failure]
-    assert result["failure_stage"] == ("passenger" if failure == "failed" else "passenger_handoff")
-    assert len(calls["passenger"]) == 1
-    assert calls["trade"] == []
-    assert recovery_snapshot == original
 
 
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-def test_no_snapshot_still_forwards_persistence(harness, order):
-    inputs, calls, _ = harness
-    inputs["trade_inputs"].pop("auto_sparkling_water")
-    persistent_data = object()
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order=order, persistent_data=persistent_data,
-    ))
-    assert result["status"] == "completed"
-    assert len(calls["trade"]) == 1
-    assert "recovery_snapshot" not in calls["trade"][0]
-    assert calls["trade"][0]["persistent_data"] is persistent_data
-    assert "auto_sparkling_water" not in calls["trade"][0]
 
 
-def test_nested_snapshot_cannot_bypass_top_level_handoff(harness, recovery_snapshot):
-    inputs, calls, _ = harness
-    inputs["trade_inputs"]["recovery_snapshot"] = recovery_snapshot
-    inputs["passenger_inputs"]["recovery_snapshot"] = recovery_snapshot
-    inputs["passenger_inputs"]["auto_sparkling_water"] = True
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order="passenger_first",
-    ))
-    assert result["status"] == "completed"
-    for child in calls["trade"] + calls["passenger"] + calls["preview"]:
-        assert "recovery_snapshot" not in child
 
 
-def test_combined_yaml_snapshot_is_optional_and_runtime_only():
-    task = yaml.safe_load(Path("plans/resonance_pc/tasks/auto_combined_commerce_pc.yaml").read_text(
-        encoding="utf-8",
-    ))["auto_combined_commerce_pc"]
-    snapshot = next(row for row in task["meta"]["inputs"] if row["name"] == "recovery_snapshot")
-    assert snapshot["type"] == "dict"
-    assert snapshot["required"] is False
-    assert task["steps"]["run"]["params"]["recovery_snapshot"] == "{{ inputs.recovery_snapshot | default(none) }}"
-    assert "auto_sparkling_water" in combined._TRADE_INPUT_KEYS
-    assert "auto_sparkling_water" not in combined._PREVIEW_INPUT_KEYS
-    assert "recovery_snapshot" not in combined._PREVIEW_INPUT_KEYS
 
 
 def test_real_auto_trade_requires_snapshot_before_ui(monkeypatch):
@@ -212,91 +61,3 @@ def test_real_auto_trade_requires_persistence_before_ui(monkeypatch, recovery_sn
             sparkling_water_start_threshold=500, sparkling_water_stop_threshold=150,
             context=object(), engine=object(),
         ))
-
-
-@pytest.mark.parametrize("enabled", [False, True])
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-@pytest.mark.parametrize("book_budget", [0, 3, None])
-def test_combined_handoff_enters_real_auto_trade_signature(
-    harness, monkeypatch, recovery_snapshot, enabled, order, book_budget,
-):
-    inputs, _, _ = harness
-    inputs["trade_inputs"]["auto_sparkling_water"] = enabled
-    inputs["trade_inputs"]["book_budget"] = book_budget
-    original = deepcopy(recovery_snapshot)
-    captured = {}
-    route = [{
-        "from_city_id": "15", "to_city_id": "11",
-        "from_city_key": "key15", "to_city_key": "key11",
-        "from_city": "City 15", "to_city": "City 11",
-    }]
-
-    class Market:
-        def get_all_travel_fatigue(self):
-            return {"cities": {"11": "City 11", "15": "City 15"}, "costs": {"15": {"11": 0}}}
-
-    class Shops:
-        def resolve_shop_point(self, city_name, shop_name):
-            assert shop_name == "rest"
-            return {"city_key": "key11", "city_name": city_name, "shop_key": "rest", "x": 1, "y": 2}
-
-    inputs["resonance_pc_market_data"] = Market()
-    inputs["resonance_pc_city_shop_data"] = Shops()
-    persistent_data = object()
-    monkeypatch.setattr(combined, "resonance_pc_auto_cycle_trade_flow", trade_flow.resonance_pc_auto_cycle_trade_flow)
-    monkeypatch.setattr(trade_flow, "resonance_pc_open_city_panel_from_main", lambda **kwargs: {
-        "success": True, "page_state": "city_panel",
-        "city": {"success": True, "city_id": "15", "city_key": "key15", "city_name": "City 15"},
-    })
-    monkeypatch.setattr(trade_flow, "resonance_pc_read_city_name_on_city_panel",
-                        lambda **kwargs: pytest.fail("Use the city already confirmed by the opener"))
-    monkeypatch.setattr(trade_flow, "resonance_pc_market_refresh", lambda **kwargs: {"snapshot_id": "offline-market"})
-    planning_inputs = {}
-
-    def plan_route(**kwargs):
-        planning_inputs.update(kwargs)
-        return {"status": "ok", "route": deepcopy(route), "expected_fatigue_used": 40,
-                "book_budget": kwargs["book_budget"]}
-
-    monkeypatch.setattr(trade_flow, "resonance_pc_trade_plan_optimal_route", plan_route)
-
-    async def execute_route(**kwargs):
-        captured.update(kwargs)
-        return {
-            "status": "completed", "completed_leg_count": 1, "completed_route": deepcopy(route),
-            "leg_results": [], "page_state": "city_panel",
-            "sparkling_water": {
-                "triggered": enabled, "status": "completed" if enabled else "not_triggered",
-                "reason": "selected" if enabled else "disabled",
-            },
-        }
-
-    monkeypatch.setattr(trade_flow, "_execute_route", execute_route)
-    monkeypatch.setattr(trade_flow, "_execute_city_trade_inside_current_city", lambda **kwargs: {
-        "success": True, "page_state": "city_main",
-    })
-    async def refresh_fatigue(**kwargs):
-        return 120
-    monkeypatch.setattr(trade_flow, "_refresh_recovery_fatigue", refresh_fatigue)
-    monkeypatch.setattr(trade_flow, "load_pc_user_info", lambda store: deepcopy(recovery_snapshot))
-    if not enabled:
-        monkeypatch.setattr(trade_flow, "validate_recovery_snapshot", lambda snapshot: pytest.fail("disabled flag must ignore snapshot"))
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        **inputs, order=order, recovery_snapshot=recovery_snapshot, persistent_data=persistent_data,
-    ))
-    assert result["status"] == "completed", result
-    assert planning_inputs["book_budget"] == book_budget
-    assert result["trade"]["book_budget"] == book_budget
-    assert result["trade"]["book_budget_unlimited"] is (book_budget is None)
-    assert "auto_book" not in planning_inputs
-    assert "auto_book" not in result["trade"]
-    assert recovery_snapshot == original
-    assert captured["persistent_data"] is persistent_data
-    assert result["trade"]["sparkling_water"]["triggered"] is False
-    plan = result["trade"]["sparkling_water_plan"]
-    assert plan["mode"] == "thresholds" and plan["enabled"] is enabled
-    assert "base_fatigue_reserve" not in plan
-    if enabled:
-        session = captured["recovery_session"]
-        assert session.water_start == 500 and session.water_stop == 150
-        assert session.bento_start == 700 and session.bento_stop == 250

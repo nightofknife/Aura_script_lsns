@@ -134,40 +134,6 @@ def test_first_planned_run_without_developer_page(window, runner_status, termina
     assert page.deep_dive_developer_panel is None
 
 
-@pytest.mark.parametrize("order", ["trade_first", "passenger_first"])
-@pytest.mark.parametrize("recovery", [False, True])
-def test_composition_uses_shared_budget_and_snapshot(window, monkeypatch, order, recovery):
-    page = window.workflow_page
-    for key, check in page._task_checks.items():
-        check.setChecked(key in {"trade", "passenger", "close"})
-    if order == "passenger_first":
-        page._drop_task("passenger", 1)
-    window.trade_page.fatigue_budget.setValue(333)
-    window.trade_page.auto_sparkling_water.setChecked(recovery)
-    window.trade_page.sparkling_water_start_threshold.setValue(600)
-    window.trade_page.sparkling_water_stop_threshold.setValue(200)
-    window.passenger_page.trip_count.setValue(3)
-    monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
-    window._start_workflow()
-    pending = window._workflow_pending
-    commerce = next(row for row in pending if row["dispatch"] == "combined_commerce")
-    assert commerce["inputs"]["order"] == order
-    assert commerce["inputs"]["total_fatigue_budget"] == 333
-    assert commerce["inputs"]["passenger_inputs"]["trip_count"] == 3
-    if recovery:
-        assert commerce["inputs"]["trade_inputs"]["sparkling_water_start_threshold"] == 600
-        assert commerce["inputs"]["trade_inputs"]["sparkling_water_stop_threshold"] == 200
-    assert [row["dispatch"] for row in pending] == (
-        ["pc_task", "combined_commerce", "pc_task"] if recovery else ["combined_commerce", "pc_task"]
-    )
-    if recovery:
-        assert pending[0]["step"] == "refresh_recovery"
-        assert pending[0]["inputs"]["stages"] == ["profile"]
-        assert "prison_product_goods" not in pending[0]["inputs"]
-    assert ("refresh_recovery" in page._tree_items) is recovery
-    assert pending[-1]["step"] == "close"
-    window.trade_page.fatigue_budget.setValue(700)
-    assert commerce["inputs"]["total_fatigue_budget"] == 333
 
 
 def test_stop_drops_pending_and_waits_for_worker_acknowledgement(window, monkeypatch):
@@ -176,7 +142,7 @@ def test_stop_drops_pending_and_waits_for_worker_acknowledgement(window, monkeyp
     window._begin_workflow([
         {"step": "trade", "dispatch": "trade", "inputs": {}, "label": "货运"},
         {"step": "close", "dispatch": "pc_task", "inputs": {}, "label": "关闭"},
-    ], ["trade", "close"], [], None)
+    ], ["trade", "close"], None)
     window._workflow_current = window._workflow_pending.pop(0)
     window._busy = True
     cancellations = []
@@ -219,53 +185,10 @@ def test_bridge_has_no_android_or_queue_and_waits_for_worker_exit(monkeypatch):
     assert not bridge.busy and len(finished) == 1
 
 
-def test_nonadjacent_commerce_rejects_without_dispatch(window, monkeypatch):
-    page = window.workflow_page
-    for key, check in page._task_checks.items():
-        check.setChecked(key in {"trade", "battle", "passenger"})
-    page._drop_task("battle", 2)
-    monkeypatch.setattr(window.battle_page, "collect_inputs", lambda: {"jobs": [{"route_id": "mock"}]})
-    warnings, calls = [], []
-    monkeypatch.setattr(QMessageBox, "warning", lambda *args: warnings.append(args[2]))
-    for signal in (window.requestRunPcTrade, window.requestRunPcPassenger, window.requestRunPcCombinedCommerce):
-        signal.connect(lambda *args: calls.append(args))
-    window._start_workflow()
-    assert warnings and "相邻" in warnings[0]
-    assert not calls and not window._workflow_active
 
 
-@pytest.mark.parametrize("order,first,second", [
-    ("trade_first", "trade", "passenger"), ("passenger_first", "passenger", "trade"),
-])
-def test_combined_handoff_failure_preserves_completed_child_and_cancels_pending(
-        window, monkeypatch, order, first, second):
-    monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
-    window._begin_workflow([
-        {"step": first, "dispatch": "combined_commerce", "inputs": {}, "label": "组合"},
-        {"step": "close", "dispatch": "pc_task", "inputs": {}, "label": "关闭"},
-    ], [first, second, "close"], [first, second], None)
-    window._workflow_current = window._workflow_pending.pop(0)
-    window._finish_combined_workflow_result(result={
-        "order": order, "failure_stage": f"{second}_handoff", "reason": f"{second}_handoff_invalid",
-        first: {"success": True, "status": "completed"},
-        second: {"success": False, "status": "blocked"},
-    }, succeeded=False)
-    assert window.workflow_page._tree_items[first].text(1) == "完成"
-    assert window.workflow_page._tree_items[second].text(1) == "失败"
-    assert not window._workflow_pending and window._workflow_stopping
 
 
-@pytest.mark.parametrize("first", ["trade", "passenger"])
-def test_combined_stop_marks_both_children_and_blocks_dispatch(window, monkeypatch, first):
-    monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
-    window._begin_workflow([], ["trade", "passenger"], ["trade", "passenger"], None)
-    window._workflow_current = {"step": first, "dispatch": "combined_commerce", "inputs": {}, "label": "组合"}
-    window._busy = True
-    window._stop_workflow()
-    assert all(window.workflow_page._tree_items[k].text(1) == "停止中" for k in ("trade", "passenger"))
-    window._on_busy_changed(False)
-    assert all(window.workflow_page._tree_items[k].text(1) == "已停止" for k in ("trade", "passenger"))
-    assert not window._workflow_active
 
 
 @pytest.mark.parametrize("extractor,field", [
@@ -314,15 +237,3 @@ def test_history_refresh_failure_does_not_abort_active_workflow(window):
     window._on_task_failed({"stage": "list_runs", "error": "history unavailable"})
     assert window._workflow_active and not window._workflow_stopping
     assert window._workflow_pending[0]["step"] == "battle"
-
-
-def test_combined_framework_success_requires_both_business_receipts(window, monkeypatch):
-    monkeypatch.setattr(window, "_dispatch_next_workflow_task", lambda: None)
-    window._begin_workflow([], ["trade", "passenger"], ["trade", "passenger"], None)
-    window._workflow_current = {"step": "trade", "dispatch": "combined_commerce", "inputs": {}, "label": "组合"}
-    window._finish_combined_workflow_result(result={
-        "success": True, "trade": {"success": True, "status": "completed"},
-    }, succeeded=True)
-    assert window.workflow_page._tree_items["trade"].text(1) == "完成"
-    assert window.workflow_page._tree_items["passenger"].text(1) == "失败"
-    assert window._workflow_stopping

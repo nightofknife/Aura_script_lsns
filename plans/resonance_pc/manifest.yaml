@@ -1667,34 +1667,6 @@ exports:
       type: Any
       required: false
       default: false
-  - name: resonance_pc.auto_combined_commerce_flow
-    module: plans.resonance_pc.src.actions.combined_commerce_pc_actions
-    function: resonance_pc_auto_combined_commerce_flow
-    public: true
-    read_only: false
-    timeout: null
-    description: Run one fatigue-budgeted freight and passenger workflow.
-    parameters:
-    - name: order
-      type: Any
-      required: false
-      default: trade_first
-    - name: total_fatigue_budget
-      type: Any
-      required: false
-      default: 700
-    - name: trade_inputs
-      type: Any
-      required: false
-      default: null
-    - name: passenger_inputs
-      type: Any
-      required: false
-      default: null
-    - name: recovery_snapshot
-      type: Any
-      required: false
-      default: null
   - name: resonance_pc.prepare_consciousness_deep_dive_capture_profile
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_capture_pc_actions
     function: resonance_pc_prepare_consciousness_deep_dive_capture_profile
@@ -2399,50 +2371,6 @@ exports:
       type: Any
       required: false
       default: null
-  - name: resonance_pc.auto_passenger_trips_flow
-    module: plans.resonance_pc.src.actions.passenger_flow_pc_actions
-    function: resonance_pc_auto_passenger_trips_flow
-    public: true
-    read_only: false
-    timeout: null
-    description: Run configured alternating passenger trips from city-main UI.
-    parameters:
-    - name: trip_count
-      type: Any
-      required: false
-      default: 1
-    - name: passenger_city_a_id
-      type: Any
-      required: false
-      default: '11'
-    - name: passenger_city_b_id
-      type: Any
-      required: false
-      default: '15'
-    - name: trade_during_trip
-      type: Any
-      required: false
-      default: true
-    - name: reposition_to_route
-      type: Any
-      required: false
-      default: true
-    - name: use_fatigue_medicine
-      type: Any
-      required: false
-      default: false
-    - name: allowed_fatigue_medicines
-      type: Any
-      required: false
-      default: null
-    - name: fatigue_medicine_max_uses
-      type: Any
-      required: false
-      default: 4
-    - name: arrival_timeout_seconds
-      type: Any
-      required: false
-      default: 1800.0
   - name: resonance_pc.open_passenger_management
     module: plans.resonance_pc.src.actions.passenger_pc_actions
     function: resonance_pc_open_passenger_management
@@ -3500,25 +3428,11 @@ exports:
       run structural exploration and return to main.
     role: user_task
     domain: 战斗
-  - id: auto_combined_commerce_pc/auto_combined_commerce_pc
-    title: Combined Freight and Passenger Workflow (PC)
-    source: tasks/auto_combined_commerce_pc.yaml
-    description: Run freight and passenger tasks under one fatigue budget with validated
-      handoffs.
-    role: orchestration
-    domain: 商贸运输
   - id: auto_cycle_trade_pc/auto_cycle_trade_pc
     title: Exact Auto Trade (PC)
     source: tasks/auto_cycle_trade_pc.yaml
     description: Plan one exact full-budget route from a frozen market snapshot and
       execute it once.
-    role: user_task
-    domain: 商贸运输
-  - id: auto_passenger_trips_pc/auto_passenger_trips_pc
-    title: Passenger Trips (PC)
-    source: tasks/auto_passenger_trips_pc.yaml
-    description: Run a configured number of alternating one-way passenger trips between
-      two cities.
     role: user_task
     domain: 商贸运输
   - id: bento_consumption_pc/bento_consumption_pc

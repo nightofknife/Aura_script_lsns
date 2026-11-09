@@ -24,7 +24,7 @@ def business_result(mode=10, **changes):
             "mode": mode, "target_level": mode, **changes}
 
 
-@pytest.mark.parametrize("task_name", ["standalone", "freight", "combined"])
+@pytest.mark.parametrize("task_name", ["standalone", "freight"])
 def test_task_input_validator_enforces_numeric_target_contract(task_name):
     tasks = Path(__file__).resolve().parents[2] / "plans/resonance_pc/tasks"
     if task_name == "standalone":
@@ -33,9 +33,6 @@ def test_task_input_validator_enforces_numeric_target_contract(task_name):
     elif task_name == "freight":
         task = yaml.safe_load((tasks / "auto_cycle_trade_pc.yaml").read_text(encoding="utf-8"))["auto_cycle_trade_pc"]
         schema = next(item for item in task["meta"]["inputs"] if item["name"] == "trade_goods_investment_mode")
-    else:
-        task = yaml.safe_load((tasks / "auto_combined_commerce_pc.yaml").read_text(encoding="utf-8"))["auto_combined_commerce_pc"]
-        schema = next(item for item in task["meta"]["inputs"] if item["name"] == "trade_inputs")["properties"]["trade_goods_investment_mode"]
     validator = InputValidator(None)
     assert validator.validate_input_value(schema, _MISSING, "mode") == (True, 10, None)
     for value in range(1, 21):
@@ -438,10 +435,8 @@ def test_task_contract_is_standalone_and_freight_exposes_shared_result():
     assert "trade_goods_investment" in freight["returns"]
     for key in ("auto_trade_goods_investment", "trade_goods_investment_mode"):
         assert key in freight["steps"]["run"]["params"]
-    combined = yaml.safe_load((tasks / "auto_combined_commerce_pc.yaml").read_text(encoding="utf-8"))["auto_combined_commerce_pc"]
     freight_mode = next(item for item in freight["meta"]["inputs"] if item["name"] == "trade_goods_investment_mode")
-    combined_inputs = next(item for item in combined["meta"]["inputs"] if item["name"] == "trade_inputs")
-    for mode in (freight_mode, combined_inputs["properties"]["trade_goods_investment_mode"]):
+    for mode in (freight_mode,):
         assert mode["type"] == "number" and mode["strict_integer"] is True
         assert mode["min"] == 1 and mode["max"] == 20 and mode["default"] == 10
         assert "enum" not in mode

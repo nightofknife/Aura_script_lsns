@@ -47,7 +47,6 @@ def test_default_construction_never_opens_registry(monkeypatch, tmp_path):
 def test_existing_defaults_are_preserved_in_clean_namespace(tmp_path):
     repository = ResonanceConfigRepository(base_path=tmp_path)
     trade = repository.load_trade_inputs()
-    passenger = repository.load_passenger_inputs()
     assert trade["fatigue_budget"] == 700
     assert trade["cargo_capacity"] == 750
     assert trade["arrival_timeout_seconds"] == 3600
@@ -55,11 +54,8 @@ def test_existing_defaults_are_preserved_in_clean_namespace(tmp_path):
     assert trade["trade_mode"] == "free"
     assert trade["auto_cape_island_investment"] is True
     assert trade["auto_rubbish_recycling"] is True
-    assert passenger["arrival_timeout_seconds"] == 1800
-    assert passenger["passenger_city_a_id"] == "11"
-    assert passenger["passenger_city_b_id"] == "15"
-    assert passenger["trip_count"] == 1
-    assert passenger["trade_during_trip"] is True
+    assert trade["auto_passenger"] is False
+    assert isinstance(trade["passenger_options"], dict)
 
 
 def test_layout_v2_settings_survive_reopening_without_legacy_import(tmp_path):
@@ -69,7 +65,6 @@ def test_layout_v2_settings_survive_reopening_without_legacy_import(tmp_path):
     repository.save_preferences(GuiPreferences(timeout_sec=12.5, history_limit=23))
     repository.save_trade_inputs({"fatigue_budget": 321, "cargo_capacity": 456})
     repository.save_trade_preview_inputs({"fatigue_budget": 222})
-    repository.save_passenger_inputs({"trip_count": 7})
     repository.save_hotkeys("Ctrl+F6", "Ctrl+F7")
     repository.sync_checked()
 
@@ -82,7 +77,6 @@ def test_layout_v2_settings_survive_reopening_without_legacy_import(tmp_path):
     assert reopened.load_trade_inputs()["fatigue_budget"] == 321
     assert reopened.load_trade_inputs()["cargo_capacity"] == 456
     assert reopened.load_trade_preview_inputs()["fatigue_budget"] == 222
-    assert reopened.load_passenger_inputs()["trip_count"] == 7
     assert reopened.load_hotkeys() == {"start": "Ctrl+F6", "stop": "Ctrl+F7"}
 
 
@@ -99,3 +93,15 @@ def test_failed_new_settings_write_does_not_import_legacy(tmp_path):
         repository.save_hotkeys("Ctrl+F6", "Ctrl+F7")
     assert repository.value("game/executable_path", "") == ""
     assert old_ini.read_bytes() == old_content
+
+
+def test_retired_passenger_settings_remain_inert_and_do_not_replace_freight_options(tmp_path):
+    repository = ResonanceConfigRepository(base_path=tmp_path)
+    legacy = '{"passenger_city_a_id":"11","trip_count":7}'
+    repository.set_value("passenger/inputs_json", legacy)
+    repository.save_trade_inputs({"auto_passenger": True, "passenger_options": {"seat_capacity": 64}})
+    reopened = ResonanceConfigRepository(base_path=tmp_path)
+    assert reopened.value("passenger/inputs_json") == legacy
+    assert reopened.load_trade_inputs()["auto_passenger"] is True
+    assert reopened.load_trade_inputs()["passenger_options"]["seat_capacity"] == 64
+    assert not hasattr(reopened, "load_passenger_inputs")

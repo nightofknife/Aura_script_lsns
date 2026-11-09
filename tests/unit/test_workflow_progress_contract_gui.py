@@ -14,7 +14,7 @@ from packages.resonance_gui.widgets.workflow_page import WorkflowPage, _CityTime
 def page(tmp_path):
     app = QApplication.instance() or QApplication([])
     widget = WorkflowPage(ResonanceConfigRepository(QSettings(str(tmp_path / "progress.ini"), QSettings.IniFormat)))
-    widget.begin_workflow(["trade", "passenger"], [])
+    widget.begin_workflow(["trade", "battle"])
     widget.set_active_progress_cid("trade", "current-run")
     yield widget
     widget.close()
@@ -43,7 +43,7 @@ def plan_event():
     })
 
 
-def test_preparation_is_inside_freight_not_a_sixth_task(page):
+def test_preparation_is_inside_freight_not_an_extra_task(page):
     page.add_freight_preparation()
     page.mark_step("trade", "running", "准备货运")
     page.mark_step("refresh_recovery", "success", "准备完成")
@@ -76,7 +76,7 @@ def test_resource_totals_are_overwritten_and_hidden_for_next_task(page):
     assert "2 本" in page.resource_progress_label.text()
     assert "不含行车" in page.resource_progress_label.text()
     assert page._freight_progress.resources["confirmed_books_used"] == 2
-    page.mark_step("passenger", "running", "客运")
+    page.mark_step("battle", "running", "战斗")
     assert page.resource_progress_label.isHidden()
 
 

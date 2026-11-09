@@ -1,5 +1,7 @@
 # 两模式货运后端交接
 
+> 历史交接记录：独立客运与客货联合编排随后已退役，当前边界见[清理记录](resonance-pc-passenger-retirement.md)。下文的旧入口和测试命令仅保留历史验证信息，不是当前执行指南。
+
 现行规范：[两模式契约](resonance-pc-two-mode-freight-design.md)。GUI由“gui调整”线程接手；本交接描述后端、任务、共享参数投影及离线验证。
 
 ## 已完成

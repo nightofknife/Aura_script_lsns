@@ -20,7 +20,6 @@ from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.widgets.trade_page import TradePage
 from plans.resonance_pc.src.actions import city_travel_pc_actions as travel
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
-from plans.resonance_pc.src.actions import combined_commerce_pc_actions as combined
 from tests.unit.test_resonance_pc_sparkling_water_trade import harness, run_full
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -127,26 +126,8 @@ def test_task_schema_and_template_forward_interval():
         assert params["auto_pickup_interval_sec"] == value
     ok, defaults = validator.validate_inputs_against_meta(spec["meta"]["inputs"], {})
     assert ok and defaults["auto_pickup_interval_sec"] == 0.5
-    assert "auto_pickup_interval_sec" not in combined._filtered({"auto_pickup_interval_sec": 3}, combined._PREVIEW_INPUT_KEYS)
-    assert combined._filtered({"auto_pickup_interval_sec": 3}, combined._TRADE_INPUT_KEYS) == {"auto_pickup_interval_sec": 3}
-    assert combined._filtered({"auto_pickup_interval_sec": 3}, combined._PASSENGER_INPUT_KEYS) == {}
 
 
-@pytest.mark.parametrize("order", ["passenger_first", "trade_first"])
-@pytest.mark.parametrize("value", [True, 61])
-def test_combined_rejects_invalid_interval_before_any_child(order, value, monkeypatch):
-    def unexpected(*args, **kwargs):
-        pytest.fail("Invalid pickup interval must be rejected before navigation or either task")
-    for name in ("_read_current_city", "_build_passenger_route", "_run_passenger", "_run_trade"):
-        monkeypatch.setattr(combined, name, unexpected)
-    services = {name: object() for name in (
-        "app", "ocr", "vision", "resonance_pc_city_shop_data", "resonance_pc_market_data",
-        "resonance_pc_trade_planner", "state_store", "event_bus", "context", "engine",
-    )}
-    result = asyncio.run(combined.resonance_pc_auto_combined_commerce_flow(
-        order=order, trade_inputs={"auto_pickup": True, "auto_pickup_interval_sec": value}, **services))
-    assert not result["success"]
-    assert result["reason"] == "invalid_trade_inputs" and result["failure_stage"] == "preflight"
 
 
 def test_freight_entry_forwards_interval_to_each_leg(harness, monkeypatch):
@@ -254,10 +235,8 @@ def test_invalid_saved_interval_does_not_overwrite_config(repo, value):
 
 
 @pytest.mark.parametrize("mode", ["free", "fixed"])
-def test_mode_snapshot_and_combined_payload_preserve_interval(mode):
+def test_mode_snapshot_preserves_interval(mode):
     values = {"trade_mode": mode, "auto_pickup": True, "auto_pickup_interval_sec": 2.75}
     snapshot = normalize_trade_task_inputs(values)
     values["auto_pickup_interval_sec"] = 1
     assert snapshot["auto_pickup_interval_sec"] == 2.75
-    payload = ResonanceMainWindow._combined_commerce_inputs(order="passenger_first", trade=snapshot, passenger={})
-    assert payload["trade_inputs"]["auto_pickup_interval_sec"] == 2.75

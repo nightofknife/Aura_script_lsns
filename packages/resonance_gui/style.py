@@ -36,26 +36,6 @@ QFrame#commerceHeader {
     border-bottom: 1px solid #c9b99d;
 }
 QLabel#commerceTitle { color: #20252b; font-size: 18px; font-weight: 700; }
-QLabel#commerceCaption { color: #6c7780; font-size: 11px; }
-QPushButton[commerceNav="true"] {
-    min-width: 72px;
-    padding: 7px 18px;
-    background: #eee5d5;
-    border-color: #c9b99d;
-}
-QPushButton[commerceNav="true"]:hover { background: #e2e6d9; border-color: #9aa58e; }
-QPushButton[commerceNav="true"]:checked {
-    background: #77866b;
-    border-color: #77866b;
-    color: #ffffff;
-    font-weight: 700;
-}
-QFrame#commerceOverviewPanel {
-    background: #f8f3e8;
-    border: 1px solid #c9b99d;
-    border-radius: 8px;
-}
-QLabel#commerceOverviewTitle { color: #20252b; font-size: 22px; font-weight: 700; }
 QLabel#developmentBadge, QLabel#versionBadge {
     color: #805d09;
     background: #fff1bf;
@@ -158,29 +138,6 @@ QLabel#deepDiveStatus[resultState="error"] {
     border-left-color: #b9785d;
 }
 QTreeWidget#teamRecommendationTree { font-size: 11px; }
-QPushButton[commerceSwitch="true"] {
-    color: #273038;
-    font-size: 16px;
-    font-weight: 600;
-    padding: 8px 12px;
-}
-QPushButton[commerceRun="true"] {
-    min-height: 36px;
-    margin-top: 6px;
-    font-size: 15px;
-    font-weight: 700;
-}
-QPushButton[commerceRunState="run"] {
-    color: #ffffff;
-    background: #77866b;
-    border-color: #77866b;
-}
-QPushButton[commerceRunState="run"]:hover { background: #66745c; }
-QPushButton[commerceRunState="stop"] {
-    color: #a52a24;
-    background: #fff7f6;
-    border-color: #cfaaa7;
-}
 QFrame#statusBand { background: #f8f3e8; border-bottom: 1px solid #c9b99d; }
 QFrame#contentPanel { background: #f2ebdd; }
 QFrame#actionBar { background: #f8f3e8; border-top: 1px solid #c9b99d; }
@@ -228,8 +185,6 @@ QTreeWidget#tutorialChapters::item:selected {
 QTextBrowser#tutorialReader { background: #fffaf0; }
 QLabel#sectionTitle { color: #2b333a; font-size: 14px; font-weight: 700; }
 QFrame#parameterPanel { background: #f8f3e8; border-right: 1px solid #c9b99d; }
-QLabel#passengerRouteTitle { color: #66745c; font-size: 20px; font-weight: 700; padding-top: 4px; }
-QLabel#passengerRouteNote { padding-bottom: 2px; }
 QLabel[badge="true"] {
     color: #7d5b08;
     background: #fff3ce;
@@ -239,36 +194,7 @@ QLabel[badge="true"] {
     font-size: 10px;
     font-weight: 600;
 }
-QLabel#passengerEstimate {
-    color: #45523f;
-    background: #e1e6d8;
-    border-left: 3px solid #77866b;
-    padding: 12px 14px;
-    font-size: 14px;
-    font-weight: 700;
-}
-QLabel#passengerPolicy {
-    color: #716a5e;
-    background: #eee5d5;
-    border: 1px solid #d4c6ad;
-    border-radius: 4px;
-    padding: 10px 12px;
-    font-size: 11px;
-}
-QFrame#passengerRouteBand {
-    background: #fffaf0;
-    border: 1px solid #d4c6ad;
-    border-radius: 5px;
-}
-QLabel#passengerTimeline { color: #66745c; font-size: 16px; font-weight: 700; }
-QLabel#passengerStageDetail { color: #4f5b64; font-size: 12px; }
-QFrame#passengerMetrics {
-    background: transparent;
-    border-top: 1px solid #d4c6ad;
-    border-bottom: 1px solid #d4c6ad;
-}
 QLabel[metricValue="true"] { color: #20252b; font-size: 14px; font-weight: 700; }
-QTextBrowser#passengerDetails { background: #fffaf0; color: #554f46; }
 QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QPlainTextEdit, QTextBrowser {
     background: #fffaf0;
     color: #38342e;
@@ -487,7 +413,7 @@ QProgressBar#workflowTaskProgressBar::chunk, QProgressBar#workflowInternalProgre
 }
 QProgressBar#workflowInternalProgressBar[runState="failed"]::chunk,
 QProgressBar#workflowInternalProgressBar[runState="cancelled"]::chunk { background: #b9785d; }
-QListWidget#workflowTaskList, QListWidget#commerceOrderList, QListWidget#settingsCategories {
+QListWidget#workflowTaskList, QListWidget#settingsCategories {
     background: transparent;
     border: 0;
     outline: 0;
@@ -502,7 +428,7 @@ QListWidget#workflowTaskList::item:selected {
     background: #e1e6d8;
     border-color: #77866b;
 }
-QFrame#workflowTaskRow, QFrame#commerceStepRow {
+QFrame#workflowTaskRow {
     background: #fffaf0;
     border: 1px solid #d4c6ad;
     border-radius: 5px;
@@ -510,11 +436,6 @@ QFrame#workflowTaskRow, QFrame#commerceStepRow {
 QFrame#workflowTaskRow[selected="true"] {
     background: #e1e6d8;
     border-color: #77866b;
-}
-QLabel#commerceStepNumber {
-    color: #716a5e;
-    font-weight: 700;
-    min-width: 18px;
 }
 QLabel#taskNumber {
     color: #716a5e;
