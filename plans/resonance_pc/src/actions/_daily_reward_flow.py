@@ -76,7 +76,7 @@ class DailyRewardFlow:
             raise self.error("daily_reward_page_unconfirmed", "未能稳定确认每日奖励所在页面，已停止。")
         return result
 
-    def transition(self, stage, source, target, control, *, fixed_point=None):
+    def transition(self, stage, source, target, control, *, fixed_point=None, post_click_target=None):
         self.stage = stage
         stage_scope = self.scope.child(15.)
         # Statistics accumulate across distinct confirmed rewards; a new logical
@@ -86,7 +86,7 @@ class DailyRewardFlow:
 
         def raw_probe(allow_source):
             page = self.observe(probe_scope[0])
-            if target(page):
+            if target(page) or (state.submitted and post_click_target is not None and post_click_target(page)):
                 return TransitionProbe("target", key=(stage, "target", page.page_state),
                                        hit=page, frame=page.frame)
             if allow_source and source(page) and page.present(control):
@@ -159,7 +159,8 @@ class DailyRewardFlow:
                             "claimable")
                     elif page.present("activity_gold"):
                         self.transition("claim_activity", lambda p: p.page_state == "daily" and p.present("activity_gold"),
-                            lambda p: p.page_state == "reward", "activity_gold")
+                            lambda p: p.page_state == "reward", "activity_gold",
+                            post_click_target=lambda p: p.page_state == "daily")
                     elif self.daily_empty(page):
                         self.transition("return_main", self.daily_empty,
                             lambda p: p.page_state == "main", "city_main")
