@@ -1,5 +1,6 @@
 """Reward overlays depend on the box icon, not localized text or the plus."""
 
+import hashlib
 import importlib.util
 import json
 from pathlib import Path
@@ -132,8 +133,15 @@ def test_icon_assets_rebuild_from_native_source_without_text_or_plus(tmp_path, m
     profile = json.loads(CATALOG.read_text(encoding="utf-8"))["templates"]["reward_title"]
     rebuilt, _ = author.save_reward_icon(profile)
     for key in ("template", "mask"):
-        assert (plan / rebuilt[key]).read_bytes() == (PLAN / profile[key]).read_bytes()
-    for key in ("size", "sha256", "mask_sha256", "score_scale"):
+        # PNG encoders can emit different compressed bytes for identical
+        # pixels. Each catalog must fingerprint its own encoded file.
+        generated, checked_in = plan / rebuilt[key], PLAN / profile[key]
+        np.testing.assert_array_equal(cv2.imread(str(generated), cv2.IMREAD_UNCHANGED),
+                                      cv2.imread(str(checked_in), cv2.IMREAD_UNCHANGED))
+        fingerprint = "sha256" if key == "template" else "mask_sha256"
+        assert hashlib.sha256(generated.read_bytes()).hexdigest() == rebuilt[fingerprint]
+        assert hashlib.sha256(checked_in.read_bytes()).hexdigest() == profile[fingerprint]
+    for key in ("size", "score_scale"):
         assert rebuilt[key] == profile[key]
     template = cv2.imread(str(plan / rebuilt["template"]), cv2.IMREAD_GRAYSCALE)
     mask = cv2.imread(str(plan / rebuilt["mask"]), cv2.IMREAD_GRAYSCALE)
