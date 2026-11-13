@@ -74,6 +74,7 @@ def test_profile_refresh_only_reads_status_and_commits_after_success(tmp_path, m
 
     monkeypatch.setattr(player_data, "_wait_for_any_marker", lambda *args, **kwargs: [])
     monkeypatch.setattr(player_data, "_wait_for_profile_panel", lambda *args, **kwargs: None)
+    monkeypatch.setattr(player_data, "_open_profile_panel", lambda *args, **kwargs: None)
     monkeypatch.setattr(player_data, "_close_profile_panel_to_main", lambda *args: None)
     monkeypatch.setattr(player_data, "_best_effort_return_to_main", lambda *args: None)
     kwargs = dict(stages=["profile"], app=App(), ocr=Ocr(), vision=object(), persistent_data=service)

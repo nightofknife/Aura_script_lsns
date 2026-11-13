@@ -312,6 +312,7 @@ def test_character_failure_does_not_reach_cache_persistence(tmp_path: Path) -> N
     with (
         patch.object(player_data, "_wait_for_any_marker"),
         patch.object(player_data, "_wait_for_profile_panel"),
+        patch.object(player_data, "_open_profile_panel"),
         patch.object(player_data, "load_character_catalog", return_value={}),
         patch.object(
             player_data,

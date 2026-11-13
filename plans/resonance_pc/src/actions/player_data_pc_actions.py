@@ -20,6 +20,7 @@ from packages.aura_core.utils.exceptions import StopTaskException, TaskControlEx
 from ....aura_base.src.services.observation_service import CaptureError, ObservationService
 
 from ._fatigue_observation import FatigueConfirmation, read_fatigue_pair
+from ._bounded_observation import ObservationBudget
 
 from .character_pc_actions import (
     enter_character_page,
@@ -247,6 +248,86 @@ def _wait_for_profile_panel(
     raise StopTaskException(
         f"Player data refresh failed: {label} template did not match twice consecutively "
         f"(attempts={attempts}, last_confidence={last_confidence:.3f}).",
+        success=False,
+    )
+
+
+def _open_profile_panel(app: Any, vision: Any) -> None:
+    """Confirm the destination and retry only from a freshly confirmed main page."""
+    budget = ObservationBudget(8.0, monotonic=time.monotonic, check_cancelled=check_cancelled)
+    clicks = 0
+    observations = 0
+    consecutive_hits = 0
+    next_click_at = budget.monotonic()
+    last_confidence = 0.0
+    last_page = "unknown"
+
+    def observe_profile() -> Dict[str, Any]:
+        nonlocal observations, last_confidence
+        match = _match_navigation_template(
+            app, vision, _PROFILE_MENU_TEMPLATE, _PROFILE_MENU_MARKER_REGION,
+            threshold=PROFILE_MENU.threshold,
+        )
+        observations += 1
+        last_confidence = float(match.get("confidence") or 0.0)
+        return match
+
+    while budget.active():
+        match = observe_profile()
+        if not budget.active():
+            break
+        if match.get("found"):
+            last_page = "profile_pending"
+            consecutive_hits += 1
+            if consecutive_hits >= 2:
+                logger.info(
+                    "[ProfilePanelOpen] result=confirmed clicks=%s/3 observations=%s confidence=%.4f",
+                    clicks, observations, last_confidence,
+                )
+                return
+        else:
+            consecutive_hits = 0
+            last_page = "unknown"
+            if clicks < 3 and budget.monotonic() >= next_click_at:
+                main = _wait_main_stable(app, vision, timeout_sec=budget.pause_seconds(0.7))
+                if not budget.active():
+                    break
+                if main.get("confirmed"):
+                    # The panel may have opened while confirming the source page.
+                    # Recheck it before another click can close it again.
+                    match = observe_profile()
+                    if not budget.active():
+                        break
+                    if match.get("found"):
+                        consecutive_hits = 1
+                        last_page = "profile_pending"
+                    else:
+                        last_page = "main"
+                        check_cancelled()
+                        if not budget.active():
+                            break
+                        app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
+                        clicks += 1
+                        # Space retries from the actual click, never catch up
+                        # on scheduled retries after an unknown-page interval.
+                        next_click_at = budget.monotonic() + 2.0
+                        last_page = "unknown"
+                        logger.info(
+                            "[ProfilePanelOpen] result=clicked attempt=%s/3 point=%s confidence=%.4f",
+                            clicks, _CLICK_PROFILE, last_confidence,
+                        )
+        if budget.active():
+            time.sleep(budget.pause_seconds(0.5))
+
+    check_cancelled()
+    logger.warning(
+        "[ProfilePanelOpen] result=failed clicks=%s/3 observations=%s last_page=%s confidence=%.4f",
+        clicks, observations, last_page, last_confidence,
+    )
+    raise StopTaskException(
+        "Player data refresh failed: profile panel was not confirmed within 8.0s "
+        f"(clicks={clicks}/3, observations={observations}, last_page={last_page}, "
+        f"last_confidence={last_confidence:.3f}).",
         success=False,
     )
 
@@ -928,13 +1009,8 @@ def resonance_pc_player_data_refresh(
         current_page = page
     if panel_required:
         try:
-            app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
             current_page = "unknown"
-            _wait_for_profile_panel(
-                app,
-                vision,
-                label="profile panel",
-            )
+            _open_profile_panel(app, vision)
             current_page = "profile"
 
             if "profile" in selected:

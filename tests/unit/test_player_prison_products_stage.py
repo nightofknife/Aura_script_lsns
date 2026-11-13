@@ -31,6 +31,10 @@ def _environment(tmp_path, monkeypatch):
 
     monkeypatch.setattr(player, "_wait_for_any_marker", lambda *a, **k: events.append("main"))
     monkeypatch.setattr(player, "_wait_for_profile_panel", lambda *a, **k: events.append("profile_ready"))
+    def open_profile(app, vision):
+        app.click(x=player._CLICK_PROFILE[0], y=player._CLICK_PROFILE[1])
+        events.append("profile_ready")
+    monkeypatch.setattr(player, "_open_profile_panel", open_profile)
     monkeypatch.setattr(player, "_close_profile_panel_to_main", lambda *a, **k: events.append("close_profile"))
     monkeypatch.setattr(player, "check_cancelled", lambda: None)
     return events, service, dict(app=App(), ocr=object(), vision=object(), interaction=object(), persistent_data=service)
