@@ -1,7 +1,7 @@
 """Battle-pass controls from a single frame; no locked/incomplete heuristics."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import hashlib
 import json
 
@@ -15,7 +15,7 @@ from ._battle_pass_entries import read_reminders, read_selected_row, reminder_co
 
 
 REQUIRED = ("main_entry_with_red", "manual_on", "manual_off", "tasks_on", "tasks_off",
-            "tasks_claim_all", "manual_claim_all_red", "reward_title", "reward_exit", "city_main", "pass_reminder")
+            "tasks_claim_all", "manual_claim_all_red", "reward_title", "city_main", "pass_reminder")
 
 
 class BattlePassRewardError(DailyRewardError):
@@ -46,7 +46,7 @@ class BattlePassRewardReader(DailyRewardReader):
             for key in REQUIRED:
                 profile = dict(catalog["templates"][key])
                 roi = profile["roi"]
-                method = "TM_SQDIFF" if key == "pass_reminder" else "TM_CCOEFF_NORMED"
+                method = "TM_SQDIFF" if key in {"pass_reminder", "reward_title"} else "TM_CCOEFF_NORMED"
                 if (profile.get("diagnostic_only") or len(roi) != 4
                         or any(type(v) is not int for v in roi)
                         or min(roi[:2]) < 0 or min(roi[2:]) <= 0
@@ -55,6 +55,7 @@ class BattlePassRewardReader(DailyRewardReader):
                         or (method == "TM_SQDIFF" and not 0 < profile["score_scale"] < float("inf"))
                         or type(profile["use_grayscale"]) is not bool
                         or not 0 < profile["threshold"] <= 1
+                        or (key == "reward_title" and not 0 < profile["shape_threshold"] <= 1)
                         or profile["preprocess"] not in {"none", "blur"}):
                     raise ValueError(f"Invalid battle-pass matching profile: {key}")
                 image = self._image(profile["template"], profile.get("sha256"))
@@ -109,6 +110,20 @@ class BattlePassRewardReader(DailyRewardReader):
                 use_grayscale=profile["use_grayscale"], preprocess=profile["preprocess"],
                 match_method=getattr(cv2, method) if isinstance(method, str) else method,
                 score_scale=profile.get("score_scale"))
+            if key == "reward_title" and hit.state == "present":
+                # White-only support can also fit a flat pale panel. Confirm
+                # the icon's antialiased strokes at this exact location, using
+                # the same white-pixel mask and immutable frame.
+                pixels = cv2.cvtColor(frame.crop(tuple(hit.value.rect)).rgb_image(), cv2.COLOR_RGB2GRAY)
+                if np.ptp(pixels[self.templates[key].mask_image > 0]) == 0:
+                    return replace(hit, state="absent", value=None, client_center=None,
+                                   reason="reward_icon_flat")
+                shape = self.observation.match_template(frame, self.templates[key], scope=scope,
+                    roi=tuple(hit.value.rect), threshold=profile["shape_threshold"],
+                    use_grayscale=profile["use_grayscale"], preprocess=profile["preprocess"],
+                    match_method=cv2.TM_CCOEFF_NORMED)
+                if shape.state != "present":
+                    hit = shape
             if hit.state == "unknown":
                 raise BattlePassRewardError("battle_pass_reward_recognition_failed", "通行证奖励识别发生技术错误，已停止。",
                                             {"control": key, "reason": hit.reason})
@@ -119,11 +134,8 @@ class BattlePassRewardReader(DailyRewardReader):
                 hits[key] = observe_control(key)
             return hits[key].state == "present"
 
-        title, exit_hint = match("reward_title"), match("reward_exit")
-        if title and exit_hint:
+        if match("reward_title"):
             return BattlePassPage(frame, "reward", hits)
-        if title or exit_hint:
-            return BattlePassPage(frame, "unknown", hits)
         tasks_on, manual_on = match("tasks_on"), match("manual_on")
         tasks_off, manual_off = match("tasks_off"), match("manual_off")
         tasks = tasks_on and manual_off and not manual_on and not tasks_off

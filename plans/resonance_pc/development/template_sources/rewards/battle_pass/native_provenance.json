@@ -496,24 +496,35 @@
       "mask_sha256": "91411c98dd62c51c6c68f85b6ea20d523a292cabab69ecaa6489b6a530d1c6de"
     },
     "reward_title": {
-      "original_candidate_id": "shared_reward_title",
-      "approved_candidate_sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
-      "source": "plans/resonance_pc/templates/rewards/daily/reward_title.png",
-      "refinement_recipe": null,
       "file": "templates/rewards/battle_pass/reward_title.png",
       "mask": "templates/rewards/battle_pass/reward_title.mask.png",
-      "sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1",
-      "mask_sha256": "11f485730a6d29151b39eac044aa72c129be4084c4ba22df84c5fd80ceb89509"
-    },
-    "reward_exit": {
-      "original_candidate_id": "shared_reward_exit",
-      "approved_candidate_sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
-      "source": "plans/resonance_pc/templates/rewards/daily/reward_exit.png",
-      "refinement_recipe": null,
-      "file": "templates/rewards/battle_pass/reward_exit.png",
-      "mask": "templates/rewards/battle_pass/reward_exit.mask.png",
-      "sha256": "0abb4c9e39221bb6aa4f6e50a24ec3b36e2b84a9b9f94e40309f35f91981caef",
-      "mask_sha256": "4141ee2f5849caae47dc41f1b65aecdc01816012cd5b304fc5257e62072d9049"
+      "sha256": "77ff1aa9a2f9cbbcfb378327d630ad947ffc573e1d37d1a1b3bf5ac659090a7c",
+      "mask_sha256": "822c75c1e5a8cee52f10706ae418a2df88c633739f519b066e9f7f9ae9e6b1cd",
+      "source": [
+        {
+          "runtime_file": "plans/resonance_pc/templates/rewards/daily/reward_title.png",
+          "sha256": "ad16dfb7a0eddfafdadb483684aecd1b7ad5ea54efb306bc8c54ff14032c5be1"
+        }
+      ],
+      "refinement_recipe": {
+        "kind": "white_reward_icon",
+        "source_crop_xyxy": [
+          0,
+          0,
+          67,
+          67
+        ],
+        "white_floor": 224,
+        "component": "largest",
+        "tight_crop": true,
+        "effective_pixel_score_scale": 2400,
+        "output_crop_xyxy": [
+          8,
+          12,
+          54,
+          57
+        ]
+      }
     },
     "city_main": {
       "original_candidate_id": "shared_city_main",
@@ -553,6 +564,7 @@
     "Copied approved candidates byte-for-byte without rebuilding or rematching during implementation.",
     "Sprite/font/layout recipes are native-source based; no screenshot crops used as runtime templates.",
     "Historical screenshot scores reuse calibration scenes; not independent accuracy or live-device validation.",
-    "No lock, incomplete label or generic left reminder is included."
+    "No lock, incomplete label or generic left reminder is included.",
+    "Reward title matches only the connected white box icon; text and the plus are excluded. Home anchor is reused from the daily runtime asset."
   ]
 }

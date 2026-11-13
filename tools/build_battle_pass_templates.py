@@ -1,7 +1,7 @@
 """Rebuild the approved battle-pass controls from installed native assets.
 
 This authoring command never captures, matches or controls the running game.
-Shared reward/home anchors are reused byte-for-byte from daily runtime assets.
+The reward icon is derived from the daily title; the home anchor is reused.
 """
 from __future__ import annotations
 
@@ -99,6 +99,35 @@ def reuse_shared(key, profile):
     return item, provenance
 
 
+def save_reward_icon(profile):
+    import cv2
+    import numpy as np
+    from PIL import Image
+
+    source = PLAN / "templates/rewards/daily/reward_title.png"
+    recipe = {"kind": "white_reward_icon", "source_crop_xyxy": [0, 0, 67, 67],
+              "white_floor": 224, "component": "largest", "tight_crop": True,
+              "effective_pixel_score_scale": 2400}
+    with Image.open(source) as original:
+        pixels = np.array(original.convert("L").crop(tuple(recipe["source_crop_xyxy"])))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(
+        (pixels >= recipe["white_floor"]).astype(np.uint8), connectivity=8)
+    if count <= 1:
+        raise ValueError("Reward title has no white icon component")
+    component = 1 + int(np.argmax(stats[1:, cv2.CC_STAT_AREA]))
+    mask = np.uint8(labels == component) * 255
+    x, y, width, height, area = (int(value) for value in stats[component])
+    # Only the connected white box participates; text and the separate plus
+    # are excluded from both the template image and its binary mask.
+    image = Image.fromarray(np.where(mask, pixels, 0).astype(np.uint8))
+    box = (x, y, x + width, y + height)
+    image, mask = image.crop(box).convert("RGB"), Image.fromarray(mask).crop(box)
+    profile = {**profile, "score_scale": recipe["effective_pixel_score_scale"] * area / (width * height)}
+    recipe["output_crop_xyxy"] = list(box)
+    return save_render("reward_title", image, mask,
+        [{"runtime_file": source.relative_to(ROOT).as_posix(), "sha256": sha(source)}], recipe, profile)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--game-data", type=Path, required=True)
@@ -126,7 +155,8 @@ def main():
         renderer = render_tab if recipe["renderer_family"] == "tabs" else render_button
         image, mask, source = renderer(native, recipe)
         templates[key], sources[key] = save_render(key, image, mask, source, recipe, profiles[key])
-    for key in ("reward_title", "reward_exit", "city_main"):
+    templates["reward_title"], sources["reward_title"] = save_reward_icon(profiles["reward_title"])
+    for key in ("city_main",):
         templates[key], sources[key] = reuse_shared(key, profiles[key])
     write_json(CATALOG, {"schema_version": 1, "client_size": [1280, 720],
         "provenance": "development/template_sources/rewards/battle_pass/native_provenance.json", "templates": templates})
@@ -135,7 +165,8 @@ def main():
         "limitations": ["Native assets and fonts only; no screenshot-derived template pixels.",
             "Text and layout use approved Pillow reconstruction recipes, not Unity dynamic rendering.",
             "Historical screenshot scores do not verify newly regenerated images or independent live behavior.",
-            "Shared reward/home anchors reused byte-for-byte from the daily runtime assets."]})
+            "Reward icon uses only the white box component of the daily title; the plus and text are excluded.",
+            "Home anchor reused byte-for-byte from the daily runtime asset."]})
     print(json.dumps({key: item["size"] for key, item in templates.items()}, ensure_ascii=False))
 
 

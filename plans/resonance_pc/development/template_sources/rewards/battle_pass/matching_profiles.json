@@ -99,22 +99,11 @@
     ],
     "threshold": 0.9,
     "use_grayscale": true,
-    "method": "TM_CCOEFF_NORMED",
+    "method": "TM_SQDIFF",
     "preprocess": "none",
-    "mask_encoding": "uint8_binary_png"
-  },
-  "reward_exit": {
-    "roi": [
-      520,
-      645,
-      240,
-      75
-    ],
-    "threshold": 0.85,
-    "use_grayscale": true,
-    "method": "TM_CCOEFF_NORMED",
-    "preprocess": "blur",
-    "mask_encoding": "uint8_binary_png"
+    "mask_encoding": "uint8_binary_png",
+    "score_scale": 1457.391304347826,
+    "shape_threshold": 0.5
   },
   "city_main": {
     "roi": [
