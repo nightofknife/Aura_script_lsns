@@ -76,7 +76,7 @@ class BattlePassRewardFlow(DailyRewardFlow):
     def _dismiss(self, kind):
         self.reward_overlays += 1
         self.transition(f"dismiss_{kind}_reward", lambda p: p.page_state == "reward",
-                        lambda p: self._current_pass(p, kind), "reward_exit", fixed_point=(500, 500))
+                        lambda p: self._current_pass(p, kind), "reward_title", fixed_point=(500, 500))
 
     def _collect(self, kind):
         self._tab(kind)
@@ -91,7 +91,7 @@ class BattlePassRewardFlow(DailyRewardFlow):
             if page.absent(control):
                 return
             # A disappearing button alone does not prove receipt of rewards.
-            # Both existing overlay anchors must appear before we continue.
+            # The reward title must be confirmed before we continue.
             self.transition(f"claim_{kind}", lambda p: self._current_pass(p, kind) and p.present(control),
                             lambda p: p.page_state == "reward", control)
         raise self.error("battle_pass_reward_cycle_limit", "通行证奖励页面反复变化超过上限，已停止。")
