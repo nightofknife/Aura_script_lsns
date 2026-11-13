@@ -99,10 +99,12 @@ class WindowTarget:
     def ensure_valid(self) -> None:
         self.ensure_alive()
         hwnd = self.hwnd
-        if self.config.require_visible and not win32gui.IsWindowVisible(hwnd):
+        if self.config.require_visible and (
+            not win32gui.IsWindowVisible(hwnd) or win32gui.IsIconic(hwnd)
+        ):
             raise TargetRuntimeError(
                 "window_not_visible",
-                "The configured target window is not visible.",
+                "The configured target window is hidden or minimized.",
                 self.to_summary(),
             )
         if not self.config.allow_borderless and _is_borderless_window(hwnd):
@@ -128,25 +130,30 @@ class WindowTarget:
 
     def ensure_available(self, operation: str = "runtime_operation") -> WindowRecoveryResult:
         self.ensure_alive()
-        if not self.config.require_visible or win32gui.IsWindowVisible(self.hwnd):
+        initial_visible = bool(win32gui.IsWindowVisible(self.hwnd))
+        initial_iconic = bool(win32gui.IsIconic(self.hwnd))
+        if not self.config.require_visible or (initial_visible and not initial_iconic):
             self.ensure_valid()
             return WindowRecoveryResult()
 
         recovery = self.config.visibility_recovery
         if not recovery.enabled:
             self.ensure_valid()
+            return WindowRecoveryResult()
 
         started = time.monotonic()
-        initial_iconic = bool(win32gui.IsIconic(self.hwnd))
         logger.warning(
-            "Window visibility recovery started: operation=%s hwnd=%s pid=%s visible=false iconic=%s",
+            "Window visibility recovery started: operation=%s hwnd=%s pid=%s visible=%s iconic=%s",
             operation,
             self.hwnd,
             self.binding.pid,
+            initial_visible,
             initial_iconic,
         )
 
-        if self._wait_until_visible(recovery.grace_period_ms, recovery.poll_interval_ms):
+        # A minimized window can still have WS_VISIBLE. Restore it immediately
+        # instead of spending the hidden-window grace period on an unusable target.
+        if not initial_iconic and self._wait_until_visible(recovery.grace_period_ms, recovery.poll_interval_ms):
             return self._complete_recovery(started, operation, forced=False, method="natural")
 
         forced_method = "sw_restore" if win32gui.IsIconic(self.hwnd) else "sw_showna"
@@ -173,16 +180,18 @@ class WindowTarget:
             "method": forced_method,
         }
         logger.error(
-            "Window visibility recovery failed: operation=%s hwnd=%s pid=%s elapsed_ms=%s method=%s",
+            "Window visibility recovery failed: operation=%s hwnd=%s pid=%s elapsed_ms=%s method=%s visible=%s iconic=%s",
             operation,
             self.hwnd,
             self.binding.pid,
             elapsed_ms,
             forced_method,
+            detail.get("visible"),
+            detail.get("iconic"),
         )
         raise TargetRuntimeError(
             "window_not_visible",
-            "The configured target window is not visible after recovery.",
+            "The configured target window is hidden or minimized after recovery.",
             detail,
         )
 
@@ -284,6 +293,11 @@ class WindowTarget:
 
     def to_summary(self) -> dict[str, Any]:
         try:
+            visible = bool(win32gui.IsWindowVisible(self.hwnd))
+            iconic = bool(win32gui.IsIconic(self.hwnd))
+        except Exception:
+            visible, iconic = None, None
+        try:
             client_rect = list(self.get_client_rect())
         except Exception:
             client_rect = None
@@ -299,6 +313,8 @@ class WindowTarget:
             "process_name": self.binding.process_name,
             "exe_path": self.binding.exe_path,
             "class_name": self.binding.class_name,
+            "visible": visible,
+            "iconic": iconic,
             "client_rect": client_rect,
             "client_rect_screen": client_rect_screen,
             "foreground": self._foreground_or_false(),
@@ -308,7 +324,11 @@ class WindowTarget:
         deadline = time.monotonic() + max(int(timeout_ms), 0) / 1000.0
         while True:
             self.ensure_alive()
-            if win32gui.IsWindowVisible(self.hwnd) and self._has_valid_client_area():
+            if (
+                win32gui.IsWindowVisible(self.hwnd)
+                and not win32gui.IsIconic(self.hwnd)
+                and self._has_valid_client_area()
+            ):
                 return True
             if time.monotonic() >= deadline:
                 return False
@@ -328,13 +348,15 @@ class WindowTarget:
         self.ensure_valid()
         elapsed_ms = int((time.monotonic() - started) * 1000.0)
         logger.info(
-            "Window visibility recovery succeeded: operation=%s hwnd=%s pid=%s elapsed_ms=%s forced=%s method=%s",
+            "Window visibility recovery succeeded: operation=%s hwnd=%s pid=%s elapsed_ms=%s forced=%s method=%s visible=%s iconic=%s",
             operation,
             self.hwnd,
             self.binding.pid,
             elapsed_ms,
             forced,
             method,
+            bool(win32gui.IsWindowVisible(self.hwnd)),
+            bool(win32gui.IsIconic(self.hwnd)),
         )
         result = WindowRecoveryResult(
             attempted=True,

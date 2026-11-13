@@ -80,6 +80,7 @@ def test_unconfirmed_profile_fatigue_does_not_mark_or_save(tmp_path, monkeypatch
     app, ocr = readers([(58, 864, .79)])
     monkeypatch.setattr(player, "_wait_for_any_marker", lambda *args, **kwargs: [])
     monkeypatch.setattr(player, "_wait_for_profile_panel", lambda *args, **kwargs: None)
+    monkeypatch.setattr(player, "_open_profile_panel", lambda *args, **kwargs: None)
     monkeypatch.setattr(player, "_best_effort_return_to_main", lambda *args: None)
     with pytest.raises(player.StopTaskException, match="invalid fatigue digits"):
         player.resonance_pc_player_data_refresh(

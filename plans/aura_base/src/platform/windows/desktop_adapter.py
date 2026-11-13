@@ -20,7 +20,8 @@ from .capture_backends import BaseWindowsCaptureBackend, build_capture_backend
 from .dpi import ensure_process_dpi_awareness, get_window_dpi, get_window_scale_factor
 from .input_backends import BaseWindowsInputBackend, build_input_backend
 from .window_target import WindowTarget
-from .window_spec import ensure_window_spec
+from .window_geometry import ensure_client_on_screen, validate_window_position
+from .window_spec import ensure_window_spec, evaluate_window_spec
 
 
 class WindowsDesktopAdapter(RuntimeAdapter):
@@ -51,6 +52,7 @@ class WindowsDesktopAdapter(RuntimeAdapter):
             input_config.provider_options("windows"),
         )
         self._operation_lock = threading.RLock()
+        self._capture_reset_pending = False
         self._visibility_recovery_stats: dict[str, Any] = {
             "enabled": bool(target_config.visibility_recovery.enabled and target_config.require_visible),
             "attempts": 0,
@@ -71,6 +73,7 @@ class WindowsDesktopAdapter(RuntimeAdapter):
 
     def _ensure_ready_locked(self, operation: str) -> None:
         ensure_process_dpi_awareness()
+        recoveries = []
         try:
             ensure_available = getattr(self.target, "ensure_available", None)
             if callable(ensure_available):
@@ -78,15 +81,42 @@ class WindowsDesktopAdapter(RuntimeAdapter):
             else:
                 self.target.ensure_valid()
                 recovery = None
+            if recovery is not None and bool(getattr(recovery, "recovered", False)):
+                self._capture_reset_pending = True
+                recoveries.append(recovery)
+            validate_window_position(self.target, self.window_spec_config)
+            self._window_spec_status = ensure_window_spec(self.target, self.window_spec_config)
+            if self._window_spec_status.applied:
+                self._capture_reset_pending = True
+            spec = self.window_spec_config
+            geometry_recovery = ensure_client_on_screen(
+                self.target, operation,
+                locked_position=spec.position if spec.mode != "off" else None,
+                monitor_index=(spec.monitor_index if spec.mode != "off" and spec.monitor_index is not None
+                               else self.target_config.monitor_index),
+            )
+            if geometry_recovery.recovered:
+                self._capture_reset_pending = True
+                recoveries.append(geometry_recovery)
+                self._window_spec_status = evaluate_window_spec(
+                    self.target, spec, applied=self._window_spec_status.applied,
+                )
         except TargetRuntimeError as exc:
+            # A failed move can still have invalidated cached window pixels.
+            if ("visibility_recovery" in exc.detail
+                    or self.window_spec_config.mode == "try_resize_then_verify"):
+                self._capture_reset_pending = True
             self._record_recovery_failure(operation, exc)
             raise
-        if recovery is not None and bool(getattr(recovery, "recovered", False)):
+        capture_rebuilt = False
+        if self._capture_reset_pending:
             reset_capture = getattr(self.capture_backend, "reset_after_target_recovery", None)
             if callable(reset_capture):
                 reset_capture()
-            self._record_recovery_success(operation, recovery, capture_rebuilt=True)
-        self._window_spec_status = ensure_window_spec(self.target, self.window_spec_config)
+                capture_rebuilt = True
+            self._capture_reset_pending = False
+        for recovery in recoveries:
+            self._record_recovery_success(operation, recovery, capture_rebuilt=capture_rebuilt)
 
     def _run_read_operation(self, operation: str, callback):
         with self._operation_lock:
@@ -121,7 +151,9 @@ class WindowsDesktopAdapter(RuntimeAdapter):
         )
 
     def _record_recovery_failure(self, operation: str, exc: TargetRuntimeError) -> None:
-        if exc.code != "window_not_visible" or not self._visibility_recovery_stats["enabled"]:
+        if not self._visibility_recovery_stats["enabled"]:
+            return
+        if exc.code != "window_not_visible" and "visibility_recovery" not in exc.detail:
             return
         stats = self._visibility_recovery_stats
         recovery = dict(exc.detail.get("visibility_recovery") or {})
