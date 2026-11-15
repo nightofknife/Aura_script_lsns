@@ -43,7 +43,8 @@ def readers(observations):
     class Ocr:
         crops = []
 
-        def recognize_all(self, *, source_image):
+        def recognize_all(self, *, source_image, recognition_only):
+            assert recognition_only is True
             value = observations[min(app.captures - 1, len(observations) - 1)]
             assert app.side < 2, "each frame must recognize only the two digit sides"
             self.crops.append(source_image.copy())
@@ -94,8 +95,8 @@ def test_slow_second_read_cannot_commit_profile_fatigue(clock, monkeypatch):
     app, ocr = readers([(58, 864, .99)])
     recognize = ocr.recognize_all
 
-    def slow(*, source_image):
-        result = recognize(source_image=source_image)
+    def slow(**kwargs):
+        result = recognize(**kwargs)
         if app.captures == 2:
             clock[0] += 3
         return result
