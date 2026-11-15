@@ -27,6 +27,7 @@ from ._intercity_map_geometry import (
     MAX_CORRECTION_ROUNDS, load_native_cities, require_reference_client,
     coarse_drag, plan_drag_batch, predict_target_from_labels,
 )
+from ._travel_gear_recovery import TravelGearRecovery
 
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
@@ -1555,9 +1556,13 @@ class _TravelPickup:
             self.click_count += 1
         self.next_click_at = time.monotonic() + self.interval_sec
 
-    def wait(self, deadline: float, max_wait_sec: float = 3.0) -> None:
-        # A long pickup cooldown must not postpone the next arrival check.
-        until = min(deadline, self.next_click_at, time.monotonic() + max_wait_sec)
+    def wait(self, deadline: float, max_wait_sec: float = 3.0, *,
+             gear_recovery: TravelGearRecovery | None = None) -> None:
+        until = min(deadline, time.monotonic() + max_wait_sec)
+        if gear_recovery is not None:
+            until = min(until, gear_recovery.next_check_at)
+        if gear_recovery is None or not gear_recovery.paused:
+            until = min(until, self.next_click_at)
         while time.monotonic() < until:
             _check_intercity_cancelled()
             _sleep_with_cancel(min(0.05, max(0.0, until - time.monotonic())))
@@ -1634,6 +1639,8 @@ def _wait_intercity_arrival_loop(
     interval = max(float(interval_sec), 0.1)
     started = time.monotonic()
     deadline = started + timeout
+    gear_recovery = (TravelGearRecovery(app, vision, started=started, check_cancelled=_check_intercity_cancelled)
+                     if pickup.enabled else None)
     poll_count = 0
     trace: List[Dict[str, Any]] = []
     last_station: Dict[str, Any] = {}
@@ -1736,9 +1743,11 @@ def _wait_intercity_arrival_loop(
         trace = trace[-20:]
 
         _check_intercity_cancelled()
-        if pickup.enabled:
-            pickup.tick(deadline)
-            pickup.wait(deadline, max_wait_sec=interval)
+        if gear_recovery is not None:
+            gear_recovery.tick(deadline)
+            if not gear_recovery.paused:
+                pickup.tick(deadline)
+            pickup.wait(deadline, max_wait_sec=interval, gear_recovery=gear_recovery)
         else:
             _sleep_with_cancel(interval)
 
