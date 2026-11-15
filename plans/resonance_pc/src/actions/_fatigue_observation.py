@@ -118,7 +118,7 @@ def _number(result):
 
 
 def read_fatigue_pair(frame, roi, ocr, *, guard=lambda: None):
-    """Recognize both sides from this frame, retaining no image across rounds."""
+    """Recognize each pre-cropped digit group as one line on this frame."""
     guard()
     crops, reason = split_fatigue_numbers(frame.crop(roi).rgb_image())
     if crops is None:
@@ -128,7 +128,7 @@ def read_fatigue_pair(frame, roi, ocr, *, guard=lambda: None):
         guard()
         image = cv2.resize(crop, None, fx=3, fy=3, interpolation=cv2.INTER_CUBIC)
         try:
-            result = ocr.recognize_all(source_image=image)
+            result = ocr.recognize_all(source_image=image, recognition_only=True)
         except (OperationTimeout, TaskControlException):
             raise
         except Exception:

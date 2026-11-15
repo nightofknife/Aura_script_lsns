@@ -72,7 +72,8 @@ def test_real_page_pixels_are_split_before_ocr_without_reading_a_separator(path)
         image = image[20:60,1139:1271]
     received = []
 
-    def recognize_all(*, source_image):
+    def recognize_all(*, source_image, recognition_only):
+        assert recognition_only is True
         received.append(source_image)
         return NS(success=True, results=[NS(text='77' if len(received)==1 else '872', confidence=.99)])
 

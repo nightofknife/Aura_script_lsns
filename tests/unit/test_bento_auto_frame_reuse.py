@@ -53,7 +53,8 @@ class ReadingReplay:
         return [NS(found=True, confidence=float(present), debug_info={}),
                 NS(found=True, confidence=float(not present), debug_info={})]
 
-    def recognize_all(self, *, source_image):
+    def recognize_all(self, *, source_image, recognition_only):
+        assert recognition_only is True
         number = self.current_round
         side = self.ocr_side
         self.ocr_side += 1

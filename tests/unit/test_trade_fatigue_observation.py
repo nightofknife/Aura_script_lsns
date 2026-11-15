@@ -41,7 +41,8 @@ class Ocr:
         self.app = app
         self.calls = []
 
-    def recognize_all(self, *, source_image):
+    def recognize_all(self, *, source_image, recognition_only):
+        assert recognition_only is True
         self.calls.append(source_image.copy())
         value = self.app.current[self.app.side]
         self.app.side += 1
