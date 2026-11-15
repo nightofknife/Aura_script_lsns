@@ -63,11 +63,13 @@ def test_profile_refresh_only_reads_status_and_commits_after_success(tmp_path, m
     class Ocr:
         fatigue_calls = 0
 
-        def recognize_all(self, *, source_image):
+        def recognize_all(self, *, source_image, recognition_only=False):
             if int(source_image.max()) > 2:
+                assert recognition_only is True
                 text = str(STATUS["fatigue"]["current" if self.fatigue_calls % 2 == 0 else "max"])
                 self.fatigue_calls += 1
                 return SimpleNamespace(results=[SimpleNamespace(text=text, confidence=1.0)])
+            assert recognition_only is False
             field = list(STATUS)[int(source_image[0, 0, 0])]
             value = STATUS[field]
             return SimpleNamespace(results=[SimpleNamespace(text=f"{value['current']}/{value['max']}", confidence=1.0)])
