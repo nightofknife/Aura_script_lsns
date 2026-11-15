@@ -171,7 +171,8 @@ def _oracle_options(model, capacity, books, threshold, policy, negotiation, wast
 
 
 def enumerate_oracle(model, *, mode, capacity, books, threshold, negotiation,
-                     budget, target=1, endpoints=None, fixed=None, negotiation_budget=None, waste_limit=0, policy=None):
+                     budget, target=1, endpoints=None, fixed=None, negotiation_budget=None, waste_limit=0, policy=None,
+                     arrivals=None):
     policy = policy or ("fill" if mode == "quick" else "profit")
     negotiation = "required" if mode == "quick" else negotiation
     choices = _oracle_options(model, capacity, books, threshold, policy, negotiation, waste_limit,
@@ -182,7 +183,8 @@ def enumerate_oracle(model, *, mode, capacity, books, threshold, negotiation,
     def visit(path, signatures, profit, fatigue, used, neg):
         depth = len(signatures)
         if depth and (mode != "fixed" or signatures[-1][-1]) and (
-                mode == "fixed" or endpoints is None or path[-1] in endpoints):
+                mode == "fixed" or endpoints is None or path[-1] in endpoints) and all(
+                    path[1:].count(city) >= count for city, count in (arrivals or {}).items()):
             records.append((profit, fatigue, used, neg, depth, path, signatures))
         if mode == "fixed":
             if not closed and depth == len(fixed) - 1:
@@ -230,6 +232,54 @@ def assert_oracle(actual, expected):
     assert tuple((leg["from_city_id"], leg["to_city_id"], leg["books_used"],
                   int(leg["bargain_to_cap"]), int(leg["raise_to_cap"]), tuple(leg["buy_product_ids"]))
                  for leg in actual["route"]) == signatures
+
+
+def test_arrivals_are_minimums_and_the_initial_city_does_not_count():
+    model = solver(costs={"A": {"B": 1}, "B": {"A": 1}})
+    result = solve(model, fatigue_budget=5, required_arrivals={"A": 2, "B": 1})
+    assert result["city_path_ids"] == ["A", "B", "A", "B", "A", "B"]
+    assert result["arrival_requirements"]["planned"] == {"A": 2, "B": 3}
+    assert all(leg["leg_type"] == "navigation" for leg in result["route"][1::2])
+    blocked = solve(model, fatigue_budget=3, required_arrivals={"A": 2, "B": 1})
+    assert blocked["status"] == "arrival_requirements_unmet"
+    assert blocked["arrival_requirements"]["minimum_movement_fatigue"] == 4
+    assert blocked["route"] == []
+
+
+def test_target_profit_reached_early_still_requires_arrivals_and_endpoint():
+    model = solver(costs={"A": {"B": 1}, "B": {"A": 1}})
+    result = solve(model, fatigue_budget=5, required_arrivals={"A": 2},
+                   required_end_city_ids=["B"], target_profit=10)
+    assert result["status"] == "ok"
+    assert result["expected_fatigue_used_exact"] == "5"
+    assert result["city_path_ids"] == ["A", "B", "A", "B", "A", "B"]
+
+
+def test_constrained_search_against_small_graph_exhaustive_oracle():
+    rng = random.Random(20261115)
+    cities = ("A", "B", "C")
+    for _ in range(80):
+        costs = {city: {other: rng.randint(1, 3) for other in cities if other != city and rng.random() > .15}
+                 for city in cities}
+        products = {"p": product("p", {city: rng.randint(1, 10) for city in cities},
+                                 {city: rng.randint(4, 16) for city in cities})}
+        model = solver(cities=cities, costs=costs, products=products, lots={city: {"p": 1} for city in cities})
+        arrivals = {city: rng.randint(1, 2) for city in rng.sample(cities, rng.randint(1, 2))}
+        budget, books, target = rng.randint(2, 6), rng.choice([0, 1, 2, None]), rng.randint(1, 30)
+        ends = rng.choice([None, ["B"], ["A", "C"]])
+        policy, negotiation = rng.choice(["profit", "fill"]), rng.choice(["auto", "disabled", "required"])
+        if books == 0:
+            policy = "profit"
+        neg_budget = rng.choice([None, 1, 4])
+        for goal in (None, target):
+            expected, _ = enumerate_oracle(
+                model, mode="profit" if goal is None else "target", capacity=3, books=books, threshold=0,
+                negotiation=negotiation, budget=budget, target=target, endpoints=ends, arrivals=arrivals,
+                policy=policy, negotiation_budget=neg_budget)
+            actual = solve(model, fatigue_budget=budget, required_arrivals=arrivals, required_end_city_ids=ends,
+                           target_profit=goal, book_budget=books, book_policy=policy, negotiation_policy=negotiation,
+                           negotiation_budget=neg_budget)
+            assert_oracle(actual, expected)
 
 
 @pytest.mark.parametrize("mode,goal", [("free", None), ("free", 25), ("fixed", None)])

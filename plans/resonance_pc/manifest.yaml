@@ -1225,6 +1225,14 @@ exports:
       type: Any
       required: false
       default: null
+    - name: required_arrivals
+      type: Any
+      required: false
+      default: null
+    - name: ignore_unmet_arrivals
+      type: Any
+      required: false
+      default: false
     - name: city_prestige
       type: Any
       required: false
@@ -1328,6 +1336,14 @@ exports:
       type: Any
       required: false
       default: null
+    - name: required_arrivals
+      type: Any
+      required: false
+      default: null
+    - name: ignore_unmet_arrivals
+      type: Any
+      required: false
+      default: false
     - name: city_prestige
       type: Any
       required: false
@@ -3180,6 +3196,14 @@ exports:
       type: Any
       required: false
       default: null
+    - name: required_arrivals
+      type: Any
+      required: false
+      default: null
+    - name: ignore_unmet_arrivals
+      type: Any
+      required: false
+      default: false
     - name: city_prestige
       type: Any
       required: false
@@ -3744,4 +3768,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-08T14:38:59Z'
+  generated_at: '2026-11-15T14:01:57Z'

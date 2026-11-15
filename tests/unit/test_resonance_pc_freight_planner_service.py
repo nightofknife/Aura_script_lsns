@@ -93,6 +93,42 @@ def test_irrelevant_mode_fields_are_excluded_from_cache(service):
     assert first == second
 
 
+@pytest.mark.parametrize("counts,cities,budget,code", [
+    ({"B": 1}, ["A", "C"], 2, "arrival_city_not_selected"),
+    ({"C": 2}, ["A", "B", "C"], 2, "arrival_movement_budget"),
+    ({"A": 2}, ["A", "B", "C"], 5, "arrival_profit_target_unreachable"),
+])
+def test_unmet_arrivals_stop_or_replan_with_only_counts_removed(service, counts, cities, budget, code):
+    api, calls = service
+    args = dict(required_arrivals=counts, available_city_ids=cities, required_end_city_ids=["C"],
+                target_profit=40 if code == "arrival_profit_target_unreachable" else 10, fatigue_budget=budget)
+    blocked = plan(api, **args)
+    assert blocked["status"] == "arrival_requirements_unmet"
+    assert blocked["route"] == []
+    assert blocked["arrival_requirements"]["code"] == code
+    assert "本次不发车" in blocked["arrival_requirements"]["message"]
+    ignored = plan(api, ignore_unmet_arrivals=True, **args)
+    assert ignored["status"] == "ok"
+    assert ignored["arrival_requirements"]["status"] == "ignored"
+    assert ignored["city_path_ids"][-1] == "C"
+    assert ignored["expected_profit"] >= args["target_profit"]
+    assert ignored["fatigue_budget"] == args["fatigue_budget"]
+    assert calls[-1] == {key: val for key, val in calls[-2].items() if key != "required_arrivals"}
+    assert len(calls) == 3
+    assert plan(api, **args) == blocked
+    assert plan(api, ignore_unmet_arrivals=True, **args) == ignored
+    assert len(calls) == 3
+
+
+def test_ignoring_arrivals_does_not_make_an_impossible_ordinary_route_executable(service):
+    api, _ = service
+    result = plan(api, required_arrivals={"B": 1}, available_city_ids=["A", "C"],
+                  target_profit=1000, ignore_unmet_arrivals=True)
+    assert result["status"] == "target_unreachable"
+    assert result["route"] == []
+    assert result["arrival_requirements"]["status"] == "ignored"
+
+
 @pytest.mark.parametrize("mode", ["free", "fixed"])
 def test_fill_cache_ignores_threshold_but_keeps_complete_route_book_budget(service, mode):
     api, calls = service

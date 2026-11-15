@@ -661,6 +661,18 @@ class TradePage(QWidget):
         nonfixed_form.addRow(self.city_selector)
         self.end_city_selector = self._build_end_city_selector(content)
         nonfixed_form.addRow("终点城市", self.end_city_selector)
+        self._required_arrivals: dict[str, int] = {}
+        self.arrivals_button = QPushButton("设置到达次数…", self.nonfixed_panel)
+        self.arrivals_button.setToolTip("指定至少要到达各城市几次。起点不计，允许多到。")
+        self.arrivals_button.clicked.connect(self._edit_required_arrivals)
+        self.arrivals_note = QLabel(self.nonfixed_panel)
+        self.arrivals_note.setWordWrap(True)
+        self.ignore_unmet_arrivals = QCheckBox("无法满足时，按普通跑商规划", self.nonfixed_panel)
+        self.ignore_unmet_arrivals.setToolTip("仅移除指定到达次数，保留候选城市、终点、收益目标和疲劳预算等其他设置。")
+        self.ignore_unmet_arrivals.toggled.connect(self._arrival_inputs_changed)
+        nonfixed_form.addRow("指定到达次数", self.arrivals_button)
+        nonfixed_form.addRow("", self.arrivals_note)
+        nonfixed_form.addRow("", self.ignore_unmet_arrivals)
         self.fixed_panel = self._build_fixed_route_selector(content)
         self.target_profit = QDoubleSpinBox(content)
         self.target_profit.setRange(0, 100_000_000)
@@ -985,6 +997,11 @@ class TradePage(QWidget):
         self.mode_note.setText("在所选城市中规划完整路线，可设置预计收益目标。" if state["free"] else "按线路顺序访问；闭环可循环，开放线路走完结束。")
         self.nonfixed_panel.setVisible(state["free"])
         self.fixed_panel.setVisible(state["fixed"])
+        self.arrivals_button.setEnabled(state["free"] and not self._busy)
+        self.ignore_unmet_arrivals.setEnabled(state["free"] and bool(self._required_arrivals) and not self._busy)
+        self.arrivals_note.setText("、".join(f"{name} ≥ {self._required_arrivals[city]} 次"
+                                            for city, name in PC_TRADE_CITY_OPTIONS if city in self._required_arrivals))
+        self.arrivals_note.setVisible(bool(self._required_arrivals))
         self.common_parameters.set_field_visible(self.target_profit_enabled, state["free"])
         self.common_parameters.set_field_visible(self.target_profit, state["free"])
         for widget, enabled in (
@@ -1457,6 +1474,47 @@ class TradePage(QWidget):
         self._sync_start_city_options()
         self._sync_end_city_options()
 
+    def _edit_required_arrivals(self) -> None:
+        dialog = QDialog(self)
+        dialog.setWindowTitle("指定到达次数")
+        layout = QVBoxLayout(dialog)
+        note = QLabel("填写最低到达次数，0 表示不限。出发所在城市不计作一次到达。", dialog)
+        note.setWordWrap(True)
+        layout.addWidget(note)
+        grid = QGridLayout()
+        fields = {}
+        selected = set(self.selected_city_ids())
+        rows = (len(PC_TRADE_CITY_OPTIONS) + 1) // 2
+        for index, (city, name) in enumerate(PC_TRADE_CITY_OPTIONS):
+            column, row = divmod(index, rows)
+            label = QLabel(name, dialog)
+            field = QSpinBox(dialog)
+            field.setRange(0, 2147483647)
+            field.setSpecialValueText("不限")
+            field.setValue(self._required_arrivals.get(city, 0))
+            field.setAccessibleName(f"{name}最低到达次数")
+            if city not in selected:
+                label.setText(f"{name}（未选）")
+                field.setToolTip("未加入候选城市。指定次数后，规划时会报告无法满足。")
+            fields[city] = field
+            grid.addWidget(label, row, column * 2)
+            grid.addWidget(field, row, column * 2 + 1)
+        layout.addLayout(grid)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Ok | QDialogButtonBox.StandardButton.Cancel)
+        buttons.accepted.connect(dialog.accept)
+        buttons.rejected.connect(dialog.reject)
+        layout.addWidget(buttons)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            self._required_arrivals = {city: field.value() for city, field in fields.items() if field.value()}
+            self._arrival_inputs_changed()
+        dialog.deleteLater()
+
+    def _arrival_inputs_changed(self, *_args: object) -> None:
+        if not self._form_ready or self._restoring:
+            return
+        self._on_planning_inputs_changed()
+        self.save_ui_state()
+
     def _edit_city_prestige(self) -> None:
         dialog = CityPrestigeDialog(
             default_level=self._city_prestige_default,
@@ -1612,6 +1670,8 @@ class TradePage(QWidget):
         self.book_waste_limit.setValue(self._input_integer(values, "book_waste_limit", 0))
         self.target_profit.setValue(float(Decimal(str(values.get("target_profit") or 0)) / Decimal(10000)))
         self.target_profit_enabled.setChecked(bool(values.get("target_profit_enabled", False)))
+        self._required_arrivals = dict(values.get("required_arrivals") or {})
+        self.ignore_unmet_arrivals.setChecked(bool(values.get("ignore_unmet_arrivals", False)))
         self.book_policy.setCurrentIndex(max(self.book_policy.findData(values.get("book_policy", "profit")), 0))
         self.negotiation_policy.setCurrentIndex(max(self.negotiation_policy.findData(values.get("negotiation_policy", "auto")), 0))
         self.fixed_route.clear()
@@ -1781,6 +1841,9 @@ class TradePage(QWidget):
             if not _draft and any(a == b for a, b in zip(route, route[1:])):
                 raise ValueError("固定线路不能连续选择相同城市")
             inputs.update(fixed_route_city_ids=route, reposition_to_route=self.reposition_to_route.isChecked())
+        if mode == "free" or _draft:
+            inputs.update(required_arrivals=dict(self._required_arrivals),
+                          ignore_unmet_arrivals=self.ignore_unmet_arrivals.isChecked())
         if (mode == "free" and self.target_profit_enabled.isChecked()) or _draft:
             target = self._amount_base_units(self.target_profit)
             if not _draft and target <= 0:
@@ -2512,6 +2575,9 @@ class TradePage(QWidget):
 
     @staticmethod
     def _planning_stop_text(summary: Mapping[str, Any]) -> str:
+        arrivals = summary.get("arrival_requirements") or {}
+        if arrivals.get("message"):
+            return str(arrivals["message"])
         return {
             "fatigue_budget": "剩余疲劳不足以继续完成交易及行车，在当前站结束；不改为空载继续走。",
             "no_further_trade_within_budget": "预算内没有后续盈利交易，结束路线；不追加纯空载尾段消耗疲劳。",
@@ -2546,6 +2612,14 @@ class TradePage(QWidget):
         stop_text = self._planning_stop_text(summary)
         if stop_text:
             messages.append(stop_text)
+        arrivals = summary.get("arrival_requirements") or {}
+        if arrivals.get("status") in {"met", "ignored"}:
+            actual = arrivals.get("actual")
+            for city, required in arrivals.get("required", {}).items():
+                name = arrivals.get("city_names", {}).get(city, city)
+                planned = arrivals.get("planned", {}).get(city, 0)
+                messages.append(f"{name}：要求至少 {required} 次，计划 {planned} 次"
+                                + (f"，实际 {actual.get(city, 0)} 次" if actual is not None else ""))
         messages.extend(str(item) for item in (summary.get("warnings") or []) if str(item).strip())
         self.reason_label.setText("\n".join(messages))
         self.result_values["status"].style().unpolish(self.result_values["status"])
@@ -2553,7 +2627,7 @@ class TradePage(QWidget):
 
     def _render_overview(self, summary: Mapping[str, Any], *, route: list[dict[str, Any]]) -> None:
         self.result_values["trade_mode"].setText({"free": "不定线路", "fixed": "固定线路"}.get(str(summary.get("trade_mode")), "--"))
-        self.result_values["planning_status"].setText({"ok": "可执行", "no_plan": "无可行方案", "target_unreachable": "目标不可达", "fixed_route_infeasible": "固定线路不可行"}.get(str(summary.get("planning_status")), str(summary.get("planning_status") or "--")))
+        self.result_values["planning_status"].setText({"ok": "可执行", "no_plan": "无可行方案", "target_unreachable": "目标不可达", "fixed_route_infeasible": "固定线路不可行", "arrival_requirements_unmet": "指定到达次数无法满足"}.get(str(summary.get("planning_status")), str(summary.get("planning_status") or "--")))
         reposition = summary.get("reposition")
         self.result_values["reposition_fatigue"].setText(self._display(reposition.get("expected_fatigue") if isinstance(reposition, Mapping) else summary.get("reposition_expected_fatigue")))
         for field in ("actual_profit", "actual_fatigue"):

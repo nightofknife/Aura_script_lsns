@@ -1232,7 +1232,7 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
             "reposition", "reposition_route", "reposition_expected_fatigue", "reposition_expected_fatigue_exact",
             "route_expected_fatigue", "route_expected_fatigue_exact", "actual_profit", "actual_profit_exact",
             "actual_fatigue", "actual_fatigue_used", "target_profit", "target_reached", "target_gap",
-            "maximum_reachable_profit", "completed_circuits", "partial_circuit_legs",
+            "maximum_reachable_profit", "arrival_requirements", "completed_circuits", "partial_circuit_legs",
             "partial_circuit_city_path_ids", "termination_route_position", "termination_city_id", "stop_reason",
             "execution", "final_sale", "blocked_leg", "sparkling_water_plan", "sparkling_water", "bento_consumption",
         )},

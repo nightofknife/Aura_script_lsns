@@ -8,6 +8,7 @@ from typing import Any
 from ..services.resonance_pc_freight_parameters import (
     FREIGHT_PLANNING_KEYS as PLANNING_KEYS, effective_freight_inputs,
 )
+from ..services.resonance_pc_trade_arrivals import normalize_required_arrivals
 
 
 def integer(name: str, value: Any, *, minimum: int = 0, maximum: int | None = None) -> int:
@@ -84,6 +85,10 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
             if cities is not None and any(city not in cities for city in ends):
                 raise ValueError("required_end_city_ids must be selected planning cities")
             result["required_end_city_ids"] = ends
+        if "required_arrivals" in result:
+            result["required_arrivals"] = normalize_required_arrivals(result["required_arrivals"])
+            if type(result.get("ignore_unmet_arrivals", False)) is not bool:
+                raise ValueError("ignore_unmet_arrivals must be a boolean")
     if mode == "free" and result.get("target_profit") is not None:
         result["target_profit"] = integer("target_profit", result.get("target_profit"), minimum=1)
     else:

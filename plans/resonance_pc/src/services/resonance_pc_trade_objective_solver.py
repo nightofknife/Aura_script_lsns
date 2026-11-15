@@ -113,9 +113,11 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
     best = initial
     for option in incumbent.route:
         best = best.extend(option, _ticks(prepared, option))
-    pending: Dict[int, Dict[str, list]] = {0: {start: [initial]}}
+    arrivals = prepared.arrivals
+    pending: Dict[int, Dict[tuple[str, tuple[int, ...]], list]] = {
+        0: {(start, arrivals.initial if arrivals else ()): [initial]}}
     heap = [0]
-    settled: Dict[str, list] = {city: [] for city in prepared.city_ids}
+    settled: Dict[tuple[str, tuple[int, ...]], list] = {}
     stats = {"expanded_labels": 0, "generated_labels": 1, "pruned_labels": 0,
              "goal_probes": 0, "peak_pending_labels": 1}
     pending_count = 1
@@ -126,7 +128,8 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
             option_cache[key] = curve.option(books, budget=None if prepared.unbounded_books
                                              else prepared.book_budget, target=True)
         return option_cache[key]
-    progress = SolverProgress(backend="target_sparse", total=prepared.scale.budget_ticks)
+    backend = "arrivals_target_sparse" if arrivals else "target_sparse"
+    progress = SolverProgress(backend=backend, total=prepared.scale.budget_ticks)
     while heap:
         fatigue = heapq.heappop(heap)
         if fatigue >= best.ticks:
@@ -136,21 +139,23 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
         check_solver_cancelled()
         progress.emit(fatigue, **stats)
         nodes = []
-        for city, labels in layer.items():
+        for key, labels in layer.items():
             for label in sorted(labels, key=lambda item: item.tie):
-                if not _insert_target(settled[city], label, prepared, target,
+                if not _insert_target(settled.setdefault(key, []), label, prepared, target,
                                       prefer_fill=prefer_fill):
                     stats["pruned_labels"] += 1
                     continue
-                nodes.append(label)
+                nodes.append((label, key[1]))
                 stats["expanded_labels"] += 1
         # Probe every goal first. This bounds the second pass without expanding
         # a million-count curve for a one-edge target.
-        for node in nodes:
+        for node, counts in nodes:
             for curve, cost in by_city[node.city]:
                 option = curve.baseline
                 next_ticks = node.ticks + cost
                 if next_ticks > best.ticks or (allowed_end is not None and option.to_city_id not in allowed_end):
+                    continue
+                if arrivals is not None and arrivals.arrive(counts, option.to_city_id) != arrivals.complete:
                     continue
                 negotiations = node.negotiations + option.full_negotiation_used
                 if not _resources_fit(prepared, node.books, negotiations):
@@ -166,10 +171,14 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
                 candidate = node.extend(option_at(curve, books), cost)
                 if goal_key(candidate) < goal_key(best):
                     best = candidate
-        for node in nodes:
+        for node, counts in nodes:
             for curve, cost in by_city[node.city]:
                 next_ticks = node.ticks + cost
                 if next_ticks >= best.ticks:
+                    continue
+                destination = curve.baseline.to_city_id
+                next_counts = arrivals.arrive(counts, destination) if arrivals else ()
+                if not prepared.arrivals_fit(destination, next_counts, best.ticks - next_ticks):
                     continue
                 negotiations = node.negotiations + curve.baseline.full_negotiation_used
                 if not _resources_fit(prepared, node.books, negotiations):
@@ -182,20 +191,20 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
                     goal_books = curve.minimum_books_for_profit(max(target - node.profit, 0), limit)
                     if goal_books is not None:
                         limit = goal_books
-                destination = curve.baseline.to_city_id
+                key = destination, next_counts
                 if next_ticks not in pending:
                     pending[next_ticks] = {}
                     heapq.heappush(heap, next_ticks)
-                frontier = pending[next_ticks].setdefault(destination, [])
+                frontier = pending[next_ticks].setdefault(key, [])
                 # Without a binding book budget, lower fill counts cannot
                 # improve fatigue or profit on this same transition.
-                counts = (limit,) if prefer_fill and prepared.unbounded_books else range(limit + 1)
-                for books in counts:
+                book_counts = (limit,) if prefer_fill and prepared.unbounded_books else range(limit + 1)
+                for books in book_counts:
                     if books % 256 == 0:
                         check_solver_cancelled()
                     candidate = node.extend(option_at(curve, books), cost)
                     if any(_dominates_target(old, candidate, prepared, target, prefer_fill=prefer_fill)
-                           for old in settled[destination]):
+                            for old in settled.get(key, ())):
                         stats["pruned_labels"] += 1
                         continue
                     before = len(frontier)
@@ -208,7 +217,7 @@ def solve_target(prepared: PreparedSearch, *, curves: Sequence[EdgeBookCurve],
     check_solver_cancelled()
     stats["cached_edge_options"] = len(option_cache)
     progress.emit(best.ticks, force=True, **stats)
-    return _result(prepared, best, "target_sparse", stats)
+    return _result(prepared, best, backend, stats)
 
 
 def _dominates_fixed(a: _Label, b: _Label, prepared: PreparedSearch) -> bool:

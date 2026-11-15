@@ -14,9 +14,12 @@ import time
 from contextlib import contextmanager
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator, Mapping, Optional, Sequence, Tuple
 
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+
+if TYPE_CHECKING:
+    from .resonance_pc_trade_arrivals import ArrivalSearch
 
 
 ProgressCallback = Callable[[Dict[str, Any]], None]
@@ -127,6 +130,13 @@ class PreparedSearch:
     all_plan: int
     max_legs: int
     unbounded_books: bool = False
+    arrivals: Optional[ArrivalSearch] = None
+
+    def arrivals_fit(self, city: str, counts: Tuple[int, ...], ticks_left: int) -> bool:
+        if self.arrivals is None:
+            return True
+        movement = self.arrivals.remaining_movement.get((city, counts))
+        return movement is not None and movement * self.scale.denominator <= ticks_left * self.scale.divisor
 
 
 def _lcm_denominators(values: Iterable[Fraction]) -> int:
@@ -147,6 +157,7 @@ def prepare_search(
     all_plan: int,
     required_end_city_ids: Optional[Sequence[str]] = None,
     unbounded_books: bool = False,
+    arrivals: Optional[ArrivalSearch] = None,
 ) -> Optional[PreparedSearch]:
     """Compile exact edge costs into a normalized integer fatigue lattice."""
 
@@ -242,6 +253,7 @@ def prepare_search(
         all_plan=int(all_plan),
         max_legs=max_legs,
         unbounded_books=bool(unbounded_books),
+        arrivals=arrivals,
     )
 
 
@@ -296,7 +308,7 @@ def solve_prepared_search(
     if requested not in {"auto", "dense", "sparse"}:
         raise ValueError("solver backend must be 'auto', 'dense', or 'sparse'")
 
-    if prepared.unbounded_books:
+    if prepared.arrivals is not None or prepared.unbounded_books:
         from .resonance_pc_trade_solver_sparse import solve_sparse
 
         return solve_sparse(prepared)

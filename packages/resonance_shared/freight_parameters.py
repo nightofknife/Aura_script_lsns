@@ -35,6 +35,7 @@ FREIGHT_PLANNING_KEYS = (
     "book_profit_threshold", "book_waste_limit", "book_policy", "negotiation_policy",
     "fixed_route_city_ids", "reposition_to_route", "target_profit",
     "available_city_ids", "required_end_city_ids", "city_prestige", "city_tax_rates_bps",
+    "required_arrivals", "ignore_unmet_arrivals",
     "product_unlocks", "bargain_success_rates_bps", "bargain_step_bps",
     "raise_success_rates_bps", "raise_step_bps",
 )
@@ -48,13 +49,17 @@ def effective_freight_inputs(source: Mapping[str, Any]) -> dict[str, Any]:
         raise ValueError("trade_mode must be free or fixed")
     result["trade_mode"] = mode
     if mode == "fixed":
-        for key in ("available_city_ids", "required_end_city_ids", "target_profit"):
+        for key in ("available_city_ids", "required_end_city_ids", "target_profit",
+                    "required_arrivals", "ignore_unmet_arrivals"):
             result.pop(key, None)
     else:
         for key in ("fixed_route_city_ids", "reposition_to_route"):
             result.pop(key, None)
         if result.get("target_profit_enabled") is False or result.get("target_profit") is None:
             result.pop("target_profit", None)
+        if result.get("required_arrivals") in (None, {}):
+            result.pop("required_arrivals", None)
+            result.pop("ignore_unmet_arrivals", None)
     result.pop("target_profit_enabled", None)
     if type(result.get("book_budget")) is int and result["book_budget"] == 0:
         result.pop("book_policy", None)
