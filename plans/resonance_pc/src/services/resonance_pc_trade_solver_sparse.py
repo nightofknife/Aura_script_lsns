@@ -264,8 +264,10 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
             if unbounded_books
             else (prepared.start_index, 0, 0)
         )
+    arrivals = prepared.arrivals
+    initial_counts = arrivals.initial if arrivals else ()
     pending: Dict[int, Dict[Tuple[int, ...], _Node]] = {
-        0: {initial_key: initial}
+        0: {initial_key + initial_counts: initial}
     }
     fatigue_heap = [0]
     pending_state_count = 1
@@ -282,25 +284,11 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
         if prepared.required_end_indices is None
         else frozenset(prepared.required_end_indices)
     )
-    progress = SolverProgress(backend="sparse", total=budget)
+    backend = "arrivals_sparse" if arrivals else "sparse"
+    progress = SolverProgress(backend=backend, total=budget)
     progress.emit(0, force=True, pending_states=1)
 
-    if unbounded_books and prepared.all_plan == 1:
-        global_dominance: Any = [-1] * city_count
-    elif unbounded_books:
-        global_dominance = [
-            _Fenwick1Max(negotiation_limit)
-            for _ in range(city_count)
-        ]
-    elif prepared.all_plan == 1:
-        global_dominance: Any = [
-            [-1] * (book_budget + 1) for _ in range(city_count)
-        ]
-    else:
-        global_dominance = [
-            _Fenwick2Max(book_budget, negotiation_limit)
-            for _ in range(city_count)
-        ]
+    global_dominance: Dict[Tuple[int, Tuple[int, ...]], Any] = {}
 
     while fatigue_heap:
         fatigue = heapq.heappop(fatigue_heap)
@@ -313,25 +301,31 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
             kept_states=kept_states,
             pending_states=pending_state_count,
         )
-        grouped: List[List[_Node]] = [[] for _ in range(city_count)]
-        for node in layer.values():
-            grouped[node.city_index].append(node)
+        grouped: Dict[Tuple[int, Tuple[int, ...]], List[_Node]] = {}
+        for key, node in layer.items():
+            counts = key[-len(initial_counts):] if arrivals else ()
+            grouped.setdefault((node.city_index, counts), []).append(node)
 
-        for city_index, nodes in enumerate(grouped):
-            if not nodes:
-                continue
+        for group, nodes in grouped.items():
+            city_index, counts = group
+            if group not in global_dominance:
+                if unbounded_books:
+                    global_dominance[group] = -1 if prepared.all_plan == 1 else _Fenwick1Max(negotiation_limit)
+                else:
+                    global_dominance[group] = ([-1] * (book_budget + 1) if prepared.all_plan == 1
+                                               else _Fenwick2Max(book_budget, negotiation_limit))
             keepers: List[_Node] = []
             if unbounded_books and prepared.all_plan == 1:
                 for node in nodes:
                     popped_states += 1
-                    if global_dominance[city_index] >= node.profit:
+                    if global_dominance[group] >= node.profit:
                         pruned_states += 1
                         continue
                     keepers.append(node)
                     kept_states += 1
                 for node in keepers:
-                    global_dominance[city_index] = max(
-                        global_dominance[city_index],
+                    global_dominance[group] = max(
+                        global_dominance[group],
                         node.profit,
                     )
             elif unbounded_books:
@@ -345,7 +339,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                 ):
                     popped_states += 1
                     if (
-                        global_dominance[city_index].query(
+                        global_dominance[group].query(
                             node.full_negotiation_used
                         )
                         >= node.profit
@@ -368,7 +362,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                     keepers.append(node)
                     kept_states += 1
                 for node in keepers:
-                    global_dominance[city_index].update(
+                    global_dominance[group].update(
                         node.full_negotiation_used,
                         node.profit,
                     )
@@ -377,7 +371,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                 for node in sorted(nodes, key=lambda item: item.books_used):
                     popped_states += 1
                     if (
-                        global_dominance[city_index][node.books_used]
+                        global_dominance[group][node.books_used]
                         >= node.profit
                         or same_layer_best >= node.profit
                     ):
@@ -390,9 +384,9 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                     for limit in range(node.books_used, book_budget + 1):
                         if (
                             node.profit
-                            > global_dominance[city_index][limit]
+                            > global_dominance[group][limit]
                         ):
-                            global_dominance[city_index][limit] = node.profit
+                            global_dominance[group][limit] = node.profit
             else:
                 local_dominance = _Fenwick2Max(
                     book_budget,
@@ -407,7 +401,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                 ):
                     popped_states += 1
                     if (
-                        global_dominance[city_index].query(
+                        global_dominance[group].query(
                             node.books_used,
                             node.full_negotiation_used,
                         )
@@ -428,7 +422,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                     keepers.append(node)
                     kept_states += 1
                 for node in keepers:
-                    global_dominance[city_index].update(
+                    global_dominance[group].update(
                         node.books_used,
                         node.full_negotiation_used,
                         node.profit,
@@ -438,6 +432,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                 if (
                     node.depth
                     and node.profit > 0
+                    and (arrivals is None or counts == arrivals.complete)
                     and (
                         required_end_indices is None
                         or node.city_index in required_end_indices
@@ -466,6 +461,12 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                     )
                     if next_fatigue > budget:
                         continue
+                    next_counts = ()
+                    if arrivals is not None:
+                        destination = prepared.city_ids[edge.to_index]
+                        next_counts = arrivals.arrive(counts, destination)
+                        if not prepared.arrivals_fit(destination, next_counts, budget - next_fatigue):
+                            continue
                     if (
                         prepared.all_plan == 0
                         and next_negotiation > negotiation_limit
@@ -499,6 +500,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
                                 next_negotiation,
                             )
                         )
+                    state_key += next_counts
                     target = pending.get(next_fatigue)
                     if target is None:
                         target = {}
@@ -548,7 +550,7 @@ def solve_sparse(prepared: PreparedSearch) -> Optional[ExactSearchResult]:
         full_negotiation_used=best.full_negotiation_used,
         city_path=city_path,
         route=route,
-        backend="sparse",
+        backend=backend,
         stats={
             "elapsed_ms": int((time.perf_counter() - started_at) * 1000),
             "popped_states": popped_states,

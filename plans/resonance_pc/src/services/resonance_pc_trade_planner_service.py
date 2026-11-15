@@ -18,6 +18,7 @@ from .resonance_pc_market_data_service import (
     ResonancePcMarketDataService,
 )
 from .resonance_pc_trade_exact_solver import ResonancePcExactTradeSolver
+from .resonance_pc_trade_arrivals import normalize_required_arrivals
 
 
 DEFAULT_BOOK_PROFIT_THRESHOLD = 500000
@@ -143,6 +144,8 @@ class ResonancePcTradePlannerService:
         raise_step_bps: Optional[Any] = 1000,
         available_city_ids: Optional[List[str]] = None,
         required_end_city_ids: Optional[List[str]] = None,
+        required_arrivals: Optional[Dict[str, int]] = None,
+        ignore_unmet_arrivals: bool = False,
         city_prestige: Optional[Dict[str, Any]] = None,
         city_tax_rates_bps: Optional[Dict[str, Any]] = None,
         product_unlocks: Optional[Dict[str, Any]] = None,
@@ -179,6 +182,12 @@ class ResonancePcTradePlannerService:
             fixed_route_city_ids, reposition_to_route = None, False
         if mode == "fixed":
             target_profit = None
+        try:
+            counts = normalize_required_arrivals(required_arrivals) if mode == "free" else {}
+            if counts and type(ignore_unmet_arrivals) is not bool:
+                raise ValueError("ignore_unmet_arrivals must be a boolean")
+        except ValueError as exc:
+            raise ResonancePcTradePlannerError(code="invalid_optimal_route_input", message=str(exc)) from exc
 
         constraints = self._load_trade_constraints_payload()
         if snapshot_id:
@@ -324,6 +333,8 @@ class ResonancePcTradePlannerService:
             "city_prestige": city_prestige, "city_tax_rates_bps": city_tax_rates_bps,
             "product_unlocks": product_unlocks,
         }
+        if counts:
+            planning_inputs["required_arrivals"] = counts
         cache_key = self._optimal_route_cache_key(
             snapshot=snapshot, fatigue_payload=fatigue_payload, buy_lot_payload=buy_lot_payload,
             product_unlocks_payload=product_unlocks_payload, trade_rules_payload=trade_rules_payload,
@@ -331,6 +342,8 @@ class ResonancePcTradePlannerService:
         )
         # Default scope reports excluded currencies; an explicit valid scope does not.
         cache_key += ":default_scope" if available_city_ids is None else ":explicit_scope"
+        if counts and ignore_unmet_arrivals:
+            cache_key += ":ignore_unmet_arrivals"
         with self._optimal_route_cache_lock:
             cached = self._optimal_route_cache.get(cache_key)
             if cached is not None:
@@ -347,6 +360,23 @@ class ResonancePcTradePlannerService:
         )
         try:
             result = solver.solve(**planning_inputs)
+            arrivals = result.get("arrival_requirements")
+            if arrivals and arrivals["status"] == "unmet":
+                message = self._arrival_failure_message(arrivals, fatigue_budget)
+                if ignore_unmet_arrivals:
+                    ordinary_inputs = {key: value for key, value in planning_inputs.items()
+                                       if key != "required_arrivals"}
+                    result = solver.solve(**ordinary_inputs)
+                    path = result["city_path_ids"][1:]
+                    arrivals.update(
+                        status="ignored",
+                        planned={city: path.count(city) for city in counts},
+                    )
+                    message += "；已忽略指定到达次数，保留其他设置重新规划。"
+                else:
+                    message += "；本次不发车。"
+                arrivals["message"] = message
+                result["arrival_requirements"] = arrivals
         except (TypeError, ValueError) as exc:
             raise ResonancePcTradePlannerError(
                 code="invalid_optimal_route_input",
@@ -364,6 +394,27 @@ class ResonancePcTradePlannerService:
             ):
                 self._optimal_route_cache.popitem(last=False)
         return result
+
+    @staticmethod
+    def _arrival_failure_message(arrivals: dict, budget: int) -> str:
+        code = arrivals["code"]
+        cities = "、".join(arrivals["city_names"][city] for city in arrivals.get("city_ids", ()))
+        if code == "arrival_city_not_selected":
+            reason = f"{cities}未加入候选城市"
+        elif code == "arrival_city_unreachable":
+            reason = f"候选城市之间没有通往{cities}的路线"
+        elif code == "arrival_movement_budget":
+            minimum = arrivals.get("minimum_movement_fatigue", arrivals.get("movement_lower_bound"))
+            reason = (f"移动至少需要 {minimum} 点疲劳，预算为 {budget} 点，还差至少 {minimum - budget} 点"
+                      if minimum is not None else
+                      f"{budget} 点疲劳预算内没有同时满足到达次数和终点的移动路线")
+        elif code == "arrival_route_unreachable":
+            reason = "所选城市之间的路线无法同时满足到达次数和终点"
+        elif code == "arrival_profit_target_unreachable":
+            reason = "当前预算内无法同时满足到达次数和指定收益"
+        else:
+            reason = "当前预算及交易设置下，没有满足到达次数和终点的盈利路线"
+        return f"无法满足指定到达次数：{reason}"
 
     @staticmethod
     def _optimal_route_cache_key(

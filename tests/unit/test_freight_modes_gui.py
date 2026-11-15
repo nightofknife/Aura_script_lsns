@@ -4,8 +4,8 @@ import os
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QPoint, QSettings, Qt, QCoreApplication, QEvent
-from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import QPoint, QSettings, Qt, QCoreApplication, QEvent, QTimer
+from PySide6.QtWidgets import QApplication, QSpinBox
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
 from packages.resonance_gui.logic import normalize_trade_task_inputs, trade_result_summary
@@ -39,6 +39,29 @@ def test_default_contract(page):
     assert inputs["arrival_timeout_seconds"] == 3600
     assert inputs["auto_cape_island_investment"] is True
     assert not {"start_city_id", "auto_book", "trade_level", "active_events"} & inputs.keys()
+
+
+def test_arrival_dialog_persists_minimum_counts_and_only_dispatches_for_free(page):
+    page.city_checks["9"].setChecked(False)
+    def set_counts():
+        dialog = QApplication.activeModalWidget()
+        fields = {field.accessibleName(): field for field in dialog.findChildren(QSpinBox)}
+        fields["岚心城最低到达次数"].setValue(2)
+        fields["淘金乐园最低到达次数"].setValue(1)
+        dialog.accept()
+    QTimer.singleShot(0, set_counts)
+    page.arrivals_button.click()
+    page.ignore_unmet_arrivals.setChecked(True)
+    task = page.collect_task_inputs()
+    assert task["required_arrivals"] == {"15": 2, "9": 1}
+    assert "9" not in task["available_city_ids"] and task["ignore_unmet_arrivals"] is True
+    assert page._settings.load_trade_inputs()["required_arrivals"] == task["required_arrivals"]
+    assert "岚心城 ≥ 2 次" in page.arrivals_note.text()
+    page.restore_inputs(dict(page.collect_ui_state(), trade_mode="fixed", fixed_route_city_ids=["1", "2"]))
+    assert page.nonfixed_panel.isHidden()
+    assert not {"required_arrivals", "ignore_unmet_arrivals"} & page.collect_task_inputs().keys()
+    page.mode_buttons["free"].setChecked(True)
+    assert page.collect_task_inputs()["required_arrivals"] == task["required_arrivals"]
 
 
 def test_all_freight_toggle_buttons_have_hover_explanations(page):

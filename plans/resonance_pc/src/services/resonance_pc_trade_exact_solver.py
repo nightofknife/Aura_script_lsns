@@ -21,6 +21,7 @@ from fractions import Fraction
 import heapq
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from .resonance_pc_trade_arrivals import normalize_required_arrivals, prepare_arrivals
 from .resonance_pc_trade_candidate_model import EdgeBookCurve, TradeEdgeOption
 from .resonance_pc_trade_settlement import PRICING_MODEL, TradeCandidate, game_round, optimal_load
 from .resonance_pc_trade_objective_solver import solve_fixed, solve_target
@@ -183,6 +184,7 @@ class ResonancePcExactTradeSolver:
         negotiation_policy: str = "auto",
         negotiation_budget: Optional[int] = None,
         required_end_city_ids: Optional[Sequence[str]] = None,
+        required_arrivals: Optional[Mapping[str, int]] = None,
         fixed_route_city_ids: Optional[Sequence[str]] = None,
         reposition_to_route: bool = False,
         target_profit: Any = None,
@@ -318,8 +320,14 @@ class ResonancePcExactTradeSolver:
                             "fixed_profitable_edges_require_trade": mode == "fixed",
                             "fixed_navigation_tail_allowed": False if mode == "fixed" else None})
         route_fatigue_limit = max(fatigue_limit - reposition_fatigue, 0)
+        counts = normalize_required_arrivals(required_arrivals) if mode == "free" else {}
+        arrivals, arrival_detail = (prepare_arrivals(
+            counts, cities=planning_cities, costs=self.fatigue_costs,
+            start=start, ends=end_ids, budget=route_fatigue_limit,
+        ) if counts else (None, {}))
         requested_pairs = None if fixed_path is None else set(zip(fixed_path, fixed_path[1:]))
-        curves = self._build_edge_curves(city_ids=planning_cities, cargo_capacity=capacity,
+        curves = [] if counts and arrivals is None else self._build_edge_curves(
+                     city_ids=planning_cities, cargo_capacity=capacity,
                     book_policy=policy, threshold=threshold, book_waste_limit=waste_limit, negotiation_policy=negotiation,
                     bargain_profile=bargain, raise_profile=raising, prestige_by_city=prestige,
                     unlocked_products=unlocked, requested_pairs=requested_pairs,
@@ -341,9 +349,9 @@ class ResonancePcExactTradeSolver:
         for curve in curves:
             check_solver_cancelled()
             limit = curve.legal_limit if books_limit is None else min(curve.legal_limit, internal_books)
-            counts = (limit,) if unconstrained_books or single_leg else range(limit + 1)
+            book_counts = (limit,) if unconstrained_books or single_leg else range(limit + 1)
             family = options.setdefault((curve.baseline.from_city_id, curve.baseline.to_city_id), [])
-            for count in counts:
+            for count in book_counts:
                 if count % 256 == 0:
                     check_solver_cancelled()
                 family.append(curve.option(count, budget=books_limit))
@@ -354,7 +362,8 @@ class ResonancePcExactTradeSolver:
         prepared = prepare_search(city_ids=planning_cities, start_city_id=start,
                     edge_options=options, fatigue_budget=route_fatigue_limit, book_budget=internal_books,
                     negotiation_budget=negotiation_limit, all_plan=plan_mode,
-                    required_end_city_ids=end_ids, unbounded_books=unconstrained_books or single_leg)
+                    required_end_city_ids=end_ids, unbounded_books=unconstrained_books or single_leg,
+                    arrivals=arrivals)
         result = None
         maximum_profit = Fraction(0)
         if prepared is not None and reposition_fatigue <= fatigue_limit:
@@ -374,11 +383,12 @@ class ResonancePcExactTradeSolver:
                                 edge_options=base_options, fatigue_budget=fatigue_limit,
                                 book_budget=internal_books, negotiation_budget=negotiation_limit,
                                 all_plan=plan_mode, required_end_city_ids=end_ids,
-                                unbounded_books=unconstrained_books)
+                                unbounded_books=unconstrained_books, arrivals=arrivals)
                     result = solve_target(target_prepared, curves=curves,
                                           target=target_integer, incumbent=maximum)
         status = "ok" if result is not None and (mode == "fixed" or result.expected_profit > 0) else (
                  "fixed_route_infeasible" if mode == "fixed" else
+                 "arrival_requirements_unmet" if counts else
                  "target_unreachable" if has_target else "no_plan")
         actual_profit = Fraction(0) if status != "ok" else result.expected_profit
         route_fatigue_used = Fraction(0) if status != "ok" else result.expected_fatigue_used
@@ -431,6 +441,8 @@ class ResonancePcExactTradeSolver:
             request.update(fixed_route_city_ids=list(fixed_path), reposition_to_route=reposition_to_route)
         if has_target:
             request["target_profit_exact"] = self._fraction_text(target)
+        if counts:
+            request["required_arrivals"] = counts
         response = {
             "status": status, "reason": None if status == "ok" else status,
             "trade_mode": mode, "book_policy": policy, "book_waste_limit": waste_limit, "negotiation_policy": negotiation,
@@ -470,10 +482,23 @@ class ResonancePcExactTradeSolver:
                             target_gap_exact=self._fraction_text(max(target - (actual_profit if status == "ok" else maximum_profit), Fraction(0))),
                             maximum_reachable_profit=self._fraction_number(maximum_profit),
                             maximum_reachable_profit_exact=self._fraction_text(maximum_profit))
-            if status != "ok":
+            if status == "target_unreachable":
                 response["diagnostics"] = {"code": "target_unreachable",
                                           "maximum_reachable_profit_exact": self._fraction_text(maximum_profit),
                                           "execution_allowed": False}
+        if counts:
+            if status != "ok" and not arrival_detail.get("code"):
+                arrival_detail["code"] = ("arrival_profit_target_unreachable" if has_target and maximum_profit > 0
+                                          else "arrival_no_profitable_route")
+            response["arrival_requirements"] = {
+                **arrival_detail,
+                "status": "met" if status == "ok" else "unmet",
+                "required": counts,
+                "city_names": {city: self._city_name(city) for city in counts},
+                "planned": {city: path[1:].count(city) for city in counts},
+            }
+            if status != "ok":
+                response["diagnostics"] = {**arrival_detail, "execution_allowed": False}
         if mode == "fixed":
             completed, partial = divmod(len(route), len(fixed_path) - 1)
             closed = fixed_path[0] == fixed_path[-1]

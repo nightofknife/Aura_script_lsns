@@ -150,10 +150,13 @@ def _log_freight_plan(plan: dict, request: dict, *, kind: str) -> None:
     summary = {key: plan.get(key) for key in (
         "planning_status", "snapshot_id", "expected_profit_exact", "expected_fatigue_used_exact",
         "remaining_expected_fatigue_exact", "books_used", "remaining_books", "stop_reason",
-        "assumptions", "diagnostics", "solver_stats",
+        "assumptions", "diagnostics", "solver_stats", "arrival_requirements",
     )}
     logger.info("[FreightPlan] phase=completed kind=%s summary=%s", kind,
                 json.dumps(summary, ensure_ascii=False, sort_keys=True, default=str))
+    arrivals = plan.get("arrival_requirements") or {}
+    if arrivals.get("message"):
+        logger.warning("[FreightPlan] kind=%s %s", kind, arrivals["message"])
     for index, leg in enumerate(plan.get("route") or []):
         logger.info("[FreightPlan] phase=leg kind=%s index=%s detail=%s", kind, index,
                     json.dumps(leg, ensure_ascii=False, sort_keys=True, default=str))
@@ -3220,6 +3223,8 @@ async def _preview_trade_plan_from_start_city(
     raise_step_bps: Optional[Any] = 1000,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
+    required_arrivals: Optional[Dict[str, int]] = None,
+    ignore_unmet_arrivals: bool = False,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
@@ -3378,6 +3383,8 @@ async def resonance_pc_preview_trade_plan_flow(
     raise_step_bps: Optional[Any] = 1000,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
+    required_arrivals: Optional[Dict[str, int]] = None,
+    ignore_unmet_arrivals: bool = False,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
@@ -3408,6 +3415,8 @@ async def resonance_pc_preview_trade_plan_flow(
         raise_step_bps=raise_step_bps,
         available_city_ids=available_city_ids,
         required_end_city_ids=required_end_city_ids,
+        required_arrivals=required_arrivals,
+        ignore_unmet_arrivals=ignore_unmet_arrivals,
         city_prestige=city_prestige,
         city_tax_rates_bps=city_tax_rates_bps,
         product_unlocks=product_unlocks,
@@ -3496,6 +3505,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     raise_step_bps: Optional[Any] = 1000,
     available_city_ids: Optional[List[str]] = None,
     required_end_city_ids: Optional[List[str]] = None,
+    required_arrivals: Optional[Dict[str, int]] = None,
+    ignore_unmet_arrivals: bool = False,
     city_prestige: Optional[Dict[str, Any]] = None,
     product_unlocks: Optional[Dict[str, Any]] = None,
     use_fatigue_medicine: bool = False,
@@ -4018,6 +4029,17 @@ async def resonance_pc_auto_cycle_trade_flow(
         success = False
 
     result = dict(plan)
+    if plan.get("arrival_requirements"):
+        arrivals = dict(plan["arrival_requirements"])
+        actual = dict.fromkeys(arrivals["required"], 0)
+        for entry in execution.get("leg_results") or []:
+            travel = entry.get("travel") or {}
+            destination = (entry.get("leg") or {}).get("to_city_id")
+            if (destination in actual and travel.get("success") is True
+                    and str(travel.get("status") or "ok").lower() in {"ok", "arrived", "completed"}
+                    and travel.get("arrival_status", "arrived") == "arrived"):
+                actual[destination] += 1
+        result["arrival_requirements"] = {**arrivals, "actual": actual}
     result_warnings = list(result.get("warnings") or [])
     result_warnings.extend(negotiation_execution["warnings"])
     for leg_result in execution.get("leg_results") or []:

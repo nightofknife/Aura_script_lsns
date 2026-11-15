@@ -126,6 +126,38 @@ preview_trade_plan_pc:
           type: string
           required: true
           enum: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21"]
+      - name: required_arrivals
+        type: dict
+        required: false
+        default: {}
+        description: 不定线路各城市的最低到达次数，起点不计入。
+        properties:
+          "1": {name: arrival_count_1, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "2": {name: arrival_count_2, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "3": {name: arrival_count_3, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "4": {name: arrival_count_4, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "5": {name: arrival_count_5, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "6": {name: arrival_count_6, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "7": {name: arrival_count_7, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "8": {name: arrival_count_8, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "9": {name: arrival_count_9, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "10": {name: arrival_count_10, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "11": {name: arrival_count_11, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "12": {name: arrival_count_12, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "13": {name: arrival_count_13, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "14": {name: arrival_count_14, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "15": {name: arrival_count_15, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "16": {name: arrival_count_16, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "17": {name: arrival_count_17, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "18": {name: arrival_count_18, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "19": {name: arrival_count_19, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "20": {name: arrival_count_20, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+          "21": {name: arrival_count_21, type: number, required: false, strict_integer: true, min: 1, max: 2147483647}
+      - name: ignore_unmet_arrivals
+        type: boolean
+        required: false
+        default: false
+        description: 无法满足到达次数时，保留其他设置按普通跑商规划。
       - name: city_tax_rates_bps
         type: dict
         required: false
@@ -353,6 +385,8 @@ preview_trade_plan_pc:
         raise_step_bps: "{{ inputs.raise_step_bps | default(1000) }}"
         available_city_ids: "{{ inputs.available_city_ids | default(['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19', '20', '21']) }}"
         required_end_city_ids: "{{ inputs.required_end_city_ids | default(none) }}"
+        required_arrivals: "{{ inputs.required_arrivals | default({}) }}"
+        ignore_unmet_arrivals: "{{ inputs.ignore_unmet_arrivals | default(false) }}"
         city_prestige: "{{ inputs.city_prestige | default({'default': 20, 'overrides': {}}) }}"
         city_tax_rates_bps: "{{ inputs.city_tax_rates_bps | default({}) }}"
         product_unlocks: "{{ inputs.product_unlocks | default({'mode': 'all', 'product_ids': []}) }}"
@@ -396,6 +430,7 @@ preview_trade_plan_pc:
     termination_city_id: "{{ nodes.run.output.termination_city_id | default(none) }}"
     stop_reason: "{{ nodes.run.output.stop_reason | default(none) }}"
     diagnostics: "{{ nodes.run.output.diagnostics | default(none) }}"
+    arrival_requirements: "{{ nodes.run.output.arrival_requirements | default(none) }}"
     resources: "{{ nodes.run.output.resources | default(none) }}"
     success: "{{ nodes.run.output.success }}"
     preview: "{{ nodes.run.output.preview }}"

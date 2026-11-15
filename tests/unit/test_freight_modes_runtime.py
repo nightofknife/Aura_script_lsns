@@ -41,7 +41,8 @@ def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
                          ("preview_trade_plan_pc", trade.resonance_pc_preview_trade_plan_flow)):
         spec = yaml.safe_load((ROOT / "plans/resonance_pc/tasks" / f"{name}.yaml").read_text("utf-8"))[name]
         provided = {"trade_mode": mode, "book_budget": books,
-                    "fixed_route_city_ids": ["15", "11", "15"], "target_profit": 1000000}
+                    "fixed_route_city_ids": ["15", "11", "15"], "target_profit": 1000000,
+                    "required_arrivals": {"15": 2, "9": 1}, "ignore_unmet_arrivals": True}
         if name == "preview_trade_plan_pc":
             provided["start_city_id"] = "15"
         ok, inputs = InputValidator(None).validate_inputs_against_meta(spec["meta"]["inputs"], provided)
@@ -52,6 +53,12 @@ def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
         assert rendered["book_budget"] == books
         assert rendered["fatigue_budget"] == 700 and rendered["cargo_capacity"] == 750
         assert rendered["book_profit_threshold"] == 500000
+        canonical = normalize_planning_inputs(rendered)
+        if mode == "free":
+            assert canonical["required_arrivals"] == {"15": 2, "9": 1}
+            assert canonical["ignore_unmet_arrivals"] is True
+        else:
+            assert not {"required_arrivals", "ignore_unmet_arrivals"} & canonical.keys()
         assert not {"auto_book", "trade_level", "active_events", "fixed_route_repeat_count"} & rendered.keys()
         if name == "auto_cycle_trade_pc":
             assert rendered["auto_cape_island_investment"] is True
@@ -130,6 +137,38 @@ def test_unreachable_is_stopped_without_sale_or_recovery(harness, monkeypatch, m
     assert result["status"] == "stopped" and result["success"] is False
     assert result["planning_status"] == status and "bento_pending" not in result
     assert result["final_sale"] is None and operations == ["open_panel"]
+
+
+def test_arrival_failure_logs_reason_and_never_departs(harness, monkeypatch):
+    operations, _ = harness
+    message = "无法满足指定到达次数：淘金乐园未加入候选城市；本次不发车。"
+    warnings = []
+    monkeypatch.setattr(trade.logger, "warning", lambda fmt, *args: warnings.append(fmt % args))
+    def planner(**kwargs):
+        assert kwargs["required_arrivals"] == {"9": 1}
+        return {"status": "arrival_requirements_unmet", "route": [],
+                "arrival_requirements": {"required": {"9": 1}, "status": "unmet", "message": message}}
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", planner)
+    monkeypatch.setattr(trade, "resonance_pc_go_city_main_direct",
+                        lambda **kwargs: {"success": True, "page_state": "city_main"})
+    result = run_full(required_arrivals={"9": 1})
+    assert result["status"] == "stopped"
+    assert result["arrival_requirements"]["actual"] == {"9": 0}
+    assert result["final_sale"] is None and operations == ["open_panel"]
+    assert any(message in record for record in warnings)
+
+
+def test_arrival_actual_counts_exclude_unconfirmed_leg_and_start(harness, monkeypatch):
+    _, state = harness
+    state["block_index"] = 1
+    def planner(**kwargs):
+        assert kwargs["required_arrivals"] == {"11": 1, "15": 1}
+        return {"status": "ok", "route": routes(), "arrival_requirements": {
+            "required": {"11": 1, "15": 1}, "status": "met", "planned": {"11": 1, "15": 1}}}
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", planner)
+    result = run_full(required_arrivals={"11": 1, "15": 1}, auto_sparkling_water=False)
+    assert result["status"] == "blocked"
+    assert result["arrival_requirements"]["actual"] == {"11": 1, "15": 0}
 
 
 def test_fixed_wrong_start_stops_without_planner_or_departure(harness, monkeypatch):
