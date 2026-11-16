@@ -6,6 +6,8 @@ param(
     [string]$ReleaseLabel,
     [string]$BasePython = "",
     [string]$OutputRoot = "",
+    [string]$BuildRoot = ".runtime\build",
+    [string]$EnvironmentRoot = "",
     [string]$AssetRepository = "",
     [switch]$RefreshDependencies,
     [switch]$RecreateEnvironment,
@@ -76,7 +78,11 @@ function Ensure-ReleaseEnvironment {
     $profileContract = $contract.profiles.$SelectedProfile
     $lockPath = Join-Path $repoRoot ($profileContract.requirements_lock -replace '/', '\')
     if (-not (Test-Path -LiteralPath $lockPath)) { throw "Release lock not found: $lockPath" }
-    $venvRoot = Join-Path $repoRoot ".venv-release-$SelectedProfile"
+    $venvRoot = if ($EnvironmentRoot) {
+        Join-Path (Resolve-RepoPath -PathValue $EnvironmentRoot -Label "Release environment root") $SelectedProfile
+    } else {
+        Join-Path $repoRoot ".venv-release-$SelectedProfile"
+    }
     if ($RecreateEnvironment -and (Test-Path -LiteralPath $venvRoot)) {
         Remove-Item -LiteralPath $venvRoot -Recurse -Force
     }
@@ -144,6 +150,7 @@ $safeLabel = $ReleaseLabel -replace '[^A-Za-z0-9._-]', '-'
 if (-not $safeLabel) { throw "Release label is empty after sanitization." }
 if (-not $OutputRoot) { $OutputRoot = ".runtime\releases\$safeLabel" }
 $outputRootPath = Resolve-RepoPath -PathValue $OutputRoot -Label "Release output"
+$buildRootPath = Resolve-RepoPath -PathValue $BuildRoot -Label "Release build root"
 $basePythonPath = Resolve-BasePython
 $pythonVersion = (Invoke-CheckedCommand -FilePath $basePythonPath -ArgumentList @(
     "-c", "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}')"
@@ -163,12 +170,15 @@ try {
     $dirtyValue = if ($sourceDirty) { "true" } else { "false" }
     $profiles = if ($Profile -eq "all") { @("cpu", "gpu", "overlay") } else { @($Profile) }
     $archives = @{}
+    if ($profiles -contains "cpu" -or $profiles -contains "gpu") {
+        & (Join-Path $repoRoot "tools/native/wgc_hdr/build.ps1")
+    }
 
     foreach ($selectedProfile in $profiles) {
         Write-Host "Preparing Aura release profile: $selectedProfile"
         $environment = Ensure-ReleaseEnvironment -SelectedProfile $selectedProfile -PythonPath $basePythonPath
         $profileContract = $contract.profiles.$selectedProfile
-        $runtimeRoot = Join-Path $repoRoot ".runtime\build\$safeLabel\$selectedProfile"
+        $runtimeRoot = Join-Path $buildRootPath "$safeLabel\$selectedProfile"
         $relativeRuntimeRoot = Get-RelativeRepoPath -PathValue $runtimeRoot
         $relativeVenvPython = Get-RelativeRepoPath -PathValue $environment.Python
 

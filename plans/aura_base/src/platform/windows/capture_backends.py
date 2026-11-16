@@ -203,18 +203,33 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
             )
 
         self._session_lock = threading.RLock()
+        self._display_color = None
+        if self.config.get("hdr_sdr_normalization", False):
+            from .wgc_hdr import DisplayColorState
+
+            self._display_color = DisplayColorState()
         self._session = self._create_session(int(self.target.hwnd))
 
     def close(self) -> None:
         with self._session_lock:
-            if self._session is not None:
-                try:
+            try:
+                if self._session is not None:
                     self._session.close()
-                finally:
-                    self._session = None
+            finally:
+                self._session = None
+                if self._display_color is not None:
+                    self._display_color.close()
 
     def reset_after_target_recovery(self) -> None:
-        self._rebuild_session()
+        with self._session_lock:
+            if self._display_color is not None:
+                self._display_color.invalidate()
+            # Detection waits for the next real capture after recovery.
+            hwnd = int(self.target.hwnd)
+            white = self._session.hdr_white if self._session is not None and self._session.hwnd == hwnd else 0
+            if self._session is not None:
+                self._session.close()
+            self._session = self._create_session(hwnd, hdr_white=white)
 
     def capture_stream_frame(self, after_generation: int = -1, *, expected_session_id: int | None = None) -> dict[str, Any] | None:
         """Read the existing WGC cache without input locks, recovery, or waits.
@@ -234,6 +249,8 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
             self.target.ensure_valid()
             if int(session.hwnd) != int(self.target.hwnd):
                 raise TargetRuntimeError("windows_capture_stream_target_changed", "The capture target changed during streaming.")
+            if session.started and self._display_color is not None and self._synchronize_session_color(session):
+                raise TargetRuntimeError("windows_capture_stream_replaced", "The display color mode changed; warm up WGC again.")
             snapshot = session.snapshot_stream_frame(after_generation)
             if snapshot is None:
                 return None
@@ -259,6 +276,8 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
         self.target.ensure_valid()
         hwnd = int(self.target.hwnd)
         client_rect = self.target.get_client_rect()
+        with self._session_lock:
+            hdr_white = self._display_color.current(hwnd) if self._display_color is not None else 0
         # Use the compatible profile for this independent, short-lived camera.
         # No shared runtime/session lock is held while starting or stopping it.
         session = PersistentWgcSession(
@@ -269,6 +288,7 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
             secondary_window=None,
             minimum_update_interval_ms=None,
             dirty_region=None,
+            hdr_white=hdr_white,
         )
         try:
             session.start_if_needed()
@@ -320,7 +340,7 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
                 self._rebuild_session()
 
     def _snapshot_client_frame(self) -> np.ndarray:
-        session = self._ensure_session_matches_target()
+        session = self._ensure_session_matches_target(check_color=True)
         try:
             session.start_if_needed()
         except TargetRuntimeError as exc:
@@ -331,7 +351,7 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
             ):
                 raise
             self._activate_compatible_profile(reason=str(exc))
-            session = self._ensure_session_matches_target()
+            session = self._ensure_session_matches_target(check_color=True)
             session.start_if_needed()
         session.wait_for_fresh_frame(self.max_stale_ms, self.frame_timeout_ms)
         frame = session.snapshot_full_frame()
@@ -386,23 +406,43 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
         payload["compatibility_fallback_used"] = self.compatibility_fallback_used
         payload["compatibility_fallback_reason"] = self.compatibility_fallback_reason
         payload["windows_build"] = self.windows_build
+        if self._display_color is not None:
+            payload["display_color_queries"] = self._display_color.query_count
+            payload["display_color_notifications"] = self._display_color.notifications
         return payload
 
-    def _ensure_session_matches_target(self) -> PersistentWgcSession:
+    def _synchronize_session_color(self, session: PersistentWgcSession) -> bool:
+        white = self._display_color.current(session.hwnd)
+        if bool(white) != bool(session.hdr_white):
+            return True
+        if white and white != session.hdr_white:
+            session.update_hdr_white(white)
+            logger.info("WGC HDR SDR-white updated: %s nits", white * .08)
+        return False
+
+    def _ensure_session_matches_target(self, *, check_color: bool = False) -> PersistentWgcSession:
         with self._session_lock:
             current_hwnd = int(self.target.hwnd)
             if self._session is None or int(self._session.hwnd) != current_hwnd:
+                white = self._display_color.current(current_hwnd) if check_color and self._display_color is not None else 0
                 if self._session is not None:
                     self._session.close()
-                self._session = self._create_session(current_hwnd)
+                self._session = self._create_session(current_hwnd, hdr_white=white)
+            elif check_color and self._display_color is not None and self._synchronize_session_color(self._session):
+                self._session.close()
+                white = self._display_color.white
+                self._session = self._create_session(current_hwnd, hdr_white=white)
+                logger.info("WGC capture format changed: %s; SDR-white=%s nits",
+                            "rgba16f" if white else "bgra8", white * .08 if white else None)
             return self._session
 
     def _rebuild_session(self) -> None:
         with self._session_lock:
             current_hwnd = int(self.target.hwnd)
+            white = self._display_color.current(current_hwnd) if self._display_color is not None else 0
             if self._session is not None:
                 self._session.close()
-            self._session = self._create_session(current_hwnd)
+            self._session = self._create_session(current_hwnd, hdr_white=white)
 
     def _activate_compatible_profile(self, *, reason: str) -> None:
         with self._session_lock:
@@ -412,16 +452,17 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
             self.compatibility_fallback_used = True
             self.compatibility_fallback_reason = str(reason)
             current_hwnd = int(self.target.hwnd)
+            white = self._session.hdr_white if self._session is not None else 0
             if self._session is not None:
                 self._session.close()
-            self._session = self._create_session(current_hwnd)
+            self._session = self._create_session(current_hwnd, hdr_white=white)
         logger.warning(
             "WGC performance profile could not start; retrying once with the "
             "compatible profile and system-default capture border. reason=%s",
             reason,
         )
 
-    def _create_session(self, hwnd: int) -> PersistentWgcSession:
+    def _create_session(self, hwnd: int, *, hdr_white: int = 0) -> PersistentWgcSession:
         compatible = self.effective_profile == "compatible"
         return PersistentWgcSession(
             hwnd=int(hwnd),
@@ -431,6 +472,7 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
             secondary_window=None if compatible else self.secondary_window,
             minimum_update_interval_ms=None if compatible else self.minimum_update_interval_ms,
             dirty_region=None if compatible else self.dirty_region,
+            hdr_white=hdr_white,
         )
 
     @staticmethod
