@@ -25,6 +25,7 @@ class PersistentWgcSession:
         secondary_window: bool | None = False,
         minimum_update_interval_ms: int | None = 16,
         dirty_region: bool | None = True,
+        hdr_white: int = 0,
     ) -> None:
         self.hwnd = int(hwnd)
         self.stream_id = uuid.uuid4().int
@@ -38,6 +39,7 @@ class PersistentWgcSession:
             else max(int(minimum_update_interval_ms), 0)
         )
         self.dirty_region = None if dirty_region is None else bool(dirty_region)
+        self._hdr_white = hdr_white
 
         self._lock = threading.RLock()
         self._frame_event = threading.Event()
@@ -49,9 +51,9 @@ class PersistentWgcSession:
         self._latest_frame_dtype: np.dtype[Any] | None = None
         self._last_error: dict[str, Any] | None = None
 
-        self._module = self._import_module()
+        self._module = self._import_module() if not hdr_white else None
         self._capture_cls = getattr(self._module, "WindowsCapture", None)
-        if not callable(self._capture_cls):
+        if not hdr_white and not callable(self._capture_cls):
             raise TargetRuntimeError(
                 "windows_capture_api_missing",
                 "The configured WGC module does not expose windows_capture.WindowsCapture.",
@@ -78,6 +80,27 @@ class PersistentWgcSession:
     def generation(self) -> int:
         with self._lock:
             return int(self._generation)
+
+    @property
+    def hdr_white(self) -> int:
+        return self._hdr_white
+
+    @property
+    def started(self) -> bool:
+        return self._control is not None
+
+    def update_hdr_white(self, white: int) -> None:
+        with self._lock:
+            if self._hdr_white < 1 or white < 1:
+                raise ValueError("Capture format changes require a new WGC session")
+            if self._hdr_white == white:
+                return
+            self._hdr_white = white
+            self._latest_frame = None
+            self._arrived_at_monotonic = None
+            self._frame_event.clear()
+            if self._control is not None:
+                self._control.set_white(white)
 
     def start_if_needed(self) -> None:
         with self._lock:
@@ -238,6 +261,9 @@ class PersistentWgcSession:
                 "generation": int(self._generation),
                 "closed": bool(self._closed),
                 "last_error": dict(self._last_error or {}),
+                "native_capture_error": str(getattr(self._control, "error", None) or ""),
+                "source_pixel_format": "rgba16f" if self._hdr_white else "bgra8",
+                "sdr_white_nits": self._hdr_white * .08 if self._hdr_white else None,
                 "capture_cursor": self.capture_cursor,
                 "draw_border": self.draw_border,
                 "secondary_window": self.secondary_window,
@@ -246,6 +272,10 @@ class PersistentWgcSession:
             }
 
     def _create_capturer(self) -> Any:
+        if self._hdr_white:
+            from .wgc_hdr import HdrWindowsCapture
+
+            return HdrWindowsCapture(hwnd=self.hwnd, cursor=bool(self.capture_cursor), white=self._hdr_white)
         try:
             return self._capture_cls(
                 cursor_capture=self.capture_cursor,
@@ -287,6 +317,8 @@ class PersistentWgcSession:
                     raise ValueError(f"Unsupported frame shape: {tuple(array.shape)}")
 
                 with self._lock:
+                    if self._closed or (self._hdr_white and getattr(frame, "hdr_white", None) != self._hdr_white):
+                        return
                     if self._latest_frame is None or self._frame_shape != tuple(array.shape) or self._latest_frame_dtype != array.dtype:
                         self._latest_frame = np.empty_like(array)
                         self._latest_frame_dtype = array.dtype

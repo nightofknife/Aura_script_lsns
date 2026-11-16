@@ -44,6 +44,7 @@ dist/
 # Local models and generated ML artifacts
 models/
 plans/aura_base/assets/mumu/
+plans/aura_base/assets/windows/aura_wgc_hdr.dll
 plans/aura_base/src/services/ocr_model/
 *.onnx
 *.pt

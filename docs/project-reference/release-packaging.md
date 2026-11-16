@@ -20,6 +20,13 @@ models, default config, and the complete filtered external `plans/` source tree.
 Plan caches, state, logs, screenshots, credentials, and bytecode are excluded.
 Standalone Plan replacement packages are not produced.
 
+CPU and GPU builds compile the Windows HDR capture DLL from
+`tools/native/wgc_hdr/` using CMake, Visual Studio 2022 with the x64 C++
+toolchain, and Windows SDK 10.0.26100 or later. The generated DLL is staged
+into the Aura Base Plan and is not tracked by Git. To run the Resonance PC
+capture path from a source checkout, run `./tools/native/wgc_hdr/build.ps1`
+once from the repository root. Players do not need build tools.
+
 ## Canonical commands
 
 ```powershell

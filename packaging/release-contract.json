@@ -65,6 +65,7 @@
       "models/ocr/ppocrv6_small/det.onnx",
       "models/ocr/ppocrv6_small/rec.onnx",
       "plans/aura_base/manifest.yaml",
+      "plans/aura_base/assets/windows/aura_wgc_hdr.dll",
       "plans/resonance_pc/manifest.yaml",
       "plans/resonance_pc/assets/input_bridge/resonance_bridge_loader.exe",
       "plans/resonance_pc/assets/input_bridge/resonance_bridge_host.dll",

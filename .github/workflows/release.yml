@@ -160,6 +160,10 @@ jobs:
         shell: pwsh
         run: python -m pip install --disable-pip-version-check -r requirements\ci.txt
 
+      - name: Build Windows HDR capture component
+        shell: pwsh
+        run: ./tools/native/wgc_hdr/build.ps1
+
       - name: Prepare required OCR models for runtime smoke tests
         shell: pwsh
         run: |
