@@ -10,11 +10,21 @@ import json
 
 import cv2
 
-from packages.aura_core.scheduler.operation_scope import OperationScope, current_operation_scope
+from packages.aura_core.scheduler.operation_scope import OperationScope, OperationTimeout, current_operation_scope
+from packages.aura_core.utils.exceptions import StopTaskException
+from ....aura_base.src.services.interaction_service import InteractionError
 from ._navigation_templates import PROFILE_MENU
 from ._prison_warehouse_ledger import normalize_request
 from ._prison_warehouse_runtime import PLAN_ROOT, WarehouseTransferRuntime, WarehouseTransferError
 from .prison_warehouse_pc_actions import _check_cancelled
+
+
+_DAILY_REPORT_HEADER = "templates/workshop/warehouse/controls/prison_daily_report_header.png"
+_DAILY_REPORT_ROI = (248, 0, 325, 63)
+_DAILY_REPORT_THRESHOLD = .92
+# The native PrisonerRelease Btn_Close fills the modal. Click the dimmed margin
+# away from the paper and the overview controls.
+_DAILY_REPORT_CLOSE = (100, 360)
 
 
 def normalize_goods(goods):
@@ -77,9 +87,15 @@ class VisiblePrisonProductRuntime(WarehouseTransferRuntime):
 
     def _capture(self, *, quantities=False):
         view = super()._capture(quantities=quantities)
+        bgr = cv2.cvtColor(self.frame.image, cv2.COLOR_RGB2BGR)
+        report = self._match(bgr, _DAILY_REPORT_HEADER, _DAILY_REPORT_ROI, _DAILY_REPORT_THRESHOLD)
+        if report["found"]:
+            # A visible modal takes precedence over overview controls behind it.
+            view["page"] = "daily_report"
+            view["controls"] = {"daily_report_close": {**report, "point": list(_DAILY_REPORT_CLOSE)}}
+            return view
         if view["page"] != "unknown":
             return view
-        bgr = cv2.cvtColor(self.frame.image, cv2.COLOR_RGB2BGR)
         profile = self._match(bgr, PROFILE_MENU.path, PROFILE_MENU.roi, PROFILE_MENU.threshold)
         if profile["found"]:
             view["page"] = "profile"
@@ -93,6 +109,16 @@ class VisiblePrisonProductRuntime(WarehouseTransferRuntime):
                 view["controls"]["profile_avatar"] = {"valid": True, "found": True, "point": [150, 655]}
         return view
 
+    def _dismiss_daily_report(self):
+        try:
+            self._transition("dismiss_center_daily_report", lambda v: v.get("page") == "overview",
+                             lambda v: v.get("page") == "daily_report", "daily_report_close", retry=False)
+        except (OperationTimeout, WarehouseTransferError, InteractionError) as exc:
+            if isinstance(exc, InteractionError) and exc.code not in {"input_failed", "input_rejected"}:
+                raise
+            self.scope.checkpoint()
+            raise StopTaskException("关闭日报后未确认整顿中心总览", success=False) from exc
+
     def run_visible(self, goods=None):
         self.request = {"goods_ids": normalize_goods(goods), "quantity_threshold": 1}
         with self.scope.activate():
@@ -104,8 +130,10 @@ class VisiblePrisonProductRuntime(WarehouseTransferRuntime):
             )
             if initial is None:
                 raise WarehouseTransferError("prison_snapshot_profile_required")
-            self._transition("enter_center", lambda v: v.get("page") == "overview",
-                             lambda v: v.get("page") == "profile", "profile_reforming_entry", retry=False)
+            entry_page = self._transition("enter_center", lambda v: v.get("page") in {"overview", "daily_report"},
+                                          lambda v: v.get("page") == "profile", "profile_reforming_entry", retry=False)
+            if entry_page == "daily_report":
+                self._dismiss_daily_report()
             view = self._prepare()
             result = visible_snapshot(view, self.request["goods_ids"])
             self._transition("return_overview", lambda v: v.get("page") == "overview",

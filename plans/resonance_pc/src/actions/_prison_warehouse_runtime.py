@@ -128,7 +128,7 @@ class WarehouseTransferRuntime:
         def observe(allow_source):
             view = self._capture()
             if target(view):
-                return TransitionProbe("target", key=name, frame=self.frame)
+                return TransitionProbe("target", key=view["page"], frame=self.frame)
             hit = view.get("controls", {}).get(control, {})
             if source(view) and hit.get("valid") and hit.get("found") is True and hit.get("point"):
                 return TransitionProbe("source", key=(name, control),
@@ -160,6 +160,7 @@ class WarehouseTransferRuntime:
                 exhausted=lambda: WarehouseTransferError(name + "_unconfirmed"),
             )
             log["confirmed"] = result.confirmed
+            return result.observation.key
         finally:
             self.frame = None
             log["receipts"] = [asdict(receipt) for receipt in state.receipts]

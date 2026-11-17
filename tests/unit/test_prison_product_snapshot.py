@@ -12,6 +12,7 @@ import numpy as np
 import pytest
 
 from packages.aura_core.scheduler.operation_scope import OperationScope
+from packages.aura_core.utils.exceptions import StopTaskException
 from plans.aura_base.src.services.interaction_service import InteractionService
 from plans.aura_base.src.services.observation_service import Frame
 from plans.resonance_pc.src.actions import _prison_product_snapshot as snapshot
@@ -87,10 +88,12 @@ def test_empty_is_a_visible_observation_only():
     assert result["not_observed"] == ["113"] and result["inventory_complete"] is False
 
 
-def runtime_services(*, initial="profile", destination="profile", cancel_at=None, selected=True):
+def runtime_services(*, initial="profile", destination="profile", cancel_at=None, selected=True,
+                     entry="overview_entry", after_report="overview_entry"):
     now, phase, sequence = [0.0], [initial], [0]
     clicks, reads = [], []
-    phases = ["profile", "overview_entry", "warehouse_unselected", "warehouse", "overview_return", "main", "unknown"]
+    phases = ["profile", "daily_report", "overview_entry", "warehouse_unselected", "warehouse",
+              "overview_return", "main", "unknown"]
     labels = {name: index + 1 for index, name in enumerate(phases)}
     reverse = {index: name for name, index in labels.items()}
 
@@ -108,13 +111,16 @@ def runtime_services(*, initial="profile", destination="profile", cancel_at=None
         if phase[0] == cancel_at:
             raise asyncio.CancelledError("cancelled while observing")
         sequence[0] += 1
-        return Frame.from_image(np.full((720, 1280, 3), labels[phase[0]], dtype=np.uint8),
-                                frame_id=f"visible-{sequence[0]}", timestamp=now[0])
+        image = np.full((720, 1280, 3), labels[phase[0]], dtype=np.uint8)
+        if phase[0] == "daily_report":
+            image[10:54, 262:554] = report_header
+        return Frame.from_image(image, frame_id=f"visible-{sequence[0]}", timestamp=now[0])
 
     def click(*, x, y):
         point = [x, y]
         expected = {
-            "profile": ([611, 615], "overview_entry"),
+            "profile": ([611, 615], entry),
+            "daily_report": ([100, 360], after_report),
             "overview_entry": ([75, 630], "warehouse" if selected else "warehouse_unselected"),
             "warehouse_unselected": ([540, 545], "warehouse"),
             "warehouse": ([82, 34], "overview_return"),
@@ -133,11 +139,16 @@ def runtime_services(*, initial="profile", destination="profile", cancel_at=None
                           drag=lambda **kwargs: pytest.fail("Visible snapshot tried to drag"))
     interaction = InteractionService(app=app, observation=SimpleNamespace(capture=capture))
     runtime = snapshot.VisiblePrisonProductRuntime(app, object(), object(), interaction, Scope(120), lambda: False)
+    report_header = _image(PLAN / snapshot._DAILY_REPORT_HEADER) if entry == "daily_report" else None
 
     def probe(image, **kwargs):
         current = reverse[int(image[0, 0, 0])]
         connection = "train_product" if current == "warehouse" else "not_train_product" if current == "warehouse_unselected" else "unknown"
-        page = "overview" if current.startswith("overview") else "warehouse" if current.startswith("warehouse") else current
+        if current in {"daily_report", "overview_entry", "overview_return"}:
+            # Model the underlying overview even while the report obscures it.
+            page = "overview"
+        else:
+            page = "warehouse" if current.startswith("warehouse") else current
         if kwargs.get("read_quantities"):
             reads.append(kwargs.get("goods_filter"))
         return {
@@ -166,7 +177,32 @@ def test_full_runtime_uses_real_transitions_only_navigation_no_scroll(destinatio
     assert reads and all(value == {"113"} for value in reads)
     assert phase[0] == "profile"
     assert len(clicks) == 4 + (not selected) + (destination == "main")
+    assert all(name != "daily_report" for name, _ in clicks)
     assert all(row["confirmed"] is True for row in result["results"] if "confirmed" in row)
+
+
+def test_daily_report_is_dismissed_once_before_reading_visible_products():
+    runtime, clicks, reads, phase = runtime_services(entry="daily_report")
+
+    result = runtime.run_visible(["涤纶"])
+
+    assert clicks[:3] == [("profile", [610, 615]), ("daily_report", [100, 360]), ("overview_entry", [75, 630])]
+    assert [name for name, _ in clicks].count("daily_report") == 1
+    assert reads and result["goods"] == [{"goods_id": "113", "goods": "涤纶", "quantity": 20}]
+    assert result["success"] is True and result["returned_to_profile"] is True
+    assert phase[0] == "profile"
+
+
+@pytest.mark.parametrize("after_report", ["daily_report", "unknown"])
+def test_unconfirmed_report_dismissal_fails_without_clicking_again_or_reading_products(after_report):
+    runtime, clicks, reads, phase = runtime_services(entry="daily_report", after_report=after_report)
+
+    with pytest.raises(StopTaskException, match="关闭日报后未确认整顿中心总览"):
+        runtime.run_visible()
+
+    assert [name for name, _ in clicks] == ["profile", "daily_report"]
+    assert reads == []
+    assert phase[0] == after_report
 
 
 @pytest.mark.parametrize("initial", ["unknown", "main"])
