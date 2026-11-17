@@ -127,8 +127,10 @@ def test_preview_is_separate_and_changes_do_not_invalidate_plan(page, repository
     preview = TradePage(repository, preview_mode=True)
     try:
         preview.start_city.setCurrentIndex(preview.start_city.findData("1"))
-        assert preview.auto_trailer.isHidden()
-        assert preview.trailer_panel.isHidden()
+        for index in range(preview.parameter_tabs.count()):
+            preview.parameter_tabs.setCurrentIndex(index)
+            assert not preview.auto_trailer.isVisibleTo(preview.parameter_panel)
+            assert not preview.trailer_panel.isVisibleTo(preview.parameter_panel)
         assert not KEYS & preview.collect_task_inputs(preview=True).keys()
         emitted = []
         preview.previewRequested.connect(lambda inputs, timeout: emitted.append(inputs))
@@ -169,7 +171,7 @@ def test_compact_trailer_fields_remain_distinct_and_visible(page, tmp_path, size
     families = QFontDatabase.applicationFontFamilies(font_id)
     if families:
         page.setFont(QFont(families[0], 10))
-    page.recovery_section.toggle.setChecked(True)
+    page.parameter_tabs.setCurrentIndex(2)
     page.resize(*size)
     page.show()
     page.auto_trailer.setChecked(True)

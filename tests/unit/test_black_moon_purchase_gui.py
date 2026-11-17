@@ -378,7 +378,10 @@ def test_preview_has_no_purchase_controls_or_parameters(repository):
     widget = TradePage(repository, preview_mode=True)
     try:
         widget.start_city.setCurrentIndex(widget.start_city.findData("1"))
-        assert widget.black_moon_panel.isHidden()
+        for index in range(widget.parameter_tabs.count()):
+            widget.parameter_tabs.setCurrentIndex(index)
+            assert not widget.auto_black_moon_local_purchase.isVisibleTo(widget.parameter_panel)
+            assert not widget.black_moon_settings_button.isVisibleTo(widget.parameter_panel)
         assert not set(EXECUTION_KEYS) & widget.collect_task_inputs(preview=True).keys()
         emitted = []
         widget.previewRequested.connect(lambda inputs, timeout: emitted.append(inputs))

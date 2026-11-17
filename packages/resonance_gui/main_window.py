@@ -287,6 +287,7 @@ class ResonanceMainWindow(QMainWindow):
         self.workflow_page = WorkflowPage(self._settings, self.page_stack)
         self.trade_page = TradePage(self._settings, self.workflow_page)
         self.workflow_page.attach_parameter_editors(self.trade_page.parameter_panel)
+        self.trade_page.hide()
         self.workflow_page.tradeEndCityAvailabilityChanged.connect(
             self.trade_page.set_end_city_constraint_available
         )

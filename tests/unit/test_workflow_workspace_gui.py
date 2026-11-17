@@ -374,26 +374,32 @@ def test_populated_freight_result_keeps_readable_rows_and_can_scroll(window, siz
     assert window.grab().save(str(folder / f"result-{size[0]}x{size[1]}.png"))
 
 
-def test_freight_additional_and_bento_buttons_share_compact_rows(window):
+def test_freight_additional_tasks_and_recovery_have_separate_tabs(window):
     window.workflow_page._select_task("trade")
     window.resize(1180, 720)
     window.show()
     QApplication.processEvents()
     page = window.trade_page
-    page.recovery_section.toggle.setChecked(True)
+    page.parameter_tabs.setCurrentIndex(2)
     QApplication.processEvents()
-    buttons = [page.auto_pickup, page.use_fatigue_medicine,
-               page.auto_cape_island_investment, page.auto_rubbish_recycling]
-    assert len({button.y() for button in buttons}) == 2
+    buttons = [page.auto_pickup, page.auto_cape_island_investment, page.auto_rubbish_recycling, page.auto_passenger]
+    assert all(button.isVisible() for button in buttons)
     assert all(button.width() < 250 for button in buttons)
+    assert not page.use_fatigue_medicine.isVisible()
+    page.parameter_tabs.setCurrentIndex(3)
+    page.auto_bento.setChecked(True)
+    QApplication.processEvents()
+    assert page.use_fatigue_medicine.isVisible()
+    assert not page.auto_pickup.isVisible()
     assert len({row.y() for row in page._bento_rows.values()}) == 1
     page._move_bento_type("love_bentos", -1)
     QApplication.processEvents()
     assert page._bento_rows_layout.itemAt(0).widget() is page._bento_rows["love_bentos"]
     assert page._bento_rows_layout.itemAt(1).widget() is page._bento_rows["work_meals"]
     assert_no_sibling_control_overlap(window)
-    scroll = page.parameter_panel.findChild(QScrollArea)
-    scroll.ensureWidgetVisible(page.additional_options)
+    scroll = next(area for area in page.parameter_panel.findChildren(QScrollArea)
+                  if area.widget().isAncestorOf(page.bento_priority_panel))
+    scroll.ensureWidgetVisible(page.bento_priority_panel)
     QApplication.processEvents()
     folder = Path(".pytest_tmp/gui-layout-restore/visual-details")
     folder.mkdir(parents=True, exist_ok=True)
@@ -415,6 +421,7 @@ def assert_freight_parameters_reflow(window, size, columns, mode):
     page.fatigue_budget.setValue(321)
     page.cargo_capacity.setValue(999)
     page.target_profit.setValue(90)
+    page.target_profit_enabled.setChecked(True)
     page.start_city.setCurrentIndex(page.start_city.findData("11"))
     page.add_route_city("11")
     page.add_route_city("15")
@@ -422,22 +429,25 @@ def assert_freight_parameters_reflow(window, size, columns, mode):
     window.resize(*size)
     window.show()
     QApplication.processEvents()
-    grid = page.common_parameters
-    assert grid.column_count == columns
-    editors = [page.fatigue_budget, page.cargo_capacity, page.book_usage, page.book_count_field,
-               page.book_profit_threshold, page.book_policy, page.book_waste_limit, page.negotiation_policy,
-               page.start_city, page.target_profit_enabled, page.target_profit]
-    visible = [editor for editor in editors if editor.isVisible()]
-    assert all(editor.width() <= 220 for editor in visible)
-    assert len({editor.parentWidget().y() for editor in visible}) == (len(visible) + columns - 1) // columns
-    assert grid.height() <= (440 if columns == 1 else 260)
+    assert page.budget_parameters.column_count == columns
+    budgets = (page.fatigue_budget, page.cargo_capacity)
+    assert all(editor.isVisible() and editor.width() <= 220 for editor in budgets)
+    assert len({editor.parentWidget().y() for editor in budgets}) == (2 if columns == 1 else 1)
+    assert page.target_profit.isVisible() is (mode == "free")
+    assert_no_sibling_control_overlap(window)
+    page.parameter_tabs.setCurrentIndex(1)
+    QApplication.processEvents()
+    assert page.book_fields.column_count == columns
+    assert all(editor.isVisible() and editor.width() <= 220 for editor in
+               (page.book_usage, page.book_budget, page.book_policy, page.book_profit_threshold, page.negotiation_policy))
     assert page.collect_task_inputs(preview=True) == expected
     assert_no_sibling_control_overlap(window)
     page.book_usage.setCurrentIndex(page.book_usage.findData("none"))
     QApplication.processEvents()
-    assert not page.book_budget.isHidden()
+    assert not page.book_budget.isVisible()
     assert not page.book_budget.isEnabled()
-    assert page.target_profit.parentWidget().isHidden() is (mode != "free")
+    page.parameter_tabs.setCurrentIndex(0)
+    QApplication.processEvents()
     folder = Path(".pytest_tmp/gui-layout-restore/visual-compact-fields")
     folder.mkdir(parents=True, exist_ok=True)
     assert window.grab().save(str(folder / f"{mode}-{size[0]}x{size[1]}.png"))

@@ -42,7 +42,7 @@ def test_default_contract(page):
 
 
 def test_arrival_dialog_persists_minimum_counts_and_only_dispatches_for_free(page):
-    page.city_checks["9"].setChecked(False)
+    page._set_available_cities(set(page.selected_city_ids()) - {"9"})
     def set_counts():
         dialog = QApplication.activeModalWidget()
         fields = {field.accessibleName(): field for field in dialog.findChildren(QSpinBox)}
@@ -71,24 +71,37 @@ def test_all_freight_toggle_buttons_have_hover_explanations(page):
 
 
 @pytest.mark.parametrize("preview", [False, True])
-def test_key_parameters_precede_collapsed_city_grid_in_both_forms(page, preview):
+def test_route_summary_and_city_dialog_commit_only_on_apply(page, preview):
     widget = TradePage(page._settings, preview_mode=True) if preview else page
     widget.resize(1440, 1000)
     widget.show()
     QApplication.processEvents()
-    assert not widget.city_selector_toggle.isChecked()
-    assert widget.city_buttons_panel.isHidden()
-    assert "20" in widget.city_selector_toggle.text()
-    city_top = widget.city_selector_toggle.mapTo(widget.parameter_panel, QPoint()).y()
-    for control in (widget.fatigue_budget, widget.cargo_capacity, widget.book_usage,
-                    widget.book_profit_threshold, widget.book_policy, widget.book_waste_limit, widget.negotiation_policy):
+    assert widget.cities_button.text() == "选择城市"
+    assert "20 / 21" in widget.cities_note.text()
+    assert widget.end_city_note.text() == "由程序自动选择"
+    assert widget.arrivals_note.text() == "不限"
+    city_top = widget.cities_button.mapTo(widget.parameter_panel, QPoint()).y()
+    for control in (widget.fatigue_budget, widget.cargo_capacity):
         assert control.mapTo(widget.parameter_panel, QPoint()).y() < city_top
     before = widget.selected_city_ids()
-    widget.city_selector_toggle.setChecked(True)
-    assert not widget.city_buttons_panel.isHidden()
-    widget.city_checks["1"].setChecked(False)
-    assert "19" in widget.city_selector_toggle.text()
-    widget.city_selector_toggle.setChecked(False)
+    observed_drafts = []
+
+    def edit_cities(accept):
+        dialog = QApplication.activeModalWidget()
+        dialog.city_buttons["1"].click()
+        observed_drafts.append(widget.selected_city_ids())
+        if accept:
+            dialog.accept()
+        else:
+            dialog.reject()
+
+    QTimer.singleShot(0, lambda: edit_cities(False))
+    widget.cities_button.click()
+    assert widget.selected_city_ids() == before
+    QTimer.singleShot(0, lambda: edit_cities(True))
+    widget.cities_button.click()
+    assert observed_drafts == [before, before]
+    assert "19 / 21" in widget.cities_note.text()
     assert widget.selected_city_ids() == [city for city in before if city != "1"]
     if preview:
         widget.close()
@@ -111,7 +124,7 @@ def test_book_limit_unlimited_and_restore(page):
     assert page.collect_task_inputs()["book_budget"] == 17
     page.book_usage.setCurrentIndex(page.book_usage.findData("unlimited"))
     assert page.collect_task_inputs()["book_budget"] is None
-    assert page.book_budget.isHidden()
+    assert not page.book_budget.isVisibleTo(page.parameter_panel)
     state = page.collect_ui_state()
     page._settings.save_trade_inputs(state)
     loaded = page._settings.load_trade_inputs()
@@ -177,9 +190,7 @@ def test_fixed_route_retains_repeats_and_excludes_other_mode_fields(page):
 
 
 def test_multiple_endpoints_and_preview_run_share_parameters(page):
-    page.automatic_end.setChecked(False)
-    page.end_city_checks["1"].setChecked(True)
-    page.end_city_checks["11"].setChecked(True)
+    page._set_end_city_selection({"1", "11"})
     page.start_city.setCurrentIndex(page.start_city.findData("1"))
     run = page.collect_task_inputs()
     preview = page.collect_task_inputs(preview=True)

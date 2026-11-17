@@ -423,10 +423,12 @@ def test_workflow_snapshot_is_runtime_only_and_new_for_each_run(window, enabled,
 
 def test_sparkling_checkbox_syncs_persists_and_never_enables_freight_medicine(window):
     full = window.trade_page.auto_sparkling_water
-    assert full.text() == "自动喝气泡水"
+    assert full.accessibleName() == "自动喝气泡水"
+    assert full.text() == "未开启"
     assert not full.isChecked()
     assert window._settings.load_trade_inputs()["auto_sparkling_water"] is False
     full.setChecked(True)
+    assert full.text() == "已开启"
     reloaded = ResonanceConfigRepository(window._settings.settings)
     assert reloaded.load_trade_inputs()["auto_sparkling_water"] is True
     assert window.trade_page.collect_inputs()["auto_sparkling_water"] is True
@@ -700,16 +702,18 @@ def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, size_n
     QApplication.processEvents()
     assert (window.width(), window.height()) == size
     page = window.trade_page
-    page.recovery_section.toggle.setChecked(True)
+    page.parameter_tabs.setCurrentIndex(3)
+    page.auto_bento.setChecked(True)
     check, bento = page.auto_sparkling_water, page.auto_bento
-    scroll = page.parameter_panel.findChild(QScrollArea)
+    scroll = next(area for area in page.parameter_panel.findChildren(QScrollArea)
+                  if area.widget().isAncestorOf(page.bento_priority_panel))
     scroll.ensureWidgetVisible(page.bento_priority_panel)
     QApplication.processEvents()
     assert scroll.horizontalScrollBar().maximum() == 0
     assert check.isVisible() and check.width() >= check.sizeHint().width()
     assert bento.isVisible() and bento.width() >= bento.sizeHint().width()
-    assert check.geometry().right() < bento.geometry().left()
-    assert check.geometry().center().y() == bento.geometry().center().y()
+    assert check.geometry().right() == bento.geometry().right()
+    assert check.geometry().bottom() < bento.geometry().top()
     for key, check_type in page.bento_type_checks.items():
         row = page._bento_rows[key]
         assert check_type.width() >= check_type.sizeHint().width()
@@ -735,7 +739,8 @@ def test_sparkling_water_checkbox_render_and_busy_state(window, tmp_path, size_n
 def test_bento_checkbox_and_priority_persist_without_consumption(window):
     full = window.trade_page.auto_bento
     page = window.trade_page
-    assert full.text() == "自动吃便当"
+    assert full.accessibleName() == "自动吃便当"
+    assert full.text() == "未开启"
     assert not full.isChecked()
     assert window._settings.load_trade_inputs()["auto_bento"] is False
     assert "bento_priority" not in page.collect_inputs()
@@ -745,6 +750,7 @@ def test_bento_checkbox_and_priority_persist_without_consumption(window):
         signal.connect(lambda *args: calls.append(args))
     full.setChecked(True)
     assert full.isChecked()
+    assert full.text() == "已开启"
     assert window._settings.load_trade_inputs()["auto_bento"] is True
     assert not page.bento_move_buttons["work_meals", -1].isEnabled()
     assert not page.bento_move_buttons["love_bentos", 1].isEnabled()

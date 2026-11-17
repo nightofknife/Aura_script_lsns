@@ -159,7 +159,7 @@ def test_dialog_cancel_or_save_failure_keeps_current_rates(page, repository, mon
 
 def test_preview_draft_independent_and_unselected_city_tax_retained(page, repository):
     page.set_inputs({"city_tax_rates_bps": {"14": 750}})
-    page.city_checks["14"].setChecked(False)
+    page._set_available_cities(set(page.selected_city_ids()) - {"14"})
     page.save_ui_state()
     initial = repository.load_trade_preview_inputs()
     assert initial["city_tax_rates_bps"] == {"14": 750}

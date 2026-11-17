@@ -285,6 +285,56 @@ QPushButton[cityOption="true"]:checked {
     font-weight: 700;
 }
 QToolButton { color: #47535c; border: 0; padding: 4px 0; font-weight: 600; }
+QFrame#parameterPanel[freightEditor="true"],
+QWidget#freightParameterCanvas, QScrollArea#freightParameterScroll {
+    background: #f8f3e8;
+    border: 0;
+}
+QFrame#freightDivider { background: #ddd3c1; border: 0; }
+QFrame#freightSettings { background: #fffaf0; border: 1px solid #d7ccb9; border-radius: 6px; }
+QLabel#freightSection { color: #2f392b; font-size: 16px; font-weight: 700; }
+QLabel#freightSetting { color: #38342e; font-size: 13px; font-weight: 600; }
+QLabel#freightValue { color: #665e51; font-size: 12px; }
+QTabBar#freightParameterTabs { border: 0; background: #eee7d9; }
+QTabBar#freightParameterTabs::tab {
+    color: #554f43;
+    background: #eee7d9;
+    border: 1px solid transparent;
+    padding: 9px 8px;
+    font-size: 13px;
+}
+QTabBar#freightParameterTabs::tab:selected {
+    color: #fffdf7;
+    background: #53654c;
+    border-color: #53654c;
+    font-weight: 700;
+}
+QTabBar#freightParameterTabs::tab:!selected:hover { background: #e3dcc9; }
+QPushButton[freightMode="true"] {
+    color: #4c5943;
+    background: #fffaf0;
+    border-color: #c8bda6;
+    min-height: 34px;
+    font-size: 13px;
+    font-weight: 600;
+}
+QPushButton[freightMode="true"]:checked { color: #35462e; background: #e1e8d9; border-color: #77866b; }
+QPushButton[freightMode="true"]:enabled:hover { background: #edf0e5; border-color: #77866b; }
+QPushButton[freightMode="true"]:checked:enabled:hover { background: #d7e1ce; }
+QPushButton[freightMode="true"]:focus, QPushButton[freightEdit="true"]:focus { border-color: #53654c; }
+QPushButton[freightMode="true"]:disabled { color: #8e887a; border-color: #d7ccb9; background: #eee9df; }
+QPushButton[freightMode="true"]:checked:disabled { color: #56614f; border-color: #9fa991; background: #e1e8d9; }
+QPushButton[freightEdit="true"] {
+    color: #3f5237;
+    background: #f3f5eb;
+    border: 1px solid #a6b197;
+    font-weight: 600;
+    min-width: 68px;
+    padding: 5px 9px;
+}
+QPushButton[freightEdit="true"]:enabled:hover { background: #e1e8d9; border-color: #77866b; }
+QPushButton[freightEdit="true"]:disabled { color: #8e887a; border-color: #d7ccb9; background: #eee9df; }
+QPushButton[freightSwitch="true"] { min-height: 20px; padding: 3px 8px; }
 QTreeWidget, QTableWidget {
     background: #fffaf0;
     color: #38342e;

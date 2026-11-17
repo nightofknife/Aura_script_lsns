@@ -5,7 +5,7 @@ import json
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import pytest
-from PySide6.QtCore import QSettings, QCoreApplication, QEvent
+from PySide6.QtCore import QSettings, QCoreApplication, QEvent, QTimer
 from PySide6.QtWidgets import QApplication, QDialog
 
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
@@ -32,8 +32,8 @@ def choose(combo, value):
 
 
 def test_incomplete_drafts_roundtrip_without_switching_to_defaults(page):
-    page._set_all_cities(False)
-    page.automatic_end.setChecked(False)
+    page._set_available_cities(set())
+    page._set_end_city_selection(set())
     page.target_profit_enabled.setChecked(True)
     page.target_profit.setValue(0)
     page.mode_buttons["fixed"].setChecked(True)
@@ -46,7 +46,7 @@ def test_incomplete_drafts_roundtrip_without_switching_to_defaults(page):
     assert saved["target_profit_enabled"]
     page.set_inputs(saved)
     assert page.selected_city_ids() == []
-    assert not page.automatic_end.isChecked()
+    assert page._required_end_cities() == []
     with pytest.raises(ValueError, match="至少"):
         page.collect_task_inputs()
     page.add_route_city("2")
@@ -79,10 +79,10 @@ def test_old_modes_are_not_loaded_migrated_or_interpreted_as_new_settings(page, 
     assert page._settings.settings.value("trade/inputs_json") == raw
 
 
-def test_unused_book_count_is_visible_disabled_and_retained(page):
+def test_unused_book_count_is_hidden_disabled_and_retained(page):
     page.book_budget.setValue(23)
     choose(page.book_usage, "none")
-    assert not page.book_budget.isHidden()
+    assert not page.book_budget.isVisibleTo(page.parameter_panel)
     assert not page.book_budget.isEnabled()
     assert page.book_budget.value() == 23
 
@@ -134,7 +134,7 @@ def test_preview_fingerprint_ignores_disabled_book_values_and_fixed_free_fields(
     page.book_profit_threshold.setValue(99)
     page.target_profit.setValue(999)
     page.target_profit_enabled.setChecked(True)
-    page.end_city_checks["11"].setChecked(True)
+    page._set_end_city_selection({"11"})
     assert not page._plan_stale
     page.fixed_route.addItem(page.fixed_route.takeItem(0))
     assert page._plan_stale
@@ -154,7 +154,7 @@ def test_book_controls_follow_usage_without_changing_negotiation(page, usage, co
     assert page.book_waste_limit.isEnabled() is rules
     assert page.negotiation_policy.currentData() == "disabled"
     if usage == "unlimited":
-        assert page.book_count_note.text() == "无限"
+        assert page.book_usage.currentText() == "无限用书"
         assert page.collect_task_inputs()["book_budget"] is None
     choose(page.book_usage, "finite")
     assert page.book_budget.value() == 12
@@ -168,7 +168,7 @@ def test_fill_disables_threshold_retains_saved_value_and_restores_profit(page, u
     page.book_profit_threshold.setValue(123.4567)
     choose(page.book_policy, "fill")
     assert not page.book_profit_threshold.isEnabled()
-    assert "不使用单本收益阈值" in page.book_threshold_note.text()
+    assert page.book_profit_threshold.parentWidget().isHidden()
     inputs = page.collect_task_inputs()
     assert "book_profit_threshold" not in inputs
     assert inputs["book_budget"] == (7 if usage == "finite" else None)
@@ -279,20 +279,30 @@ def test_invalid_endpoint_has_visible_error_and_can_be_cancelled(page, preview):
     if preview:
         page = TradePage(original._settings, preview_mode=True)
     page.set_target_status({"ok": True, "target": {"title": "test", "hwnd": 123}})
-    page.automatic_end.setChecked(False)
-    page.end_city_checks["1"].setChecked(True)
-    page.end_city_checks["2"].setChecked(True)
+    page._set_end_city_selection({"1", "2"})
     page.start_city.setCurrentIndex(page.start_city.findData("2"))
     action = page.preview_button if preview else page.start_button
     assert action.isEnabled()
-    page.city_checks["1"].setChecked(False)
-    assert page.end_city_checks["1"].isChecked()
-    assert page.end_city_checks["1"].isEnabled()
+    page._set_available_cities(set(page.selected_city_ids()) - {"1"})
+    assert page._required_end_cities() == ["1", "2"]
     assert not page.parameter_notice.isHidden()
     assert "终点" in page.parameter_notice.text()
     assert not action.isEnabled()
-    page.end_city_checks["1"].click()
+    eligible = []
+
+    def clear_invalid_terminal():
+        dialog = QApplication.activeModalWidget()
+        city = dialog.city_buttons["1"]
+        eligible.append(city.isEnabled() and city.isChecked())
+        city.click()
+        eligible.append(not city.isEnabled())
+        dialog.accept()
+
+    QTimer.singleShot(0, clear_invalid_terminal)
+    page.end_city_button.click()
+    assert eligible == [True, True]
     assert page.collect_task_inputs()["required_end_city_ids"] == ["2"]
+    assert page.end_city_note.text() == "铁盟哨站"
     assert page.parameter_notice.isHidden()
     assert action.isEnabled()
     if preview:
@@ -377,17 +387,16 @@ def test_waste_limit_saved_in_each_form_and_dispatched_only_for_fill(page, previ
             assert inputs["book_budget"] == 3
             assert inputs["book_waste_limit"] == 200
             assert "book_profit_threshold" not in inputs
-            assert "不使用单本收益阈值" in restored.book_strategy_note.text()
-            assert "0 表示不允许浪费货物" in restored.book_strategy_note.text()
+            assert restored.book_profit_threshold.parentWidget().isHidden()
             choose(restored.book_policy, "profit")
             assert restored.book_profit_threshold.isEnabled()
             assert not restored.book_waste_limit.isEnabled()
-            assert "浪费上限不生效" in restored.book_strategy_note.text()
+            assert restored.book_waste_limit.parentWidget().isHidden()
             inputs = restored.collect_task_inputs()
             assert inputs["book_profit_threshold"] == 9990000
             assert "book_waste_limit" not in inputs
             choose(restored.book_usage, "none")
-            assert "当前不用书" in restored.book_strategy_note.text()
+            assert restored.book_fields.isHidden()
             assert restored.book_waste_limit.value() == 200
         finally:
             restored.close()

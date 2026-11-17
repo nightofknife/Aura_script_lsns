@@ -83,7 +83,7 @@ def test_workflow_run_respects_freight_error_only_when_freight_selected(window):
     trade, workflow = window.trade_page, window.workflow_page
     trade.set_inputs({"available_city_ids": ["1", "2", "11"], "required_end_city_ids": ["11"]})
     assert workflow.run_button.isEnabled()
-    trade.city_checks["11"].setChecked(False)
+    trade._set_available_cities(set(trade.selected_city_ids()) - {"11"})
     assert not workflow.run_button.isEnabled()
     assert "终点" in workflow.run_button.toolTip()
     workflow._task_checks["trade"].setChecked(False)
@@ -95,5 +95,5 @@ def test_workflow_run_respects_freight_error_only_when_freight_selected(window):
     assert workflow.run_button.isEnabled()
     workflow.finish_workflow(success=False, message="offline test")
     assert not workflow.run_button.isEnabled()
-    trade.city_checks["11"].setChecked(True)
+    trade._set_available_cities(set(trade.selected_city_ids()) | {"11"})
     assert workflow.run_button.isEnabled()
