@@ -145,6 +145,14 @@ def _exercise_layout_self_check(window: ResonanceMainWindow, app: QApplication) 
             window.trade_page.target_profit_enabled.setChecked(mode == "free")
             app.processEvents()
     window.trade_page.target_profit_enabled.setChecked(False)
+    freight = window.trade_page
+    page.show_trade_editor()
+    for index, editor in enumerate((freight.fatigue_budget, freight.book_usage, freight.auto_trailer, freight.auto_bento)):
+        freight.parameter_tabs.setCurrentIndex(index)
+        app.processEvents()
+        if not editor.isVisibleTo(freight.parameter_panel):
+            raise RuntimeError(f"Freight parameter tab {index} did not show its editor")
+    freight.parameter_tabs.setCurrentIndex(0)
     page._drop_task("close", 0)
     page._drop_task("close", len(WORKFLOW_TASKS))
     page._select_task("trade")

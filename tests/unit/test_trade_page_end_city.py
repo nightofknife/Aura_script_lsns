@@ -36,7 +36,7 @@ def test_trade_page_end_city_defaults_to_no_constraint(tmp_path) -> None:
     settings = QSettings(str(tmp_path / "trade.ini"), QSettings.Format.IniFormat)
     page = TradePage(ResonanceConfigRepository(settings))
 
-    assert page.automatic_end.isChecked()
+    assert page.end_city_note.text() == "由程序自动选择"
     assert page.end_city_notice.isHidden()
 
     inputs = page.collect_inputs()
@@ -55,12 +55,12 @@ def test_trade_page_end_city_selection_tracks_available_cities(tmp_path) -> None
         }
     )
 
-    assert page.end_city_checks["11"].isChecked()
+    assert page._required_end_cities() == ["11"]
     assert page.collect_inputs()["required_end_city_ids"] == ["11"]
 
     page.set_inputs({"available_city_ids": ["1", "2"], "required_end_city_ids": None})
 
-    assert page.automatic_end.isChecked()
+    assert page.end_city_note.text() == "由程序自动选择"
     assert page.collect_inputs()["required_end_city_ids"] is None
 
     page.set_inputs(
@@ -69,14 +69,13 @@ def test_trade_page_end_city_selection_tracks_available_cities(tmp_path) -> None
             "required_end_city_ids": ["11"],
         }
     )
-    page.city_checks["11"].setChecked(False)
+    page._set_available_cities({"1", "2"})
 
-    assert page.end_city_checks["11"].isChecked()
-    assert page.end_city_checks["11"].isEnabled()  # allow removing the invalid selection
+    assert page._required_end_cities() == ["11"]
     with pytest.raises(ValueError, match="终点"):
         page.collect_inputs()
     assert not page.start_button.isEnabled()
-    page.automatic_end.setChecked(True)
+    page._set_end_city_selection({"11"}, automatic=True)
     assert page.collect_inputs()["required_end_city_ids"] is None
 
 
@@ -109,14 +108,14 @@ def test_trade_end_city_buttons_availability_preserves_selection(tmp_path) -> No
     )
 
     page.set_end_city_constraint_available(False)
-    assert not page.end_city_checks["11"].isEnabled()
+    assert not page.end_city_button.isEnabled()
     assert not page.end_city_notice.isHidden()
-    assert page.end_city_checks["11"].isChecked()
+    assert page._required_end_cities() == ["11"]
     page.set_busy(True)
     page.set_busy(False)
-    assert not page.end_city_checks["11"].isEnabled()
+    assert not page.end_city_button.isEnabled()
 
     page.set_end_city_constraint_available(True)
-    assert page.end_city_checks["11"].isEnabled()
+    assert page.end_city_button.isEnabled()
     assert page.end_city_notice.isHidden()
-    assert page.end_city_checks["11"].isChecked()
+    assert page._required_end_cities() == ["11"]

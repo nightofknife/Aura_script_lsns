@@ -51,7 +51,7 @@ def test_disabled_invalid_tasks_do_not_block_freight(window, monkeypatch):
     window.workflow_page._select_task("battle")
     assert "战斗" in window.workflow_page.editing_label.text()
     assert "货运" in window.workflow_page.runtime_task_label.text()
-    assert window.trade_page.advanced_toggle.isEnabled()
+    assert window.trade_page.parameter_tabs.isEnabled()
 
 
 def test_stopping_waits_for_runner_and_converges_task_row(window):
@@ -166,10 +166,6 @@ def test_explicit_parameter_save_does_not_start_task(window):
     window.workflow_page.save_parameters_button.click()
     assert window._settings.load_trade_inputs()["fatigue_budget"] == 888
     assert not calls and not window._workflow_active
-
-
-def test_advanced_disclosure_keeps_its_text_visible(window):
-    assert window.trade_page.advanced_toggle.toolButtonStyle() == Qt.ToolButtonStyle.ToolButtonTextBesideIcon
 
 
 def test_default_inspector_width_leaves_extra_space_for_parameters(window):

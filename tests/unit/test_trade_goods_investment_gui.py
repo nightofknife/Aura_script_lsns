@@ -125,7 +125,7 @@ def test_preview_emission_does_not_reintroduce_execution_options(repository):
         widget._request_preview()
         assert len(emitted) == 1
         assert not {"auto_trade_goods_investment", "trade_goods_investment_mode"} & emitted[0].keys()
-        assert widget.auto_trade_goods_investment.isHidden()
+        assert not widget.auto_trade_goods_investment.isVisibleTo(widget.parameter_panel)
         assert widget.trade_goods_investment_panel.isHidden()
     finally:
         dispose(widget)

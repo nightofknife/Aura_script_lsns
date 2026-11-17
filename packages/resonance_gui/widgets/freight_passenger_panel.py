@@ -10,7 +10,7 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QFormLayout, QLabel, QSpinBo
 from packages.resonance_shared.passenger_parameters import (
     DEFAULT_PASSENGER_OPTIONS, normalize_passenger_options,
 )
-from .toggle_button import ToggleButton
+from .freight_parameter_widgets import FreightSwitch, parameter_row
 
 
 class FreightPassengerPanel(QWidget):
@@ -19,11 +19,12 @@ class FreightPassengerPanel(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._restoring = False
+        self._available = True
         outer = QVBoxLayout(self)
         outer.setContentsMargins(0, 0, 0, 0)
-        self.enabled = ToggleButton("附加客运", self)
+        self.enabled = FreightSwitch("附加客运", self)
         self.enabled.setToolTip("仅不定线路使用；沿货运路线整批上下客，允许跨站。达到传单目标后停止新揽客，最后一车允许超出。")
-        outer.addWidget(self.enabled)
+        parameter_row(outer, "附加客运", self.enabled)
         self.notice = QLabel("固定线路暂不支持附加客运。", self)
         self.notice.setProperty("caption", True)
         outer.addWidget(self.notice)
@@ -80,14 +81,15 @@ class FreightPassengerPanel(QWidget):
         return field
 
     def _changed(self, *_):
-        self.fields.setVisible(self.enabled.isChecked())
+        self.fields.setVisible(self.enabled.isChecked() and self._available)
         if not self._restoring:
             self.changed.emit()
 
     def set_available(self, available: bool, *, busy: bool = False):
+        self._available = available
         self.enabled.setEnabled(available and not busy)
         self.notice.setVisible(not available)
-        self.fields.setVisible(self.enabled.isChecked())
+        self.fields.setVisible(available and self.enabled.isChecked())
         self.fields.setEnabled(available and self.enabled.isChecked() and not busy)
 
     def set_options(self, enabled: bool, options: Mapping[str, Any] | None):
@@ -101,7 +103,7 @@ class FreightPassengerPanel(QWidget):
                 field.setValue(values["scores"][key])
         finally:
             self._restoring = False
-        self.fields.setVisible(self.enabled.isChecked())
+        self.fields.setVisible(self.enabled.isChecked() and self._available)
 
     def collect_options(self, *, validate: bool = True) -> dict[str, Any]:
         values = {key: getattr(self, key).value() for key in

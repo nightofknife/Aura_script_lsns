@@ -11,7 +11,6 @@ from PySide6.QtGui import QBrush, QColor, QRegularExpressionValidator
 from PySide6.QtWidgets import (
     QButtonGroup,
     QAbstractItemView,
-    QAbstractButton,
     QComboBox,
     QDoubleSpinBox,
     QDialog,
@@ -32,7 +31,9 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSpinBox,
     QSplitter,
+    QStackedWidget,
     QStyle,
+    QTabBar,
     QTabWidget,
     QTextBrowser,
     QToolButton,
@@ -83,7 +84,10 @@ from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog,
 from .freight_passenger_panel import FreightPassengerPanel
 from .black_moon_purchase_dialog import BlackMoonPurchaseDialog
 from .compact_parameter_grid import CompactParameterGrid
-from .disclosure_section import DisclosureSection
+from .freight_city_dialog import FreightCityDialog
+from .freight_parameter_widgets import (
+    FreightSwitch, parameter_button, parameter_divider, parameter_fields, parameter_heading, parameter_row,
+)
 from .market_warning_label import MarketWarningLabel
 from .toggle_button import ToggleButton as QCheckBox
 from .prison_product_selector import PrisonProductDialog, prison_selection_text
@@ -446,6 +450,10 @@ class TradePage(QWidget):
         self._active_mode = ""
         self._route_statuses: dict[int, str] = {}
         self._end_city_constraint_available = True
+        self._available_city_ids: set[str] = set(DEFAULT_PC_TRADE_CITY_IDS)
+        self._end_city_ids: set[str] = set()
+        self._automatic_end = True
+        self._required_arrivals: dict[str, int] = {}
         self._product_groups = load_trade_product_groups()
         self._all_product_ids = set(trade_product_ids(self._product_groups))
         self._unlocked_product_ids: set[str] | None = None
@@ -479,7 +487,6 @@ class TradePage(QWidget):
             "book_waste_limit": "仅优先满仓生效。浪费指用书后符合交易条件商品的可购总量超过货舱容量、未装入的货物数量；0 表示不允许浪费货物。",
             "negotiation_policy": "程序决定、每次买卖都协商或不协商；与用书策略独立。",
             "target_profit": "填写预计净收益目标，已计入买入税与卖出利润税。以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
-            "automatic_end": "自动选择规划终点；关闭后可用城市按钮指定一个或多个允许的终点。",
             "reposition_to_route": "当前城市不是固定线路起点时先导航过去；关闭则报错停止，导航疲劳计入本次预算。",
             "auto_sparkling_water": "当前城市可喝水且疲劳严格超过启动阈值时启动，持续到停止下限或免费次数用尽；先喝水，再用更新后的实际疲劳判断便当。",
             "sparkling_water_start_threshold": "实际疲劳严格大于此值才启动喝水；开始后不因低于启动阈值而中断。",
@@ -595,228 +602,268 @@ class TradePage(QWidget):
     def _build_parameter_panel(self) -> QWidget:
         panel = QFrame(self)
         panel.setObjectName("parameterPanel")
-        panel.setMinimumWidth(0)
+        panel.setProperty("freightEditor", True)
         outer = QVBoxLayout(panel)
-        outer.setContentsMargins(16, 14, 16, 14)
-        scroll = QScrollArea(panel)
+        outer.setContentsMargins(0, 0, 0, 0)
+        outer.setSpacing(0)
+
+        self.parameter_tabs = QTabBar(panel)
+        self.parameter_tabs.setObjectName("freightParameterTabs")
+        self.parameter_tabs.setAccessibleName("货运参数分类")
+        self.parameter_tabs.setDrawBase(False)
+        self.parameter_tabs.setDocumentMode(True)
+        outer.addWidget(self.parameter_tabs)
+
+        notices = QWidget(panel)
+        notice_layout = QVBoxLayout(notices)
+        notice_layout.setContentsMargins(14, 0, 14, 0)
+        self.parameter_notice = QLabel(notices)
+        self.parameter_notice.setProperty("status", "error")
+        self.parameter_notice.setWordWrap(True)
+        self.parameter_notice.hide()
+        notice_layout.addWidget(self.parameter_notice)
+        self.preview_state_hint = QLabel("参数已修改，需要重新试算", notices)
+        self.preview_state_hint.setProperty("status", "warning")
+        self.preview_state_hint.setWordWrap(True)
+        self.preview_state_hint.hide()
+        notice_layout.addWidget(self.preview_state_hint)
+        outer.addWidget(notices)
+
+        self._parameter_pages = QStackedWidget(panel)
+        outer.addWidget(self._parameter_pages, 1)
+        self.parameter_tabs.currentChanged.connect(self._parameter_pages.setCurrentIndex)
+        self._build_route_parameters(self._add_parameter_tab("线路与预算"))
+        self._build_trade_parameters(self._add_parameter_tab("交易"))
+
+        # Both editors use the same draft collector. The trial exposes only
+        # the planning controls while the execution fields retain their defaults.
+        if self.preview_mode:
+            hidden = QWidget(panel)
+            hidden.hide()
+            self._build_journey_parameters(QVBoxLayout(hidden))
+            self._build_recovery_parameters(QVBoxLayout(hidden))
+            passenger_layout = self._add_parameter_tab("附加客运")
+        else:
+            passenger_layout = self._add_parameter_tab("附加任务")
+            passenger_layout.setSpacing(4)
+            self._build_journey_parameters(passenger_layout)
+            self._build_recovery_parameters(self._add_parameter_tab("疲劳恢复"))
+        self._build_passenger_parameters(passenger_layout)
+        return panel
+
+    def _add_parameter_tab(self, title: str) -> QVBoxLayout:
+        scroll = QScrollArea(self._parameter_pages)
+        scroll.setObjectName("freightParameterScroll")
         scroll.setWidgetResizable(True)
         scroll.setFrameShape(QFrame.Shape.NoFrame)
+        scroll.setAccessibleName(title)
         content = QWidget(scroll)
-        form_stack = QVBoxLayout(content)
-        form_stack.setContentsMargins(0, 8, 4, 8)
-        form_stack.setSpacing(12)
+        content.setObjectName("freightParameterCanvas")
+        layout = QVBoxLayout(content)
+        layout.setContentsMargins(14, 12, 14, 13)
+        layout.setSpacing(8)
+        scroll.setWidget(content)
+        self._parameter_pages.addWidget(scroll)
+        self.parameter_tabs.addTab(title)
+        return layout
 
-        mode_row = QGridLayout()
-        self.mode_buttons: dict[str, QPushButton] = {}
-        self.mode_group = QButtonGroup(content)
-        self.mode_group.setExclusive(True)
-        for index, (mode, caption) in enumerate((("free", "不定线路"), ("fixed", "固定线路"))):
+    def _build_route_parameters(self, layout: QVBoxLayout) -> None:
+        content = layout.parentWidget()
+        parameter_heading(layout, "线路模式")
+        mode_row = QHBoxLayout()
+        mode_row.setSpacing(8)
+        self.mode_buttons: dict[str, QCheckBox] = {}
+        modes = QButtonGroup(content)
+        for mode, caption, tooltip in (
+            ("free", "不定线路", "在所选城市中自动规划完整路线；可设置预计收益目标。"),
+            ("fixed", "固定线路", "按指定顺序规划，在疲劳上限内尽量接近上限，允许最后部分圈。"),
+        ):
             button = QCheckBox(caption, content)
-            button.setCheckable(True)
-            button.setProperty("cityOption", True)
-            self.mode_group.addButton(button)
-            button.setToolTip({"free": "在所选城市中自动规划完整路线；可设置预计收益目标。", "fixed": "按指定顺序规划，在疲劳上限内尽量接近上限，允许最后部分圈。"}[mode])
+            button.setProperty("freightMode", True)
+            button.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
+            button.setToolTip(tooltip)
+            modes.addButton(button)
             self.mode_buttons[mode] = button
-            button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-            mode_row.addWidget(button, index // 2, index % 2)
+            mode_row.addWidget(button, 1)
             button.toggled.connect(self._sync_mode_controls)
         self.mode_buttons["free"].setChecked(True)
-        form_stack.addLayout(mode_row)
-        self.mode_note = QLabel("", content)
+        layout.addLayout(mode_row)
+        self.mode_note = QLabel(content)
         self.mode_note.setWordWrap(True)
         self.mode_note.setProperty("caption", True)
-        form_stack.addWidget(self.mode_note)
-        form_stack.addWidget(QLabel("规划", content))
+        layout.addWidget(self.mode_note)
 
-        self.common_parameters = CompactParameterGrid(content)
-        common_form = self.common_parameters
+        parameter_heading(layout, "货运预算")
         self.fatigue_budget = self._spin(0, 100000)
         self.cargo_capacity = self._spin(1, 100000)
-        self.book_budget = self._spin(0, 100000)
-        self.book_usage = QComboBox(content)
-        for caption, value in (("不用书", "none"), ("限量用书", "finite"), ("无限用书", "unlimited")):
-            self.book_usage.addItem(caption, value)
-        self.book_usage.currentIndexChanged.connect(self._sync_book_controls)
-        self.book_policy = QComboBox(content)
-        self.book_policy.addItem("收益优先", "profit")
-        self.book_policy.addItem("优先满仓", "fill")
-        self.book_policy.currentIndexChanged.connect(self._sync_book_controls)
-        self.negotiation_policy = QComboBox(content)
-        for caption, value in (("程序决定", "auto"), ("每次买卖都协商", "required"), ("不协商", "disabled")):
-            self.negotiation_policy.addItem(caption, value)
-        self.arrival_timeout_minutes = self._spin(1, 240)
-        self.arrival_timeout_minutes.setParent(content)
-        self.arrival_timeout_minutes.hide()
-        self.arrival_timeout_minutes.setSuffix(" 分钟")
-        self.arrival_timeout_minutes.setToolTip(
-            "超过该时间仍未识别到站按钮或城市主页时，当前跑商任务判定为到站超时"
-        )
         self.start_city = QComboBox(content)
         self.start_city.currentIndexChanged.connect(self._sync_actions)
         self.start_city.setToolTip("仅试算使用；正式运行重新识别游戏当前城市。固定线路首站由线路列表决定。")
-        self.city_selector = self._build_city_selector(content)
-        self.nonfixed_panel = QWidget(content)
-        nonfixed_form = QFormLayout(self.nonfixed_panel)
-        nonfixed_form.setContentsMargins(0, 0, 0, 0)
-        nonfixed_form.addRow(self.city_selector)
-        self.end_city_selector = self._build_end_city_selector(content)
-        nonfixed_form.addRow("终点城市", self.end_city_selector)
-        self._required_arrivals: dict[str, int] = {}
-        self.arrivals_button = QPushButton("设置到达次数…", self.nonfixed_panel)
+        budget_fields = [("疲劳预算", self.fatigue_budget), ("货舱容量", self.cargo_capacity)]
+        if self.preview_mode:
+            budget_fields.append(("试算当前城市", self.start_city))
+        else:
+            self.start_city.hide()
+        self.budget_parameters = parameter_fields(layout, *budget_fields)
+        self.nonfixed_panel = self._build_free_route_selector(content)
+        self.fixed_panel = self._build_fixed_route_selector(content)
+        layout.addWidget(self.nonfixed_panel)
+        layout.addWidget(self.fixed_panel)
+        layout.addStretch()
+
+    def _build_free_route_selector(self, parent: QWidget) -> QWidget:
+        panel = QWidget(parent)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        parameter_divider(layout)
+        parameter_heading(layout, "线路约束", divider=False)
+
+        settings = QFrame(panel)
+        settings.setObjectName("freightSettings")
+        rows = QVBoxLayout(settings)
+        rows.setContentsMargins(12, 4, 12, 4)
+        rows.setSpacing(2)
+        self.cities_button = parameter_button("选择城市", settings)
+        self.cities_button.setToolTip("选择允许货运规划器访问的城市。")
+        self.cities_button.clicked.connect(self._edit_available_cities)
+        self.cities_note = QLabel(settings)
+        parameter_row(rows, "参与规划城市", self.cities_button, self.cities_note)
+        parameter_divider(rows)
+
+        self.end_city_button = parameter_button("设置终点", settings)
+        self.end_city_button.setToolTip("由程序自动选择终点，或指定一个或多个允许结束货运的城市。")
+        self.end_city_button.clicked.connect(self._edit_end_cities)
+        self.end_city_note = QLabel(settings)
+        parameter_row(rows, "终点城市", self.end_city_button, self.end_city_note)
+        parameter_divider(rows)
+
+        self.arrivals_button = parameter_button("设置次数", settings)
         self.arrivals_button.setToolTip("指定至少要到达各城市几次。起点不计，允许多到。")
         self.arrivals_button.clicked.connect(self._edit_required_arrivals)
-        self.arrivals_note = QLabel(self.nonfixed_panel)
-        self.arrivals_note.setWordWrap(True)
-        self.ignore_unmet_arrivals = QCheckBox("无法满足时，按普通跑商规划", self.nonfixed_panel)
+        self.arrivals_note = QLabel(settings)
+        parameter_row(rows, "最低到达次数", self.arrivals_button, self.arrivals_note)
+        self.ignore_unmet_arrivals = QCheckBox("无法满足时，按普通跑商规划", settings)
         self.ignore_unmet_arrivals.setToolTip("仅移除指定到达次数，保留候选城市、终点、收益目标和疲劳预算等其他设置。")
         self.ignore_unmet_arrivals.toggled.connect(self._arrival_inputs_changed)
-        nonfixed_form.addRow("指定到达次数", self.arrivals_button)
-        nonfixed_form.addRow("", self.arrivals_note)
-        nonfixed_form.addRow("", self.ignore_unmet_arrivals)
-        self.fixed_panel = self._build_fixed_route_selector(content)
-        self.target_profit = QDoubleSpinBox(content)
+        rows.addWidget(self.ignore_unmet_arrivals, 0, Qt.AlignmentFlag.AlignLeft)
+        parameter_divider(rows)
+
+        self.target_profit_enabled = FreightSwitch("预计净收益目标", settings)
+        self.target_profit_enabled.setToolTip("在疲劳上限内，寻找达到预计净收益目标的最低疲劳路线；已计入买入税与卖出利润税。")
+        parameter_row(rows, "预计净收益目标", self.target_profit_enabled)
+        self.target_profit = QDoubleSpinBox(settings)
         self.target_profit.setRange(0, 100_000_000)
         self.target_profit.setDecimals(4)
         self.target_profit.setSuffix(" 万")
         self.target_profit.setSpecialValueText("请填写目标收益")
-        self.target_profit_enabled = QCheckBox("设置预计净收益目标", content)
-        self.target_profit_enabled.setToolTip("在疲劳上限内，寻找达到预计净收益目标的最低疲劳路线；已计入买入税与卖出利润税。")
-        self.target_label = QLabel("目标净收益", content)
-        self.end_city_notice = QLabel(
-            "终点约束暂不可编辑，已保留原有选择。",
-            content,
-        )
+        self.target_profit_fields = parameter_fields(rows, ("目标净收益", self.target_profit))
+        layout.addWidget(settings)
+        self.end_city_notice = QLabel("终点约束暂不可编辑，已保留原有选择。", panel)
         self.end_city_notice.setProperty("status", "warning")
         self.end_city_notice.setWordWrap(True)
         self.end_city_notice.hide()
-        common_form.add_field("疲劳预算", self.fatigue_budget)
-        common_form.add_field("货舱容量", self.cargo_capacity)
-        common_form.add_field("用书额度", self.book_usage)
-        self.book_budget_label = QLabel("有限书数", content)
-        self.book_count_field = QWidget(content)
-        book_count_layout = QHBoxLayout(self.book_count_field)
-        book_count_layout.setContentsMargins(0, 0, 0, 0)
-        self.book_count_note = QLabel("", self.book_count_field)
-        book_count_layout.addWidget(self.book_budget)
-        book_count_layout.addWidget(self.book_count_note)
-        common_form.add_field(self.book_budget_label, self.book_count_field)
+        layout.addWidget(self.end_city_notice)
+        return panel
+
+    def _build_trade_parameters(self, layout: QVBoxLayout) -> None:
+        content = layout.parentWidget()
+        parameter_heading(layout, "进货书")
+        self.book_usage = QComboBox(content)
+        for caption, value in (("不用书", "none"), ("限量用书", "finite"), ("无限用书", "unlimited")):
+            self.book_usage.addItem(caption, value)
+        self.book_budget = self._spin(0, 100000)
+        self.book_policy = QComboBox(content)
+        self.book_policy.addItem("收益优先", "profit")
+        self.book_policy.addItem("优先满仓", "fill")
         self.book_profit_threshold = QDoubleSpinBox(content)
         self.book_profit_threshold.setRange(0, 1_000_000_000)
         self.book_profit_threshold.setDecimals(4)
         self.book_profit_threshold.setSuffix(" 万")
         self.book_profit_threshold.setToolTip("单本新增收益下限，仅收益优先策略生效；优先满仓忽略此阈值。50 万提交为 500000。")
-        common_form.add_field("单本收益阈值", self.book_profit_threshold)
-        common_form.add_field("用书策略", self.book_policy)
         self.book_waste_limit = self._spin(0, 2_147_483_647)
-        common_form.add_field("浪费上限", self.book_waste_limit)
-        self.book_threshold_note = QLabel(
-            "优先满仓不使用单本收益阈值；仅在整趟用书额度内补货，首次满仓后停止加书。",
-            content,
+        parameter_fields(layout, ("用书额度", self.book_usage))
+        self.book_fields = parameter_fields(
+            layout, ("有限书数", self.book_budget), ("用书策略", self.book_policy),
+            ("单本收益阈值", self.book_profit_threshold), ("浪费上限", self.book_waste_limit),
         )
-        self.book_threshold_note.setProperty("caption", True)
-        self.book_threshold_note.setWordWrap(True)
-        self.book_strategy_note = self.book_threshold_note
-        common_form.add_field("协商策略", self.negotiation_policy)
-        common_form.add_field("试算当前城市", self.start_city)
-        common_form.set_field_visible(self.start_city, self.preview_mode)
-        common_form.add_field("", self.target_profit_enabled)
-        common_form.add_field(self.target_label, self.target_profit)
-        form_stack.addWidget(common_form)
-        form_stack.addWidget(self.book_strategy_note)
-        form_stack.addWidget(self.fixed_panel)
-        form_stack.addWidget(self.nonfixed_panel)
-        form_stack.addWidget(self.end_city_notice)
-        self.parameter_notice = QLabel(content)
-        self.parameter_notice.setProperty("status", "error")
-        self.parameter_notice.setWordWrap(True)
-        form_stack.addWidget(self.parameter_notice)
-        self.preview_state_hint = QLabel("参数已修改，需要重新试算", content)
-        self.preview_state_hint.setProperty("status", "warning")
-        self.preview_state_hint.setWordWrap(True)
-        self.preview_state_hint.hide()
-        form_stack.addWidget(self.preview_state_hint)
 
-        self.passenger_panel = FreightPassengerPanel(content)
-        self.auto_passenger = self.passenger_panel.enabled
-        form_stack.addWidget(self.passenger_panel)
-        self.passenger_panel.changed.connect(self._on_passenger_inputs_changed)
+        parameter_heading(layout, "协商")
+        self.negotiation_policy = QComboBox(content)
+        for caption, value in (("程序决定", "auto"), ("每次买卖都协商", "required"), ("不协商", "disabled")):
+            self.negotiation_policy.addItem(caption, value)
+        self.negotiation_max_attempts = self._spin(1, 6)
+        self.negotiation_max_attempts.setToolTip(
+            "每次买入砍价或卖出抬价分别计数；达到上限仍未满 20% 时按当前价格继续成交"
+        )
+        parameter_fields(layout, ("协商策略", self.negotiation_policy))
+        if self.preview_mode:
+            self.negotiation_max_attempts.setParent(content)
+            self.negotiation_max_attempts.hide()
+        else:
+            parameter_fields(layout, ("协商尝试上限", self.negotiation_max_attempts))
+        self.bargain_rates = QLineEdit(content)
+        self.bargain_rates.setPlaceholderText("5000, 5000")
+        self.bargain_step = self._spin(1, 2000)
+        self.raise_rates = QLineEdit(content)
+        self.raise_rates.setPlaceholderText("5000, 5000")
+        self.raise_step = self._spin(1, 2000)
+        self.bargain_parameters = parameter_fields(
+            layout, ("砍价成功率 (bps)", self.bargain_rates), ("砍价幅度 (bps)", self.bargain_step),
+            ("抬价成功率 (bps)", self.raise_rates), ("抬价幅度 (bps)", self.raise_step),
+        )
 
-        self.recovery_heading = QLabel("恢复与附加", content)
-        self.recovery_heading.hide()
-        self.recovery_section = DisclosureSection("恢复与附加行为", content)
-        form_stack.addWidget(self.recovery_section)
-        recovery_layout = self.recovery_section.body_layout
-        self._prison_product_goods = []
-        self.prison_products_button = QPushButton(prison_selection_text([]), content)
-        self.prison_products_button.setToolTip("货运前刷新监狱成品；不选商品时读取全部当前可见成品，不滚动、不取货。")
-        self.prison_products_button.clicked.connect(self._open_prison_product_selection)
-        recovery_layout.addWidget(self.prison_products_button)
-        self.auto_sparkling_water = QCheckBox("自动喝气泡水", content)
-        self.auto_bento = QCheckBox("自动吃便当", content)
-        self.auto_bento.toggled.connect(self._sync_bento_type_checks)
-        recovery_options = QHBoxLayout()
-        recovery_options.addWidget(self.auto_sparkling_water)
-        recovery_options.addWidget(self.auto_bento)
-        recovery_options.addStretch(1)
-        recovery_layout.addLayout(recovery_options)
-        self.recovery_threshold_panel = QWidget(content)
-        threshold_form = QFormLayout(self.recovery_threshold_panel)
-        threshold_form.setContentsMargins(0, 0, 0, 0)
-        threshold_form.setFieldGrowthPolicy(QFormLayout.FieldGrowthPolicy.FieldsStayAtSizeHint)
-        for key, label in (
-            ("sparkling_water_start_threshold", "气泡水启动阈值"),
-            ("sparkling_water_stop_threshold", "气泡水停止下限"),
-            ("bento_start_threshold", "便当启动阈值"),
-            ("bento_stop_threshold", "便当停止下限"),
-        ):
-            field = self._spin(-1, 2147483647)
-            field.setSpecialValueText("未设置")
-            field.setValue(-1)
-            field.setMaximumWidth(220)
-            setattr(self, key, field)
-            threshold_form.addRow(label, field)
-        recovery_layout.addWidget(self.recovery_threshold_panel)
-        self.bento_priority_panel = self._build_bento_priority_panel(content)
-        recovery_layout.addWidget(self.bento_priority_panel)
-        self.auto_pickup = QCheckBox("自动拣货", content)
-        self.pickup_timing_panel = QWidget(content)
-        pickup_row = QHBoxLayout(self.pickup_timing_panel)
-        pickup_row.setContentsMargins(0, 0, 0, 0)
-        pickup_row.setSpacing(8)
-        pickup_row.addWidget(self.auto_pickup)
-        pickup_row.addWidget(QLabel("点击间隔", self.pickup_timing_panel))
-        self.auto_pickup_interval_sec = QDoubleSpinBox(self.pickup_timing_panel)
+        parameter_heading(layout, "声望与商品")
+        self._city_prestige_default = 20
+        self._city_prestige_overrides: dict[str, int] = {}
+        self._city_tax_rates_bps: dict[str, int] = {}
+        self.city_prestige_button = parameter_button("设置声望与税率", content)
+        self.city_prestige_button.clicked.connect(self._edit_city_prestige)
+        self.product_unlock_button = parameter_button("设置商品解锁", content)
+        self.product_unlock_button.clicked.connect(self._edit_product_unlocks)
+        self.account_parameters = parameter_fields(
+            layout, ("声望 / 税率", self.city_prestige_button), ("商品解锁", self.product_unlock_button),
+        )
+        self.allow_stale_market = FreightSwitch("允许历史行情", content)
+        self.allow_stale_market.setToolTip("默认关闭：价格刷新失败就停止货运。开启后允许使用本地历史快照继续规划和买卖；行情可能过期、实际收益可能偏离计划。没有可用快照时仍停止。仅影响正式货运，试算不受此开关影响。")
+        if self.preview_mode:
+            self.allow_stale_market.hide()
+        else:
+            parameter_row(layout, "允许历史行情", self.allow_stale_market)
+        layout.addStretch()
+
+    def _build_journey_parameters(self, layout: QVBoxLayout) -> None:
+        content = layout.parentWidget()
+        parameter_heading(layout, "行车")
+        self.arrival_timeout_minutes = self._spin(1, 240)
+        self.arrival_timeout_minutes.setSuffix(" 分钟")
+        self.arrival_timeout_minutes.setToolTip("超过该时间仍未识别到站按钮或城市主页时，当前跑商任务判定为到站超时")
+        parameter_fields(layout, ("到站等待上限", self.arrival_timeout_minutes))
+        self.auto_pickup = FreightSwitch("自动拣货", content)
+        parameter_row(layout, "自动拣货", self.auto_pickup)
+        self.auto_pickup_interval_sec = QDoubleSpinBox(content)
         self.auto_pickup_interval_sec.setRange(0.1, 60.0)
         self.auto_pickup_interval_sec.setDecimals(2)
         self.auto_pickup_interval_sec.setSingleStep(0.1)
         self.auto_pickup_interval_sec.setSuffix(" 秒")
-        self.auto_pickup_interval_sec.setMaximumWidth(120)
         self.auto_pickup_interval_sec.setAccessibleName("拣货点击间隔（秒）")
-        pickup_row.addWidget(self.auto_pickup_interval_sec)
-        pickup_row.addStretch(1)
-        recovery_layout.addWidget(self.pickup_timing_panel)
+        self.pickup_timing_panel = parameter_fields(layout, ("拣货点击间隔", self.auto_pickup_interval_sec))
         self.auto_pickup.toggled.connect(self._sync_pickup_controls)
-        self.use_fatigue_medicine = QCheckBox("行车使用疲劳药", content)
-        self.fatigue_medicine_max_uses = self._spin(0, 100000)
-        self.allowed_fatigue_medicines: list[str] = []
-        self.medicine_checks: dict[str, QCheckBox] = {}
-        self.medicine_panel = QWidget(content)
-        medicine_layout = QGridLayout(self.medicine_panel)
-        medicine_layout.setContentsMargins(0, 0, 0, 0)
-        for index, name in enumerate(("提神棒棒糖", "提神口香糖", "仙人掌提神跳糖", "桦石")):
-            check = QCheckBox(name, self.medicine_panel)
-            check.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-            check.setToolTip(f"允许行车时使用{name}；仅在疲劳药开关开启时生效。")
-            self.medicine_checks[name] = check
-            medicine_layout.addWidget(check, index // 2, index % 2)
-        self.medicine_limit_label = QLabel("疲劳药使用上限", self.medicine_panel)
-        self.fatigue_medicine_max_uses.setMaximumWidth(220)
-        self.fatigue_medicine_max_uses.setSuffix(" 次")
-        medicine_layout.addWidget(self.medicine_limit_label, 2, 0)
-        medicine_layout.addWidget(self.fatigue_medicine_max_uses, 2, 1)
-        medicine_layout.addWidget(QLabel("仅使用勾选的疲劳药；会消耗道具。", self.medicine_panel), 3, 0, 1, 2)
-        self.auto_cape_island_investment = QCheckBox("蜃息岛投资", content)
-        self.auto_trade_goods_investment = QCheckBox("自动交易品投资", content)
+
+        self.auto_trailer = FreightSwitch("自动拖车", content)
+        parameter_row(layout, "自动拖车", self.auto_trailer)
+        self.trailer_panel = self._build_trailer_panel(content)
+        layout.addWidget(self.trailer_panel)
+        self.auto_trailer.toggled.connect(self._sync_trailer_controls)
+        self.trailer_daily_first_n.textChanged.connect(self._trailer_count_changed)
+
+        parameter_heading(layout, "到站操作")
+        self.auto_cape_island_investment = FreightSwitch("蜃息岛投资", content)
+        parameter_row(layout, "蜃息岛投资", self.auto_cape_island_investment)
+        self.auto_rubbish_recycling = FreightSwitch("垃圾回收", content)
+        parameter_row(layout, "垃圾回收", self.auto_rubbish_recycling)
+        self.auto_trade_goods_investment = FreightSwitch("交易品投资", content)
+        parameter_row(layout, "交易品投资", self.auto_trade_goods_investment)
         self.auto_trade_goods_investment.toggled.connect(self._sync_goods_investment_controls)
         self.trade_goods_investment_panel = QWidget(content)
         investment_form = QFormLayout(self.trade_goods_investment_panel)
@@ -826,144 +873,139 @@ class TradePage(QWidget):
         self.trade_goods_investment_mode.setRange(1, 20)
         self.trade_goods_investment_mode.setValue(10)
         investment_form.addRow("目标等级", self.trade_goods_investment_mode)
-        self.auto_rubbish_recycling = QCheckBox("自动倒垃圾", content)
-        self.auto_trailer = QCheckBox("自动拖车", content)
-        self.allow_stale_market = QCheckBox("允许历史行情", content)
-        self.allow_stale_market.setToolTip("默认关闭：价格刷新失败就停止货运。开启后允许使用本地历史快照继续规划和买卖；行情可能过期、实际收益可能偏离计划。没有可用快照时仍停止。仅影响正式货运，试算不受此开关影响。")
-        self.additional_options = QWidget(content)
-        options_layout = QGridLayout(self.additional_options)
-        options_layout.setContentsMargins(0, 0, 0, 0)
-        options_layout.setSpacing(8)
-        for index, button in enumerate((self.use_fatigue_medicine,
-                       self.auto_cape_island_investment, self.auto_rubbish_recycling,
-                       self.auto_trade_goods_investment, self.auto_trailer, self.allow_stale_market)):
-            button.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-            options_layout.addWidget(button, index // 2, index % 2, alignment=Qt.AlignmentFlag.AlignLeft)
-        recovery_layout.addWidget(self.additional_options)
-        recovery_layout.addWidget(self.trade_goods_investment_panel)
-        self.trailer_panel = QWidget(content)
-        trailer_layout = QVBoxLayout(self.trailer_panel)
+        layout.addWidget(self.trade_goods_investment_panel)
+
+        self.auto_black_moon_local_purchase = FreightSwitch("黑月本地采购", content)
+        parameter_row(layout, "黑月本地采购", self.auto_black_moon_local_purchase)
+        self.black_moon_settings_button = parameter_button("选择商品", content)
+        self.black_moon_settings_button.setAutoDefault(False)
+        self.black_moon_selection_label = QLabel(content)
+        parameter_row(layout, "采购商品", self.black_moon_settings_button, self.black_moon_selection_label)
+        self.auto_black_moon_local_purchase.toggled.connect(self._save_black_moon_toggle)
+        self.black_moon_settings_button.clicked.connect(self._open_black_moon_settings)
+
+        self._prison_product_goods = []
+        self.prison_products_button = parameter_button(prison_selection_text([]), content)
+        self.prison_products_button.setToolTip("货运前刷新监狱成品；不选商品时读取全部当前可见成品，不滚动、不取货。")
+        self.prison_products_button.clicked.connect(self._open_prison_product_selection)
+        parameter_row(layout, "刷新监狱成品", self.prison_products_button)
+
+    def _build_passenger_parameters(self, layout: QVBoxLayout) -> None:
+        parameter_heading(layout, "客运")
+        self.passenger_panel = FreightPassengerPanel(layout.parentWidget())
+        self.auto_passenger = self.passenger_panel.enabled
+        layout.addWidget(self.passenger_panel)
+        self.passenger_panel.changed.connect(self._on_passenger_inputs_changed)
+        layout.addStretch()
+
+    def _build_recovery_parameters(self, layout: QVBoxLayout) -> None:
+        content = layout.parentWidget()
+        parameter_heading(layout, "到站恢复")
+        self.auto_sparkling_water = FreightSwitch("自动喝气泡水", content)
+        self.auto_bento = FreightSwitch("自动吃便当", content)
+        self.auto_bento.toggled.connect(self._sync_bento_type_checks)
+        for key in FREIGHT_RECOVERY_THRESHOLD_KEYS:
+            field = self._spin(-1, 2_147_483_647)
+            field.setSpecialValueText("未设置")
+            field.setValue(-1)
+            setattr(self, key, field)
+        parameter_row(layout, "自动喝气泡水", self.auto_sparkling_water)
+        self.water_threshold_fields = parameter_fields(
+            layout, ("启动阈值", self.sparkling_water_start_threshold),
+            ("停止下限", self.sparkling_water_stop_threshold),
+        )
+        parameter_divider(layout)
+        parameter_row(layout, "自动吃便当", self.auto_bento)
+        self.bento_threshold_fields = parameter_fields(
+            layout, ("启动阈值", self.bento_start_threshold), ("停止下限", self.bento_stop_threshold),
+        )
+        self.bento_priority_panel = self._build_bento_priority_panel(content)
+        layout.addWidget(self.bento_priority_panel)
+
+        parameter_heading(layout, "行车恢复")
+        self.use_fatigue_medicine = FreightSwitch("行车使用疲劳药", content)
+        parameter_row(layout, "行车使用疲劳药", self.use_fatigue_medicine)
+        self.medicine_panel = self._build_medicine_panel(content)
+        layout.addWidget(self.medicine_panel)
+        layout.addStretch()
+
+    def _build_fixed_route_selector(self, parent: QWidget) -> QWidget:
+        panel = QWidget(parent)
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        parameter_divider(layout)
+        parameter_heading(layout, "途经城市", divider=False)
+        picker = QHBoxLayout()
+        self.route_city_picker = QComboBox(panel)
+        self.route_city_picker.setAccessibleName("追加线路城市")
+        for city_id, name in PC_TRADE_CITY_OPTIONS:
+            self.route_city_picker.addItem(name, city_id)
+        self.add_route_city_button = parameter_button("追加一站", panel)
+        self.add_route_city_button.clicked.connect(lambda: self.add_route_city(self.route_city_picker.currentData()))
+        picker.addWidget(self.route_city_picker, 1)
+        picker.addWidget(self.add_route_city_button)
+        layout.addLayout(picker)
+        self.fixed_route = QListWidget(panel)
+        self.fixed_route.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
+        self.fixed_route.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.fixed_route.setMaximumHeight(120)
+        self.fixed_route.itemDoubleClicked.connect(lambda item: self.fixed_route.takeItem(self.fixed_route.row(item)))
+        layout.addWidget(self.fixed_route)
+        self.fixed_route_hint = QLabel(panel)
+        self.fixed_route_hint.setWordWrap(True)
+        layout.addWidget(self.fixed_route_hint)
+        instructions = QLabel("拖动调整顺序，双击移除。城市可重复访问。", panel)
+        instructions.setProperty("caption", True)
+        instructions.setWordWrap(True)
+        layout.addWidget(instructions)
+        self.reposition_to_route = FreightSwitch("导航到线路起点", panel)
+        parameter_row(layout, "导航到线路起点", self.reposition_to_route)
+        return panel
+
+    def _build_trailer_panel(self, parent: QWidget) -> QWidget:
+        panel = QWidget(parent)
+        trailer_layout = QVBoxLayout(panel)
         trailer_layout.setContentsMargins(0, 0, 0, 0)
-        trailer_fields = CompactParameterGrid(self.trailer_panel)
+        trailer_fields = CompactParameterGrid(panel)
         # QSpinBox/QIntValidator impose a 32-bit ceiling; the contract has no quota cap.
-        self.trailer_daily_first_n = QLineEdit("1", self.trailer_panel)
+        self.trailer_daily_first_n = QLineEdit("1", panel)
         self.trailer_daily_first_n.setValidator(QRegularExpressionValidator(QRegularExpression("[0-9]*"), self.trailer_daily_first_n))
         self._last_trailer_count = 1
-        self.trailer_payment = QComboBox(self.trailer_panel)
+        self.trailer_payment = QComboBox(panel)
         self.trailer_payment.addItem("铁盟币", "gold")
         self.trailer_payment.addItem("里程点", "mileage")
         trailer_fields.add_field("当天前 X 次", self.trailer_daily_first_n)
         trailer_fields.add_field("支付方式", self.trailer_payment)
         trailer_layout.addWidget(trailer_fields)
-        trailer_hint = QLabel("优先用于本轮里程最长的 X 段；到对应路段才检查当天前 X 次资格。会消耗所选货币。", self.trailer_panel)
+        trailer_hint = QLabel("优先用于本轮里程最长的 X 段；到对应路段才检查当天前 X 次资格。会消耗所选货币。", panel)
         trailer_hint.setWordWrap(True)
         trailer_layout.addWidget(trailer_hint)
         explanation = "X 为正整数，可超过当天总次数；等距时优先先发生的路段。次数耗尽或不符合当天前 X 次资格后，本轮后续不再检查拖车。支付或出发结果未知时停止，不自动改为普通行驶。"
         self.auto_trailer.setToolTip(explanation)
         self.trailer_daily_first_n.setToolTip(explanation)
         self.trailer_payment.setToolTip("拖车支付方式：铁盟币或里程点；使用时会消耗对应资源。")
-        self.auto_trailer.toggled.connect(self._sync_trailer_controls)
-        self.trailer_daily_first_n.textChanged.connect(self._trailer_count_changed)
-        recovery_layout.addWidget(self.trailer_panel)
-        self.black_moon_panel = QWidget(content)
-        black_moon_row = QHBoxLayout(self.black_moon_panel)
-        black_moon_row.setContentsMargins(0, 0, 0, 0)
-        black_moon_row.setSpacing(8)
-        self.auto_black_moon_local_purchase = QCheckBox("自动黑月本地采购", self.black_moon_panel)
-        self.black_moon_settings_button = QPushButton("设置…", self.black_moon_panel)
-        self.black_moon_settings_button.setAutoDefault(False)
-        self.black_moon_selection_label = QLabel(self.black_moon_panel)
-        black_moon_row.addWidget(self.auto_black_moon_local_purchase)
-        black_moon_row.addWidget(self.black_moon_settings_button)
-        black_moon_row.addWidget(self.black_moon_selection_label)
-        black_moon_row.addStretch(1)
-        recovery_layout.addWidget(self.black_moon_panel)
-        self.auto_black_moon_local_purchase.toggled.connect(self._save_black_moon_toggle)
-        self.black_moon_settings_button.clicked.connect(self._open_black_moon_settings)
-        recovery_layout.addWidget(self.medicine_panel)
-        if self.preview_mode:
-            self.allow_stale_market.hide()
-            self.auto_trailer.hide()
-            self.trailer_panel.hide()
-            self.black_moon_panel.hide()
-            self.recovery_section.hide()
-            self.additional_options.hide()
-            self.recovery_heading.hide()
-            self.use_fatigue_medicine.hide()
-            self.fatigue_medicine_max_uses.hide()
-            self.medicine_limit_label.hide()
-            self.auto_sparkling_water.hide()
-            self.auto_bento.hide()
-            self.bento_priority_panel.hide()
-            self.recovery_threshold_panel.hide()
-            self.auto_pickup.hide()
-            self.pickup_timing_panel.hide()
-            self.auto_cape_island_investment.hide()
-            self.auto_trade_goods_investment.hide()
-            self.trade_goods_investment_panel.hide()
-            self.auto_rubbish_recycling.hide()
-
-        self.advanced_toggle = QToolButton(content)
-        self.advanced_toggle.setText("账号与执行参数")
-        self.advanced_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.advanced_toggle.setCheckable(True)
-        self.advanced_toggle.setProperty("uiDisclosure", True)
-        self.advanced_toggle.setArrowType(Qt.ArrowType.RightArrow)
-        self.advanced_toggle.toggled.connect(self._toggle_advanced)
-        form_stack.addWidget(self.advanced_toggle)
-        self.advanced_panel = self._build_advanced_panel(content)
-        self.advanced_panel.setVisible(False)
-        form_stack.addWidget(self.advanced_panel)
-        form_stack.addStretch(1)
-        scroll.setWidget(content)
-        outer.addWidget(scroll, 1)
         return panel
 
-    def _build_end_city_selector(self, parent: QWidget) -> QWidget:
+    def _build_medicine_panel(self, parent: QWidget) -> QWidget:
+        self.fatigue_medicine_max_uses = self._spin(0, 100000)
+        self.allowed_fatigue_medicines: list[str] = []
+        self.medicine_checks: dict[str, QCheckBox] = {}
         panel = QWidget(parent)
-        layout = QGridLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        self.automatic_end = QCheckBox("自动终点", panel)
-        self.automatic_end.setChecked(True)
-        self.automatic_end.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
-        self.automatic_end.toggled.connect(self._sync_end_city_options)
-        layout.addWidget(self.automatic_end, 0, 0, 1, 3, alignment=Qt.AlignmentFlag.AlignLeft)
-        self.end_city_checks: dict[str, QPushButton] = {}
-        for index, (city_id, name) in enumerate(PC_TRADE_CITY_OPTIONS):
-            button = QCheckBox(name, panel)
-            button.setCheckable(True)
-            button.setProperty("cityOption", True)
-            button.setToolTip(f"允许货运在{name}结束；可选择多个终点，规划器从中选择。")
-            self.end_city_checks[city_id] = button
-            layout.addWidget(button, 1 + index // 3, index % 3)
-        return panel
-
-    def _build_fixed_route_selector(self, parent: QWidget) -> QWidget:
-        panel = QWidget(parent)
-        layout = QVBoxLayout(panel)
-        layout.setContentsMargins(0, 0, 0, 0)
-        note = QLabel("点击城市追加线路，拖动调整顺序；双击移除。至少两站，可重复访问。", panel)
-        note.setWordWrap(True)
-        layout.addWidget(note)
-        picker = DisclosureSection("添加线路城市", panel)
-        grid = QGridLayout()
-        for index, (city_id, name) in enumerate(PC_TRADE_CITY_OPTIONS):
-            button = QPushButton(name, panel)
-            button.clicked.connect(lambda _checked=False, city=city_id: self.add_route_city(city))
-            grid.addWidget(button, index // 3, index % 3)
-        picker.body_layout.addLayout(grid)
-        self.fixed_route = QListWidget(panel)
-        self.fixed_route.setDragDropMode(QAbstractItemView.DragDropMode.InternalMove)
-        self.fixed_route.setDefaultDropAction(Qt.DropAction.MoveAction)
-        self.fixed_route.setMaximumHeight(160)
-        self.fixed_route.itemDoubleClicked.connect(lambda item: self.fixed_route.takeItem(self.fixed_route.row(item)))
-        layout.addWidget(self.fixed_route)
-        layout.addWidget(picker)
-        self.reposition_to_route = QCheckBox("导航到线路起点", panel)
-        layout.addWidget(self.reposition_to_route)
-        self.fixed_route_hint = QLabel(panel)
-        self.fixed_route_hint.setWordWrap(True)
-        layout.addWidget(self.fixed_route_hint)
+        medicine_layout = QGridLayout(panel)
+        medicine_layout.setContentsMargins(0, 0, 0, 0)
+        for index, name in enumerate(("提神棒棒糖", "提神口香糖", "仙人掌提神跳糖", "桦石")):
+            check = QCheckBox(name, panel)
+            check.setSizePolicy(QSizePolicy.Policy.Maximum, QSizePolicy.Policy.Fixed)
+            check.setToolTip(f"允许行车时使用{name}；仅在疲劳药开关开启时生效。")
+            self.medicine_checks[name] = check
+            medicine_layout.addWidget(check, index // 2, index % 2)
+        self.medicine_limit_label = QLabel("疲劳药使用上限", panel)
+        self.fatigue_medicine_max_uses.setMaximumWidth(220)
+        self.fatigue_medicine_max_uses.setSuffix(" 次")
+        medicine_layout.addWidget(self.medicine_limit_label, 2, 0)
+        medicine_layout.addWidget(self.fatigue_medicine_max_uses, 2, 1)
+        medicine_layout.addWidget(QLabel("仅使用勾选的疲劳药；会消耗道具。", panel), 3, 0, 1, 2)
         return panel
 
     def add_route_city(self, city_id: str) -> None:
@@ -983,9 +1025,6 @@ class TradePage(QWidget):
         self._sync_start_city_options()
         self._sync_parameter_controls()
 
-    def _sync_book_controls(self, *_args: object) -> None:
-        self._sync_parameter_controls()
-
     def _sync_parameter_controls(self, *_args: object) -> None:
         if not self._form_ready:
             return
@@ -998,12 +1037,19 @@ class TradePage(QWidget):
         self.nonfixed_panel.setVisible(state["free"])
         self.fixed_panel.setVisible(state["fixed"])
         self.arrivals_button.setEnabled(state["free"] and not self._busy)
-        self.ignore_unmet_arrivals.setEnabled(state["free"] and bool(self._required_arrivals) and not self._busy)
+        self.ignore_unmet_arrivals.setVisible(bool(self._required_arrivals))
+        self.ignore_unmet_arrivals.setEnabled(not self._busy and state["free"] and bool(self._required_arrivals))
         self.arrivals_note.setText("、".join(f"{name} ≥ {self._required_arrivals[city]} 次"
-                                            for city, name in PC_TRADE_CITY_OPTIONS if city in self._required_arrivals))
-        self.arrivals_note.setVisible(bool(self._required_arrivals))
-        self.common_parameters.set_field_visible(self.target_profit_enabled, state["free"])
-        self.common_parameters.set_field_visible(self.target_profit, state["free"])
+                                            for city, name in PC_TRADE_CITY_OPTIONS if city in self._required_arrivals) or "不限")
+        self.target_profit_fields.setVisible(state["target"])
+        self.book_fields.setVisible(state["book_rules"])
+        self.book_fields.set_field_visible(self.book_budget, state["book_count"])
+        self.book_fields.set_field_visible(self.book_profit_threshold, state["book_threshold"])
+        self.book_fields.set_field_visible(self.book_waste_limit, state["book_waste_limit"])
+        self.water_threshold_fields.setVisible(state["water"])
+        self.bento_threshold_fields.setVisible(state["bento"])
+        self.bento_priority_panel.setVisible(state["bento"])
+        self.medicine_panel.setVisible(state["medicine"])
         for widget, enabled in (
             (self.book_budget, state["book_count"]), (self.book_policy, state["book_rules"]),
             (self.book_profit_threshold, state["book_threshold"]),
@@ -1018,20 +1064,6 @@ class TradePage(QWidget):
             (self.fatigue_medicine_max_uses, state["medicine"]),
         ):
             widget.setEnabled(enabled and not self._busy)
-        unlimited = self.book_usage.currentData() == "unlimited"
-        self.book_budget.setVisible(not unlimited)
-        self.book_count_note.setVisible(unlimited)
-        self.book_count_note.setText("无限" if unlimited else "")
-        if self.book_usage.currentData() == "none":
-            book_note = "当前不用书：用书策略、单本收益阈值和浪费上限均不生效。"
-        elif self.book_policy.currentData() == "fill":
-            book_note = "优先满仓不使用单本收益阈值；首次满仓时未装入的货物不能超过浪费上限，0 表示不允许浪费货物。总用书额度仍须遵守，额度不足或超出浪费上限时允许未满仓。"
-        else:
-            book_note = "收益优先：按单本收益阈值用书；浪费上限不生效。"
-        if self._busy:
-            book_note += " 任务运行中，暂不可修改。"
-        self.book_strategy_note.setText(book_note)
-        self.target_profit.setToolTip("在疲劳上限内，寻找达到预计净收益目标的最低疲劳路线；已计入买入税与卖出利润税。")
         route = [str(self.fixed_route.item(i).data(Qt.ItemDataRole.UserRole)) for i in range(self.fixed_route.count())]
         description = "至少选择两个城市。" if len(route) < 2 else (
             "闭环，可循环；允许最后部分圈，末站清仓。" if route[0] == route[-1]
@@ -1055,8 +1087,7 @@ class TradePage(QWidget):
             widget.valueChanged.connect(self._on_planning_inputs_changed)
         for widget in (self.book_usage, self.book_policy, self.negotiation_policy, self.start_city):
             widget.currentIndexChanged.connect(self._on_planning_inputs_changed)
-        for widget in (*self.mode_buttons.values(), *self.city_checks.values(), *self.end_city_checks.values(),
-                       self.automatic_end, self.reposition_to_route, self.target_profit_enabled):
+        for widget in (*self.mode_buttons.values(), self.reposition_to_route, self.target_profit_enabled):
             widget.toggled.connect(self._on_planning_inputs_changed)
         for widget in (self.bargain_rates, self.raise_rates):
             widget.textChanged.connect(self._on_planning_inputs_changed)
@@ -1179,97 +1210,6 @@ class TradePage(QWidget):
         values["bento_priority"] = self._selected_bento_priority()
         self._settings.save_trade_inputs(values)
         self._sync_actions()
-
-    def _build_advanced_panel(self, parent: QWidget) -> QWidget:
-        panel = CompactParameterGrid(parent)
-        form = panel
-        self.negotiation_max_attempts = self._spin(1, 6)
-        self.negotiation_max_attempts.setToolTip(
-            "每次买入砍价或卖出抬价分别计数；达到上限仍未满 20% 时按当前价格继续成交"
-        )
-        self.bargain_rates = QLineEdit(panel)
-        self.bargain_rates.setPlaceholderText("5000, 5000")
-        self.bargain_step = self._spin(1, 2000)
-        self.raise_rates = QLineEdit(panel)
-        self.raise_rates.setPlaceholderText("5000, 5000")
-        self.raise_step = self._spin(1, 2000)
-        self._city_prestige_default = 20
-        self._city_prestige_overrides: dict[str, int] = {}
-        self._city_tax_rates_bps: dict[str, int] = {}
-        self.city_prestige_button = QPushButton("设置声望与税率", panel)
-        self.city_prestige_button.clicked.connect(self._edit_city_prestige)
-        self.product_unlock_button = QPushButton("设置商品解锁", panel)
-        self.product_unlock_button.clicked.connect(self._edit_product_unlocks)
-        if self.preview_mode:
-            self.negotiation_max_attempts.setParent(panel)
-            self.negotiation_max_attempts.hide()
-        else:
-            form.add_field("协商尝试上限", self.negotiation_max_attempts)
-        form.add_field("砍价成功率(bps)", self.bargain_rates)
-        form.add_field("砍价幅度(bps)", self.bargain_step)
-        form.add_field("抬价成功率(bps)", self.raise_rates)
-        form.add_field("抬价幅度(bps)", self.raise_step)
-        form.add_field("声望 / 税率", self.city_prestige_button)
-        form.add_field("商品解锁", self.product_unlock_button)
-        if not self.preview_mode:
-            form.add_field("到站等待上限", self.arrival_timeout_minutes)
-        return panel
-
-    def _build_city_selector(self, parent: QWidget) -> QWidget:
-        selector = QWidget(parent)
-        layout = QVBoxLayout(selector)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-        self.city_selector_toggle = QToolButton(selector)
-        self.city_selector_toggle.setText("参与规划城市 · 已选 0 城")
-        self.city_selector_toggle.setCheckable(True)
-        self.city_selector_toggle.setProperty("uiDisclosure", True)
-        self.city_selector_toggle.setArrowType(Qt.ArrowType.RightArrow)
-        self.city_selector_toggle.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.city_selector_toggle.setToolTip("展开城市按钮网格；至少选择两城。当前选项不会因收起而改变。")
-        layout.addWidget(self.city_selector_toggle)
-        self.city_buttons_panel = QWidget(selector)
-        button_layout = QVBoxLayout(self.city_buttons_panel)
-        button_layout.setContentsMargins(0, 4, 0, 0)
-        self.city_selector_toggle.toggled.connect(self._toggle_city_selector)
-        grid = QGridLayout()
-        grid.setContentsMargins(0, 0, 0, 0)
-        grid.setHorizontalSpacing(6)
-        grid.setVerticalSpacing(6)
-        self.city_checks: dict[str, QPushButton] = {}
-        for index, (city_id, city_name) in enumerate(PC_TRADE_CITY_OPTIONS):
-            button = QCheckBox(city_name, selector)
-            button.setCheckable(True)
-            button.setProperty("cityOption", True)
-            button.setMinimumHeight(30)
-            button.setToolTip(f"城市 ID: {city_id}；点击切换是否参与规划")
-            button.toggled.connect(self._sync_city_controls)
-            self.city_checks[city_id] = button
-            grid.addWidget(button, index // 3, index % 3)
-        for column in range(3):
-            grid.setColumnStretch(column, 1)
-        button_layout.addLayout(grid)
-
-        actions = QHBoxLayout()
-        actions.setContentsMargins(0, 0, 0, 0)
-        actions.setSpacing(6)
-        select_all = QPushButton("全选", selector)
-        clear_all = QPushButton("清空", selector)
-        select_all.setToolTip("选择全部已配置地图和交易所坐标的城市")
-        clear_all.setToolTip("清空城市选择")
-        select_all.clicked.connect(lambda: self._set_all_cities(True))
-        clear_all.clicked.connect(lambda: self._set_all_cities(False))
-        actions.addWidget(select_all)
-        actions.addWidget(clear_all)
-        actions.addStretch(1)
-        button_layout.addLayout(actions)
-        layout.addWidget(self.city_buttons_panel)
-        self.city_buttons_panel.hide()
-        return selector
-
-    def _toggle_city_selector(self, expanded: bool) -> None:
-        self.city_buttons_panel.setVisible(expanded)
-        self.city_selector_toggle.setArrowType(Qt.ArrowType.DownArrow if expanded else Qt.ArrowType.RightArrow)
 
     def _build_execution_panel(self) -> QWidget:
         self.execution_scroll = QScrollArea(self)
@@ -1455,27 +1395,50 @@ class TradePage(QWidget):
         widget.setGroupSeparatorShown(True)
         return widget
 
-    def _toggle_advanced(self, visible: bool) -> None:
-        self.advanced_panel.setVisible(visible)
-        self.advanced_toggle.setArrowType(Qt.ArrowType.DownArrow if visible else Qt.ArrowType.RightArrow)
-
     def _toggle_debug(self, visible: bool) -> None:
         self.debug_view.setVisible(visible)
         self.debug_toggle.setArrowType(Qt.ArrowType.DownArrow if visible else Qt.ArrowType.RightArrow)
 
-    def _set_all_cities(self, checked: bool) -> None:
-        for checkbox in self.city_checks.values():
-            checkbox.setChecked(checked)
+    def _edit_available_cities(self) -> None:
+        dialog = FreightCityDialog(self.parameter_panel, self._available_city_ids)
+        if dialog.exec() == QDialog.DialogCode.Accepted and not self._busy:
+            self._set_available_cities(dialog.selected_city_ids())
+        dialog.deleteLater()
+
+    def _edit_end_cities(self) -> None:
+        dialog = FreightCityDialog(
+            self.parameter_panel, self._end_city_ids,
+            eligible=self._available_city_ids, automatic=self._automatic_end,
+        )
+        if dialog.exec() == QDialog.DialogCode.Accepted and not self._busy and self._end_city_constraint_available:
+            self._set_end_city_selection(dialog.selected_city_ids(), automatic=dialog.automatic.isChecked())
+        dialog.deleteLater()
+
+    def _set_available_cities(self, city_ids: set[str]) -> None:
+        self._available_city_ids = set(city_ids)
         self._sync_city_controls()
+        self._on_planning_inputs_changed()
+
+    def _set_end_city_selection(self, city_ids: set[str], *, automatic: bool = False) -> None:
+        self._end_city_ids = set(city_ids)
+        self._automatic_end = automatic
+        self._sync_end_city_options()
+        self._on_planning_inputs_changed()
 
     def _sync_city_controls(self) -> None:
-        if hasattr(self, "city_selector_toggle"):
-            self.city_selector_toggle.setText(f"参与规划城市 · 已选 {len(self.selected_city_ids())} 城")
+        selected = [name for city, name in PC_TRADE_CITY_OPTIONS if city in self._available_city_ids]
+        omitted = [name for city, name in PC_TRADE_CITY_OPTIONS if city not in self._available_city_ids]
+        note = f"已选 {len(selected)} / {len(PC_TRADE_CITY_OPTIONS)} 城"
+        if 0 < len(selected) <= 3:
+            note += " · " + "、".join(selected)
+        elif 0 < len(omitted) <= 3:
+            note += " · 未选 " + "、".join(omitted)
+        self.cities_note.setText(note)
         self._sync_start_city_options()
         self._sync_end_city_options()
 
     def _edit_required_arrivals(self) -> None:
-        dialog = QDialog(self)
+        dialog = QDialog(self.parameter_panel)
         dialog.setWindowTitle("指定到达次数")
         layout = QVBoxLayout(dialog)
         note = QLabel("填写最低到达次数，0 表示不限。出发所在城市不计作一次到达。", dialog)
@@ -1504,7 +1467,7 @@ class TradePage(QWidget):
         buttons.accepted.connect(dialog.accept)
         buttons.rejected.connect(dialog.reject)
         layout.addWidget(buttons)
-        if dialog.exec() == QDialog.DialogCode.Accepted:
+        if dialog.exec() == QDialog.DialogCode.Accepted and not self._busy:
             self._required_arrivals = {city: field.value() for city, field in fields.items() if field.value()}
             self._arrival_inputs_changed()
         dialog.deleteLater()
@@ -1520,9 +1483,9 @@ class TradePage(QWidget):
             default_level=self._city_prestige_default,
             overrides=self._city_prestige_overrides,
             tax_rates_bps=self._city_tax_rates_bps,
-            parent=self,
+            parent=self.parameter_panel,
         )
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted or self._busy:
             dialog.deleteLater()
             return
         prestige = dialog.prestige_value()
@@ -1534,7 +1497,7 @@ class TradePage(QWidget):
         try:
             self._save_inputs(saved_inputs)
         except (ValueError, OSError) as exc:
-            QMessageBox.warning(self, "保存失败", str(exc))
+            QMessageBox.warning(self.parameter_panel, "保存失败", str(exc))
             return
         self._city_prestige_default = int(prestige["default"])
         self._city_prestige_overrides = {
@@ -1564,11 +1527,13 @@ class TradePage(QWidget):
         dialog = ProductUnlockDialog(
             groups=self._product_groups,
             unlocked_product_ids=self._unlocked_product_ids,
-            parent=self,
+            parent=self.parameter_panel,
         )
-        if dialog.exec() != QDialog.DialogCode.Accepted:
+        if dialog.exec() != QDialog.DialogCode.Accepted or self._busy:
+            dialog.deleteLater()
             return
         selected = dialog.unlocked_product_ids()
+        dialog.deleteLater()
         self._unlocked_product_ids = None if selected == self._all_product_ids else selected
         self._update_product_unlock_button()
         saved_inputs = self._load_inputs()
@@ -1613,23 +1578,21 @@ class TradePage(QWidget):
         self._sync_actions()
 
     def _sync_end_city_options(self) -> None:
-        if not hasattr(self, "end_city_checks"):
-            return
-        selected = set(self.selected_city_ids())
-        self.automatic_end.setEnabled(self._end_city_constraint_available and not self._busy)
-        for city_id, button in self.end_city_checks.items():
-            button.setVisible(not self.automatic_end.isChecked())
-            button.setEnabled((city_id in selected or button.isChecked()) and not self.automatic_end.isChecked()
-                              and self._end_city_constraint_available and not self._busy)
-            invalid = button.isChecked() and city_id not in selected
-            button.setProperty("status", "error" if invalid else "")
-            button.setToolTip("该终点已不在可选城市内，请取消或重新选择城市。" if invalid else "允许在此城市结束货运")
-            button.style().unpolish(button)
-            button.style().polish(button)
+        self.end_city_button.setEnabled(self._end_city_constraint_available and not self._busy)
+        if self._automatic_end:
+            self.end_city_note.setText("由程序自动选择")
+        else:
+            names = [name for city, name in PC_TRADE_CITY_OPTIONS if city in self._end_city_ids]
+            self.end_city_note.setText("、".join(names) or "请选择终点")
         self._sync_actions()
 
     def selected_city_ids(self) -> list[str]:
-        return [city_id for city_id, _name in PC_TRADE_CITY_OPTIONS if self.city_checks[city_id].isChecked()]
+        return [city for city, _ in PC_TRADE_CITY_OPTIONS if city in self._available_city_ids]
+
+    def _required_end_cities(self) -> list[str] | None:
+        if self._automatic_end:
+            return None
+        return [city for city, _ in PC_TRADE_CITY_OPTIONS if city in self._end_city_ids]
 
     def set_inputs(self, inputs: Mapping[str, Any]) -> None:
         self._restoring = True
@@ -1685,9 +1648,9 @@ class TradePage(QWidget):
         self.raise_rates.setText(self._join_values(values.get("raise_success_rates_bps", [5000])))
         self.raise_step.setValue(int(values.get("raise_step_bps", 1000)))
         raw_city_ids = values.get("available_city_ids")
-        selected_city_ids = {str(city_id) for city_id in (DEFAULT_PC_TRADE_CITY_IDS if raw_city_ids is None else raw_city_ids)}
-        for city_id, checkbox in self.city_checks.items():
-            checkbox.setChecked(city_id in selected_city_ids)
+        self._available_city_ids = set(DEFAULT_PC_TRADE_CITY_IDS) if raw_city_ids is None else {
+            str(city) for city in raw_city_ids
+        } & dict(PC_TRADE_CITY_OPTIONS).keys()
         self._sync_start_city_options()
         if self.start_city is not None:
             restored_start = str(values.get("start_city_id") or "")
@@ -1695,15 +1658,9 @@ class TradePage(QWidget):
                 self.start_city.addItem(f"{dict(PC_TRADE_CITY_OPTIONS)[restored_start]}（未参与规划）", restored_start)
             start_city_index = self.start_city.findData(restored_start)
             self.start_city.setCurrentIndex(max(start_city_index, 0))
-        required_end_city_ids = [
-            str(city_id)
-            for city_id in (values.get("required_end_city_ids") or [])
-            if str(city_id) in self.end_city_checks
-        ]
-        self._sync_end_city_options()
-        self.automatic_end.setChecked(values.get("required_end_city_ids") is None)
-        for city, button in self.end_city_checks.items():
-            button.setChecked(city in required_end_city_ids)
+        required_end_city_ids = values.get("required_end_city_ids")
+        self._automatic_end = required_end_city_ids is None
+        self._end_city_ids = {str(city) for city in required_end_city_ids or []} & dict(PC_TRADE_CITY_OPTIONS).keys()
         prestige = values.get("city_prestige") if isinstance(values.get("city_prestige"), Mapping) else {}
         self._city_tax_rates_bps = validate_city_tax_rates_bps(values.get("city_tax_rates_bps", {}))
         self._city_prestige_default = max(1, min(int(prestige.get("default", 20)), 20))
@@ -1778,8 +1735,6 @@ class TradePage(QWidget):
         self.auto_black_moon_local_purchase.blockSignals(blocked)
         self._sync_black_moon_controls()
         self._sync_city_controls()
-        self._sync_book_controls()
-        self._sync_mode_controls()
 
     def restore_inputs(self, inputs: Mapping[str, Any]) -> None:
         self.set_inputs(inputs)
@@ -1806,7 +1761,7 @@ class TradePage(QWidget):
                 raise ValueError("请选择起始城市")
             if mode != "fixed" and start_city_id not in selected_city_ids:
                 raise ValueError("起始城市必须属于参与规划城市")
-        required_end_city_ids = None if self.automatic_end.isChecked() else [city for city, button in self.end_city_checks.items() if button.isChecked()]
+        required_end_city_ids = self._required_end_cities()
         if not _draft and mode != "fixed" and required_end_city_ids and any(city not in selected_city_ids for city in required_end_city_ids):
             raise ValueError("指定终点已不在可选城市内，请重新选择终点。")
         if not _draft and mode != "fixed" and required_end_city_ids == []:
@@ -1905,7 +1860,7 @@ class TradePage(QWidget):
                      books_unlimited=self.book_usage.currentData() == "unlimited",
                      finite_book_budget=self.book_budget.value(),
                      available_city_ids=self.selected_city_ids(),
-                     required_end_city_ids=None if self.automatic_end.isChecked() else [city for city, button in self.end_city_checks.items() if button.isChecked()],
+                     required_end_city_ids=self._required_end_cities(),
                      fixed_route_city_ids=[str(self.fixed_route.item(index).data(Qt.ItemDataRole.UserRole)) for index in range(self.fixed_route.count())],
                      reposition_to_route=self.reposition_to_route.isChecked(),
                      target_profit=self._amount_base_units(self.target_profit) or None,
@@ -1951,9 +1906,9 @@ class TradePage(QWidget):
         if self._busy or self.preview_mode:
             return
         try:
-            dialog = PrisonProductDialog(self._prison_product_goods, self)
+            dialog = PrisonProductDialog(self._prison_product_goods, self.parameter_panel)
             try:
-                if dialog.exec() == QDialog.DialogCode.Accepted:
+                if dialog.exec() == QDialog.DialogCode.Accepted and not self._busy:
                     goods = dialog.selected_goods()
                     values = self.collect_ui_state()
                     values["prison_product_goods"] = goods
@@ -1963,15 +1918,17 @@ class TradePage(QWidget):
             finally:
                 dialog.deleteLater()
         except (ValueError, OSError) as exc:
-            QMessageBox.warning(self, "成品选择保存失败", str(exc))
+            QMessageBox.warning(self.parameter_panel, "成品选择保存失败", str(exc))
 
     def _sync_goods_investment_controls(self) -> None:
-        self.trade_goods_investment_mode.setEnabled(
-            not self._busy and self.auto_trade_goods_investment.isChecked()
-        )
+        active = self.auto_trade_goods_investment.isChecked()
+        self.trade_goods_investment_panel.setVisible(active)
+        self.trade_goods_investment_mode.setEnabled(active and not self._busy)
 
     def _sync_pickup_controls(self, *_args: object) -> None:
-        self.auto_pickup_interval_sec.setEnabled(self.auto_pickup.isChecked() and not self._busy)
+        active = self.auto_pickup.isChecked()
+        self.pickup_timing_panel.setVisible(active)
+        self.auto_pickup_interval_sec.setEnabled(active and not self._busy)
 
     def _trailer_count(self) -> int:
         text = self.trailer_daily_first_n.text()
@@ -1993,7 +1950,9 @@ class TradePage(QWidget):
 
 
     def _sync_trailer_controls(self, *_args: object) -> None:
-        enabled = self.auto_trailer.isChecked() and not self._busy
+        active = self.auto_trailer.isChecked()
+        self.trailer_panel.setVisible(active)
+        enabled = active and not self._busy
         self.trailer_daily_first_n.setEnabled(enabled)
         self.trailer_payment.setEnabled(enabled)
         self._sync_actions()
@@ -2036,7 +1995,7 @@ class TradePage(QWidget):
             blocked = self.auto_black_moon_local_purchase.blockSignals(True)
             self.auto_black_moon_local_purchase.setChecked(not enabled)
             self.auto_black_moon_local_purchase.blockSignals(blocked)
-            QMessageBox.warning(self, "采购设置保存失败", str(exc))
+            QMessageBox.warning(self.parameter_panel, "采购设置保存失败", str(exc))
 
     def _commit_black_moon_table(self, table: dict[str, bool]) -> None:
         if self._busy:
@@ -2050,7 +2009,7 @@ class TradePage(QWidget):
     def _open_black_moon_settings(self) -> None:
         if self.preview_mode or self._black_moon_catalog is None:
             return
-        dialog = BlackMoonPurchaseDialog(self._black_moon_catalog, self._black_moon_table, self,
+        dialog = BlackMoonPurchaseDialog(self._black_moon_catalog, self._black_moon_table, self.parameter_panel,
                                         save=self._commit_black_moon_table, read_only=self._busy)
         self._black_moon_dialog = dialog
         try:
@@ -2349,7 +2308,9 @@ class TradePage(QWidget):
             self.auto_trade_goods_investment,
             self.trade_goods_investment_panel,
             self.auto_rubbish_recycling,
-            self.advanced_panel,
+            self.bargain_parameters,
+            self.account_parameters,
+            self.cities_button,
             self.start_city,
             self.book_usage,
             self.book_profit_threshold,
@@ -2362,10 +2323,6 @@ class TradePage(QWidget):
         ):
             if widget is not None:
                 widget.setEnabled(not busy)
-        for widget in self.city_selector.findChildren(QAbstractButton):
-            if widget is not self.city_selector_toggle:
-                widget.setEnabled(not busy)
-        self._sync_book_controls()
         self._sync_end_city_options()
         self._sync_mode_controls()
         self._sync_goods_investment_controls()
@@ -2390,7 +2347,7 @@ class TradePage(QWidget):
         currency_error = freight_currency_error({
             "trade_mode": self.trade_mode(),
             "available_city_ids": self.selected_city_ids(),
-            "required_end_city_ids": [] if self.automatic_end.isChecked() else [city for city, button in self.end_city_checks.items() if button.isChecked()],
+            "required_end_city_ids": self._required_end_cities() or [],
             "fixed_route_city_ids": [self.fixed_route.item(i).data(Qt.ItemDataRole.UserRole) for i in range(self.fixed_route.count())],
             "start_city_id": self.start_city.currentData() if self.preview_mode else "",
         })
@@ -2427,8 +2384,8 @@ class TradePage(QWidget):
             selected = self.selected_city_ids()
             if len(selected) < 2:
                 return "参与规划城市至少需要两个。"
-            if not self.automatic_end.isChecked():
-                ends = [city for city, button in self.end_city_checks.items() if button.isChecked()]
+            ends = self._required_end_cities()
+            if ends is not None:
                 if any(city not in selected for city in ends):
                     return "指定终点已不在可选城市内，请取消该终点或重新选择城市。"
                 if not ends:
