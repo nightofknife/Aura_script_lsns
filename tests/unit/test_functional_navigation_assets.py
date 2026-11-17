@@ -1,6 +1,6 @@
 """Byte/mode contracts for navigation and passenger controls without catalogs.
 
-The migration changes resource ownership only; visual states remain independent.
+Visual states have independent assets.
 Catalog-owned city, departure, warehouse and trailer assets have separate tests.
 """
 from hashlib import sha256
@@ -12,7 +12,7 @@ import pytest
 
 PLAN = Path(__file__).resolve().parents[2] / "plans/resonance_pc"
 
-# Snapshots taken before the functional directory migration.
+# Snapshots taken before the functional directory migration, plus the updated success title crop.
 CONTROLS = [
     ('templates/navigation/global/back.png', '98be348c46581cddfdc0575125d2b38c99ceb2958b4521837a996223f9c3e443', 'RGBA', (134, 46)),
     ('templates/navigation/global/city_main.png', 'c7dff2f7570d3ccb9dcb052b2170d9edcdc61b60c1c3dada1074889e40d365f2', 'RGBA', (82, 46)),
@@ -34,13 +34,13 @@ CONTROLS = [
     ('templates/passenger/dispatch/confirm.png', '3004e3bbe5e5205a404b1b1c0a0ff4ec5cc18fdd7d65df5c74c0baec2bdfd669', 'RGBA', (215, 60)),
     ('templates/passenger/amount/maximum.png', 'b28b3ba83627cb617b549d5e05d759c0a8f3335f7d4eab71d5567a8e9d9a6e6b', 'RGBA', (72, 65)),
     ('templates/passenger/amount/confirm.png', '7709c0e1679e2081afdb0b3af7f57ba185aa07ef29f88f7e646492ff6a76f6b0', 'RGBA', (230, 62)),
-    ('templates/passenger/recruitment/success.png', '130b722c920065cdc7339e9462efdfcfd0be7f00e0f24a488cfbaad38d6356a5', 'RGBA', (430, 100)),
+    ('templates/passenger/recruitment/success.png', 'de4a9406ee159016adcaf6beeeca8d9932e98f16e3a5cadd6898eee667e9ee30', 'RGBA', (312, 58)),
     ('templates/passenger/settlement/revenue.png', '7d493cc75f841106ddb49a281be97a958ffec25f70d03402e00cf34983d9e619', 'RGBA', (430, 105)),
 ]
 
 
 @pytest.mark.parametrize(("relative", "expected_sha", "mode", "size"), CONTROLS)
-def test_functional_controls_preserve_original_pixels_and_image_mode(relative, expected_sha, mode, size):
+def test_functional_controls_match_expected_pixels_and_image_mode(relative, expected_sha, mode, size):
     path = PLAN / relative
     assert path.resolve().is_relative_to((PLAN / "templates").resolve())
     assert sha256(path.read_bytes()).hexdigest() == expected_sha

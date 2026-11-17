@@ -1,11 +1,33 @@
 """Flyer receipts and irreversible recruitment boundaries."""
 import asyncio
+from pathlib import Path
 from types import SimpleNamespace as NS
 
 import pytest
 import numpy as np
+from PIL import Image
 
+from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions import passenger_pc_actions as p
+
+
+@pytest.mark.parametrize(("fixture", "expected_found"), [
+    ("success_banner.png", True),
+    ("destination_footer.png", False),
+])
+def test_recruitment_result_title_distinguishes_reported_screens(fixture, expected_found):
+    path = Path(__file__).resolve().parents[1] / "fixtures" / "passenger_recruitment" / fixture
+    with Image.open(path) as screen:
+        image = np.asarray(screen.convert("RGB"))
+
+    def capture(*, rect):
+        assert rect == (100, 505, 520, 180)
+        return NS(success=True, image=image)
+
+    match = p._match_template(NS(capture=capture), VisionService(),
+                              p._RECRUIT_SUCCESS_TEMPLATE, p._RECRUIT_SUCCESS_REGION)
+    assert match["valid"] is True
+    assert match["found"] is expected_found
 
 
 @pytest.fixture
