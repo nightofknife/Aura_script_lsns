@@ -8,6 +8,7 @@ from typing import Any, Dict, Optional, Tuple
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from ....aura_base.src.platform.contracts import TargetRuntimeError
 
 from ._depart_button_vision import DepartButtonError, probe_depart_button
 
@@ -53,6 +54,11 @@ def resonance_pc_require_client_resolution(app: Any = None) -> Dict[str, Any]:
     try:
         window_size = app.get_window_size()
     except Exception as exc:
+        if isinstance(exc, TargetRuntimeError) and exc.code in {
+            "bridge_restart_required", "bridge_capture_unsupported", "bridge_failed",
+            "input_bridge_unavailable", "input_bridge_load_failed", "input_session_busy", "viewport_changed",
+        }:
+            raise
         detail = {
             "expected": list(_REQUIRED_CLIENT_SIZE),
             "actual": None,

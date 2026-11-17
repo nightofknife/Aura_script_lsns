@@ -14,6 +14,7 @@ import cv2
 import numpy as np
 
 from ._deep_dive_four_view_geometry import FourViewGeometry, orientation_feedback
+from ._deep_dive_frame_source import stream_metadata
 from ._deep_dive_four_view_epoch_registration import EpochViewRegistration
 from ._deep_dive_four_view_reader import read_view_nodes, source_key
 from ._deep_dive_four_view_targets import associate_targets, VerticalTargetTracker
@@ -70,7 +71,7 @@ async def run_four_view_scan(app, *, max_steps=96,time_budget_sec=None,output_di
     active=dict(phase='initialize',view=None)
     fit_references={}
     views=[];groups=[];associations=[];frames=[];actions=[];trace=[]
-    adapter=app.target_runtime._get_or_create_session();last=None;frame_id=0;last_rgb=None
+    adapter=app.target_runtime.open_frame_stream();last=None;frame_id=0;last_rgb=None
     layout={};reset={};status='blocked';reason='four_view_scan_not_complete';last_scene={};unexpected_error=None
     async def owned(operation):
         value,cancelled=await runtime._await_serial(operation)
@@ -102,9 +103,7 @@ async def run_four_view_scan(app, *, max_steps=96,time_budget_sec=None,output_di
                               previous_source=previous_source,requested_at_monotonic=capture_started)
             raise RuntimeError('four_view_fresh_frame_missing')
         packet_received=time.monotonic()
-        image=packet['capture'];source=dict(generation_source='atomic_wgc',capture_backend=image.backend,
-            session_id=packet['session_id'],generation=packet['generation'],
-            frame_time=packet['arrived_at_monotonic'],frame_id=frame_id,map_revision=0)
+        image=packet['capture'];source=dict(stream_metadata(packet),frame_id=frame_id,map_revision=0)
         source_key(source)
         if (not image.success or image.image is None or time.monotonic()-source['frame_time']>.5):
             diagnostics.event('capture_rejected',label=label,source=source,reason='four_view_stale_capture',

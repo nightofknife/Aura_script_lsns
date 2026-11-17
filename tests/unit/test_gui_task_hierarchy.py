@@ -14,16 +14,12 @@ from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.logic import (
     PC_GAME_NAME, PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     extract_deep_dive_scan_result, extract_deep_dive_plan_result,
     extract_deep_dive_planned_run_result,
 )
 
 DEVELOPER_ROWS = [{"role": "developer", "task_ref": ref} for ref in (
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
 )]
 
 
@@ -66,7 +62,6 @@ def test_only_real_pages_and_visible_history_navigation(window):
 def test_developer_tools_require_available_catalog_and_build_once(window):
     page = window.small_tasks_page
     user = page.consciousness_deep_dive_panel
-    assert page.data_collection_panel is None
     assert page.deep_dive_developer_panel is None
     assert not hasattr(user, "scan_button")
     assert not hasattr(user, "plan_button")

@@ -87,8 +87,10 @@ template <int P> bool any_hook() {
 void event_hook(Obj es, Method m) { runtime.event_update(es, m); }
 void publish_callback() { runtime.publish(); }
 void complete_callback() { runtime.complete(); }
+void capture_callback() { runtime.capture_frame(); }
 using LoopFn = void (*)();
 LoopFn publish_slot = publish_callback, complete_slot = complete_callback;
+LoopFn capture_slot = capture_callback;
 template <class T> void hook(void *address, void *replacement, T &original) {
   if (std::find(hooks.begin(), hooks.end(), address) != hooks.end())
     throw Error("version_mismatch", "Unexpected input ABI target alias");
@@ -254,7 +256,7 @@ void Runtime::initialize(const Json &profile) {
   il.attach();
   capabilities_ = {{"absolute_pointer", false}, {"direct_drag", false}, {"scroll", false},
                    {"relative_look", false},    {"keyboard", false},    {"text_input", false},
-                   {"background_input", false}};
+                   {"background_input", false}, {"frame_stream", false}};
   auto s = MH_Initialize();
   if (s != MH_OK)
     throw Error("hook_install_failed", MH_StatusToString(s));
@@ -291,12 +293,14 @@ void Runtime::install_loop() {
     throw Error("loop_layout_unsupported", "Invalid PlayerLoop size");
   auto begin = static_cast<Node *>(il.data(array.get()));
   std::vector<Node> nodes(begin, begin + n);
-  size_t input = n;
+  size_t input = n, frame_end = n;
   for (size_t i = 0; i < n; i++)
     if (nodes[i].type) {
       auto name = il.utf8(il.call(nodes[i].type, "get_FullName"));
       if (name == "UnityEngine.PlayerLoop.EarlyUpdate+UpdateInputManager")
         input = i;
+      if (name == "UnityEngine.PlayerLoop.PostLateUpdate+TriggerEndOfFrameCallbacks")
+        frame_end = i;
     }
   if (input == n || nodes[input].count != 0)
     throw Error("loop_layout_unsupported", "UpdateInputManager leaf missing");
@@ -318,6 +322,12 @@ void Runtime::install_loop() {
   }
   if (parents[input] == n)
     throw Error("loop_layout_unsupported", "Input has no parent");
+  if (frame_end < n && frame_end > input && !nodes[frame_end].count && parents[frame_end] < n) {
+    for (size_t p = parents[frame_end]; p < n; p = parents[p])
+      nodes[p].count++;
+    nodes.insert(nodes.begin() + frame_end + 1, Node{nullptr, nullptr, &capture_slot, nullptr, 0, 0});
+    capture_loop_installed_ = true;
+  }
   const size_t insert = input + 1;
   for (size_t p = parents[input]; p < n; p = parents[p])
     nodes[p].count++;
@@ -362,7 +372,8 @@ void Runtime::uninstall_loop() {
       stack.push_back(i);
   }
   for (size_t i = nodes.size(); i-- > 0;)
-    if (nodes[i].function == &publish_slot || nodes[i].function == &complete_slot) {
+    if (nodes[i].function == &publish_slot || nodes[i].function == &complete_slot ||
+        nodes[i].function == &capture_slot) {
       if (nodes[i].count || parents[i] >= parents.size())
         throw Error("loop_layout_unsupported", "Bridge node shape changed");
       for (size_t p = parents[i]; p < parents.size(); p = parents[p])
@@ -374,6 +385,7 @@ void Runtime::uninstall_loop() {
   il.stat(loop, "SetPlayerLoopInternal", {replacement.get()});
   loop_root_ = std::move(replacement);
   loop_installed_ = false;
+  capture_loop_installed_ = false;
 }
 void Runtime::event_update(Obj es, Method m) {
   bool saved = false, changed = false;
@@ -413,12 +425,16 @@ void Runtime::observe() {
     auto qualified = profile_.value("qualified_capabilities", Json::object());
     for (auto it = capabilities_.begin(); it != capabilities_.end(); ++it)
       it.value() = qualified.value(it.key(), false);
+    capabilities_["frame_stream"] = capture_loop_installed_ && qualified.value("frame_stream", false);
   }
 }
 Json Runtime::result() {
+  Json viewport = {{"width", width_}, {"height", height_}, {"generation", generation_}};
+  if (IsIconic(window_))
+    viewport["minimized"] = true;
   return {{"state", state_},
           {"capabilities", capabilities_},
-          {"viewport", {{"width", width_}, {"height", height_}, {"generation", generation_}}},
+          {"viewport", std::move(viewport)},
           {"position", {client_position().x, client_position().y}},
           {"frame", frame_},
           {"completed_frame", completed_frame_},
@@ -434,25 +450,29 @@ Vec2 Runtime::coordinate(double x, double y) const {
   return {float(std::clamp(x, 0.0, double(width_ - 1))),
           float(height_) - float(std::clamp(y, 0.0, double(height_ - 1)))};
 }
-void Runtime::verify_viewport(const Json &v) {
-  if (!IsWindow(window_) || IsIconic(window_))
-    throw Error("viewport_invalid", "Game window unavailable or minimized");
+void Runtime::verify_viewport(const Json &v, bool handshake) {
+  if (!IsWindow(window_))
+    throw Error("viewport_invalid", "Game window unavailable");
   DWORD pid{};
   GetWindowThreadProcessId(window_, &pid);
   if (pid != GetCurrentProcessId())
     throw Error("viewport_invalid", "Window belongs to another process");
-  RECT r{};
-  if (!GetClientRect(window_, &r) || r.right <= 0 || r.bottom <= 0)
-    throw Error("viewport_invalid", "Invalid client area");
-  if (r.right != width_ || r.bottom != height_ || v.value("generation", generation_) != generation_)
+  if (v.value("generation", generation_) != generation_)
     throw Error("viewport_changed", "Viewport changed during input");
   auto screen = il.klass("UnityEngine", "Screen");
   int w = il.scalar<int>(il.stat(screen, "get_width")),
       h = il.scalar<int>(il.stat(screen, "get_height"));
+  if (w <= 0 || h <= 0)
+    throw Error("viewport_invalid", "Unity has no usable input dimensions");
+  if (handshake && width_ == 0 && height_ == 0) {
+    width_ = w;
+    height_ = h;
+  }
   if (w != width_ || h != height_)
-    throw Error("viewport_mapping_unsupported",
-                "Render and client dimensions must match this profile");
+    throw Error("viewport_changed", "Unity render dimensions changed during input");
 }
+
+void Runtime::capture_frame() { frame_stream_.publish(frame_, window_); }
 void Runtime::reply(const std::shared_ptr<Command> &c, const std::string &status,
                     const std::string &code, const std::string &message, Json r) {
   Json q = {{"version", 1},
@@ -667,7 +687,7 @@ void Runtime::begin(const std::shared_ptr<Command> &c) {
     width_ = v.at("width");
     height_ = v.at("height");
     generation_ = v.value("generation", uint64_t(1));
-    verify_viewport(v);
+    verify_viewport(v, true);
     if (!owner_process_) {
       DWORD owner = c->request.value("_client_pid", DWORD(0));
       if (!owner)
@@ -704,9 +724,21 @@ void Runtime::begin(const std::shared_ptr<Command> &c) {
     stage_ = 99;
     return;
   }
+  if (op_ == "stream_stop") {
+    frame_stream_.close();
+    stage_ = 99;
+    return;
+  }
   if (!owned_)
     throw Error("session_invalid", "Input ownership not acquired");
   verify_viewport(c->request.value("viewport", Json::object()));
+  if (op_ == "stream_start") {
+    if (!capabilities_.value("frame_stream", false))
+      throw Error("bridge_capture_unsupported", "This Unity profile has no frame-end capture");
+    frame_stream_.open(c->request.at("session"), owner_pid_, width_, height_);
+    stage_ = 99;
+    return;
+  }
   if (op_ == "release_all") {
     std::lock_guard<std::mutex> l(snapshot_mutex_);
     snapshot_.up = snapshot_.held;
@@ -1067,6 +1099,7 @@ void Runtime::cleanup(bool cancel) {
   direct_ = false;
 }
 void Runtime::restore() {
+  frame_stream_.close();
   owned_ = false;
   if (owner_process_) {
     CloseHandle(owner_process_);
@@ -1079,6 +1112,7 @@ void Runtime::restore() {
   }
 }
 void Runtime::fail(std::string code, std::string reason) {
+  frame_stream_.close();
   owned_ = false;
   direct_ = false;
   std::lock_guard<std::mutex> l(mutex_);

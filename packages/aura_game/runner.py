@@ -254,9 +254,14 @@ class EmbeddedGameRunner:
             row = rows[0] if rows else {}
             status = str(row.get("status") or "").strip().lower()
             if status in _TERMINAL_STATUSES:
+                detail = _normalize_run_row(runtime.get_run_detail(cid))
+                if (detail.get("plan_name") == "resonance_pc" and not detail.get("parent_cid")
+                        and not self.close_task_input(cid)):
+                    time.sleep(max(float(poll_interval_sec), 0.05))
+                    continue
                 return {
                     "summary": _normalize_run_row(row),
-                    "detail": _normalize_run_row(runtime.get_run_detail(cid)),
+                    "detail": detail,
                 }
             time.sleep(max(float(poll_interval_sec), 0.05))
 

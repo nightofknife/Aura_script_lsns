@@ -69,6 +69,10 @@ class TargetRuntimeService:
             result = capture(allow_cold_capture=True)
         else:
             result = capture()
+        return self._encode_failure_capture(result)
+
+    @staticmethod
+    def _encode_failure_capture(result):
         if not result.success or result.image is None:
             raise TargetRuntimeError("diagnostic_capture_failed", "Target frame is unavailable.")
         import cv2
@@ -103,6 +107,10 @@ class TargetRuntimeService:
         if backend is not None:
             self.set_capture_backend(backend)
         return self._call_session("capture", rect)
+
+    def open_frame_stream(self):
+        """Pin the runtime's frame source before handing it to a background reader."""
+        return self._get_or_create_session()
 
     def get_client_rect(self) -> tuple[int, int, int, int] | None:
         return self._call_session("get_client_rect")

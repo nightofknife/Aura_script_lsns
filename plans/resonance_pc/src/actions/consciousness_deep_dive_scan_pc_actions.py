@@ -21,7 +21,9 @@ from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
+from ....aura_base.src.platform.contracts import TargetRuntimeError
 
+from ._deep_dive_frame_source import has_atomic_source, stream_metadata
 from ._deep_dive_single_run_vision import observe as observe_scene
 from ._deep_dive_layout_vision import LayoutScanner, BASES
 from ._deep_dive_layout_report import write_layout_report
@@ -74,19 +76,22 @@ def _observe(image, frame_id=None):
     return observed
 
 
-def _capture_metadata(app, capture, *, frame_id=None):
-    metadata = dict(frame_id=frame_id, frame_time=time.monotonic(),
-                    generation=None, session_id=None,
-                    capture_backend=getattr(capture, 'backend', None))
+def _settled_stream(app):
     try:
-        adapter = app.target_runtime._get_or_create_session()
-        check = adapter.capture_backend.self_check()
-        metadata.update(generation=check.get('generation'),
-                        session_id=getattr(getattr(adapter.capture_backend, '_session', None), 'stream_id', None),
-                        generation_source='post_capture_health')
-    except (AttributeError, KeyError, TypeError):
-        pass
-    return metadata
+        return app.target_runtime.open_frame_stream()
+    except AttributeError:
+        return None
+
+
+def _poll_frames(stream, *args, **kwargs):
+    if stream is None:
+        return None
+    try:
+        return stream.capture_stream_frame(*args, **kwargs)
+    except TargetRuntimeError as error:
+        if error.code != 'capture_stream_unsupported':
+            raise
+        return None
 
 
 async def _capture_serial(app, timeout=None):
@@ -102,16 +107,12 @@ async def _capture_serial(app, timeout=None):
         raise asyncio.CancelledError()
     control = _SCAN_CONTROL.get()
     if control is not None:
-        metadata = _capture_metadata(app, capture)
-        try:
-            packet = app.target_runtime._get_or_create_session().capture_stream_frame()
-        except (AttributeError, RuntimeError):
-            packet = None
+        metadata = dict(frame_time=time.monotonic(), session_id=None, generation=None,
+                        capture_backend=getattr(capture, 'backend', None))
+        packet = _poll_frames(_settled_stream(app))
         if packet is not None:
             capture = packet['capture']
-            metadata.update(generation=packet['generation'], session_id=packet['session_id'],
-                            frame_time=packet['arrived_at_monotonic'], generation_source='atomic_wgc',
-                            capture_backend=getattr(capture, 'backend', None))
+            metadata = stream_metadata(packet)
         control['latest_frame_metadata'] = metadata
     return capture
 
@@ -142,29 +143,37 @@ async def _await_serial(operation):
 
 
 async def _capture_after_input(app, fallback_wait=.04):
-    """Wait for two WGC generations after input; return (capture, metadata)."""
-    backend = None
-    generation = None
+    """Wait for two newly published generations from the same frame stream."""
+    stream = _settled_stream(app)
     try:
-        backend = app.target_runtime._get_or_create_session().capture_backend
-        generation = backend.self_check().get('generation')
-    except (AttributeError, KeyError, TypeError):
-        pass
-    freshness = {'method': 'delay_fallback', 'wait_sec': fallback_wait}
-    if isinstance(generation, (int, float)):
-        deadline = time.monotonic()+.5
-        current = generation
-        while current < generation+2:
-            _cancel_check()
-            if time.monotonic() >= deadline:
-                raise RuntimeError('fresh_frame_generation_timeout')
-            await asyncio.sleep(.005)
-            current = backend.self_check().get('generation', generation)
-        freshness = {'method': 'wgc_generation', 'before': generation, 'after': current}
-    else:
+        baseline = stream.capture_stream_frame() if stream is not None else None
+    except TargetRuntimeError as error:
+        if error.code != 'capture_stream_unsupported':
+            raise
+        stream, baseline = None, None
+    if stream is None:
         await asyncio.sleep(fallback_wait)
-    capture = await _capture_serial(app)
-    return capture, freshness
+        return await _capture_serial(app), {'method': 'delay_fallback', 'wait_sec': fallback_wait}
+    started = time.monotonic()
+    session = baseline['session_id'] if baseline else None
+    generation = baseline['generation'] if baseline else None
+    last = generation if generation is not None else -1
+    while time.monotonic() - started < .5:
+        _cancel_check()
+        packet = stream.capture_stream_frame(after_generation=last, expected_session_id=session)
+        if packet is not None:
+            last = packet['generation']
+            if session is None:
+                session, generation = packet['session_id'], last
+            elif packet['session_id'] != session:
+                raise TargetRuntimeError('capture_stream_replaced', 'Frame session changed while waiting after input')
+            if last >= generation + 2 and packet['arrived_at_monotonic'] > started:
+                control = _SCAN_CONTROL.get()
+                if control is not None:
+                    control['latest_frame_metadata'] = stream_metadata(packet)
+                return packet['capture'], {'method': 'frame_generation', 'before': generation, 'after': last}
+        await asyncio.sleep(.005)
+    raise RuntimeError('fresh_frame_generation_timeout')
 
 
 def _gesture_path(scanner, direction, distance, *, inset_fallback=True):
@@ -215,14 +224,13 @@ def _gesture_path(scanner, direction, distance, *, inset_fallback=True):
 
 
 def _calibration_observe(scanner, image, frame_id, metadata, *, semantic=False):
-    """Track actual WGC calibration frames; explicitly refine settled endpoints."""
+    """Track actual runtime frames and explicitly refine settled endpoints."""
     source = dict(metadata or {})
     stamp = source.get('frame_time')
     session = source.get('session_id')
     previous = getattr(scanner, '_calibration_source', None)
     now = time.monotonic()
-    valid = (source.get('generation_source') == 'atomic_wgc'
-        and source.get('capture_backend') == 'wgc' and source.get('frame_id') == frame_id
+    valid = (has_atomic_source(source) and source.get('frame_id') == frame_id
         and type(frame_id) is int and frame_id >= 0
         and type(source.get('generation')) is int and source['generation'] >= 0
         and isinstance(session, (str, int)) and not isinstance(session, bool) and session != ''
@@ -370,7 +378,7 @@ async def _segmented_drag(app, scanner, start, end, duration, frame_wait,
 async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
                            started, deadline, step_limit):
     """Own input here; the independent worker exclusively owns scanner state."""
-    adapter = app.target_runtime._get_or_create_session()
+    adapter = app.target_runtime.open_frame_stream()
     control = _SCAN_CONTROL.get()
     stream_observer=control['observe_fn'] if control else None
     # Only substitute the exact public board observer. User-supplied hooks and
@@ -648,7 +656,7 @@ async def _continuous_scan(app, scanner, policy, output_dir, frames, actions,
         try:
             await release()
         finally:
-            # Never close/rebind the runtime while the WGC reader is alive.
+            # Keep the runtime bound until the frame reader exits.
             _, was_cancelled = await _await_serial(asyncio.to_thread(stream.stop))
             cancelled |= was_cancelled
             # Persist measured costs only after every owner has drained,
@@ -1082,7 +1090,7 @@ async def _run_layout_scan(
                   elapsed_sec=round(time.monotonic() - started, 3),
                   frames=frames, actions=actions,
                   reset=reset, last_frame=last_frame, streaming=streaming,
-                  capture_freshness="wgc_atomic_latest_frame_with_generation_and_arrival_time" if streaming else
+                  capture_freshness="atomic_latest_frame_with_generation_and_arrival_time" if streaming else
                   "serial_calibration_capture_with_generation_gate")
     # A snapshot is still useful for manual review after an interrupted scan,
     # but it must never be advertised as a current actionable layout.
@@ -1253,7 +1261,7 @@ async def scan_consciousness_deep_dive_layout(max_steps: int = 96, time_budget_s
         captures = []
         for attempt in range(2):
             if attempt == 0:
-                # Start WGC before waiting on its generations. At task startup
+                # Warm up the frame source before waiting on its generations. At task startup
                 # no capture producer necessarily exists yet.
                 capture = await _capture_serial(app)
             else:

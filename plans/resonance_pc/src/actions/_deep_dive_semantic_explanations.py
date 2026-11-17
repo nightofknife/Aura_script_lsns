@@ -9,6 +9,7 @@ import math
 import time
 
 from . import _deep_dive_planned_run_vision as vision
+from ._deep_dive_frame_source import is_stream_backend, same_stream_backend
 from ._deep_dive_hud_invariant import HudInvariant
 from ._deep_dive_established_target_explainer import (
     explain_established_targets, apply_current_explanations)
@@ -21,7 +22,7 @@ def _packet_source(packet):
     source = {key: packet.get(key) for key in _SOURCE_KEYS}
     source['capture_backend'] = packet.get('capture_backend')
     session = source['session_id']
-    if (source['capture_backend'] != 'wgc'
+    if (not is_stream_backend(source['capture_backend'])
             or any(type(source[key]) is not int or source[key] < 0
                    for key in ('frame_id', 'generation', 'map_revision'))
             or not (type(session) is int and session >= 0
@@ -34,7 +35,7 @@ def _packet_source(packet):
 
 def _same_source(first, second):
     return (isinstance(first, dict) and all(first.get(key) == second[key] for key in _SOURCE_KEYS)
-            and first.get('capture_backend', first.get('backend')) == 'wgc')
+            and same_stream_backend(first, second))
 
 
 def _bind_proof(proof, source):

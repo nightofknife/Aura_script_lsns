@@ -1,4 +1,4 @@
-# Resonance mouse input bridge
+# Resonance input and capture bridge
 
 This plan-owned Windows x64 bridge preserves the existing `app`/`controller` API.
 It uses a native host and local named pipes; Frida is not a runtime dependency.
@@ -16,13 +16,15 @@ resonance_pc:
 
 Start the game normally, then run an existing task. The first bridge operation
 loads `assets/input_bridge/resonance_bridge_host.dll` using the adjacent loader.
-The process must match a fingerprint profile and have a visible, non-minimized
-client area. The qualified profile currently requires a 1:1 client/render size.
-WGC remains the framework screenshot backend.
+The process must match a fingerprint profile. Bridge tasks use Unity's
+1280×720 render viewport for both input and capture, including while minimized.
+Frames are read at the end of Unity's render loop and published to a local
+shared-memory buffer at up to 30 FPS. The same stream continues across window
+minimize and restore. System mode uses the configured WGC capture path.
 
-Switch modes only with no held buttons/keys or running gestures. The bridge never
-falls back to SendInput. Explicit `app.focus()` still focuses the OS window;
-`focus_with_input()` in bridge mode only acquires logical input readiness.
+Switch modes only with no held buttons/keys or running gestures. Bridge mode's
+`app.focus()` and `focus_with_input()` check logical input readiness. Restart
+the game if the resident bridge predates frame capture.
 
 ## Operations
 
@@ -67,8 +69,8 @@ merely successful DLL loading; changing hashes alone is not an update procedure.
 The host owns a frame snapshot and executes Unity operations on the main thread.
 Pipe replies are bounded, session/sequence checked and pinned to the process
 creation identity. Unknown outcomes are never replayed. Client process death
-cancels owned input and restores background/focus behavior. Closing a session
-leaves the native module inert and reusable until the game exits; it does not
-force-unload code still referenced by Unity.
+cancels owned input and restores background/focus behavior. Once a root task
+and its readers finish, Aura stops frame production and closes the session and
+the shared buffer. The native module remains available until the game exits.
 
 Current live qualification and limitations are in `../docs/input-bridge-native-results.md`.

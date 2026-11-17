@@ -10,11 +10,9 @@ from PySide6.QtWidgets import QApplication
 from packages.resonance_gui.bridge import RunnerBridge, DEEP_DIVE_PLANNED_RUN_PROGRESS_EVENT
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.logic import (
-    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_GAME_NAME,
 )
 from packages.resonance_gui.main_window import ResonanceMainWindow
@@ -37,7 +35,6 @@ def window(tmp_path, monkeypatch):
 def open_developer(page):
     page.set_available_tasks([{"role": "developer", "task_ref": ref} for ref in (
         PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-        PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     )])
     page.show_developer_tools()
 
@@ -77,21 +74,6 @@ def test_planned_run_uses_its_safety_limit_and_consumes_progress_snapshot(window
         "scan_progress": {"view_index": 2}, "turns_completed": 3}}})
     assert "视角 2/4" in panel.status_label.text()
     assert "已完成回合：3" in panel.summary_label.text()
-
-
-@pytest.mark.parametrize("entry,task_ref", [
-    ("capture_button", PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF),
-    ("sensitivity_probe_button", PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF),
-])
-def test_data_collection_entries_still_dispatch_through_existing_panel(window, entry, task_ref):
-    page = window.small_tasks_page
-    open_developer(page)
-    assert page.detail_stack.currentWidget() is page._developer_page
-    calls = []
-    window.requestRunPcTask.connect(lambda *args: calls.append(args))
-    getattr(page.data_collection_panel, entry).click()
-    assert len(calls) == 1 and calls[0][0] == task_ref
-    assert page.data_collection_panel._task_running
 
 
 @pytest.mark.parametrize("task_ref,field,result,runner_status,expected", [
@@ -140,7 +122,7 @@ def test_planned_run_bridge_ignores_stale_foreign_and_duplicate_events(window):
     bridge._consume_events([event("foreign", 9), event("current", 1), event("current", 1),
                             event("current", 0), event("current", 2, "wrong"), event("current", 2)])
     assert [row["payload"]["sequence"] for row in events] == [1, 2]
-    bridge._current_item = {"task_ref": PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF}
+    bridge._current_item = {"task_ref": PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF}
     bridge._consume_events([event("current", 3)])
     assert len(events) == 2
     bridge.deleteLater()

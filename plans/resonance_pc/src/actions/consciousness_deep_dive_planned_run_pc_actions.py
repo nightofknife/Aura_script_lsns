@@ -23,6 +23,7 @@ from packages.aura_core.observability.logging.core_logger import current_cid, lo
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
+from ....aura_base.src.platform.contracts import TargetRuntimeError
 
 from ._deep_dive_planned_run_vision import observe, read_hud, enrich_observation, NODE_EVENT_TYPES
 from .consciousness_deep_dive_scan_pc_actions import run_layout_scan, reset_layout_view
@@ -153,12 +154,15 @@ async def _capture(app, family='healing'):
         return None, dict(valid=False, scene='capture_failed')
     source = None
     try:
-        packet = app.target_runtime._get_or_create_session().capture_stream_frame()
+        packet = app.target_runtime.open_frame_stream().capture_stream_frame()
         if packet is not None and time.monotonic()-packet['arrived_at_monotonic'] <= .35:
             capture = packet['capture']
             source = dict(session_id=packet['session_id'], generation=packet['generation'],
                           frame_time=packet['arrived_at_monotonic'], capture_backend=capture.backend)
-    except (AttributeError, RuntimeError, KeyError):
+    except TargetRuntimeError as error:
+        if error.code != 'capture_stream_unsupported':
+            raise
+    except (AttributeError, KeyError):
         pass
     observed = observe(capture.image, event_family=family)
     if source is not None:

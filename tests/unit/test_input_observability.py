@@ -233,6 +233,49 @@ def test_bridge_actual_mode_includes_override_and_deduplicates(monkeypatch):
                              "gui_bridge_override": "0", "bridge_enabled": False}
 
 
+def test_bridge_click_uses_unity_dimensions_across_window_states(monkeypatch):
+    calls = []
+    minimized = True
+
+    def visible_geometry():
+        pytest.fail("bridge must not call the desktop runtime")
+
+    def visible_target():
+        visible_geometry()
+        return {"pid": 101, "hwnd": 202}
+
+    config = {"runtime": {"provider": "windows", "target": {"mode": "hwnd", "hwnd": 202}}}
+    runtime = runtimes.TargetRuntimeService(config)
+    monkeypatch.setattr(runtime, "target_summary", visible_target)
+    monkeypatch.setattr(runtime, "get_client_rect", visible_geometry)
+    service = bridges.ResonancePcInputBridgeService(SimpleNamespace(target_runtime=runtime))
+    monkeypatch.setattr(bridges, "resolve_window_candidate", lambda _: SimpleNamespace(pid=101, hwnd=202))
+    monkeypatch.setattr(bridges.win32gui, "IsWindow", lambda hwnd: hwnd == 202)
+    monkeypatch.setattr(bridges.win32gui, "IsIconic", lambda hwnd: minimized)
+    monkeypatch.setattr(bridges.win32process, "GetWindowThreadProcessId", lambda hwnd: (1, 101))
+
+    def request(op, args=None, viewport=None, timeout=10.0, cancel_token=None):
+        if op == "status":
+            return {"result": {"state": "ready", "capabilities": {"frame_stream": True}}}
+        calls.append((op, dict(args or {}), dict(viewport or {})))
+        if op == "hello":
+            return {"result": {"viewport": {**viewport, "width": 1280, "height": 720},
+                               "position": (640, 360), "capabilities": {"absolute_pointer": True}}}
+        return {}
+
+    monkeypatch.setattr(bridges, "BridgeClient", lambda pid: SimpleNamespace(uncertain=False, request=request))
+    service.click(150, 655, interval=0)
+    assert calls[0] == ("hello", {"hwnd": 202}, {"width": 0, "height": 0, "generation": 1, "minimized": True})
+    assert calls[1][0] == "click"
+    assert (calls[1][1]["x"], calls[1][1]["y"]) == (150, 655)
+    assert calls[1][2] == {"width": 1280, "height": 720, "generation": 1, "minimized": True}
+
+    minimized = False
+    service.click(150, 655, interval=0)
+    assert [op for op, _, _ in calls] == ["hello", "click", "click"]
+    assert calls[-1][2]["generation"] == 1
+
+
 def test_bridge_worker_is_tracked_until_cancel_cleanup_finishes(monkeypatch):
     service = bridges.ResonancePcInputBridgeService(SimpleNamespace(target_runtime=SimpleNamespace(config={})))
     entered, release = threading.Event(), threading.Event()
