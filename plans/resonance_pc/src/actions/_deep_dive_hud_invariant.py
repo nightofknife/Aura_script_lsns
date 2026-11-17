@@ -15,6 +15,7 @@ import numpy as np
 
 from . import _deep_dive_planned_run_vision as vision
 from . import _deep_dive_hud_templates as templates
+from ._deep_dive_frame_source import is_stream_backend
 
 FIELDS = ('plane_index', 'rounds_remaining', 'moves_used', 'moves_total',
           'rotations_used', 'rotations_total', 'collected_count', 'inspiration_total')
@@ -44,7 +45,9 @@ def _source(source, now):
             or isinstance(captured, bool) or not isinstance(captured, (int, float))
             or not math.isfinite(captured)):
         raise ValueError('hud_invariant_source_invalid')
-    if backend not in {'wgc', 'windows_graphics_capture', 'windowsgraphicscapture'}:
+    if backend in {'windows_graphics_capture', 'windowsgraphicscapture'}:
+        backend = 'wgc'
+    if not is_stream_backend(backend):
         raise ValueError('hud_invariant_requires_wgc')
     age = now-float(captured)
     if not 0 <= age <= .5:
@@ -120,6 +123,7 @@ class HudInvariant:
     def _advance(self, source):
         if self._last_source is not None and (
                 source['session_id'] != self._last_source['session_id']
+                or source['capture_backend'] != self._last_source['capture_backend']
                 or source['generation'] <= self._last_source['generation']
                 or source['frame_time'] <= self._last_source['frame_time']):
             raise ValueError('hud_invariant_source_not_advanced')

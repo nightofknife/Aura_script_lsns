@@ -72,7 +72,7 @@ def test_continuous_owner_selects_face_policy_and_drains_without_game_input(tmp_
     monkeypatch.setattr(scan, 'ScanVisionStream', lambda *args, **kwargs: Stream())
     monkeypatch.setattr(scan, '_completion', lambda result: (False, 'not_ready'))
     monkeypatch.setattr(scan, '_progress', lambda **kwargs: None)
-    app = SimpleNamespace(target_runtime=SimpleNamespace(_get_or_create_session=lambda: None))
+    app = SimpleNamespace(target_runtime=SimpleNamespace(open_frame_stream=lambda: None))
     token = scan._SCAN_CONTROL.set(dict(scan_route=route, recognition_goal='targets',
                                       observe_fn=None))
     try:

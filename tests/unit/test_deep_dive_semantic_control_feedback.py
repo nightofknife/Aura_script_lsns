@@ -35,7 +35,7 @@ def test_fresh_semantic_revision_on_same_geometry_reaches_policy(tmp_path, monke
     monkeypatch.setattr(scan, 'CellScanPolicy', lambda **_kwargs: policy)
     monkeypatch.setattr(scan, '_completion', lambda *_: (False, 'not_ready'))
     monkeypatch.setattr(scan, '_progress', lambda **_kwargs: None)
-    app = SimpleNamespace(target_runtime=SimpleNamespace(_get_or_create_session=lambda: None))
+    app = SimpleNamespace(target_runtime=SimpleNamespace(open_frame_stream=lambda: None))
     started = time.monotonic()
     status, reason, *_ = asyncio.run(scan._continuous_scan(app, None,
         SimpleNamespace(base_step_px=300, max_step_px=450), tmp_path, [], [],
@@ -55,7 +55,7 @@ def test_semantic_updates_cannot_renew_input_allowance_on_same_pose(tmp_path, mo
         async def mouse_up_async(self, *_args): self.releases += 1
     class App:
         controller = Controller()
-        target_runtime = SimpleNamespace(_get_or_create_session=lambda: None)
+        target_runtime = SimpleNamespace(open_frame_stream=lambda: None)
         async def move_to_async(self, *_args, **_kwargs): pass
     began = time.monotonic()
     def snapshot(revision):
@@ -117,7 +117,7 @@ def test_cancel_check_still_persists_costs_after_stream_owner_drains(tmp_path, m
     def cancel():
         raise asyncio.CancelledError()
     monkeypatch.setattr(scan, '_cancel_check', cancel)
-    app = SimpleNamespace(target_runtime=SimpleNamespace(_get_or_create_session=lambda:None))
+    app = SimpleNamespace(target_runtime=SimpleNamespace(open_frame_stream=lambda: None))
     began = time.monotonic()
     with pytest.raises(asyncio.CancelledError):
         asyncio.run(scan._continuous_scan(app, None,

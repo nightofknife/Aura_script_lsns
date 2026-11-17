@@ -8,6 +8,7 @@
     "absolute_pointer": true,
     "direct_drag": true,
     "scroll": true,
-    "background_input": true
+    "background_input": true,
+    "frame_stream": true
   }
 }

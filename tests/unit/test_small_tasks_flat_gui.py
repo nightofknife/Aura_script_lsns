@@ -15,13 +15,11 @@ from packages.resonance_gui.widgets.small_tasks_page import SmallTasksPage
 from packages.resonance_gui.widgets.team_recommendation_panel import TeamRecommendationPanel
 from packages.resonance_gui.logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
 )
 
 def open_developer(page):
     page.set_available_tasks([{"role": "developer", "task_ref": ref} for ref in (
         PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-        PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF, PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     )])
     page.show_developer_tools()
 
@@ -49,8 +47,6 @@ def test_flat_navigation_reserves_detail_workspace(page):
     assert page.layout().count() == 2
     assert not hasattr(page, "category_list")
     assert not hasattr(page, "category_panel")
-    assert page.data_collection_panel is None
-    assert "data_collection" not in page._task_pages
     assert page.detail_stack.count() == 7
     assert page.task_panel.minimumWidth() == 140
     assert page.task_panel.maximumWidth() == 210
@@ -90,14 +86,12 @@ def test_preview_can_return_to_trade_without_running_or_rebuilding(page):
     assert page.trade_preview_panel is original_panel
 
 
-def test_data_collection_has_explicit_lazy_developer_entry(page):
-    ids = [page.task_list.item(i).data(Qt.ItemDataRole.UserRole)
-           for i in range(page.task_list.count())]
-    assert "data_collection" not in ids
-    assert page.data_collection_panel is None
+def test_scan_and_planning_have_one_lazy_developer_panel(page):
+    assert page.deep_dive_developer_panel is None
     open_developer(page)
-    assert page.current_task_id == "data_collection"
-    assert page.detail_stack.currentWidget() is page._developer_page
+    assert page.current_task_id == "consciousness_deep_dive"
+    assert page.detail_stack.currentWidget() is page.deep_dive_developer_panel
+    assert page.detail_stack.count() == page.task_list.count() + 1
     page.show_trade_preview()
     assert page.detail_stack.currentWidget() is page.trade_preview_panel
 
@@ -150,17 +144,3 @@ def test_team_status_and_controls_stay_below_result_workspace():
     assert panel.run_button.isEnabled()
     panel.close()
     app.processEvents()
-
-
-def test_capture_status_api_keeps_existing_panel(page):
-    open_developer(page)
-    page.begin_consciousness_deep_dive_capture_run({"sensitivity": "slow"})
-    page.set_runner_busy(True)
-    assert not page.task_list.isEnabled()
-    page.set_runner_busy(False)
-    page.apply_consciousness_deep_dive_capture_result({"success": True})
-    assert page.task_list.isEnabled()
-    page.begin_consciousness_deep_dive_sensitivity_probe_run()
-    page.show_consciousness_deep_dive_sensitivity_probe_error("测试失败")
-    assert page.task_list.isEnabled()
-    assert page.data_collection_panel is not None

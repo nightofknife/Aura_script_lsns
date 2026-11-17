@@ -62,7 +62,7 @@ class App(SharedResource):
         super().__init__(events)
         self.controller = Controller(events)
         self.session = FakeSession(events)
-        self.target_runtime = SimpleNamespace(_get_or_create_session=lambda: self.session)
+        self.target_runtime = SimpleNamespace(open_frame_stream=lambda: self.session)
 
     def get_window_size(self):
         return 1280, 720

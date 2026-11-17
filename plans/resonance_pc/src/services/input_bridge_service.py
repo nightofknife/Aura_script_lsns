@@ -12,6 +12,8 @@ import threading
 import time
 
 import psutil
+import win32gui
+import win32process
 
 from packages.aura_core.api import service_info
 from packages.aura_core.context.plan import current_plan_name
@@ -22,7 +24,9 @@ from packages.aura_core.observability.runtime_trace import (
 from packages.aura_core.scheduler.operation_scope import target_operation_guard
 from ....aura_base.src.platform.contracts import TargetRuntimeError
 from ....aura_base.src.platform.runtime_config import resolve_runtime_config
+from ....aura_base.src.platform.windows.window_selector import resolve_window_candidate
 from ..bridge.client import BridgeClient
+from ..bridge.frame_stream import BridgeFrameStream
 
 _CANCEL_TOKEN = contextvars.ContextVar("resonance_bridge_cancel_token", default=None)
 
@@ -46,12 +50,13 @@ def mouse_button(value):
 
 
 @service_info(alias="resonance_pc_input_bridge", public=True,
-              deps={"screen": "plans/aura_base/screen"})
+              deps={"config": "core/config"})
 class ResonancePcInputBridgeService:
-    def __init__(self, screen):
-        self.target_runtime = screen.target_runtime
-        self.config = self.target_runtime.config
+    def __init__(self, screen=None, *, config=None):
+        self.target_runtime = screen.target_runtime if screen is not None else None
+        self.config = config if config is not None else self.target_runtime.config
         self._client = None
+        self._frame_stream = None
         self._session_root_cid = None
         self._lock = threading.RLock()
         self._state_lock = threading.Lock()
@@ -180,27 +185,31 @@ class ResonancePcInputBridgeService:
             raise TargetRuntimeError("input_bridge_load_failed", result.stderr or result.stdout,
                                      {"returncode": result.returncode})
 
+    def _bridge_target(self):
+        # The desktop adapter must never bind or recover a window in bridge mode.
+        if self._identity is not None:
+            pid, hwnd = self._identity[:2]
+            if win32gui.IsWindow(hwnd) and win32process.GetWindowThreadProcessId(hwnd)[1] == pid:
+                return pid, hwnd
+            raise TargetRuntimeError("viewport_changed", "Bridge target window or process changed")
+        candidate = resolve_window_candidate(resolve_runtime_config(self.config).target)
+        if not candidate.pid:
+            raise TargetRuntimeError("input_viewport_invalid", "Bridge needs a live game process")
+        return candidate.pid, candidate.hwnd
+
     def _ready(self):
-        summary = self.target_runtime.target_summary()
-        rect = self.target_runtime.get_client_rect()
-        pid, hwnd = int(summary.get("pid") or 0), int(summary.get("hwnd") or 0)
-        if not pid or not hwnd or rect is None or int(rect[2]) <= 0 or int(rect[3]) <= 0:
-            raise TargetRuntimeError("input_viewport_invalid", "Bridge needs a live, non-minimized client area.")
-        identity = (pid, hwnd, int(rect[2]), int(rect[3]))
-        changed = self._identity != identity
-        if changed:
+        root_cid = current_root_cid()
+        if self._client is not None and self._session_root_cid != root_cid:
+            raise TargetRuntimeError("input_session_busy", "Another task owns the bridge session")
+        pid, hwnd = self._bridge_target()
+        if self._identity is None:
             self._needs_hello = True
-            if self._held:
-                self.cancel_input()
-                raise TargetRuntimeError("input_viewport_changed", "Viewport changed during held input.")
-            if self._client and self._identity and self._identity[:2] != identity[:2]:
-                self.close()
-            generation = int(self._viewport.get("generation", 0)) + 1
-            self._viewport = {"width": identity[2], "height": identity[3], "generation": generation}
-            self._identity = identity
+            self._viewport = {"width": 0, "height": 0, "generation": 1}
+            if win32gui.IsIconic(hwnd):
+                self._viewport["minimized"] = True
+            self._identity = (pid, hwnd, 0, 0)
             log_event("input.bridge_bound", target_pid=pid, target_hwnd=hwnd, viewport=dict(self._viewport))
             update_runtime({"bridge_pid": pid, "bridge_hwnd": hwnd})
-            self._position = self._clip(*(self._position or (identity[2] // 2, identity[3] // 2)))
         def hello(client, *, wait_for_pipe=False):
             deadline = time.monotonic() + 10.0
             while True:
@@ -208,8 +217,20 @@ class ResonancePcInputBridgeService:
                 if remaining <= 0:
                     raise TargetRuntimeError("input_bridge_unavailable", "Bridge startup readiness deadline expired.")
                 try:
-                    return client.request("hello", {"hwnd": hwnd, "position": self._position},
-                                          self._viewport, min(2.0, remaining))
+                    status = client.request("status", timeout=min(2.0, remaining))["result"]
+                    if status["state"] == "failed":
+                        raise TargetRuntimeError("bridge_failed", status["error"])
+                    if status["state"] != "ready":
+                        raise TargetRuntimeError("bootstrap_pending", "Unity bridge is starting up")
+                    caps = status["capabilities"]
+                    if "frame_stream" not in caps:
+                        raise TargetRuntimeError("bridge_restart_required", "请重启雷索纳斯以载入支持截图的新版桥接器。")
+                    if not caps["frame_stream"]:
+                        raise TargetRuntimeError("bridge_capture_unsupported", "当前 Unity 配置不支持桥接截图。")
+                    args = {"hwnd": hwnd}
+                    if self._position is not None:
+                        args["position"] = self._position
+                    return client.request("hello", args, self._viewport, min(2.0, remaining))
                 except TargetRuntimeError as exc:
                     # Bootstrap is rejected before acquisition; unavailable means no
                     # payload was written. Only these outcomes may be retried.
@@ -219,8 +240,8 @@ class ResonancePcInputBridgeService:
                         raise
                     time.sleep(0.05)
 
-        self._session_root_cid = current_root_cid()
         if self._client is None:
+            self._session_root_cid = root_cid
             client = BridgeClient(pid)
             try:
                 reply = hello(client)
@@ -241,9 +262,8 @@ class ResonancePcInputBridgeService:
             self._needs_hello = False
         elif self._client.uncertain:
             raise TargetRuntimeError("input_result_unknown", "Previous result is uncertain; cancel input before continuing.")
-        elif self._needs_hello or not self._capabilities:
-            self._accept(hello(self._client))
-            self._needs_hello = False
+        elif self._needs_hello:
+            raise TargetRuntimeError("viewport_changed", "Bridge viewport changed during the task")
 
     def _accept(self, reply):
         result = reply.get("result") or {}
@@ -298,6 +318,10 @@ class ResonancePcInputBridgeService:
                 self._accept(reply)
                 if endpoint is not None:
                     self._position = endpoint
+            except TargetRuntimeError as exc:
+                if exc.code == "viewport_changed":
+                    self._needs_hello = True
+                raise
             finally:
                 with self._state_lock:
                     self._active = False
@@ -306,6 +330,33 @@ class ResonancePcInputBridgeService:
         with self._lock:
             self._ready()
             return dict(self._capabilities)
+
+    def viewport(self):
+        with self._lock:
+            self._ready()
+            return (0, 0, self._viewport["width"], self._viewport["height"])
+
+    def open_frame_stream(self):
+        stream = self.active_frame_stream(current_root_cid())
+        if stream is not None:
+            return stream
+        with self._lock:
+            self._ready()
+            if self._frame_stream is None:
+                stale_ms = resolve_runtime_config(self.config).capture.max_stale_ms
+                stream = BridgeFrameStream(self._client.session, max_stale_ms=stale_ms)
+                try:
+                    self._client.request("stream_start", viewport=self._viewport, timeout=2)
+                except BaseException:
+                    stream.close()
+                    raise
+                self._frame_stream = stream
+                log_event("capture.bridge_started", stream_id=stream.session_id)
+            return self._frame_stream
+
+    def active_frame_stream(self, root_cid):
+        stream = self._frame_stream
+        return stream if root_cid == self._session_root_cid else None
 
     def click(self, x=None, y=None, button="left", clicks=1, interval=None):
         _, button_id = mouse_button(button)
@@ -425,7 +476,17 @@ class ResonancePcInputBridgeService:
     def close(self):
         with activity("input", "close", backend="bridge"), self._lock:
             client = self._client
+            stream = self._frame_stream
+            if stream is not None:
+                # Reject new reads before stopping native production. Keep the
+                # client/session on a lost close acknowledgement so it can retry.
+                stream.stop_reading()
             if client:
+                try:
+                    if stream is not None:
+                        client.request("stream_stop", viewport=self._viewport, timeout=2.0)
+                except TargetRuntimeError as exc:
+                    log_event("capture.bridge_stop_unconfirmed", code=exc.code)
                 try:
                     client.request("close", viewport=self._viewport, timeout=2.0)
                 except TargetRuntimeError as exc:
@@ -433,6 +494,10 @@ class ResonancePcInputBridgeService:
                     # A process that has exited cannot still own virtual input.
                     if exc.code != "session_invalid" and psutil.pid_exists(client.pid):
                         raise
+            if stream is not None:
+                stream.close()
+                self._frame_stream = None
+                log_event("capture.bridge_closed", stream_id=stream.session_id)
             self._client = None
             self._session_root_cid = None
             self._held.clear()

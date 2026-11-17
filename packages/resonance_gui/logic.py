@@ -115,13 +115,6 @@ PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF = (
 PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF = (
     "tasks:consciousness_deep_dive_planned_run_pc.yaml:consciousness_deep_dive_planned_run_pc"
 )
-PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF = (
-    "tasks:consciousness_deep_dive_capture_pc.yaml:consciousness_deep_dive_capture_pc"
-)
-PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF = (
-    "tasks:consciousness_deep_dive_sensitivity_probe_pc.yaml:"
-    "consciousness_deep_dive_sensitivity_probe_pc"
-)
 TRADE_PROGRESS_EVENT = "task.resonance_pc_trade_progress"
 TRADE_PROGRESS_SCHEMA = "resonance_pc.trade_progress.v1"
 PC_ETERNAL_SCUFFLE_TASK_REF = "tasks:eternal_scuffle_pc.yaml:eternal_scuffle_pc"

@@ -22,13 +22,10 @@ from ..config_repository import ResonanceConfigRepository
 from ..logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
 )
 from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
 from .eternal_scuffle_panel import EternalScufflePanel
 from .affix_refresh_panel import AffixRefreshPanel
-from .data_collection_panel import DataCollectionPanel
 from .daily_rewards_panel import DailyRewardsPanel
 from .player_data_panel import PlayerDataPanel
 from .team_recommendation_panel import TeamRecommendationPanel
@@ -38,7 +35,6 @@ from .trade_page import TradePage
 USER_DATA_TASK_ID = "player_data_refresh"
 TEAM_RECOMMENDATION_TASK_ID = "team_recommendation"
 CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
-DATA_COLLECTION_TASK_ID = "data_collection"
 ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 AFFIX_REFRESH_TASK_ID = "affix_refresh"
 DAILY_REWARDS_TASK_ID = "daily_rewards"
@@ -60,7 +56,6 @@ TASK_TOOLTIPS = {
     ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
     AFFIX_REFRESH_TASK_ID: "按目标和胶卷上限自动刷新词缀，命中后停止，由你手动替换。",
     DAILY_REWARDS_TASK_ID: "从站场主界面分别启动每日任务奖励或通行证奖励收集。",
-    DATA_COLLECTION_TASK_ID: "采集识海深潜页面数据或探测拖动灵敏度。",
 }
 
 
@@ -107,8 +102,6 @@ class SmallTasksPage(QWidget):
     runAffixRefreshRequested = Signal(object)
     runDailyMissionRewardsRequested = Signal()
     runBattlePassRewardsRequested = Signal()
-    runConsciousnessDeepDiveCaptureRequested = Signal(object)
-    runConsciousnessDeepDiveSensitivityProbeRequested = Signal()
     cancelRequested = Signal()
     cacheRequested = Signal()
 
@@ -121,9 +114,7 @@ class SmallTasksPage(QWidget):
         self._runner_busy = False
         self._active_task_id = ""
         self._settings = settings
-        self.data_collection_panel = None
         self.deep_dive_developer_panel = None
-        self._developer_page = None
         self._developer_available = False
         self._task_pages: dict[str, QWidget] = {}
 
@@ -146,7 +137,7 @@ class SmallTasksPage(QWidget):
             self.task_list.addItem(item)
         self.task_panel.body_layout.addWidget(self.task_list)
         self.developer_button = QPushButton("开发与维护…", self.task_panel.body)
-        self.developer_button.setToolTip("手动布局扫描、离线规划、素材采集和拖动校准")
+        self.developer_button.setToolTip("识海深潜手动布局扫描和离线规划")
         self.developer_button.clicked.connect(self.show_developer_tools)
         self.developer_button.hide()
         self.task_panel.body_layout.addWidget(self.developer_button)
@@ -234,8 +225,9 @@ class SmallTasksPage(QWidget):
 
     @property
     def current_task_id(self) -> str:
-        if self._developer_page is not None and self.detail_stack.currentWidget() is self._developer_page:
-            return DATA_COLLECTION_TASK_ID
+        developer_panel = self.deep_dive_developer_panel
+        if developer_panel is not None and self.detail_stack.currentWidget() is developer_panel:
+            return CONSCIOUSNESS_DEEP_DIVE_TASK_ID
         item = self.task_list.currentItem()
         return str(item.data(Qt.ItemDataRole.UserRole) or "") if item is not None else ""
 
@@ -255,8 +247,6 @@ class SmallTasksPage(QWidget):
         required = {
             PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
             PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
-            PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-            PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
         }
         self._developer_available = required <= available
         self.developer_button.setVisible(self._developer_available)
@@ -264,23 +254,15 @@ class SmallTasksPage(QWidget):
     def show_developer_tools(self) -> None:
         if not self._developer_available:
             return
-        if self._developer_page is None:
-            from PySide6.QtWidgets import QTabWidget
-            self._developer_page = QTabWidget(self.detail_stack)
-            self.deep_dive_developer_panel = ConsciousnessDeepDivePanel(self._developer_page, developer_mode=True)
-            self.deep_dive_developer_panel.runScanRequested.connect(self.runConsciousnessDeepDiveScanRequested.emit)
-            self.deep_dive_developer_panel.runPlanRequested.connect(self.runConsciousnessDeepDivePlanRequested.emit)
-            self.deep_dive_developer_panel.cancelRequested.connect(self.cancelRequested.emit)
-            self.data_collection_panel = DataCollectionPanel(self._developer_page)
-            self.data_collection_panel.captureRequested.connect(self.runConsciousnessDeepDiveCaptureRequested.emit)
-            self.data_collection_panel.sensitivityProbeRequested.connect(self.runConsciousnessDeepDiveSensitivityProbeRequested.emit)
-            self.data_collection_panel.cancelRequested.connect(self.cancelRequested.emit)
-            self._developer_page.addTab(self.deep_dive_developer_panel, "手动扫描与规划")
-            self._developer_page.addTab(self.data_collection_panel, "素材与校准")
-            self.detail_stack.addWidget(self._developer_page)
-            self.deep_dive_developer_panel.set_runner_busy(self._runner_busy)
-            self.data_collection_panel.set_runner_busy(self._runner_busy)
-        self.detail_stack.setCurrentWidget(self._developer_page)
+        if self.deep_dive_developer_panel is None:
+            panel = ConsciousnessDeepDivePanel(self.detail_stack, developer_mode=True)
+            panel.runScanRequested.connect(self.runConsciousnessDeepDiveScanRequested.emit)
+            panel.runPlanRequested.connect(self.runConsciousnessDeepDivePlanRequested.emit)
+            panel.cancelRequested.connect(self.cancelRequested.emit)
+            self.detail_stack.addWidget(panel)
+            panel.set_runner_busy(self._runner_busy)
+            self.deep_dive_developer_panel = panel
+        self.detail_stack.setCurrentWidget(self.deep_dive_developer_panel)
 
     def _build_player_action_band(self, parent_layout: QVBoxLayout) -> None:
         run_band = QFrame(self.player_task_page)
@@ -461,48 +443,6 @@ class SmallTasksPage(QWidget):
         self.deep_dive_developer_panel.show_scan_error(message)
         self._sync_controls()
 
-    def begin_consciousness_deep_dive_capture_run(
-        self, inputs: Mapping[str, Any]
-    ) -> None:
-        self._active_task_id = DATA_COLLECTION_TASK_ID
-        self.data_collection_panel.begin_capture_run(
-            str(inputs.get("sensitivity") or "slow")
-        )
-        self._sync_controls()
-
-    def begin_consciousness_deep_dive_sensitivity_probe_run(self) -> None:
-        self._active_task_id = DATA_COLLECTION_TASK_ID
-        self.data_collection_panel.begin_sensitivity_probe_run()
-        self._sync_controls()
-
-
-    def apply_consciousness_deep_dive_capture_result(
-        self, payload: Mapping[str, Any]
-    ) -> None:
-        self._active_task_id = ""
-        self.data_collection_panel.apply_capture_result(payload)
-        self._sync_controls()
-
-    def apply_consciousness_deep_dive_sensitivity_probe_result(
-        self, payload: Mapping[str, Any]
-    ) -> None:
-        self._active_task_id = ""
-        self.data_collection_panel.apply_sensitivity_probe_result(payload)
-        self._sync_controls()
-
-
-    def show_consciousness_deep_dive_capture_error(self, message: str) -> None:
-        self._active_task_id = ""
-        self.data_collection_panel.show_capture_error(message)
-        self._sync_controls()
-
-    def show_consciousness_deep_dive_sensitivity_probe_error(
-        self, message: str
-    ) -> None:
-        self._active_task_id = ""
-        self.data_collection_panel.show_sensitivity_probe_error(message)
-        self._sync_controls()
-
     def set_runner_busy(self, busy: bool) -> None:
         self._runner_busy = bool(busy)
         self.player_data_panel.set_runner_busy(busy)
@@ -511,8 +451,7 @@ class SmallTasksPage(QWidget):
         self.eternal_scuffle_panel.set_runner_busy(busy)
         self.affix_refresh_panel.set_runner_busy(busy)
         self.daily_rewards_panel.set_runner_busy(busy)
-        if self.data_collection_panel is not None:
-            self.data_collection_panel.set_runner_busy(busy)
+        if self.deep_dive_developer_panel is not None:
             self.deep_dive_developer_panel.set_runner_busy(busy)
         self.trade_preview_panel.set_busy(busy)
         self._sync_controls()
@@ -535,7 +474,6 @@ class SmallTasksPage(QWidget):
 __all__ = [
     "AFFIX_REFRESH_TASK_ID",
     "CONSCIOUSNESS_DEEP_DIVE_TASK_ID",
-    "DATA_COLLECTION_TASK_ID",
     "DAILY_REWARDS_TASK_ID",
     "SMALL_TASKS",
     "SmallTasksPage",

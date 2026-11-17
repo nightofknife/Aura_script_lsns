@@ -11,6 +11,7 @@ import cv2
 import numpy as np
 
 from . import _deep_dive_operation_frame as frame
+from ._deep_dive_frame_source import is_stream_backend
 from ._deep_dive_layout_semantics import classify_icon
 from ._deep_dive_layout_vision import LayoutScanner, _angle, _crop
 from ._deep_dive_planner_rules import cell_to_slot
@@ -160,7 +161,7 @@ def _validate_current_proposal(rgb,layout,proposal,targets):
 
 def read_missing_registration_anchors(rgb,layout,proposal,votes,*,source_id,source_time,
         source_session,source_generation,source_backend,target_detector=None,target_packet=None,now=None):
-    """Collect three real fresh WGC captures, never promote a reference ready.
+    """Collect three fresh runtime frames for a reference read.
 
     Each source must be new, increasing, in the same session, no older than .5s
     after computation, and span >=.4s. Cached exact-current-RGB model coverage
@@ -176,7 +177,8 @@ def read_missing_registration_anchors(rgb,layout,proposal,votes,*,source_id,sour
                 or not isinstance(source_generation,Integral) or isinstance(source_generation,bool)
                 or source_generation<0 or source_session is None
                 or str(source_id)!=f'{source_session}:{source_generation}'
-                or str(source_backend).lower() not in ('wgc','windows_graphics_capture','windowsgraphicscapture')):
+                or not (is_stream_backend(str(source_backend).lower())
+                        or str(source_backend).lower() in ('windows_graphics_capture', 'windowsgraphicscapture'))):
             raise ValueError('anchor_read_fresh_wgc_source_required')
         if proposal.get('source_session') is not None and proposal['source_session']!=source_session:
             raise ValueError('anchor_read_source_session_changed')

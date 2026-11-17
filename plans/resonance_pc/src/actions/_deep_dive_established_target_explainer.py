@@ -13,6 +13,7 @@ import math
 import cv2
 import numpy as np
 
+from ._deep_dive_frame_source import is_stream_backend, same_stream_backend
 from ._deep_dive_layout_vision import BASES, FACES, K, _anchor_heights, _point, _quad
 
 
@@ -100,7 +101,7 @@ def explain_established_targets(cells, targets, *, pose, source, anchor_proof,
                           and source["generation"] >= 0 and session_valid
                           and type(source["map_revision"]) is int
                           and source["map_revision"] >= 0
-                          and source.get("capture_backend", source.get("backend")) == "wgc")
+                          and is_stream_backend(source.get("capture_backend", source.get("backend"))))
         age = float(now) - float(source["frame_time"])
         if not identity_valid or not math.isfinite(age) or not 0 <= age <= max_age_sec:
             raise ValueError("source_not_fresh_actual_wgc")
@@ -223,8 +224,7 @@ def _full_source_equal(first, second):
         return False
     if any(first[key] != second[key] for key in keys):
         return False
-    return (first.get("capture_backend", first.get("backend")) == "wgc"
-            and second.get("capture_backend", second.get("backend")) == "wgc")
+    return same_stream_backend(first, second)
 
 
 def _complete_proof_matches(proof, source):

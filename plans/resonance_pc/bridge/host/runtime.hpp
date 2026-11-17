@@ -1,5 +1,5 @@
 #pragma once
-#include "il2cpp.hpp"
+#include "frame_stream.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -24,6 +24,7 @@ public:
   Json submit(const Json &q);
   void publish();
   void complete();
+  void capture_frame();
   void event_update(Obj es, Method method);
   void fail(std::string code, std::string reason);
   bool owns() const { return owned_.load(); }
@@ -49,6 +50,8 @@ private:
   HANDLE owner_process_{};
   std::atomic<DWORD> owner_pid_{0};
   int width_{}, height_{};
+  bool capture_loop_installed_{};
+  FrameStream frame_stream_;
   uint64_t generation_{}, last_frame_{}, frame_{}, completed_frame_{};
   std::atomic<bool> owned_{false}, direct_{false};
   std::atomic<uint64_t> last_tick_{0};
@@ -82,7 +85,7 @@ private:
   void reply(const std::shared_ptr<Command> &, const std::string &, const std::string &code = "",
              const std::string &message = "", Json result = Json::object());
   Json result();
-  void verify_viewport(const Json &);
+  void verify_viewport(const Json &, bool handshake = false);
   Vec2 client_position() const;
   Vec2 coordinate(double x, double y) const;
   void set_position(Vec2 p);

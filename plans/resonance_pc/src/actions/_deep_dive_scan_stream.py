@@ -12,6 +12,7 @@ import time
 import cv2
 import numpy as np
 
+from ._deep_dive_frame_source import is_stream_backend
 from ._deep_dive_single_run_vision import observe as observe_scene
 from ._deep_dive_semantic_explanations import SemanticTargetExplainer
 from . import _deep_dive_scan_scene as scan_scene
@@ -454,7 +455,7 @@ class ScanVisionStream:
             session=source['session_id'];stamp=source['frame_time']
             if (not isinstance(session,(str,int)) or isinstance(session,bool) or session==''
                     or type(stamp) not in (int,float) or not math.isfinite(stamp)
-                    or stamp>time.monotonic() or packet.get('capture_backend')!='wgc'
+                    or stamp>time.monotonic() or not is_stream_backend(packet.get('capture_backend'))
                     or packet.get('observation',{}).get('tracking_ok') is not True):return None
             image=packet['image'];pose=packet['pose']
             if (not isinstance(image,np.ndarray) or image.shape!=(720,1280,3) or image.dtype!=np.uint8

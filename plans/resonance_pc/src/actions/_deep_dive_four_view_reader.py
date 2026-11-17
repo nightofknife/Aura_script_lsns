@@ -11,6 +11,7 @@ import math
 import cv2
 import numpy as np
 
+from ._deep_dive_frame_source import has_atomic_source
 from ._deep_dive_layout_semantics import classify_icon
 
 DEFAULT_SCALES = (1.0, .85, .70, .60)
@@ -49,8 +50,7 @@ def read_node(crop_rgb: np.ndarray, *, scales=DEFAULT_SCALES) -> dict:
 
 def source_key(source: dict) -> tuple:
     """Reject synthetic timestamps and stale/non-atomic capture identifiers."""
-    if (not isinstance(source, dict) or source.get('generation_source') != 'atomic_wgc'
-            or source.get('capture_backend') != 'wgc'):
+    if not isinstance(source, dict) or not has_atomic_source(source):
         raise ValueError('actual_atomic_wgc_source_required')
     for key in ('session_id', 'generation', 'frame_id', 'map_revision'):
         value = source.get(key)

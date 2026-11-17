@@ -38,8 +38,6 @@ from .logic import (
     PC_BATTLE_TASK_REF,
     PC_DAILY_MISSION_REWARDS_TASK_REF,
     PC_BATTLE_PASS_REWARDS_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-    PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
@@ -342,12 +340,6 @@ class ResonanceMainWindow(QMainWindow):
         )
         self.small_tasks_page.runConsciousnessDeepDivePlannedRunRequested.connect(
             self._run_deep_dive_planned_run
-        )
-        self.small_tasks_page.runConsciousnessDeepDiveCaptureRequested.connect(
-            self._run_small_task_consciousness_deep_dive_capture
-        )
-        self.small_tasks_page.runConsciousnessDeepDiveSensitivityProbeRequested.connect(
-            self._run_small_task_consciousness_deep_dive_sensitivity_probe
         )
         self.small_tasks_page.cancelRequested.connect(self.requestCancelCurrent.emit)
         self.small_tasks_page.runEternalScuffleRequested.connect(self._run_small_task_eternal_scuffle)
@@ -979,44 +971,6 @@ class ResonanceMainWindow(QMainWindow):
             0.0,
         )
 
-
-    def _run_small_task_consciousness_deep_dive_capture(
-        self, inputs: dict[str, Any]
-    ) -> None:
-        if self._busy or self._workflow_active or self._small_task_active_ref:
-            self.small_tasks_page.show_consciousness_deep_dive_capture_error(
-                "当前有任务正在运行，请稍后再试。"
-            )
-            return
-        self._small_task_active_ref = PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF
-        capture_inputs = dict(inputs or {})
-        self.small_tasks_page.begin_consciousness_deep_dive_capture_run(
-            capture_inputs
-        )
-        self.requestRunPcTask.emit(
-            PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF,
-            capture_inputs,
-            "识海深潜素材采集",
-            float(self._preferences.timeout_sec),
-        )
-
-    def _run_small_task_consciousness_deep_dive_sensitivity_probe(self) -> None:
-        if self._busy or self._workflow_active or self._small_task_active_ref:
-            self.small_tasks_page.show_consciousness_deep_dive_sensitivity_probe_error(
-                "当前有任务正在运行，请稍后再试。"
-            )
-            return
-        self._small_task_active_ref = (
-            PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF
-        )
-        self.small_tasks_page.begin_consciousness_deep_dive_sensitivity_probe_run()
-        self.requestRunPcTask.emit(
-            PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF,
-            {},
-            "识海深潜灵敏度探测素材采集",
-            float(self._preferences.timeout_sec),
-        )
-
     def _read_small_task_player_data_cache(self) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
             self.small_tasks_page.show_player_data_error("当前有任务正在运行，请稍后再试。")
@@ -1038,8 +992,6 @@ class ResonanceMainWindow(QMainWindow):
             PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF: page.consciousness_deep_dive_panel.show_loop_error,
             PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF: page.show_consciousness_deep_dive_scan_error,
             PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF: page.show_consciousness_deep_dive_plan_error,
-            PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF: page.show_consciousness_deep_dive_capture_error,
-            PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF: page.show_consciousness_deep_dive_sensitivity_probe_error,
             PC_TEAM_RECOMMENDATION_TASK_REF: page.show_team_recommendation_error,
             PC_ETERNAL_SCUFFLE_TASK_REF: page.show_eternal_scuffle_error,
             PC_DAILY_MISSION_REWARDS_TASK_REF: page.show_daily_rewards_error,
@@ -1392,38 +1344,6 @@ class ResonanceMainWindow(QMainWindow):
                 else:
                     panel.show_loop_error(str(payload.get('error') or player_data_result.get('error') or '任务已取消或中断'))
                 self._small_task_active_ref=''
-            if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_CAPTURE_TASK_REF:
-                captures = player_data_result.get("captures")
-                if isinstance(captures, list):
-                    self.small_tasks_page.apply_consciousness_deep_dive_capture_result(
-                        player_data_result
-                    )
-                else:
-                    self.small_tasks_page.show_consciousness_deep_dive_capture_error(
-                        str(
-                            player_data_result.get("reason")
-                            or player_data_result.get("error")
-                            or payload.get("error")
-                            or "任务未返回识海深潜素材采集结果。"
-                        )
-                    )
-                self._small_task_active_ref = ""
-            if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_SENSITIVITY_PROBE_TASK_REF:
-                output_path = player_data_result.get("output_path")
-                if isinstance(output_path, str) and output_path:
-                    self.small_tasks_page.apply_consciousness_deep_dive_sensitivity_probe_result(
-                        player_data_result
-                    )
-                else:
-                    self.small_tasks_page.show_consciousness_deep_dive_sensitivity_probe_error(
-                        str(
-                            player_data_result.get("reason")
-                            or player_data_result.get("error")
-                            or payload.get("error")
-                            or "任务未返回灵敏度探测素材采集结果。"
-                        )
-                    )
-                self._small_task_active_ref = ""
             finished_kind = kind
             if kind == "trade_preview":
                 self.trade_preview_page.finish_preview(payload)
