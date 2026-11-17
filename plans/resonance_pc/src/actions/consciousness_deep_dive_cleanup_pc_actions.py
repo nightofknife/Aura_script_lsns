@@ -7,6 +7,7 @@ from uuid import uuid4
 
 import cv2
 from packages.aura_core.api import action_info, requires_services
+from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
@@ -80,14 +81,14 @@ async def advance_cleanup(session_key:str,app=None,state_store=None):
     if not isinstance(state,dict) or state.get('schema')!=SCHEMA or state.get('session_key')!=session_key:
         raise RuntimeError('收尾会话不存在')
     if state['status']!='running':return {'status':state['status']}
-    capture=await asyncio.to_thread(app.capture)
+    capture=await tracked_to_thread(app.capture)
     image=capture.image if getattr(capture,'success',False) else None
     o=observe(image) if image is not None else {'valid':False,'scene':'capture_failed'}
     action,point=step(state,o,time.time())
     if point is not None:
         try:
             cancel_check()
-            await asyncio.to_thread(aura_click,app=app,x=int(point[0]),y=int(point[1]))
+            await tracked_to_thread(aura_click,app=app,x=int(point[0]),y=int(point[1]))
             cancel_check()
         except StopTaskException:raise
         except Exception as exc:state.update(status='blocked',reason='收尾点击失败：'+str(exc))

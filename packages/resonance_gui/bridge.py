@@ -93,6 +93,7 @@ class RunnerBridge(QObject):
         self._battle_soft_stop_requested = False
         self._close_after_battle = False
         self._poll_error_count = 0
+        self._input_close_failed = False
         self._ticket_counter = itertools.count(1)
         self._poll_timer: QTimer | None = None
         self._log_display_id = uuid.uuid4().hex
@@ -326,6 +327,15 @@ class RunnerBridge(QObject):
             if status in TERMINAL_STATUSES:
                 if run.get("execution_pending", False):
                     return
+                if self._runner_input_bridge and self._current_item.get("game_name") == PC_GAME_NAME:
+                    try:
+                        if not runner.close_task_input(self._current_cid):
+                            return
+                    except Exception as exc:  # noqa: BLE001
+                        if not self._input_close_failed:
+                            self._log_message(f"桥接输入会话关闭未确认，正在重试：{exc}")
+                            self._input_close_failed = True
+                        return
                 self._finish_current(run)
                 return
 
@@ -645,6 +655,7 @@ class RunnerBridge(QObject):
         self._timeout_cancel = False
         self._battle_soft_stop_requested = False
         self._poll_error_count = 0
+        self._input_close_failed = False
 
     def _ensure_poll_timer(self) -> QTimer | None:
         if self._poll_timer is not None:

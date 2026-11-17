@@ -11,6 +11,8 @@ import subprocess
 import threading
 import time
 
+import psutil
+
 from packages.aura_core.api import service_info
 from packages.aura_core.context.plan import current_plan_name
 from packages.aura_core.observability.logging.core_logger import current_cid
@@ -50,6 +52,7 @@ class ResonancePcInputBridgeService:
         self.target_runtime = screen.target_runtime
         self.config = self.target_runtime.config
         self._client = None
+        self._session_root_cid = None
         self._lock = threading.RLock()
         self._state_lock = threading.Lock()
         self._mode = None
@@ -216,6 +219,7 @@ class ResonancePcInputBridgeService:
                         raise
                     time.sleep(0.05)
 
+        self._session_root_cid = current_root_cid()
         if self._client is None:
             client = BridgeClient(pid)
             try:
@@ -413,11 +417,24 @@ class ResonancePcInputBridgeService:
                     pass
             raise
 
+    def close_for_task(self, cid):
+        with self._lock:
+            if self._session_root_cid == cid:
+                self.close()
+
     def close(self):
         with activity("input", "close", backend="bridge"), self._lock:
-            if self._client:
-                self._client.request("close", viewport=self._viewport)
+            client = self._client
+            if client:
+                try:
+                    client.request("close", viewport=self._viewport, timeout=2.0)
+                except TargetRuntimeError as exc:
+                    # A lost close acknowledgement is followed by session_invalid.
+                    # A process that has exited cannot still own virtual input.
+                    if exc.code != "session_invalid" and psutil.pid_exists(client.pid):
+                        raise
             self._client = None
+            self._session_root_cid = None
             self._held.clear()
             self._position = None
             self._identity = None

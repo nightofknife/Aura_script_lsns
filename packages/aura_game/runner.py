@@ -14,7 +14,7 @@ from packages.aura_core.api import ACTION_REGISTRY, hook_manager, service_regist
 from packages.aura_core.config.loader import get_config_value
 from packages.aura_core.context.plan import current_plan_name
 from packages.aura_core.runtime.bootstrap import create_runtime, peek_runtime, start_runtime, stop_runtime
-from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.logging.core_logger import logger, reset_cid, set_cid
 from packages.aura_core.observability.logging.coordinator import (
     attach_session, close_session, get_session_descriptor, start_session,
 )
@@ -347,6 +347,23 @@ class EmbeddedGameRunner:
         row["pending_activities"] = pending
         row["execution_pending"] = bool(pending) or has_pending_sync_actions(cid)
         return row
+
+    def close_task_input(self, cid: str) -> bool:
+        """Return control after a completed Resonance PC root run has drained."""
+        row = self.get_run(cid)
+        if row.get("plan_name") != "resonance_pc" or row.get("parent_cid"):
+            raise ValueError("Expected a Resonance PC root run")
+        if str(row.get("status") or "").lower() not in _TERMINAL_STATUSES or row["execution_pending"]:
+            return False
+        plan_token = current_plan_name.set("resonance_pc")
+        cid_token = set_cid(cid)
+        try:
+            bridge = service_registry.get_service_instance("plans/resonance_pc/resonance_pc_input_bridge")
+            bridge.close_for_task(cid)
+        finally:
+            reset_cid(cid_token)
+            current_plan_name.reset(plan_token)
+        return True
 
     def _ensure_running_runtime(self):
         runtime = self._ensure_runtime()
@@ -701,6 +718,9 @@ class SubprocessGameRunner:
 
     def get_run(self, cid: str) -> Dict[str, Any]:
         return self._request("get_run", cid=cid)
+
+    def close_task_input(self, cid: str) -> bool:
+        return self._request("close_task_input", cid=cid)
 
     def cancel_task(self, cid: str) -> Dict[str, Any]:
         return self._request("cancel_task", cid=cid)
