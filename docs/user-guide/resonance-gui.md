@@ -11,12 +11,9 @@ executes Windows-client tasks from the `resonance_pc` plan through an isolated
 subprocess runner.
 
 Click the **?** button in the GUI's top header (or press **F1**) to open the
-built-in Chinese tutorial and feature Wiki. It is available offline, with a
-categorized article tree, full-text search and highlighting, a per-article
-outline, internal links and browsing history. Detailed feature articles explain
-parameters, resource scopes, dependencies, ignored options and worked examples.
-Navigation buttons open the relevant editor without starting a task or changing
-its parameters. Help opens only on request.
+built-in Chinese freight beginner tutorial. It is available offline and covers
+only preparing the game, connecting its window, configuring freight, and
+starting a freight run. Help opens only on request.
 
 The main navigation contains Workflow, Independent Features, Run History and Settings.
 
