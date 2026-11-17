@@ -183,6 +183,7 @@ class ExecutionManager:
         acquired_sems = []
         completion = {"cid": tasklet.cid, "deadline": None}
         completion_token = task_completion_scope.set(completion)
+        activity_id = start_activity("task", "scheduler.submit", cid=tasklet.cid)
         try:
             # 手动获取所有信号量
             for sem in semaphores:
@@ -316,6 +317,7 @@ class ExecutionManager:
                     status = "completed"
                 mark_task_terminal(tasklet.cid, task=task_name_for_log, status=status,
                                    scheduler_semaphores_released=len(acquired_sems))
+                end_activity(activity_id, status=status)
                 logger.debug("任务 '%s' 调度入口已结束，仍跟踪 %d 个执行活动。",
                              task_name_for_log, len(pending_activities(tasklet.cid)))
                 reset_cid(cid_token)

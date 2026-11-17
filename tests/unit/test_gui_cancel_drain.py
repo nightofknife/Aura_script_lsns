@@ -5,14 +5,19 @@ from types import SimpleNamespace
 
 import pytest
 
+from packages.aura_core.api import service_registry
 from packages.aura_core.engine import action_injector
 from packages.aura_core.context.execution import ExecutionContext
+from packages.aura_core.observability import runtime_trace
 from packages.aura_core.scheduler import operation_scope
 from packages.aura_core.scheduler.cancellation import (
     begin_sync_action, end_sync_action, has_pending_sync_actions, clear_task_cancel,
 )
 from packages.aura_game.runner import EmbeddedGameRunner
 from packages.resonance_gui.bridge import RunnerBridge
+from packages.resonance_gui.logic import PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF, PC_TRADE_TASK_REF
+from plans.resonance_pc.src.services.input_bridge_service import ResonancePcInputBridgeService
+from plans.aura_base.src.platform.contracts import TargetRuntimeError
 
 
 def test_cancelled_worker_remains_pending_until_thread_exits(monkeypatch):
@@ -93,6 +98,100 @@ def test_gui_stays_busy_until_exit_including_poll_errors(monkeypatch):
     state.update(error=False, pending=False)
     bridge.poll_current()
     assert not bridge.busy and not bridge.current_cid and len(finished) == 1
+
+
+@pytest.mark.parametrize('task_ref,status', [
+    (PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF, 'cancelled'),
+    (PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF, 'failed'),
+    (PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF, 'success'),
+    (PC_TRADE_TASK_REF, 'cancelled'),
+    (PC_TRADE_TASK_REF, 'success'),
+])
+def test_gui_closes_owned_input_after_root_and_child_drain(monkeypatch, task_ref, status):
+    cid = 'bridge-root'
+    closes = []
+    native = ResonancePcInputBridgeService(SimpleNamespace(target_runtime=SimpleNamespace(config={})))
+    native._client = SimpleNamespace(pid=123, request=lambda op, **kw: closes.append(op))
+    native._session_root_cid = cid
+    monkeypatch.setattr(service_registry, 'get_service_instance', lambda fqid: native)
+    runtime = SimpleNamespace(get_run_detail=lambda requested: {
+        'cid': requested, 'plan_name': 'resonance_pc', 'status': status,
+        'parent_cid': cid if requested == 'child' else None,
+    })
+    runner = EmbeddedGameRunner()
+    monkeypatch.setattr(runner, '_ensure_runtime', lambda: runtime)
+    monkeypatch.setattr(runner, 'poll_events', lambda **kw: [])
+    gui = RunnerBridge(lambda: runner)
+    gui.set_input_bridge_enabled(True)
+    gui._current_cid = cid
+    gui._current_item = {'game_name': 'resonance_pc', 'task_ref': task_ref, 'label': 'test'}
+    gui._busy = True
+    gui.taskFinished.connect(lambda run: closes.append('taskFinished'))
+    monkeypatch.setattr(gui, 'refresh_history', lambda: None)
+    monkeypatch.setattr(gui, 'refresh_target', lambda: None)
+
+    child = None
+    try:
+        with runtime_trace.activity('task', 'root', cid=cid):
+            child = runtime_trace.start_activity('worker', 'child', cid='child')
+            gui.poll_current()
+            assert not closes and gui.busy
+            assert runner.close_task_input(cid) is False
+            with pytest.raises(ValueError, match='root run'):
+                runner.close_task_input('child')
+        gui.poll_current()
+        assert not closes and gui.busy
+    finally:
+        if child is not None:
+            runtime_trace.end_activity(child)
+
+    begin_sync_action(cid)
+    try:
+        gui.poll_current()
+        assert not closes and gui.busy
+    finally:
+        end_sync_action(cid)
+    gui.poll_current()
+    assert closes == ['close', 'taskFinished'] and not gui.busy
+    assert native._client is None
+
+
+def test_gui_retries_close_and_never_closes_a_later_session(monkeypatch):
+    def lose_close_response(op, **kwargs):
+        assert op == 'close'
+        raise TargetRuntimeError('input_result_unknown', 'close acknowledgement lost')
+
+    native = ResonancePcInputBridgeService(SimpleNamespace(target_runtime=SimpleNamespace(config={})))
+    client = SimpleNamespace(pid=123, request=lose_close_response)
+    native._client = client
+    native._session_root_cid = 'new'
+    native.close_for_task('old')
+    assert native._client is client
+    monkeypatch.setattr('plans.resonance_pc.src.services.input_bridge_service.psutil.pid_exists', lambda _: True)
+
+    def close_task_input(cid):
+        native.close_for_task(cid)
+        return True
+
+    gui = RunnerBridge()
+    gui._runner = SimpleNamespace(poll_events=lambda **kw: [], close_task_input=close_task_input,
+                                  get_run=lambda cid: {'cid': cid, 'status': 'success', 'execution_pending': False})
+    gui._runner_input_bridge = True
+    gui._busy = True
+    gui._current_cid = 'new'
+    gui._current_item = {'game_name': 'resonance_pc'}
+    monkeypatch.setattr(gui, 'refresh_history', lambda: None)
+    monkeypatch.setattr(gui, 'refresh_target', lambda: None)
+    gui.poll_current()
+    assert gui.busy and native._client is client
+
+    def already_closed(op, **kwargs):
+        assert op == 'close'
+        raise TargetRuntimeError('session_invalid', 'Hello required')
+
+    client.request = already_closed
+    gui.poll_current()
+    assert not gui.busy and native._client is None
 
 
 @pytest.mark.parametrize('failure_source', ['poll_events', 'get_run'])

@@ -18,6 +18,7 @@ import cv2
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
@@ -151,7 +152,7 @@ async def _click(app: Any, point: list[int]) -> None:
     x, y = map(int, point)
     if not (0 <= x < 1280 and 0 <= y < 720):
         raise ValueError(f"识海深潜点击位置越界：{point}")
-    await asyncio.to_thread(aura_click, app=app, x=x, y=y)
+    await tracked_to_thread(aura_click, app=app, x=x, y=y)
     _cancelled()
 
 
@@ -474,8 +475,8 @@ async def initialize_deep_dive_single_run(round_budget: int = 20, random_seed: i
     round_budget = int(round_budget)
     random_seed = int(random_seed) or secrets.randbits(32)
     _cancelled()
-    await asyncio.to_thread(resonance_pc_require_client_resolution, app=app)
-    image, observed = await asyncio.to_thread(_capture, app)
+    await tracked_to_thread(resonance_pc_require_client_resolution, app=app)
+    image, observed = await tracked_to_thread(_capture, app)
     key = _session_key()
     state = {"schema": SCHEMA, "session_key": key, "status": "running", "phase": "player_ready",
              "phase_started": time.time(), "round_budget": round_budget, "random_seed": random_seed,
@@ -503,40 +504,40 @@ async def advance_deep_dive_single_run(session_key: str, app: Any = None, ocr: A
         return {"status": state["status"], "phase": state["phase"]}
     _cancelled()
     if state['phase'] == 'vortex_dispatch':
-        image, observed = await asyncio.to_thread(_capture, app, 'vortex')
+        image, observed = await tracked_to_thread(_capture, app, 'vortex')
     else:
-        image, observed = await asyncio.to_thread(_capture, app)
+        image, observed = await tracked_to_thread(_capture, app)
     action, point = _advance_state(state, observed)
     if action in {"move_confirmed", "event_completed", "battle_completed", "shop_completed"}:
         try:
-            progress = await asyncio.to_thread(_read_progress, image, ocr)
+            progress = await tracked_to_thread(_read_progress, image, ocr)
             if progress != "unknown":
                 state["objective_progress"] = progress
         except Exception as exc:
             logger.warning("[DeepDiveSingleRun] objective progress OCR unavailable: %s", exc)
     if action == "settlement":
-        state["last_frame"] = await asyncio.to_thread(_save_frame, image, session_key, "settlement")
+        state["last_frame"] = await tracked_to_thread(_save_frame, image, session_key, "settlement")
     elif action == "unsupported_event":
-        await asyncio.to_thread(_block, state, image,
+        await tracked_to_thread(_block, state, image,
                                 "unsupported_event: 地板塌陷事件选项尚未配置处理策略", observed)
     elif action == "unsupported_entry":
-        await asyncio.to_thread(_block, state, image,
+        await tracked_to_thread(_block, state, image,
                                 f"unsupported_entry: 已识别{observed.get('entry_kind')}节点，但该流程尚未接入",
                                 observed)
     elif action == 'event_blocked':
-        await asyncio.to_thread(_block, state, image, state['event_error'], observed)
+        await tracked_to_thread(_block, state, image, state['event_error'], observed)
     elif action == 'vortex_blocked':
-        await asyncio.to_thread(_block, state, image, state['vortex_error'], observed)
+        await tracked_to_thread(_block, state, image, state['vortex_error'], observed)
     elif action == 'rotation_blocked':
-        await asyncio.to_thread(_block, state, image, state['rotation_error'], observed)
+        await tracked_to_thread(_block, state, image, state['rotation_error'], observed)
     elif action == 'mode_button_blocked':
-        await asyncio.to_thread(_block, state, image, state['mode_button_error'], observed)
+        await tracked_to_thread(_block, state, image, state['mode_button_error'], observed)
     elif action == "wait":
         elapsed = time.time() - state["phase_started"]
         if elapsed >= PHASE_TIMEOUTS[state["phase"]]:
             reason = ("unsupported_event: 尚未识别进入后的事件页面" if state["phase"] == "event_wait"
                       else f"{state['phase']} 阶段在 {elapsed:.1f} 秒内未得到可确认的新画面")
-            await asyncio.to_thread(_block, state, image, reason, observed)
+            await tracked_to_thread(_block, state, image, reason, observed)
         else:
             await asyncio.sleep(POLL_SECONDS)
     if point is not None:
@@ -549,7 +550,7 @@ async def advance_deep_dive_single_run(session_key: str, app: Any = None, ocr: A
         except StopTaskException:
             raise
         except Exception as exc:
-            await asyncio.to_thread(_block, state, image, f"{action} 点击失败：{exc}", observed)
+            await tracked_to_thread(_block, state, image, f"{action} 点击失败：{exc}", observed)
     await state_store.set(session_key, copy.deepcopy(state))
     logger.info("[DeepDiveSingleRun] action=%s phase=%s scene=%s status=%s turns=%s",
                 action, state["phase"], observed.get("scene"), state["status"], state["turns_completed"])
@@ -566,8 +567,8 @@ async def finish_deep_dive_single_run(session_key: str, app: Any = None,
     if not isinstance(state, dict) or state.get("schema") != SCHEMA:
         raise RuntimeError("识海深潜单局测试结果不存在")
     if state["status"] == "running":
-        image, observed = await asyncio.to_thread(_capture, app)
-        await asyncio.to_thread(_block, state, image, "任务循环达到安全迭代上限", observed)
+        image, observed = await tracked_to_thread(_capture, app)
+        await tracked_to_thread(_block, state, image, "任务循环达到安全迭代上限", observed)
     result = {key: copy.deepcopy(state[key]) for key in (
         "status", "outcome", "phase", "reason", "round_budget", "random_seed", "turns_completed",
         "move_history", "events", "rotations", "objective_progress", "last_frame")}

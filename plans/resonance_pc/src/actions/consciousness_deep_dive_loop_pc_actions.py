@@ -5,6 +5,7 @@ import cv2
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.events import Event
 from packages.aura_core.observability.logging.core_logger import current_cid, logger
+from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
@@ -63,7 +64,7 @@ async def initialize_loop(loop_count:int=1,app=None,state_store=None,event_bus=N
        'reason':'','last_frame':'','last_result':{}}
     image=None
     for _ in range(2):
-        cancel_check();capture=await asyncio.to_thread(app.capture)
+        cancel_check();capture=await tracked_to_thread(app.capture)
         image=capture.image if getattr(capture,'success',False) else None
         if image is None or observe(image)['scene']!='activity_home':
             s.update(status='blocked',reason='完整循环必须从识海深潜活动首页启动')
