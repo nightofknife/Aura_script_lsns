@@ -110,7 +110,7 @@ def test_first_planned_run_without_developer_page(window, runner_status, termina
     panel.planned_run_safety_limit_spin.setValue(17)
     panel.planned_run_button.click()
     assert calls == [(PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF,
-                      {"strategy": "chase", "safety_round_limit": 17}, "识海深潜关卡内自动运行", 0.0)]
+                      {"safety_round_limit": 17}, "识海深潜关卡内自动运行", 0.0)]
     assert page.deep_dive_developer_panel is None
     window._active_game_name = PC_GAME_NAME
     window._on_busy_changed(True)
