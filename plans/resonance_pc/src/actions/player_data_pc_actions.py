@@ -17,6 +17,8 @@ from packages.aura_core.context.persistence.persistent_data_service import Persi
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.operation_scope import OperationTimeout
 from packages.aura_core.utils.exceptions import StopTaskException, TaskControlException
+from packages.aura_core.utils.task_errors import recognition_failure
+from ....aura_base.src.platform.contracts import TargetRuntimeError
 from ....aura_base.src.services.observation_service import CaptureError, ObservationService
 
 from ._fatigue_observation import FatigueConfirmation, read_fatigue_pair
@@ -207,8 +209,13 @@ def _wait_for_any_marker(
             f"Player data refresh failed: expected {label} template was not confirmed. "
             f"Last confidence: {confidence:.3f}",
             success=False,
+            details=recognition_failure(
+                "确认主界面", "列车主界面", "template", "timeout", timeout_sec=timeout_sec,
+                next_step="请返回列车主界面后再刷新。",
+            ),
         )
-    normalized_markers = [_normalize_text(marker) for marker in markers]
+    expected_texts = tuple(markers)
+    normalized_markers = [_normalize_text(marker) for marker in expected_texts]
     deadline = time.time() + max(float(timeout_sec), 0.1)
     last_text = ""
     while time.time() < deadline:
@@ -220,6 +227,10 @@ def _wait_for_any_marker(
     raise StopTaskException(
         f"Player data refresh failed: expected {label} markers were not found. Last OCR text: {last_text[:160]}",
         success=False,
+        details=recognition_failure(
+            "确认主界面", " / ".join(expected_texts), "text", "timeout", timeout_sec=timeout_sec,
+            next_step="请返回列车主界面后再刷新。",
+        ),
     )
 
 
@@ -249,6 +260,9 @@ def _wait_for_profile_panel(
         f"Player data refresh failed: {label} template did not match twice consecutively "
         f"(attempts={attempts}, last_confidence={last_confidence:.3f}).",
         success=False,
+        details=recognition_failure(
+            "确认个人资料页", "个人资料页标志", "template", "timeout", timeout_sec=timeout_sec,
+        ),
     )
 
 
@@ -306,7 +320,11 @@ def _open_profile_panel(app: Any, vision: Any) -> None:
                         check_cancelled()
                         if not budget.active():
                             break
-                        app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
+                        try:
+                            app.click(x=_CLICK_PROFILE[0], y=_CLICK_PROFILE[1])
+                        except TargetRuntimeError as exc:
+                            exc.detail.setdefault("step", "打开个人资料")
+                            raise
                         clicks += 1
                         # Space retries from the actual click, never catch up
                         # on scheduled retries after an unknown-page interval.
@@ -329,6 +347,9 @@ def _open_profile_panel(app: Any, vision: Any) -> None:
         f"(clicks={clicks}/3, observations={observations}, last_page={last_page}, "
         f"last_confidence={last_confidence:.3f}).",
         success=False,
+        details=recognition_failure(
+            "打开个人资料", "个人资料页标志", "template", "timeout", timeout_sec=8,
+        ),
     )
 
 
@@ -598,6 +619,12 @@ def _read_profile_fatigue(app: Any, ocr: Any) -> Dict[str, int]:
     check_cancelled()
     raise StopTaskException(
         f"Player data refresh failed: invalid fatigue digits: {reason}", success=False,
+        details=recognition_failure(
+            "读取疲劳值", "当前疲劳和上限", "text",
+            "unavailable" if reason in {"ocr_failed", "capture failed"} else
+            "timeout" if reason == "observation_timeout" else "unconfirmed",
+            timeout_sec=3, next_step="请确认个人资料页的疲劳数值完整显示。",
+        ),
     )
 
 
@@ -640,7 +667,14 @@ def _read_profile_stage(app: Any, ocr: Any, sections: Sequence[str] = _DEFAULT_P
                     on_updated(section)
                 break
             if time.monotonic() >= deadline:
-                raise StopTaskException(f"Player data refresh failed: invalid {section} ratio: {text!r}", success=False)
+                field = {"cargo": "载货量", "clarity": "清醒值"}[section]
+                raise StopTaskException(
+                    f"Player data refresh failed: invalid {section} ratio: {text!r}", success=False,
+                    details=recognition_failure(
+                        f"读取{field}", f"当前{field}和上限", "text",
+                        "unconfirmed" if text.strip() else "timeout", timeout_sec=3,
+                    ),
+                )
             check_cancelled()
             time.sleep(0.2)
     return result

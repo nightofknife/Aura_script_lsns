@@ -17,6 +17,7 @@ from typing import Any, Callable
 from packages.aura_core.observability.events import Event
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.utils.task_errors import recognition_failure
 from ....aura_base.src.actions._shared import poll_until
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ....aura_base.src.actions.wait_actions import sleep as aura_sleep
@@ -38,6 +39,11 @@ RETRY_WINDOW = 2.0
 MAX_CLICKS = 4
 COIN_INTERVAL = 0.4
 PLAN_ROOT = Path(__file__).resolve().parents[2]
+_SCENE_LABELS = {
+    "home": "活动首页", "coin": "投币界面", "role_select": "角色选择界面",
+    "captain": "队长选择界面", "victory": "胜利画面", "defeat": "战败画面",
+    "loot_select": "装备选择界面", "assign": "装备分配界面", "settlement": "结算界面",
+}
 
 
 class ScuffleError(RuntimeError):
@@ -262,12 +268,17 @@ class ScuffleRuntime:
         ok, result = await _poll_until(timeout=timeout, interval=interval, probe=probe, predicate=accept)
         check_cancelled()
         if not ok:
-            raise ScuffleError("scuffle_observation_timeout", f"等待{label}超时。", {"timeout_sec": timeout})
+            raise ScuffleError("scuffle_observation_timeout", f"等待{label}超时。", {
+                "timeout_sec": timeout,
+                **recognition_failure("确认当前画面", label, "template", "timeout",
+                                      timeout_sec=timeout, next_step="请先在游戏内查看当前画面。"),
+            })
         return result
 
     async def scene(self, *scenes, timeout=CONTROL_TIMEOUT, interval=POLL_INTERVAL):
         return await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene") in scenes,
-                               signature=lambda f: f["scene"], timeout=timeout, interval=interval, label="/".join(scenes))
+                               signature=lambda f: f["scene"], timeout=timeout, interval=interval,
+                               label="或".join(_SCENE_LABELS.get(scene, "目标界面") for scene in scenes))
 
     async def candidates(self, kind: str):
         def probe():

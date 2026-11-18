@@ -1593,6 +1593,7 @@ auto_cycle_trade_pc:
     success: "{{ nodes.finish.output.success }}"
     status: "{{ nodes.finish.output.status }}"
     reason: "{{ nodes.finish.output.reason }}"
+    error: "{{ nodes.finish.output.error | default(none) }}"
     snapshot_id: "{{ nodes.finish.output.snapshot_id }}"
     city_path: "{{ nodes.finish.output.city_path }}"
     city_path_ids: "{{ nodes.finish.output.city_path_ids }}"

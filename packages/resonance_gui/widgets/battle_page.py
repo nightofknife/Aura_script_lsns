@@ -45,7 +45,8 @@ from .toggle_button import ToggleButton as QCheckBox
 from .compact_parameter_grid import CompactParameterGrid
 from .disclosure_section import DisclosureSection
 from ..logic import (extract_run_id, extract_status, extract_final_result,
-                     extract_battle_cleanup_evidence, pretty_json, render_result_text)
+                     extract_battle_cleanup_evidence, render_result_text)
+from ..run_failure import present_run_failure
 
 
 class _BattleParameterGrid(CompactParameterGrid):
@@ -713,7 +714,7 @@ class BattlePage(QWidget):
             self.ready_hint.setText(str(target.get("title") or "雷索纳斯 PC 窗口已连接"))
         else:
             self.target_value.setText("未连接")
-            self.ready_hint.setText(str(payload.get("error") or "未找到可用的雷索纳斯 PC 窗口"))
+            self.ready_hint.setText("请先启动《雷索纳斯》，并确认游戏窗口完整显示。")
         self._sync_actions()
 
 
@@ -771,6 +772,7 @@ class BattlePage(QWidget):
 
     def finish_run(self, payload: Mapping[str, Any]) -> None:
         result = extract_final_result(payload)
+        failure = present_run_failure(payload, task_label="PC 自动战斗")
         if result.get("schema") == "resonance_pc.battle_plan_result.v1":
             # A framework success may still mean an early business stop.
             state = result.get("status")
@@ -809,13 +811,15 @@ class BattlePage(QWidget):
                 self._render_jobs(select_row=max(0, len(self._jobs) - 1))
             counts = result.get("counts") or {}
             self.stage_detail.setText(self.stage_detail.text()+f"；扫荡 {counts.get('swept', 0)} 次，实战胜 {counts.get('won', 0)} / 败 {counts.get('lost', 0)}")
-            self.result_view.setPlainText(render_result_text(payload))
+            if failure:
+                self.stage_detail.setText(failure.text)
+            self.result_view.setPlainText(failure.text if failure else render_result_text(payload))
             self._finish_common()
             return
         status = extract_status(payload)
         success = status == "success"
         self.run_status_value.setText("已完成" if success else "执行结束")
-        self.stage_detail.setText("已返回结果；具体跳过或失败原因见下方详情")
+        self.stage_detail.setText(failure.text if failure else "已返回执行结果")
         if not success:
             next_index = next(
                 (index for index, value in enumerate(self._job_statuses) if value != "完成"),
@@ -826,13 +830,15 @@ class BattlePage(QWidget):
                 for index in range(len(self._jobs))
             ]
         self._render_jobs(select_row=len(self._jobs) - 1)
-        self.result_view.setPlainText(render_result_text(payload))
+        self.result_view.setPlainText(failure.text if failure else render_result_text(payload))
         self._finish_common()
 
     def show_failure(self, payload: Mapping[str, Any]) -> None:
         self.run_status_value.setText("异常")
-        self.stage_detail.setText(str(payload.get("error") or "任务执行异常"))
-        self.result_view.setPlainText(pretty_json(payload))
+        failure = present_run_failure({"status": "failed", **payload}, task_label="PC 自动战斗")
+        message = failure.text if failure else "作战执行中断。"
+        self.stage_detail.setText(message)
+        self.result_view.setPlainText(message)
         self.result_section.toggle.setChecked(True)
         if not bool(payload.get("recoverable")):
             self._finish_common()
@@ -841,7 +847,8 @@ class BattlePage(QWidget):
         self.run_status_value.setText("历史记录")
         self.stage_detail.setText("只读历史执行结果")
         self.cid_value.setText(extract_run_id(payload) or "--")
-        self.result_view.setPlainText(render_result_text(payload))
+        failure = present_run_failure(payload, task_label="PC 自动战斗")
+        self.result_view.setPlainText(failure.text if failure else render_result_text(payload))
         self.result_section.toggle.setChecked(True)
 
     def cancel_requested(self, payload: Mapping[str, Any]) -> None:

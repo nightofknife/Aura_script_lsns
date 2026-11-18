@@ -11,11 +11,13 @@ import json
 from pathlib import Path
 import threading
 import time
+import traceback
 from typing import Any, Callable
 
 from packages.aura_core.observability.events import Event
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.utils.task_errors import recognition_failure
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ._affix_refresh_policy import (
     PolicyError, affix_signature, load_catalog, matches,
@@ -174,8 +176,14 @@ class AffixRefreshRuntime:
         logger.warning("[AffixRefresh] cid=%s observation_timeout label=%s last_error=%s",
                        self.state["cid"], label, last_error)
         await self.save_observation_failure(label, last_error or "Observation did not stabilize before timeout")
-        raise PolicyError("observation_timeout", f"无法确认{label}，已停止；不会重复提交刷新。"
-                          + (f" 识别原因：{last_error}" if last_error else ""))
+        error = PolicyError("observation_timeout", f"无法确认{label}，已停止；不会重复提交刷新。"
+                            + (f" 识别原因：{last_error}" if last_error else ""))
+        error.details = recognition_failure(
+            "确认词缀界面" if label == "词缀界面" else "确认刷新结果",
+            label, "template" if label == "词缀界面" else "text", "timeout", timeout_sec=timeout,
+            next_step="请先在游戏内查看当前词缀。",
+        )
+        raise error
 
     async def save_observation_failure(self, label: str, error: str) -> None:
         # Save only when this observation wait fails, not on every polling
@@ -309,4 +317,8 @@ async def execute(*, mode, config=None, app=None, vision=None, ocr=None,
     except Exception as exc:
         code = getattr(exc, "code", "affix_refresh_failed")
         message = str(getattr(exc, "message", None) or exc)
-        return await runtime.terminal("failed", code, message, error=message)
+        details = getattr(exc, "details", {})
+        recognition = details.get("recognition") if isinstance(details, dict) else None
+        diagnostic = traceback.format_exc()
+        result = await runtime.terminal("failed", code, message, error=message, recognition=recognition)
+        return {**result, "traceback": diagnostic}

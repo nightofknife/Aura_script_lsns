@@ -16,7 +16,9 @@ import numpy as np
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.utils.task_errors import recognition_failure
 from ._bounded_observation import ObservationBudget, wait_for_observation
+from ._recognition_failure import with_template_failure
 from ._template_observation import observe_template
 from ._navigation_templates import GLOBAL_BACK
 from . import _passenger_destination_vision as destination_vision
@@ -28,7 +30,7 @@ class PassengerPcError(RuntimeError):
         super().__init__(message)
         self.code = str(code)
         self.message = str(message)
-        self.detail = detail or {}
+        self.detail = with_template_failure(detail)
 
     def __str__(self) -> str:
         return f"{self.code}: {self.message}"
@@ -255,7 +257,8 @@ def _wait_template(
     if result.matched:
         return result.value
     return {"valid": False, "found": None, "confidence": None, "reason": "observation_timeout",
-            "template": template, "region": list(region), "last_match": result.value}
+            "template": template, "region": list(region), "last_match": result.value,
+            "timeout_sec": timeout_sec}
 
 
 def _click_template_required(
@@ -634,7 +637,8 @@ def _select_destination_city(
     _raise(
         "destination_not_found",
         f"passenger destination '{to_city_name}' was not found after vertical search",
-        {"target": to_city_name, "max_search_steps": steps, "trace": trace},
+        {"target": to_city_name, "max_search_steps": steps, "trace": trace,
+         **recognition_failure("选择揽客目的地", f"{to_city_name}的城市标志", "template", "not_found")},
     )
     return {}
 
@@ -1060,7 +1064,10 @@ def _recruit_passengers_by_flyer_impl(
         timeout_sec=30.0,
     )
     if not success_marker.get("found"):
-        _raise("recruitment_result_unreadable", "flyer recruitment result did not appear", {"match": success_marker})
+        _raise("recruitment_result_unreadable", "flyer recruitment result did not appear",
+               {"match": success_marker, **recognition_failure(
+                   "确认揽客结果", "招募成功提示", "template", "timeout",
+                   timeout_sec=30, next_step="请先在游戏内确认揽客结果。")})
     receipt["success_marker_confirmed"] = True
 
     result_items: List[Dict[str, Any]] = []
@@ -1076,7 +1083,10 @@ def _recruit_passengers_by_flyer_impl(
         if _attempt < 2:
             time.sleep(0.5)
     if not _valid_flyer_ratio(remaining_flyers):
-        _raise("flyer_balance_unreadable", "unable to confirm flyers after recruitment", {"ocr_items": result_items})
+        _raise("flyer_balance_unreadable", "unable to confirm flyers after recruitment",
+               {"ocr_items": result_items, **recognition_failure(
+                   "确认揽客结果", "剩余传单数量", "text", "unconfirmed",
+                   next_step="请先在游戏内确认揽客结果。")})
     remaining_flyer_count = remaining_flyers["current"]
     if remaining_flyer_count > initial_flyers:
         _raise("flyer_balance_increased", "flyer balance increased across recruitment; consumption is unknown",
@@ -1085,7 +1095,10 @@ def _recruit_passengers_by_flyer_impl(
                    flyers_used=initial_flyers - remaining_flyer_count,
                    submission_state="result_confirmed")
     if read_passenger_count and recruited is None:
-        _raise("recruitment_result_unreadable", "unable to read recruited passenger count", {"ocr_items": result_items})
+        _raise("recruitment_result_unreadable", "unable to read recruited passenger count",
+               {"ocr_items": result_items, **recognition_failure(
+                   "读取揽客结果", "招揽乘客人数", "text", "unconfirmed",
+                   next_step="请先在游戏内查看揽客结果。")})
 
     remaining_seats = _passenger_ratio(result_items) if read_passenger_count else None
     cleanup = _click_blank_and_confirm_main(app, vision, error_code="main_screen_not_restored")

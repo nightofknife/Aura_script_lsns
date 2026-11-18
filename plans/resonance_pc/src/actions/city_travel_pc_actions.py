@@ -17,6 +17,7 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.runtime_trace import log_event, log_poll
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.utils.task_errors import recognition_failure
 from ._city_panel_vision import CityPanelVisionError, VISIT_REGION, VISIT_THRESHOLD, probe_visit_entry
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
 from ._operation_progress import observe_operation
@@ -1189,7 +1190,8 @@ def resonance_pc_select_intercity_destination(
         f"Destination '{to_city_name}' was not confirmed after native map movement ({stop_reason}).",
         {"to_city_name": to_city_name, "from_city_name": from_city_name, "to_city_key": target,
          "total_drag_count": total_drag_count, "ocr_count": ocr_count, "stop_reason": stop_reason,
-         "last_seen_texts": last_seen_texts, "attempt_trace": attempts},
+         "last_seen_texts": last_seen_texts, "attempt_trace": attempts,
+         **recognition_failure("在地图选择目的地", cities[target]["name"], "text", "not_found")},
     )
 
 

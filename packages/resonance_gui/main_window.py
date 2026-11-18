@@ -64,9 +64,11 @@ from .logic import (
     reward_continuation_detail,
 )
 from .style import APP_STYLE
+from .run_failure import RunFailure, present_run_failure, run_task_label
 from .update_checker import current_version_label, find_available_update
 from .widgets import BattlePage, TradePage, SettingsHubPage, SmallTasksPage, WorkflowPage, TutorialPage
 from .widgets.run_detail import RunDetailView
+from .widgets.failure_details import FailureDetailsButton
 from .widgets.tutorial_page import TutorialHelpButton
 
 
@@ -129,6 +131,9 @@ class ResonanceMainWindow(QMainWindow):
         self.setMinimumSize(min(760, width), min(460, height))
         self.resize(width, height)
         self._build_ui()
+        self.independent_failure_details = FailureDetailsButton(self.statusBar())
+        self.statusBar().addPermanentWidget(self.independent_failure_details)
+        self.independent_failure_details.set_report()
         self._sync_workflow_settings()
         self._wire_bridge()
         self._sync_input_bridge_setting()
@@ -448,6 +453,8 @@ class ResonanceMainWindow(QMainWindow):
         layout.addWidget(self.history_table, 1)
         self.run_detail = RunDetailView(root)
         layout.addWidget(self.run_detail, 1)
+        self.history_failure_details = FailureDetailsButton(root)
+        layout.addWidget(self.history_failure_details, alignment=Qt.AlignmentFlag.AlignLeft)
         hint = QLabel("双击记录可在下方查看只读结果", root)
         hint.setProperty("caption", True)
         layout.addWidget(hint)
@@ -1025,16 +1032,19 @@ class ResonanceMainWindow(QMainWindow):
         else:
             self._finish_workflow(False, "流程已停止。")
 
-    def _abort_workflow(self, message: str) -> None:
+    def _abort_workflow(self, message: str, payload: Mapping[str, Any] | None = None) -> None:
         if not self._workflow_active:
             return
-        self._workflow_failed_message = str(message or "流程执行失败。")
+        if not self._workflow_failed_message:
+            self._workflow_failed_message = str(message or "流程执行失败。")
+            if payload is not None:
+                self.workflow_page.failure_detail_button.set_report(self._workflow_failed_message, payload)
         current = self._workflow_current
         if current is not None:
-            self.workflow_page.mark_step(str(current["step"]), "failed", message)
+            self.workflow_page.mark_step(str(current["step"]), "failed", message, log_detail=False)
             parent = str(current.get("parent") or "")
             if parent:
-                self.workflow_page.mark_step(parent, "failed", message)
+                self.workflow_page.mark_step(parent, "failed", message, log_detail=False)
         close_cleanup = self.settings_page.close_on_failure_enabled()
         self._workflow_pending = (
             [row for row in self._workflow_pending if row.get("step") == "close"]
@@ -1129,6 +1139,10 @@ class ResonanceMainWindow(QMainWindow):
                 summary_text = str(row.get("task_name") or row.get("task_ref") or "任务")
                 result_text = str(extract_final_result(row).get("reason") or "查看执行详情")
                 type_label = "客货运组合" if kind == "combined_commerce" else "任务"
+            failure = present_run_failure(row)
+            if failure:
+                summary_text = failure.task
+                result_text = failure.text
             values = [
                 extract_run_id(row),
                 extract_status(row),
@@ -1139,12 +1153,23 @@ class ResonanceMainWindow(QMainWindow):
                 str(row.get("task_name") or row.get("task_ref") or ""),
             ]
             for col, value in enumerate(values):
-                self.history_table.setItem(index, col, QTableWidgetItem(value))
+                cell = QTableWidgetItem(value)
+                if failure and col == 3:
+                    cell.setToolTip(value)
+                self.history_table.setItem(index, col, cell)
     def _open_history_row(self, row: int, column: int) -> None:
         del column
         visible_rows = getattr(self, "_visible_history_rows", self._history_rows)
         if 0 <= row < len(visible_rows):
-            self.run_detail.show_text(render_result_text(visible_rows[row]))
+            self._show_run_result(visible_rows[row])
+
+    def _show_run_result(self, payload: Mapping[str, Any], failure: RunFailure | None = None) -> None:
+        failure = failure or present_run_failure(payload)
+        self.run_detail.show_text(failure.text if failure else render_result_text(payload))
+        if failure:
+            self.history_failure_details.set_report(failure.text, payload)
+        else:
+            self.history_failure_details.set_report()
 
     @staticmethod
     def _history_kind(row: dict[str, Any]) -> str:
@@ -1167,6 +1192,7 @@ class ResonanceMainWindow(QMainWindow):
 
 
     def _on_task_started(self, payload: dict[str, Any]) -> None:
+        self.independent_failure_details.set_report()
         self._active_game_name = str(payload.get("game_name") or "")
         self._active_kind = str(payload.get("kind") or "")
         self.statusBar().showMessage(f"派发中：{payload.get('label')}")
@@ -1211,8 +1237,12 @@ class ResonanceMainWindow(QMainWindow):
     def _on_task_finished(self, payload: dict[str, Any]) -> None:
         if self._closing:
             return
-        self.statusBar().showMessage("任务执行结束")
-        finished_kind = ""
+        workflow_label = str((self._workflow_current or {}).get("label") or "") if self._workflow_active else ""
+        failure = present_run_failure(payload, task_label=workflow_label)
+        failure_message = failure.text if failure else "任务未成功完成。"
+        self.statusBar().showMessage(failure.text if failure else "任务执行结束")
+        if failure and not self._workflow_active:
+            self.independent_failure_details.set_report(failure.text, payload)
         if self._active_game_name == PC_GAME_NAME:
             item = payload.get("gui_item") if isinstance(payload.get("gui_item"), dict) else {}
             kind = str(item.get("kind") or self._active_kind)
@@ -1226,32 +1256,26 @@ class ResonanceMainWindow(QMainWindow):
                         self.trade_preview_page.invalidate_preview("账号数据已更新")
                     self.small_tasks_page.apply_refresh_result(
                         player_data,
-                        mark_complete=small_task_owns_result,
+                        mark_complete=small_task_owns_result and failure is None,
                     )
+                    if failure and small_task_owns_result:
+                        self._show_small_task_error(task_ref, failure_message)
                 elif task_ref == PC_PLAYER_DATA_LATEST_TASK_REF:
                     self.small_tasks_page.set_snapshot(player_data)
             elif task_ref in {
                 PC_PLAYER_DATA_REFRESH_TASK_REF,
                 PC_PLAYER_DATA_LATEST_TASK_REF,
             }:
-                message = str(
-                    player_data_result.get("reason")
-                    or player_data_result.get("error")
-                    or payload.get("error")
-                    or "任务未成功完成。"
-                )
                 if small_task_owns_result:
-                    self._show_small_task_error(task_ref, message)
+                    self._show_small_task_error(task_ref, failure_message)
             if small_task_owns_result:
                 self._small_task_active_ref = ""
             if task_ref in {PC_DAILY_MISSION_REWARDS_TASK_REF, PC_BATTLE_PASS_REWARDS_TASK_REF} and small_task_owns_result:
                 runner_status = extract_status(payload)
-                reward_label = "通行证" if task_ref == PC_BATTLE_PASS_REWARDS_TASK_REF else "每日任务"
-                if (runner_status != "success" or payload.get("gui_timeout_cancelled")
+                if (failure or runner_status != "success" or payload.get("gui_timeout_cancelled")
                         or payload.get("gui_soft_stop_requested")):
                     self.small_tasks_page.show_daily_rewards_error(
-                        str(payload.get("error") or player_data_result.get("message")
-                            or player_data_result.get("reason") or f"{reward_label}奖励收集已取消或中断。"),
+                        failure_message,
                         cancelled=runner_status == "cancelled" or bool(payload.get("gui_soft_stop_requested")),
                     )
                 else:
@@ -1261,15 +1285,15 @@ class ResonanceMainWindow(QMainWindow):
                 runner_status = extract_status(payload)
                 if isinstance(affix_result, dict):
                     affix_result = dict(affix_result)
+                    if failure:
+                        affix_result.update(message=failure_message, reason=failure_message)
                     if runner_status != "success":
                         affix_result.update(success=False, status="cancelled" if runner_status == "cancelled" else "failed",
-                                            framework_interrupted=True,
-                                            message=payload.get("error") or "任务已取消或中断。",
-                                            reason=affix_result.get("reason") or payload.get("error") or "任务已取消或中断。")
+                                            framework_interrupted=True)
                     self.small_tasks_page.apply_affix_refresh_result(affix_result)
                 else:
                     self.small_tasks_page.show_affix_refresh_error(
-                        str(player_data_result.get("reason") or player_data_result.get("error") or payload.get("error") or "任务未返回完整刷新词缀结果。"),
+                        failure_message,
                         cancelled=runner_status == "cancelled")
             if task_ref == PC_ETERNAL_SCUFFLE_TASK_REF and small_task_owns_result:
                 scuffle_result = player_data_result.get("eternal_scuffle")
@@ -1278,10 +1302,12 @@ class ResonanceMainWindow(QMainWindow):
                     scuffle_result = dict(scuffle_result)
                     if status != "success":
                         scuffle_result.update(success=False, status="cancelled" if status == "cancelled" else "failed")
+                    if failure:
+                        scuffle_result.update(message=failure_message, reason=failure_message)
                     self.small_tasks_page.apply_eternal_scuffle_result(scuffle_result)
                 else:
                     self.small_tasks_page.show_eternal_scuffle_error(
-                        str(player_data_result.get("reason") or player_data_result.get("error") or payload.get("error") or "任务未返回完整无垠乱斗结果。"),
+                        failure_message,
                         cancelled=status == "cancelled",
                     )
             team_result = player_data_result.get("team_recommendations")
@@ -1289,14 +1315,7 @@ class ResonanceMainWindow(QMainWindow):
                 if isinstance(team_result, dict):
                     self.small_tasks_page.apply_team_recommendation_result(team_result)
                 else:
-                    self.small_tasks_page.show_team_recommendation_error(
-                        str(
-                            player_data_result.get("reason")
-                            or player_data_result.get("error")
-                            or payload.get("error")
-                            or "任务未返回可用配队推荐结果。"
-                        )
-                    )
+                    self.small_tasks_page.show_team_recommendation_error(failure_message)
                 self._small_task_active_ref = ""
             if task_ref == PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF and small_task_owns_result:
                 scan_result = extract_deep_dive_scan_result(payload)
@@ -1305,8 +1324,10 @@ class ResonanceMainWindow(QMainWindow):
                     scan_result.update(
                         success=False,
                         status="cancelled" if runner_status == "cancelled" else "blocked",
-                        reason=scan_result.get("reason") or payload.get("error") or "任务已取消或中断",
+                        reason=failure_message,
                     )
+                elif failure:
+                    scan_result["reason"] = failure_message
                 if scan_result:
                     self.small_tasks_page.apply_consciousness_deep_dive_scan_result(scan_result)
                 else:
@@ -1319,8 +1340,10 @@ class ResonanceMainWindow(QMainWindow):
                     planned_run_result.update(
                         success=False,
                         status="cancelled" if runner_status == "cancelled" else "blocked",
-                        reason=planned_run_result.get("reason") or payload.get("error") or "任务已取消或中断",
+                        reason=failure_message,
                     )
+                elif failure:
+                    planned_run_result["reason"] = failure_message
                 if planned_run_result:
                     self.small_tasks_page.apply_consciousness_deep_dive_planned_run_result(planned_run_result)
                 else:
@@ -1335,8 +1358,10 @@ class ResonanceMainWindow(QMainWindow):
                         status=("cancelled" if runner_status == "cancelled" else
                                 plan_result.get("status") if plan_result.get("status") in
                                 {"blocked", "search_budget_exhausted", "cancelled"} else "blocked"),
-                        reason=plan_result.get("reason") or payload.get("error") or "任务已取消或中断",
+                        reason=failure_message,
                     )
+                elif failure:
+                    plan_result["reason"] = failure_message
                 if plan_result:
                     self.small_tasks_page.apply_consciousness_deep_dive_plan_result(plan_result)
                 else:
@@ -1346,11 +1371,12 @@ class ResonanceMainWindow(QMainWindow):
                 loop_result=player_data_result.get('deep_dive_loop')
                 panel=self.small_tasks_page.consciousness_deep_dive_panel
                 if isinstance(loop_result,dict):
+                    if failure:
+                        loop_result = {**loop_result, "reason": failure_message}
                     panel.apply_loop_result(loop_result)
                 else:
-                    panel.show_loop_error(str(payload.get('error') or player_data_result.get('error') or '任务已取消或中断'))
+                    panel.show_loop_error(failure_message)
                 self._small_task_active_ref=''
-            finished_kind = kind
             if kind == "trade_preview":
                 self.trade_preview_page.finish_preview(payload)
             elif kind == "trade_run":
@@ -1384,17 +1410,14 @@ class ResonanceMainWindow(QMainWindow):
                 if item.get("task_ref") != PC_PLAYER_DATA_REFRESH_TASK_REF:
                     self._abort_workflow("货运前数据刷新返回了不匹配的任务结果。")
                 elif payload.get("gui_timeout_cancelled"):
-                    self._abort_workflow("货运前数据刷新超时，流程已停止。")
+                    self._abort_workflow(failure_message, payload)
                 elif not succeeded:
-                    self._abort_workflow(str(
-                        result.get("reason") or result.get("error")
-                        or payload.get("error") or "货运前数据刷新未成功完成。"
-                    ))
+                    self._abort_workflow(failure.text if failure else "货运前数据刷新未成功完成。", payload)
                 else:
                     try:
                         player = validate_recovery_refresh(result, current["inputs"]["profile_sections"])
                     except ValueError as exc:
-                        self._abort_workflow(str(exc))
+                        self._abort_workflow(str(exc), payload)
                     else:
                         self._workflow_recovery_snapshot = {
                             "cid": extract_run_id(payload),
@@ -1422,10 +1445,10 @@ class ResonanceMainWindow(QMainWindow):
                     if item.get("task_ref") != PC_REWARD_COLLECTION_TASK_REF:
                         raise ValueError("奖励领取返回了不匹配的任务结果。")
                     if not succeeded or payload.get("gui_timeout_cancelled") or payload.get("gui_soft_stop_requested"):
-                        raise ValueError(str(result.get("reason") or payload.get("error") or "奖励领取未完成。"))
+                        raise ValueError(failure.text if failure else "奖励领取未完成。")
                     state, detail = reward_continuation_detail(result, current["inputs"])
                 except ValueError as exc:
-                    self._abort_workflow(str(exc))
+                    self._abort_workflow(str(exc), payload)
                 else:
                     self.workflow_page.mark_step(step, state, detail)
                     self._workflow_current = None
@@ -1436,10 +1459,10 @@ class ResonanceMainWindow(QMainWindow):
                         raise ValueError("作战返回了不匹配的任务结果。")
                     if (status != "success" or payload.get("gui_timeout_cancelled")
                             or payload.get("gui_soft_stop_requested")):
-                        raise ValueError(str(result.get("reason") or payload.get("error") or "作战执行异常或被取消。"))
+                        raise ValueError(failure.text if failure else "作战执行异常或被取消。")
                     state, detail = battle_continuation_detail(result)
                 except ValueError as exc:
-                    self._abort_workflow(str(exc))
+                    self._abort_workflow(str(exc), payload)
                 else:
                     self.workflow_page.mark_step(step, state, detail)
                     self.workflow_page.append_log(detail)
@@ -1451,29 +1474,34 @@ class ResonanceMainWindow(QMainWindow):
                     self.workflow_page.mark_step(parent, "success", "跑商已完成")
                 self._workflow_current = None
             else:
-                self._abort_workflow(str(result.get("reason") or f"{current['label']}未成功完成"))
-        self.run_detail.show_text(render_result_text(payload))
+                self._abort_workflow(failure.text if failure else f"{current['label']}未成功完成。", payload)
+        self._show_run_result(payload, failure)
 
     def _on_task_failed(self, payload: dict[str, Any]) -> None:
         if self._closing:
             return
-        self.statusBar().showMessage(f"任务异常：{payload.get('error', '')}")
+        failure = present_run_failure(
+            payload, task_label=str((self._workflow_current or {}).get("label") or ""),
+        ) or RunFailure(run_task_label(payload), "", "执行中断。", "请查看或复制排查信息。")
+        self.statusBar().showMessage(failure.text)
         stage = str(payload.get("stage") or "")
+        if stage == "poll_run" and payload.get("recoverable"):
+            return
+        if not self._workflow_active:
+            self.independent_failure_details.set_report(failure.text, payload)
+        self._show_run_result(payload, failure)
         if stage == "cancel_task" and self._small_task_active_ref in {
                 PC_DAILY_MISSION_REWARDS_TASK_REF, PC_BATTLE_PASS_REWARDS_TASK_REF}:
-            self.small_tasks_page.daily_rewards_panel.cancel_failed(str(payload.get("error") or "未知错误"))
-            self.run_detail.show_text(pretty_json(payload))
+            self.small_tasks_page.daily_rewards_panel.cancel_failed(failure.text)
             return
         if (stage == "cancel_task" and self._small_task_active_ref in
                 {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF}):
-            self.small_tasks_page.affix_refresh_panel.cancel_failed(str(payload.get("error") or "未知错误"))
-        if stage in {"list_tasks", "list_runs"}:
-            self.run_detail.show_text(pretty_json(payload))
+            self.small_tasks_page.affix_refresh_panel.cancel_failed(failure.text)
+        if stage in {"list_tasks", "list_runs", "cancel_task"}:
             return
         failed_task_ref = str(payload.get("task_ref") or "")
         if failed_task_ref and failed_task_ref == self._small_task_active_ref:
-            message = str(payload.get("error") or "未知错误")
-            self._show_small_task_error(failed_task_ref, message)
+            self._show_small_task_error(failed_task_ref, failure.text)
             self._small_task_active_ref = ""
         elif (
             self._small_task_active_ref
@@ -1482,11 +1510,11 @@ class ResonanceMainWindow(QMainWindow):
         ):
             self._show_small_task_error(
                 self._small_task_active_ref,
-                str(payload.get("error") or "任务状态读取失败"),
+                failure.text,
             )
             self._small_task_active_ref = ""
         if self._workflow_active:
-            self._abort_workflow(str(payload.get("error") or "任务执行异常"))
+            self._abort_workflow(failure.text, payload)
         if stage == "run_pc_battle":
             self.battle_page.show_failure(payload)
         elif stage == "preview_pc_trade":
@@ -1501,7 +1529,6 @@ class ResonanceMainWindow(QMainWindow):
         elif self._active_game_name == PC_GAME_NAME and self._active_kind.startswith("trade_"):
             page = self.trade_preview_page if self._active_kind == "trade_preview" else self.trade_page
             page.show_failure(payload)
-        self.run_detail.show_text(pretty_json(payload))
 
     def _on_busy_changed(self, busy: bool) -> None:
         if self._closing:
