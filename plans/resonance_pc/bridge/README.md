@@ -15,7 +15,9 @@ resonance_pc:
 ```
 
 Start the game normally, then run an existing task. The first bridge operation
-loads `assets/input_bridge/resonance_bridge_host.dll` using the adjacent loader.
+stages the packaged bootstrap and Unity profiles in the per-user cache and
+starts it with the adjacent loader. The bootstrap loads a staged
+`resonance_bridge_host.dll` whose SHA-256 matches the requested build.
 The process must match a fingerprint profile. Bridge tasks use Unity's
 1280×720 render viewport for both input and capture, including while minimized.
 Frames are read at the end of Unity's render loop and published to a local
@@ -24,7 +26,7 @@ minimize and restore. System mode uses the configured WGC capture path.
 
 Switch modes only with no held buttons/keys or running gestures. Bridge mode's
 `app.focus()` and `focus_with_input()` check logical input readiness. Restart
-the game if the resident bridge predates frame capture.
+the game once when migrating from the original single-DLL bridge.
 
 ## Operations
 
@@ -66,11 +68,21 @@ Profiles match SHA256 of GameAssembly, UnityPlayer and IL2CPP metadata. Unsuppor
 updates fail closed. Capability flags represent qualified native behavior, not
 merely successful DLL loading; changing hashes alone is not an update procedure.
 
-The host owns a frame snapshot and executes Unity operations on the main thread.
+The bootstrap owns the Unity hook entry points and the pipe server. The host
+owns a frame snapshot and executes Unity operations on the main thread.
 Pipe replies are bounded, session/sequence checked and pinned to the process
-creation identity. Unknown outcomes are never replayed. Client process death
+creation identity and host instance. Unknown outcomes are never replayed. Client process death
 cancels owned input and restores background/focus behavior. Once a root task
 and its readers finish, Aura stops frame production and closes the session and
-the shared buffer. The native module remains available until the game exits.
+the shared buffer. The host unloads after 30 seconds without a session. A
+different requested build or a shutdown request can unload an idle host sooner.
+The bootstrap stops admitting calls and waits for every admitted call to return
+before releasing the host module. The next bridge task loads the requested
+build automatically. The bootstrap remains mapped for the game's lifetime.
+
+The cache defaults to `%LOCALAPPDATA%/AuraResonance/input_bridge`.
+`AURA_INPUT_BRIDGE_CACHE` can set the cache for the next bootstrap load.
+`status` reports `host_state`, `host_hash`, `host_instance` and
+`lifecycle_error`. Future incompatible bootstrap changes require a game restart.
 
 Current live qualification and limitations are in `../docs/input-bridge-native-results.md`.

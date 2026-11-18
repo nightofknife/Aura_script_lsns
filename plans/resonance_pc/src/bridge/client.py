@@ -13,6 +13,9 @@ from ....aura_base.src.platform.contracts import TargetRuntimeError
 class NamedPipeTransport:
     MAX_MESSAGE = 64 * 1024
 
+    def __init__(self, pid: int):
+        self.pid = pid
+
     def exchange(self, pipe: str, request: dict, timeout: float) -> dict:
         if os.name != "nt":
             raise TargetRuntimeError("input_bridge_platform_unsupported", "Bridge requires Windows.")
@@ -51,6 +54,8 @@ class NamedPipeTransport:
             handle = win32file.CreateFile(pipe, win32con.GENERIC_READ | win32con.GENERIC_WRITE,
                                           0, None, win32con.OPEN_EXISTING,
                                           win32con.FILE_FLAG_OVERLAPPED, None)
+            if win32pipe.GetNamedPipeServerProcessId(handle) != self.pid:
+                raise TargetRuntimeError("input_bridge_target_mismatch", "The bridge pipe belongs to another process.")
             payload = json.dumps(request, ensure_ascii=True, allow_nan=False, separators=(",", ":")).encode() + b"\n"
             if len(payload) > self.MAX_MESSAGE:
                 raise ValueError("Bridge request too large")
@@ -88,11 +93,12 @@ class BridgeClient:
         self.pid = int(pid)
         self.pipe = rf"\\.\pipe\resonance-input-bridge-{self.pid}"
         self.session = uuid.uuid4().hex
-        self.transport = transport or NamedPipeTransport()
+        self.transport = transport or NamedPipeTransport(self.pid)
         self._sequence = 0
         self._lock = threading.Lock()
         self.uncertain = False
         self.process_created = None
+        self.host_instance = None
 
     def request(self, op: str, args=None, viewport=None, timeout=10.0, cancel_token=None):
         # Only sequence allocation is locked: cancel must run alongside active input RPC.
@@ -106,6 +112,8 @@ class BridgeClient:
                    "timeout_ms": max(int(timeout * 1000), 1)}
         if self.process_created is not None:
             request["process_created"] = self.process_created
+        if self.host_instance is not None:
+            request["host_instance"] = self.host_instance
         try:
             reply = self.transport.exchange(self.pipe, request, timeout)
             if reply.get("version") != 1 or reply.get("sequence") != sequence or reply.get("session") != self.session:

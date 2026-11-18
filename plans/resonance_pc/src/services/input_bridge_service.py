@@ -6,7 +6,6 @@ import contextvars
 from contextlib import contextmanager
 import math
 import os
-from pathlib import Path
 import subprocess
 import threading
 import time
@@ -27,6 +26,7 @@ from ....aura_base.src.platform.runtime_config import resolve_runtime_config
 from ....aura_base.src.platform.windows.window_selector import resolve_window_candidate
 from ..bridge.client import BridgeClient
 from ..bridge.frame_stream import BridgeFrameStream
+from ..bridge.native_bundle import ASSETS, stage_bootstrap, stage_host
 
 _CANCEL_TOKEN = contextvars.ContextVar("resonance_bridge_cancel_token", default=None)
 
@@ -56,6 +56,8 @@ class ResonancePcInputBridgeService:
         self.target_runtime = screen.target_runtime if screen is not None else None
         self.config = config if config is not None else self.target_runtime.config
         self._client = None
+        self._last_host = None
+        self._assets = ASSETS
         self._frame_stream = None
         self._session_root_cid = None
         self._lock = threading.RLock()
@@ -100,7 +102,7 @@ class ResonancePcInputBridgeService:
                 self._mode = mode
         if previous == "bridge" and mode == "system":
             try:
-                self.close()
+                self.close(unload=True)
                 with self._state_lock:
                     self._mode = mode
             finally:
@@ -172,14 +174,13 @@ class ResonancePcInputBridgeService:
         return self._timing("mouse_move_duration_ms", 120) if duration is None else seconds(duration)
 
     def _load(self, pid):
-        directory = Path(__file__).resolve().parents[2] / "assets" / "input_bridge"
-        loader = directory / "resonance_bridge_loader.exe"
-        library = directory / "resonance_bridge_host.dll"
-        if not loader.is_file() or not library.is_file():
-            raise TargetRuntimeError("input_bridge_not_built", "Native bridge binaries are missing.",
-                                     {"directory": str(directory)})
+        loader = self._assets / "resonance_bridge_loader.exe"
+        if not loader.is_file():
+            raise TargetRuntimeError("input_bridge_not_built", "Native bridge loader is missing.",
+                                     {"directory": str(self._assets)})
+        library = stage_bootstrap(self._assets)
         result = subprocess.run([str(loader), "--pid", str(pid), "--dll", str(library)],
-                                capture_output=True, text=True, timeout=15,
+                                capture_output=True, text=True, timeout=30,
                                 creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
         if result.returncode:
             raise TargetRuntimeError("input_bridge_load_failed", result.stderr or result.stdout,
@@ -212,29 +213,44 @@ class ResonancePcInputBridgeService:
             update_runtime({"bridge_pid": pid, "bridge_hwnd": hwnd})
         def hello(client, *, wait_for_pipe=False):
             deadline = time.monotonic() + 10.0
+            host_hash = None
+            prepared = False
             while True:
                 remaining = deadline - time.monotonic()
                 if remaining <= 0:
                     raise TargetRuntimeError("input_bridge_unavailable", "Bridge startup readiness deadline expired.")
                 try:
                     status = client.request("status", timeout=min(2.0, remaining))["result"]
+                    if status.get("bootstrap_abi") != 1:
+                        raise TargetRuntimeError("bridge_restart_required", "请重启雷索纳斯以载入支持热更新的桥接器。")
+                    if status["state"] == "failed" and status.get("host_state") == "unloaded":
+                        raise TargetRuntimeError("bridge_failed", status["error"])
+                    if host_hash is None:
+                        host_hash = stage_host(self._assets, status["cache_root"])
+                    if (not prepared or status.get("host_instance") != client.host_instance
+                            or status.get("host_state") != "loaded"):
+                        prepared_host = client.request(
+                            "prepare_host", {"host_hash": host_hash}, timeout=min(2.0, remaining)
+                        )["result"]
+                        client.host_instance = prepared_host["host_instance"]
+                        self._last_host = client
+                        prepared = True
+                        continue
                     if status["state"] == "failed":
                         raise TargetRuntimeError("bridge_failed", status["error"])
                     if status["state"] != "ready":
                         raise TargetRuntimeError("bootstrap_pending", "Unity bridge is starting up")
                     caps = status["capabilities"]
-                    if "frame_stream" not in caps:
-                        raise TargetRuntimeError("bridge_restart_required", "请重启雷索纳斯以载入支持截图的新版桥接器。")
-                    if not caps["frame_stream"]:
+                    if not caps.get("frame_stream"):
                         raise TargetRuntimeError("bridge_capture_unsupported", "当前 Unity 配置不支持桥接截图。")
                     args = {"hwnd": hwnd}
                     if self._position is not None:
                         args["position"] = self._position
-                    return client.request("hello", args, self._viewport, min(2.0, remaining))
+                    return client.request("hello", args, viewport=self._viewport, timeout=min(2.0, remaining))
                 except TargetRuntimeError as exc:
                     # Bootstrap is rejected before acquisition; unavailable means no
                     # payload was written. Only these outcomes may be retried.
-                    retryable = exc.code == "bootstrap_pending" or (
+                    retryable = exc.code in {"bootstrap_pending", "bridge_transition"} or (
                         wait_for_pipe and exc.code == "input_bridge_unavailable")
                     if not retryable or time.monotonic() >= deadline:
                         raise
@@ -473,7 +489,7 @@ class ResonancePcInputBridgeService:
             if self._session_root_cid == cid:
                 self.close()
 
-    def close(self):
+    def close(self, *, unload=False):
         with activity("input", "close", backend="bridge"), self._lock:
             client = self._client
             stream = self._frame_stream
@@ -505,10 +521,18 @@ class ResonancePcInputBridgeService:
             self._identity = None
             self._needs_hello = True
             self._capabilities.clear()
+            if unload and self._last_host is not None:
+                host = self._last_host
+                self._last_host = None
+                try:
+                    host.request("unload_host", {"host_instance": host.host_instance}, timeout=2.0)
+                except TargetRuntimeError as exc:
+                    if exc.code not in {"session_invalid", "input_bridge_unavailable", "input_session_busy"}:
+                        log_event("input.bridge_unload_unconfirmed", code=exc.code)
 
     def shutdown(self):
         """Framework lifecycle hook: cancel first, so shutdown does not wait for a long drag."""
         try:
             self.cancel_input()
         finally:
-            self.close()
+            self.close(unload=True)

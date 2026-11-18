@@ -13,6 +13,14 @@ struct Handle {
       CloseHandle(value);
   }
 };
+struct LoadMutex {
+  Handle handle;
+  bool acquired{};
+  ~LoadMutex() {
+    if (acquired)
+      ReleaseMutex(handle.value);
+  }
+};
 uintptr_t remote_module(DWORD pid, const wchar_t *name) {
   Handle snap{CreateToolhelp32Snapshot(TH32CS_SNAPMODULE | TH32CS_SNAPMODULE32, pid)};
   MODULEENTRY32W e{sizeof(e)};
@@ -39,12 +47,23 @@ int wmain(int argc, wchar_t **argv) {
     }
     if (!pid || dll.empty() || !dll.is_absolute() || !std::filesystem::is_regular_file(dll))
       throw std::runtime_error("PID and existing absolute DLL path required");
+    auto mutex_name = L"Local\\AuraResonanceBridgeLoad-" + std::to_wstring(pid);
+    LoadMutex load_lock{{CreateMutexW(nullptr, FALSE, mutex_name.c_str())}};
+    if (!load_lock.handle.value)
+      throw std::runtime_error("Cannot create the per-game bridge load mutex");
+    auto lock_status = WaitForSingleObject(load_lock.handle.value, 10000);
+    load_lock.acquired = lock_status == WAIT_OBJECT_0 || lock_status == WAIT_ABANDONED;
+    if (!load_lock.acquired)
+      throw std::runtime_error("Another bridge loader did not finish");
     if (!remote_module(pid, L"GameAssembly.dll") || !remote_module(pid, L"UnityPlayer.dll"))
       throw std::runtime_error("Target is not the expected IL2CPP process");
     if (remote_module(pid, dll.filename().c_str())) {
       std::cout << "already_loaded\n";
       return 0;
     }
+    if (_wcsicmp(dll.filename().c_str(), L"resonance_bridge_bootstrap.dll") == 0 &&
+        remote_module(pid, L"resonance_bridge_host.dll"))
+      throw std::runtime_error("Restart the game once to migrate from the legacy bridge");
     Handle process{OpenProcess(PROCESS_CREATE_THREAD | PROCESS_QUERY_INFORMATION |
                                    PROCESS_VM_OPERATION | PROCESS_VM_WRITE | PROCESS_VM_READ,
                                FALSE, pid)};
@@ -81,7 +100,7 @@ int wmain(int argc, wchar_t **argv) {
       VirtualFreeEx(process.value, remote, 0, MEM_RELEASE);
       throw std::runtime_error("CreateRemoteThread failed");
     }
-    auto wait = WaitForSingleObject(thread.value, 30000);
+    auto wait = WaitForSingleObject(thread.value, 15000);
     if (wait != WAIT_OBJECT_0)
       throw std::runtime_error("Loader completion unknown; buffer retained until process exit");
     VirtualFreeEx(process.value, remote, 0, MEM_RELEASE);

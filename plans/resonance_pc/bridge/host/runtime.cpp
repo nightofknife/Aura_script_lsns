@@ -1,159 +1,11 @@
 #include "runtime.hpp"
-#include <MinHook.h>
-extern "C" {
-#include <hde64.h>
-}
 #include <algorithm>
 #include <cmath>
 #include <cstring>
-#include <functional>
-#include <set>
 
 namespace bridge {
-// Intentionally process-lifetime: static destruction runs under loader lock and
-// after Unity may have torn down GC. Session resources are explicitly released
-// on the live main thread; this inert host is never force-unloaded.
-Runtime &runtime = *new Runtime;
-EventUpdateFn original_event_update{};
 namespace {
 uint64_t now() { return GetTickCount64(); }
-using V3Fn = void (*)(Vec3 *);
-using V2Fn = void (*)(Vec2 *);
-using IntFn = bool (*)(int);
-using StringFn = bool (*)(Obj);
-using FloatFn = float (*)(Obj);
-using BoolFn = bool (*)();
-V3Fn original_position{};
-V2Fn original_wheel{};
-IntFn original_mouse[3]{}, original_key[3]{};
-StringFn original_key_string[3]{}, original_named[3]{};
-FloatFn original_axis[2]{};
-BoolFn original_present{}, original_any[2]{};
-std::vector<void *> hooks;
-bool equal_string(Obj o, const wchar_t *s) {
-  if (!o)
-    return false;
-  int n = *reinterpret_cast<int *>(static_cast<char *>(o) + 16);
-  return n == int(wcslen(s)) && memcmp(static_cast<char *>(o) + 20, s, n * 2) == 0;
-}
-int key_string(Obj o) {
-  if (equal_string(o, L"mouse 0"))
-    return 0;
-  if (equal_string(o, L"mouse 1"))
-    return 1;
-  if (equal_string(o, L"mouse 2"))
-    return 2;
-  return -1;
-}
-int named_button(Obj o) {
-  if (equal_string(o, L"Fire1"))
-    return 0;
-  if (equal_string(o, L"Fire2"))
-    return 1;
-  if (equal_string(o, L"Fire3"))
-    return 2;
-  return -1;
-}
-void position_hook(Vec3 *out) {
-  if (runtime.owns())
-    *out = runtime.position();
-  else
-    original_position(out);
-}
-void wheel_hook(Vec2 *out) {
-  if (runtime.owns())
-    *out = runtime.wheel();
-  else
-    original_wheel(out);
-}
-template <int P> bool mouse_hook(int k) {
-  return runtime.owns() ? runtime.button(k, P) : original_mouse[P](k);
-}
-template <int P> bool key_hook(int k) {
-  return runtime.owns() ? runtime.button(k - 323, P) : original_key[P](k);
-}
-template <int P> bool string_hook(Obj k) {
-  return runtime.owns() ? runtime.button(key_string(k), P) : original_key_string[P](k);
-}
-template <int P> bool named_hook(Obj k) {
-  return runtime.owns() ? runtime.button(named_button(k), P) : original_named[P](k);
-}
-template <int P> float axis_hook(Obj k) { return runtime.owns() ? 0.0f : original_axis[P](k); }
-bool present_hook() { return runtime.owns() ? true : original_present(); }
-template <int P> bool any_hook() {
-  return runtime.owns() ? (runtime.button(0, P) || runtime.button(1, P) || runtime.button(2, P))
-                        : original_any[P]();
-}
-void event_hook(Obj es, Method m) { runtime.event_update(es, m); }
-void publish_callback() { runtime.publish(); }
-void complete_callback() { runtime.complete(); }
-void capture_callback() { runtime.capture_frame(); }
-using LoopFn = void (*)();
-LoopFn publish_slot = publish_callback, complete_slot = complete_callback;
-LoopFn capture_slot = capture_callback;
-template <class T> void hook(void *address, void *replacement, T &original) {
-  if (std::find(hooks.begin(), hooks.end(), address) != hooks.end())
-    throw Error("version_mismatch", "Unexpected input ABI target alias");
-  auto status = MH_CreateHook(address, replacement, reinterpret_cast<void **>(&original));
-  if (status != MH_OK)
-    throw Error("hook_install_failed", MH_StatusToString(status));
-  hooks.push_back(address);
-}
-template <class T> void ihook(const char *name, void *replacement, T &original) {
-  auto p = il.icall((std::string("UnityEngine.Input::") + name).c_str());
-  MEMORY_BASIC_INFORMATION info{};
-  VirtualQuery(p, &info, sizeof(info));
-  if (info.AllocationBase != GetModuleHandleW(L"UnityPlayer.dll"))
-    throw Error("version_mismatch", "Input icall does not belong to UnityPlayer");
-  // Decode whole instructions, never scan arbitrary bytes as instructions. A
-  // populated wrapper cache must agree with resolve_icall; cold slots may be 0.
-  auto check_cache = [&](const char *wrapper, int argc) {
-    auto code = static_cast<unsigned char *>(
-        il.pointer(il.method(il.klass("UnityEngine", "Input"), wrapper, argc)));
-    bool found = false;
-    for (size_t offset = 0; offset < 96;) {
-      hde64s ins{};
-      auto length = hde64_disasm(code + offset, &ins);
-      if (!length || (ins.flags & F_ERROR))
-        break;
-      if (ins.opcode == 0x8B && ins.rex_w && ins.modrm_mod == 0 && ins.modrm_rm == 5) {
-        int32_t displacement{};
-        memcpy(&displacement, code + offset + length - 4, 4);
-        void *slot = code + offset + length + displacement;
-        MEMORY_BASIC_INFORMATION slot_info{};
-        VirtualQuery(slot, &slot_info, sizeof(slot_info));
-        if (slot_info.AllocationBase == il.module) {
-          void *cached = *static_cast<void **>(slot);
-          MEMORY_BASIC_INFORMATION cached_info{};
-          if (cached)
-            VirtualQuery(cached, &cached_info, sizeof(cached_info));
-          if (!cached || cached_info.AllocationBase == GetModuleHandleW(L"UnityPlayer.dll")) {
-            found = true;
-            if (cached && cached != p)
-              throw Error("version_mismatch",
-                          std::string("Input cache differs from resolver: ") + wrapper);
-            break;
-          }
-        }
-      }
-      if (ins.opcode == 0xC3)
-        break;
-      offset += length;
-    }
-    if (!found)
-      throw Error("version_mismatch",
-                  std::string("Cannot validate Input wrapper cache: ") + wrapper);
-  };
-  int argc = std::strncmp(name, "get_", 4) == 0 ? 0 : 1;
-  if (std::strstr(name, "_Injected"))
-    argc = 1;
-  check_cache(name, argc);
-  if (std::strcmp(name, "get_mousePosition_Injected") == 0)
-    check_cache("get_mousePosition", 0);
-  if (std::strcmp(name, "get_mouseScrollDelta_Injected") == 0)
-    check_cache("get_mouseScrollDelta", 0);
-  hook(p, replacement, original);
-}
 Obj game_object(Obj o) { return il.call(o, "get_gameObject"); }
 Obj transform(Obj o) { return il.call(o, "get_transform"); }
 Obj parent(Obj t) { return il.call(t, "get_parent"); }
@@ -200,37 +52,6 @@ double ties_even(double v) {
 }
 } // namespace
 
-void install_input_hooks() {
-  ihook("get_mousePosition_Injected", reinterpret_cast<void *>(position_hook), original_position);
-  ihook("get_mouseScrollDelta_Injected", reinterpret_cast<void *>(wheel_hook), original_wheel);
-  ihook("GetMouseButton", reinterpret_cast<void *>(mouse_hook<0>), original_mouse[0]);
-  ihook("GetMouseButtonDown", reinterpret_cast<void *>(mouse_hook<1>), original_mouse[1]);
-  ihook("GetMouseButtonUp", reinterpret_cast<void *>(mouse_hook<2>), original_mouse[2]);
-  ihook("GetKeyInt", reinterpret_cast<void *>(key_hook<0>), original_key[0]);
-  ihook("GetKeyDownInt", reinterpret_cast<void *>(key_hook<1>), original_key[1]);
-  ihook("GetKeyUpInt", reinterpret_cast<void *>(key_hook<2>), original_key[2]);
-  ihook("GetKeyString", reinterpret_cast<void *>(string_hook<0>), original_key_string[0]);
-  ihook("GetKeyDownString", reinterpret_cast<void *>(string_hook<1>), original_key_string[1]);
-  ihook("GetKeyUpString", reinterpret_cast<void *>(string_hook<2>), original_key_string[2]);
-  ihook("GetButton", reinterpret_cast<void *>(named_hook<0>), original_named[0]);
-  ihook("GetButtonDown", reinterpret_cast<void *>(named_hook<1>), original_named[1]);
-  ihook("GetButtonUp", reinterpret_cast<void *>(named_hook<2>), original_named[2]);
-  ihook("GetAxis", reinterpret_cast<void *>(axis_hook<0>), original_axis[0]);
-  ihook("GetAxisRaw", reinterpret_cast<void *>(axis_hook<1>), original_axis[1]);
-  ihook("get_mousePresent", reinterpret_cast<void *>(present_hook), original_present);
-  ihook("get_anyKey", reinterpret_cast<void *>(any_hook<0>), original_any[0]);
-  ihook("get_anyKeyDown", reinterpret_cast<void *>(any_hook<1>), original_any[1]);
-  for (auto p : hooks) {
-    auto s = MH_EnableHook(p);
-    if (s != MH_OK && s != MH_ERROR_ENABLED)
-      throw Error("hook_install_failed", MH_StatusToString(s));
-  }
-}
-void disable_input_hooks() {
-  for (auto p : hooks)
-    MH_DisableHook(p);
-}
-
 Vec3 Runtime::position() const {
   std::lock_guard<std::mutex> l(snapshot_mutex_);
   return snapshot_.position;
@@ -250,167 +71,45 @@ void Runtime::set_position(Vec2 p) {
   std::lock_guard<std::mutex> l(snapshot_mutex_);
   snapshot_.position = {p.x, p.y, 0};
 }
-void Runtime::initialize(const Json &profile) {
-  profile_ = profile;
+void Runtime::initialize(Json profile, bool capture) {
   il.load();
-  il.attach();
+  profile_ = std::move(profile);
+  capture_loop_installed_ = capture;
   capabilities_ = {{"absolute_pointer", false}, {"direct_drag", false}, {"scroll", false},
-                   {"relative_look", false},    {"keyboard", false},    {"text_input", false},
+                   {"relative_look", false}, {"keyboard", false}, {"text_input", false},
                    {"background_input", false}, {"frame_stream", false}};
-  auto s = MH_Initialize();
-  if (s != MH_OK)
-    throw Error("hook_install_failed", MH_StatusToString(s));
-  auto es = il.klass("UnityEngine.EventSystems", "EventSystem");
-  auto m = il.method(es, "Update", 0);
-  hook(il.pointer(m), reinterpret_cast<void *>(event_hook), original_event_update);
-  auto status = MH_EnableHook(il.pointer(m));
-  if (status != MH_OK)
-    throw Error("hook_install_failed", MH_StatusToString(status));
-  std::lock_guard<std::mutex> l(mutex_);
-  state_ = "bootstrap_pending";
-}
-
-// Unity 2019's flattened PlayerLoopSystemInternal stores a pointer to a native
-// function slot, not the function address. The matched Unity 2019.4.40f1c1
-// runtime was observed with root.count == array.length-1: counts are flattened
-// descendants in this ABI, not immediate children. Validate every subtree span.
-void Runtime::install_loop() {
-  auto loop = il.klass("UnityEngine.LowLevel", "PlayerLoop"),
-       node = il.klass("UnityEngine.LowLevel", "PlayerLoopSystemInternal");
-  if (il.value_size(node) != 40)
-    throw Error("version_mismatch", "Unexpected PlayerLoopSystemInternal ABI");
-  struct Node {
-    Obj type, delegate;
-    void *function;
-    void *condition;
-    int count;
-    int pad;
-  };
-  static_assert(sizeof(Node) == 40);
-  Root array(il.stat(loop, "GetCurrentPlayerLoopInternal"));
-  auto n = il.length(array.get());
-  if (n < 2 || n > 2048)
-    throw Error("loop_layout_unsupported", "Invalid PlayerLoop size");
-  auto begin = static_cast<Node *>(il.data(array.get()));
-  std::vector<Node> nodes(begin, begin + n);
-  size_t input = n, frame_end = n;
-  for (size_t i = 0; i < n; i++)
-    if (nodes[i].type) {
-      auto name = il.utf8(il.call(nodes[i].type, "get_FullName"));
-      if (name == "UnityEngine.PlayerLoop.EarlyUpdate+UpdateInputManager")
-        input = i;
-      if (name == "UnityEngine.PlayerLoop.PostLateUpdate+TriggerEndOfFrameCallbacks")
-        frame_end = i;
-    }
-  if (input == n || nodes[input].count != 0)
-    throw Error("loop_layout_unsupported", "UpdateInputManager leaf missing");
-  std::vector<size_t> parents(n, n), stack;
-  if (nodes[0].count != int(n - 1))
-    throw Error("loop_layout_unsupported", "Root descendant span differs from supported ABI");
-  for (size_t i = 0; i < n; i++) {
-    while (!stack.empty() && stack.back() + size_t(nodes[stack.back()].count) < i)
-      stack.pop_back();
-    if (nodes[i].count < 0 || i + size_t(nodes[i].count) >= n)
-      throw Error("loop_layout_unsupported", "Invalid PlayerLoop subtree span");
-    if (!stack.empty()) {
-      parents[i] = stack.back();
-      if (i + size_t(nodes[i].count) > stack.back() + size_t(nodes[stack.back()].count))
-        throw Error("loop_layout_unsupported", "Crossing PlayerLoop subtree spans");
-    }
-    if (nodes[i].count)
-      stack.push_back(i);
-  }
-  if (parents[input] == n)
-    throw Error("loop_layout_unsupported", "Input has no parent");
-  if (frame_end < n && frame_end > input && !nodes[frame_end].count && parents[frame_end] < n) {
-    for (size_t p = parents[frame_end]; p < n; p = parents[p])
-      nodes[p].count++;
-    nodes.insert(nodes.begin() + frame_end + 1, Node{nullptr, nullptr, &capture_slot, nullptr, 0, 0});
-    capture_loop_installed_ = true;
-  }
-  const size_t insert = input + 1;
-  for (size_t p = parents[input]; p < n; p = parents[p])
-    nodes[p].count++;
-  nodes.insert(nodes.begin() + insert, Node{nullptr, nullptr, &publish_slot, nullptr, 0, 0});
-  nodes[0].count++;
-  nodes.push_back(Node{nullptr, nullptr, &complete_slot, nullptr, 0, 0});
-  Root replacement(il.array(node, nodes.size()));
-  memcpy(il.data(replacement.get()), nodes.data(), nodes.size() * sizeof(Node));
-  il.stat(loop, "SetPlayerLoopInternal", {replacement.get()});
-  loop_root_ = std::move(replacement);
-  loop_installed_ = true;
-  install_input_hooks();
-  std::lock_guard<std::mutex> l(mutex_);
   state_ = "observing";
 }
-void Runtime::uninstall_loop() {
-  if (!loop_installed_)
-    return;
-  struct Node {
-    Obj type, delegate;
-    void *function;
-    void *condition;
-    int count;
-    int pad;
-  };
-  auto loop = il.klass("UnityEngine.LowLevel", "PlayerLoop"),
-       node = il.klass("UnityEngine.LowLevel", "PlayerLoopSystemInternal");
-  Root a(il.stat(loop, "GetCurrentPlayerLoopInternal"));
-  auto p = static_cast<Node *>(il.data(a.get()));
-  std::vector<Node> nodes(p, p + il.length(a.get()));
-  std::vector<size_t> parents(nodes.size(), nodes.size()), stack;
-  if (nodes.empty() || nodes[0].count != int(nodes.size() - 1))
-    throw Error("loop_layout_unsupported", "Invalid PlayerLoop root span");
-  for (size_t i = 0; i < nodes.size(); i++) {
-    while (!stack.empty() && stack.back() + size_t(nodes[stack.back()].count) < i)
-      stack.pop_back();
-    if (nodes[i].count < 0 || i + size_t(nodes[i].count) >= nodes.size())
-      throw Error("loop_layout_unsupported", "Invalid PlayerLoop subtree span");
-    if (!stack.empty())
-      parents[i] = stack.back();
-    if (nodes[i].count)
-      stack.push_back(i);
-  }
-  for (size_t i = nodes.size(); i-- > 0;)
-    if (nodes[i].function == &publish_slot || nodes[i].function == &complete_slot ||
-        nodes[i].function == &capture_slot) {
-      if (nodes[i].count || parents[i] >= parents.size())
-        throw Error("loop_layout_unsupported", "Bridge node shape changed");
-      for (size_t p = parents[i]; p < parents.size(); p = parents[p])
-        nodes[p].count--;
-      nodes.erase(nodes.begin() + i);
-    }
-  Root replacement(il.array(node, nodes.size()));
-  memcpy(il.data(replacement.get()), nodes.data(), nodes.size() * sizeof(Node));
-  il.stat(loop, "SetPlayerLoopInternal", {replacement.get()});
-  loop_root_ = std::move(replacement);
-  loop_installed_ = false;
-  capture_loop_installed_ = false;
+
+bool Runtime::idle() {
+  std::lock_guard<std::mutex> lock(mutex_);
+  return session_.empty() && !active_ && queue_.empty() && !owned_ &&
+         !background_saved_ && !frame_stream_.enabled();
 }
-void Runtime::event_update(Obj es, Method m) {
-  bool saved = false, changed = false;
-  try {
-    if (!initialized_) {
-      initialized_ = true;
-      install_loop();
-    }
-    last_event_ = es;
-    if (loop_installed_)
-      event_observed_++;
-    if (owned_) {
-      saved = il.get<bool>(es, "m_HasFocus");
-      il.set<bool>(es, "m_HasFocus", true);
-      changed = true;
-    }
-  } catch (const std::exception &e) {
-    fail("bootstrap_failed", e.what());
+
+void Runtime::event_update(Obj es, Method method, EventUpdateFn original) {
+  if (direct_)
+    return;
+  event_observed_++;
+  if (!owned_) {
+    original(es, method);
+    return;
   }
-  // Direct hand gestures have their own dispatch owner; other EventSystems still
-  // run normally. The target EventSystem resumes on the frame after EndDrag.
-  if (!direct_)
-    original_event_update(es, m);
-  if (changed)
+  bool saved{};
+  try {
+    saved = il.get<bool>(es, "m_HasFocus");
+    il.set<bool>(es, "m_HasFocus", true);
+  } catch (const std::exception &e) {
+    fail("focus_override_failed", e.what());
+    original(es, method);
+    return;
+  }
+  original(es, method);
+  try {
     il.set<bool>(es, "m_HasFocus", saved);
+  } catch (const std::exception &e) {
+    fail("focus_restore_failed", e.what());
+  }
 }
 void Runtime::observe() {
   if (++observed_ < 3)
@@ -645,8 +344,14 @@ void Runtime::publish() {
           active_ = next;
         }
       }
-      if (next)
-        begin(next);
+      if (next) {
+        if (next->cancelled || now() > next->deadline) {
+          op_ = next->request.at("op");
+          finish("rejected", "input_cancelled", "Command expired before execution");
+        } else {
+          begin(next);
+        }
+      }
     }
     if (active_)
       tick();
@@ -887,9 +592,18 @@ void Runtime::finish(const std::string &status, const std::string &code,
   if (!active_)
     return;
   auto c = active_;
-  bool closing = op_ == "close";
+  bool failed_hello = op_ == "hello" && status != "completed" && !owned_;
+  if (failed_hello) {
+    try {
+      restore();
+    } catch (const std::exception &e) {
+      std::lock_guard<std::mutex> lock(mutex_);
+      error_ = std::string("cleanup_incomplete: ") + e.what();
+    }
+  }
+  const bool closing = (op_ == "close" && status == "completed") ||
+                       (failed_hello && !background_saved_ && !owner_process_);
   Json r = result();
-  reply(c, status, code, message, std::move(r));
   {
     std::lock_guard<std::mutex> l(mutex_);
     active_.reset();
@@ -901,6 +615,7 @@ void Runtime::finish(const std::string &status, const std::string &code,
     }
   }
   op_.clear();
+  reply(c, status, code, message, std::move(r));
 }
 void Runtime::set_event_position(Vec2 p, Vec2 d) {
   set_prop(event_.get(), "set_position", &p);
@@ -995,16 +710,21 @@ void Runtime::resolve_drag() {
   auto drag_interface = il.klass("UnityEngine.EventSystems", "IDragHandler"),
        scroll = il.klass("UnityEngine.UI", "ScrollRect");
   Obj candidate{};
+  bool disabled_handler = false;
   for (Obj t = transform(go); t; t = parent(t)) {
     auto c = component(game_object(t), drag_interface);
-    if (c) {
-      if (!active(c))
-        throw Error("drag_target_disabled", "Top drag handler disabled");
-      candidate = c;
-      break;
+    if (!c)
+      continue;
+    if (!active(c)) {
+      disabled_handler = true;
+      continue;
     }
+    candidate = c;
+    break;
   }
   if (!candidate) {
+    if (disabled_handler)
+      throw Error("drag_target_disabled", "Top drag handler disabled");
     Root all(il.stat(il.klass("UnityEngine", "Object"), "FindObjectsOfType", {il.type(scroll)}));
     auto items = static_cast<Obj *>(il.data(all.get()));
     Obj ui_branch = branch(go);
@@ -1101,14 +821,14 @@ void Runtime::cleanup(bool cancel) {
 void Runtime::restore() {
   frame_stream_.close();
   owned_ = false;
+  if (background_saved_) {
+    il.stat(il.klass("UnityEngine", "Application"), "set_runInBackground", {&background_value_});
+    background_saved_ = false;
+  }
   if (owner_process_) {
     CloseHandle(owner_process_);
     owner_process_ = nullptr;
     owner_pid_ = 0;
-  }
-  if (background_saved_) {
-    il.stat(il.klass("UnityEngine", "Application"), "set_runInBackground", {&background_value_});
-    background_saved_ = false;
   }
 }
 void Runtime::fail(std::string code, std::string reason) {

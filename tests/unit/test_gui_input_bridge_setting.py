@@ -32,7 +32,13 @@ def test_checkbox_defaults_warning_and_persistence(repository, monkeypatch):
     assert not page.use_input_bridge.isChecked()
     assert page.use_input_bridge.text() == "使用桥接输入器"
     page.use_input_bridge.click()
-    warning.assert_called_once_with(page, "风险提示", "有违规风险，自行使用")
+    warning.assert_called_once_with(
+        page,
+        "风险提示",
+        "有违规风险，自行使用。\n\n"
+        "保存设置后，下一次桥接任务会自动加载输入器。"
+        "如果游戏中仍加载着不支持热更新的旧版桥接器，需要重启游戏一次。",
+    )
     assert not repository.value("game/use_input_bridge", False)
     page.save_values()
     restored = SettingsHubPage(repository)
