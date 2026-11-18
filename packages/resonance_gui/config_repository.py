@@ -105,6 +105,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "bento_priority": ["work_meals", "love_bentos"],
     **DEFAULT_RECOVERY_THRESHOLDS,
     "auto_pickup": False,
+    "auto_escort": False,
     "allow_stale_market": False,
     "auto_pickup_interval_sec": 0.5,
     "auto_trailer": False,
@@ -533,6 +534,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         if value is not None and (type(value) is not int or not 0 <= value <= 2147483647):
             raise ValueError(f"{key} 必须为非负整数或未设置，不能使用布尔或小数。")
     merged["auto_pickup"] = bool(merged["auto_pickup"])
+    merged["auto_escort"] = merged["auto_escort"] is True
     merged["auto_pickup_interval_sec"] = validate_pickup_click_interval(merged["auto_pickup_interval_sec"])
     merged.update(normalize_black_moon_settings(merged))
     merged.update(validate_trailer_options(merged))

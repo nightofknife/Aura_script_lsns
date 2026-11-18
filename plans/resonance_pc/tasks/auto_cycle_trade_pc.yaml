@@ -359,6 +359,11 @@ auto_cycle_trade_pc:
         type: boolean
         required: false
         default: false
+      - name: auto_escort
+        type: boolean
+        required: false
+        default: false
+        description: 城际行驶时每 5 秒识别护卫队迎击，自动处理开战、结算和败后报案复驶。
       - name: auto_pickup_interval_sec
         type: number
         required: false
@@ -1516,6 +1521,7 @@ auto_cycle_trade_pc:
         auto_trade_goods_investment: "{{ inputs.auto_trade_goods_investment | default(false) }}"
         trade_goods_investment_mode: "{{ inputs.trade_goods_investment_mode | default(10) }}"
         auto_pickup: "{{ inputs.auto_pickup | default(false) }}"
+        auto_escort: "{{ inputs.auto_escort | default(false) }}"
         auto_pickup_interval_sec: "{{ inputs.auto_pickup_interval_sec | default(0.5) }}"
         auto_rubbish_recycling: "{{ inputs.auto_rubbish_recycling | default(true) }}"
         auto_black_moon_local_purchase: "{{ inputs.auto_black_moon_local_purchase | default(false) }}"

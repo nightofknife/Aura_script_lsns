@@ -1471,6 +1471,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: auto_escort
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -1641,14 +1645,18 @@ exports:
       type: Any
       required: false
       default: false
+    - name: auto_escort
+      type: Any
+      required: false
+      default: false
   - name: resonance_pc.wait_intercity_arrival
     module: plans.resonance_pc.src.actions.city_travel_pc_actions
     function: resonance_pc_wait_intercity_arrival
     public: true
     read_only: false
     timeout: null
-    description: Wait for station or city entry; optionally pick up cargo while the
-      travel horn is visible.
+    description: Wait for station or city entry, with optional cargo pickup and escort
+      battle handling.
     parameters:
     - name: timeout_sec
       type: Any
@@ -1687,6 +1695,10 @@ exports:
       required: false
       default: 0.5
     - name: expect_passenger_settlement
+      type: Any
+      required: false
+      default: false
+    - name: auto_escort
       type: Any
       required: false
       default: false
@@ -3671,4 +3683,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-17T14:38:02Z'
+  generated_at: '2026-11-18T11:27:05Z'

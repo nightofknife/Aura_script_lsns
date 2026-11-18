@@ -360,6 +360,7 @@ class ResonanceMainWindow(QMainWindow):
         self.trade_page.auto_sparkling_water.toggled.connect(self._save_auto_sparkling_water)
         self.trade_page.auto_bento.toggled.connect(self._save_auto_bento)
         self.trade_page.auto_pickup.toggled.connect(self._save_auto_pickup)
+        self.trade_page.auto_escort.toggled.connect(self._save_auto_escort)
         self.trade_page.auto_pickup_interval_sec.valueChanged.connect(self._save_auto_pickup_interval)
         self.trade_page.validationChanged.connect(self.workflow_page.set_freight_validation_error)
         self.workflow_page.set_freight_validation_error(self.trade_page._form_error())
@@ -516,6 +517,11 @@ class ResonanceMainWindow(QMainWindow):
     def _save_auto_pickup(self, enabled: bool) -> None:
         inputs = self._settings.load_trade_inputs()
         inputs["auto_pickup"] = bool(enabled)
+        self._settings.save_trade_inputs(inputs)
+
+    def _save_auto_escort(self, enabled: bool) -> None:
+        inputs = self._settings.load_trade_inputs()
+        inputs["auto_escort"] = bool(enabled)
         self._settings.save_trade_inputs(inputs)
 
     def _save_auto_pickup_interval(self, interval_sec: float) -> None:

@@ -2253,6 +2253,7 @@ async def _execute_route(
     trade_goods_investment_mode: int = 10,
     auto_rubbish_recycling: bool = True,
     auto_pickup: bool = False,
+    auto_escort: bool = False,
     engine: ExecutionEngine | None = None,
     sparkling_water_plan: Optional[Dict[str, Any]] = None,
     auto_black_moon_local_purchase: bool = False,
@@ -2337,6 +2338,7 @@ async def _execute_route(
                     negotiation_max_attempts=negotiation_max_attempts,
                     arrival_timeout_seconds=arrival_timeout_seconds,
                     auto_pickup=auto_pickup,
+                    **({"auto_escort": True} if auto_escort else {}),
                     auto_pickup_interval_sec=auto_pickup_interval_sec,
                     app=app,
                     ocr=ocr,
@@ -2600,6 +2602,7 @@ async def _execute_trade_leg(
     trade_goods_investment_mode: int = 10,
     auto_rubbish_recycling: bool = True,
     auto_pickup: bool = False,
+    auto_escort: bool = False,
     engine: ExecutionEngine | None = None,
     context: ExecutionContext | None = None,
     auto_pickup_interval_sec: float = 0.5,
@@ -2683,6 +2686,7 @@ async def _execute_trade_leg(
             from_city_name=str(leg.get("from_city") or ""),
             enter_station_timeout_seconds=arrival_timeout_seconds,
             auto_pickup=auto_pickup,
+            **({"auto_escort": True} if auto_escort else {}),
             auto_pickup_interval_sec=auto_pickup_interval_sec,
             location_file_path="data/meta/location_pc.json",
             city_search_region=[130, 120, 1000, 500],  # exclude top HUD; bottom unchanged
@@ -3104,6 +3108,7 @@ async def _execute_freight_reposition(
     arrival_timeout_seconds: float, use_fatigue_medicine: bool,
     allowed_fatigue_medicines: Optional[List[str]], fatigue_medicine_max_uses: int,
     auto_pickup: bool = False,
+    auto_escort: bool = False,
     auto_pickup_interval_sec: float = 0.5,
     trailer_plan: FreightTrailerPlan | None = None,
     recovery_session: FreightRecoverySession | None = None,
@@ -3146,6 +3151,7 @@ async def _execute_freight_reposition(
                 fallback_enabled=True, target_match_mode="contains", click_y_offset=-15,
                 drag_duration_sec=1.0, drag_hold_sec=0.5,
                 auto_pickup=auto_pickup, auto_pickup_interval_sec=auto_pickup_interval_sec,
+                **({"auto_escort": True} if auto_escort else {}),
                 pickup_on_trailer_only=True,
                 use_fatigue_medicine=use_fatigue_medicine,
                 allowed_fatigue_medicines=allowed_fatigue_medicines or [],
@@ -3548,6 +3554,7 @@ async def resonance_pc_auto_cycle_trade_flow(
     allow_stale_market: bool = False,
     auto_passenger: bool = False,
     passenger_options: Optional[Dict[str, Any]] = None,
+    auto_escort: bool = False,
 ) -> Dict[str, Any]:
     del event_bus
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
@@ -3556,7 +3563,8 @@ async def resonance_pc_auto_cycle_trade_flow(
     validate_trailer_options(auto_trailer, trailer_daily_first_n, trailer_payment)
     auto_pickup_interval_sec = _normalize_pickup_interval(auto_pickup_interval_sec)
     for name, value in (("allow_stale_market", allow_stale_market),
-                        ("auto_pickup", auto_pickup), ("use_fatigue_medicine", use_fatigue_medicine),
+                        ("auto_pickup", auto_pickup), ("auto_escort", auto_escort),
+                        ("use_fatigue_medicine", use_fatigue_medicine),
                         ("auto_cape_island_investment", auto_cape_island_investment),
                         ("auto_trade_goods_investment", auto_trade_goods_investment),
                         ("auto_rubbish_recycling", auto_rubbish_recycling),
@@ -3851,6 +3859,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             app=app, ocr=ocr, vision=vision,
             arrival_timeout_seconds=normalized_arrival_timeout_seconds,
             auto_pickup=auto_pickup,
+            **({"auto_escort": True} if auto_escort else {}),
             auto_pickup_interval_sec=auto_pickup_interval_sec,
             use_fatigue_medicine=use_fatigue_medicine,
             allowed_fatigue_medicines=allowed_fatigue_medicines,
@@ -3871,6 +3880,7 @@ async def resonance_pc_auto_cycle_trade_flow(
             negotiation_max_attempts=normalized_negotiation_max_attempts,
             arrival_timeout_seconds=normalized_arrival_timeout_seconds,
             auto_pickup=auto_pickup,
+            **({"auto_escort": True} if auto_escort else {}),
             auto_pickup_interval_sec=auto_pickup_interval_sec,
             app=app,
             ocr=ocr,
