@@ -10,6 +10,7 @@ import logging
 from contextlib import contextmanager
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import stat
 import sys
