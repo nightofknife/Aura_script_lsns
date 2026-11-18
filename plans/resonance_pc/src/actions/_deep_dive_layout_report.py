@@ -94,6 +94,10 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
     timings['json_write_sec'] = time.perf_counter()-stage_started
     stage_started = time.perf_counter()
 
+    native = result.get("coordinate_frame") == "native_board"
+    size = result["size"] if native else 3
+    cell_count = 6 * size**2
+    type_labels = result.get("native_board", {}).get("node_types", {})
     cells = {}
     duplicates = set()
     invalid_count = 0
@@ -102,7 +106,7 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
             invalid_count += 1
             continue
         face, row, col = cell.get("face"), cell.get("row"), cell.get("col")
-        if face not in _FACES or type(row) is not int or type(col) is not int or row not in range(3) or col not in range(3):
+        if face not in _FACES or type(row) is not int or type(col) is not int or row not in range(size) or col not in range(size):
             invalid_count += 1
             continue
         key = (face, row, col)
@@ -110,7 +114,7 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
             duplicates.add(key)
         cells[key] = cell
 
-    complete = bool(result.get("layout_complete")) and len(cells) == 54 and not duplicates and not invalid_count
+    complete = bool(result.get("layout_complete")) and len(cells) == cell_count and not duplicates and not invalid_count
     complete = complete and all(
         cell.get("occupant_status") == "confirmed"
         and cell.get("occupant") in ("none", "player", "singularity", "inspiration")
@@ -125,8 +129,8 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
     details = []
     for face in _FACES:
         tile_html = []
-        for row in range(3):
-            for col in range(3):
+        for row in range(size):
+            for col in range(size):
                 key = (face, row, col)
                 cell = cells.get(key, {})
                 occupant = cell.get("occupant", "unknown")
@@ -136,6 +140,10 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
                 node_status = cell.get("node_status", "unknown")
                 icon = cell.get("icon_id")
                 icon_label = "下方图标无需识别" if node_status == "not_required_target" else _ICONS.get(icon, str(icon or "图标未知"))
+                if native and cell.get("native_node"):
+                    node = cell["native_node"]
+                    icon_label = type_labels.get(str(node.get('type_id')), {}).get('name') or (
+                        '空白' if node['type'] == 'empty' else node['type'])
                 if key in duplicates:
                     label += " · 坐标冲突"
                 elif occupant_status != "confirmed":
@@ -146,7 +154,7 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
                 tile_html.append(
                     f'<a class="tile {style}" href="#{anchor}"><small>{face} r{row} c{col}</small>'
                     f'{crop_preview}<strong>{_escape(label)}</strong><span>{_escape(icon_label)}</span>'
-                    f'<small>置信度 {_confidence(cell.get("confidence"))}</small></a>'
+                    + ('' if native else f'<small>置信度 {_confidence(cell.get("confidence"))}</small>') + '</a>'
                 )
                 evidence = []
                 for item in cell.get("evidence", []):
@@ -159,6 +167,10 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
                         links.append(_image_link(item["crop_path"], "格子裁剪", output_dir))
                     evidence.append(f'<li>帧 {_escape(item.get("frame_id", "?"))} · {" / ".join(links)}'
                                     f' · 置信度 {_confidence(item.get("confidence"))}</li>')
+                if native:
+                    details.append(f'<details id="{anchor}"><summary>{face} r{row} c{col} — {_escape(label)} / {_escape(icon_label)}</summary>'
+                                   f'<pre>{_escape(json.dumps(cell, ensure_ascii=False, indent=2))}</pre></details>')
+                    continue
                 details.append(
                     f'<details id="{anchor}"><summary>{face} r{row} c{col} — {_escape(label)} / {_escape(icon_label)}</summary>'
                     f'<p>目标状态：{_escape(_STATUSES.get(occupant_status, occupant_status))}；'
@@ -166,7 +178,7 @@ def write_layout_report(result: dict, output_dir: Path) -> dict:
                     f'逐格置信度：{_confidence(cell.get("confidence"))}</p>'
                     f'<ul>{"".join(evidence) or "<li>无来源证据，不能视为已观察。</li>"}</ul></details>'
                 )
-        face_html.append(f'<section class="face face-{face}"><h2>{face}</h2><div class="grid">{"".join(tile_html)}</div></section>')
+        face_html.append(f'<section class="face face-{face}"><h2>{face}</h2><div class="grid" style="grid-template-columns:repeat({size},minmax(0,1fr))">{"".join(tile_html)}</div></section>')
 
     frame_html = []
     for frame in result.get("frames", []):
@@ -193,15 +205,24 @@ details{padding:12px;border-bottom:1px solid #384455;scroll-margin-top:15px}deta
 .cell-crop{width:64px;max-width:100%;height:auto;margin:5px auto;image-rendering:auto}
 </style><main>'''
     document += f'<h1>识海深潜 · 魔方布局扫描</h1><div class="banner {"complete" if complete else ""}">{heading}</div>'
-    document += '<p><strong>坐标系：scan_local（本次扫描的局部坐标）。</strong>面编号 U/R/F/D/L/B、行列 r0–r2 / c0–c2 均由扫描器定义；不同扫描间不保证相同。下图按各面的局部行列展示，不能仅凭展开图边缘判断跨面行列方向。</p>'
+    if native:
+        document += f'<p>数据来源为桥接棋盘快照。展开图使用 U/R/F/D/L/B 和 0–{size-1} 行列，JSON 同时保存游戏的原生坐标。</p>'
+    else:
+        document += '<p><strong>坐标系：scan_local（本次扫描的局部坐标）。</strong>面编号 U/R/F/D/L/B、行列 r0–r2 / c0–c2 均由扫描器定义；不同扫描间不保证相同。下图按各面的局部行列展示，不能仅凭展开图边缘判断跨面行列方向。</p>'
     document += f'<p>运行状态：{_escape(result.get("status", "unknown"))}；原因：{_escape(result.get("reason") or "未提供")}<br>'
-    document += f'已知格数：{_escape(result.get("known_cells", "未提供"))} / 54；收到有效坐标：{len(cells)} / 54；已观察面：{_escape(result.get("faces_observed", []))}；整体置信度：{_confidence(result.get("confidence"))}<br>'
+    document += f'已知格数：{_escape(result.get("known_cells", "未提供"))} / {cell_count}；收到有效坐标：{len(cells)} / {cell_count}；已观察面：{_escape(result.get("faces_observed", []))}'
+    if not native:
+        document += f'；整体置信度：{_confidence(result.get("confidence"))}'
+    document += '<br>'
     document += f'重复坐标：{len(duplicates)}；无效记录：{invalid_count}。<a href="layout.json">下载原始布局 JSON</a></p>'
     document += f'<p><strong>玩家：</strong>{_escape(_coordinate(result.get("player_cell")))}<br><strong>奇点：</strong>{_escape(_coordinate(result.get("singularity_cell")))}<br><strong>灵感：</strong>{_escape(inspirations)}</p>'
-    document += '<p class="muted">点击任意格子查看来源证据。无目标表示已确认该格没有三类目标；未知表示尚不能判断。目标下方的节点图标无需识别。</p>'
-    document += '<p class="muted">当前为实验识别器，置信度是启发式证据分数，并非校准后的正确率。请结合原截图与叠加图人工判断。</p>'
+    if not native:
+        document += '<p class="muted">点击任意格子查看来源证据。无目标表示已确认该格没有三类目标；未知表示尚不能判断。目标下方的节点图标无需识别。</p>'
+        document += '<p class="muted">当前为实验识别器，置信度是启发式证据分数，并非校准后的正确率。请结合原截图与叠加图人工判断。</p>'
     document += f'<div class="scroll"><div class="net">{"".join(face_html)}</div></div><h2>逐格证据</h2>{"".join(details)}'
-    document += f'<h2>扫描画面</h2><div class="frames">{"".join(frame_html) or "无画面"}</div><h2>诊断信息</h2><pre>{_escape(diagnostics)}</pre></main></html>'
+    if not native:
+        document += f'<h2>扫描画面</h2><div class="frames">{"".join(frame_html) or "无画面"}</div><h2>诊断信息</h2><pre>{_escape(diagnostics)}</pre>'
+    document += '</main></html>'
     timings['html_build_sec'] = time.perf_counter()-stage_started
     stage_started = time.perf_counter()
     report_path.write_text(document, encoding="utf-8")

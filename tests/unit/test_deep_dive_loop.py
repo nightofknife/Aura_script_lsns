@@ -125,6 +125,19 @@ def test_yaml_stages_and_termination_contract():
         assert stages['check_'+stage]['params']['child_result']=='{{ nodes.'+stage+'.output }}'
 
 
+def test_deep_dive_tasks_gate_their_first_step_on_bridge():
+    root = Path(__file__).resolve().parents[2] / 'plans/resonance_pc/tasks'
+    for path in root.glob('consciousness_deep_dive*.yaml'):
+        for key, task in yaml.safe_load(path.read_text('utf8')).items():
+            steps = task['steps']
+            if key in {'consciousness_deep_dive_scan_pc', 'consciousness_deep_dive_read_board_pc'}:
+                # Both first actions call the guarded bridge reader directly.
+                assert len(steps) == 1
+                continue
+            roots = [step for step in steps.values() if not step.get('depends_on')]
+            assert [step['action'] for step in roots] == ['resonance_pc.require_deep_dive_bridge'], key
+
+
 @pytest.mark.parametrize('failed_stage',[None,'entry','single','cleanup'])
 def test_real_cycle_dag_skips_later_children_on_business_failure(failed_stage):
     root=Path(__file__).resolve().parents[2]
@@ -135,6 +148,7 @@ def test_real_cycle_dag_skips_later_children_on_business_failure(failed_stage):
         async def execute(node,ctx):
             params=await TemplateRenderer(ctx,store).render(node.get('params',{}))
             name=node['action']
+            if name=='resonance_pc.require_deep_dive_bridge':return True
             if name=='aura.run_task':
                 ref=params['task_ref']
                 stage='cleanup' if 'cleanup' in ref else 'single' if 'random_run' in ref else 'entry'
@@ -163,7 +177,7 @@ def test_full_outer_dag_runs_exactly_two_complete_cycles():
             async def execute(node,ctx):
                 params=await TemplateRenderer(ctx,store).render(node.get('params',{}))
                 name=node['action']
-                if name=='resonance_pc.require_client_resolution':return True
+                if name in {'resonance_pc.require_deep_dive_bridge', 'resonance_pc.require_client_resolution'}:return True
                 if name.endswith('loop_initialize'):
                     await store.set('test',seed(params['loop_count']))
                     return {'session_key':'test','status':'running'}

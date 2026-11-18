@@ -6,6 +6,7 @@ import os
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 
 from ....aura_base.src.platform.contracts import TargetRuntimeError
 
@@ -24,30 +25,42 @@ class NamedPipeTransport:
         import win32event
         import win32file
         import win32pipe
+        import winerror
 
         deadline = time.monotonic() + timeout
         handle = None
         sent = False
 
-        def transfer(data_or_size, write=False):
+        @contextmanager
+        def transfer(data_or_size, *, write=False):
             event = win32event.CreateEvent(None, True, False, None)
             overlapped = pywintypes.OVERLAPPED()
             overlapped.hEvent = event
+            status = 0
             try:
                 if write:
-                    _, buffer = win32file.WriteFile(handle, data_or_size, overlapped)
+                    status, buffer = win32file.WriteFile(handle, data_or_size, overlapped)
                 else:
-                    _, buffer = win32file.ReadFile(handle, data_or_size, overlapped)
-                remaining = max(int((deadline - time.monotonic()) * 1000), 0)
-                if win32event.WaitForSingleObject(event, remaining) != win32con.WAIT_OBJECT_0:
-                    win32file.CancelIoEx(handle, overlapped)
-                    # The OVERLAPPED and buffer must remain alive until cancellation completes.
-                    win32event.WaitForSingleObject(event, win32event.INFINITE)
-                    raise TimeoutError("Bridge response deadline expired")
-                count = win32file.GetOverlappedResult(handle, overlapped, False)
-                return count if write else bytes(buffer[:count])
+                    status, buffer = win32file.ReadFile(handle, data_or_size, overlapped)
+
+                def finish():
+                    remaining = max(int((deadline - time.monotonic()) * 1000), 0)
+                    if win32event.WaitForSingleObject(event, remaining) != win32con.WAIT_OBJECT_0:
+                        raise TimeoutError("Bridge response deadline expired")
+                    count = win32file.GetOverlappedResult(handle, overlapped, False)
+                    return count if write else bytes(buffer[:count])
+
+                yield finish
             finally:
-                event.Close()
+                try:
+                    if (status == winerror.ERROR_IO_PENDING
+                            and win32event.WaitForSingleObject(event, 0) != win32con.WAIT_OBJECT_0):
+                        # This exchange owns the handle and submits all I/O on this thread.
+                        win32file.CancelIo(handle)
+                        # Keep the OVERLAPPED and buffer alive until cancellation completes.
+                        win32event.WaitForSingleObject(event, win32event.INFINITE)
+                finally:
+                    event.Close()
 
         try:
             win32pipe.WaitNamedPipe(pipe, max(int(timeout * 1000), 1))
@@ -59,21 +72,29 @@ class NamedPipeTransport:
             payload = json.dumps(request, ensure_ascii=True, allow_nan=False, separators=(",", ":")).encode() + b"\n"
             if len(payload) > self.MAX_MESSAGE:
                 raise ValueError("Bridge request too large")
-            sent = True
-            offset = 0
-            while offset < len(payload):
-                count = transfer(payload[offset:], True)
-                if count <= 0:
-                    raise OSError("Bridge pipe closed during write")
-                offset += count
+            # The bootstrap disconnects immediately after writing. Have a read
+            # pending before the request can trigger a reply.
+            with transfer(self.MAX_MESSAGE + 1) as receive:
+                sent = True
+                offset = 0
+                while offset < len(payload):
+                    with transfer(payload[offset:], write=True) as send:
+                        count = send()
+                    if count <= 0:
+                        raise OSError("Bridge pipe closed during write")
+                    offset += count
+                chunk = receive()
             chunks = bytearray()
-            while b"\n" not in chunks:
-                chunk = transfer(4096)
+            while True:
                 if not chunk:
                     raise OSError("Bridge pipe closed before completion")
                 chunks.extend(chunk)
                 if len(chunks) > self.MAX_MESSAGE:
                     raise ValueError("Bridge response too large")
+                if b"\n" in chunk:
+                    break
+                with transfer(self.MAX_MESSAGE - len(chunks) + 1) as receive:
+                    chunk = receive()
             result = json.loads(chunks.split(b"\n", 1)[0])
             if not isinstance(result, dict):
                 raise ValueError("Bridge response is not an object")

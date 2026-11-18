@@ -1,9 +1,18 @@
+import json
+import os
+from concurrent.futures import ThreadPoolExecutor
+from threading import Event
 from types import SimpleNamespace
+from uuid import uuid4
 
 import pytest
+import pywintypes
+import winerror
+import win32file
+import win32pipe
 
 from plans.aura_base.src.platform.contracts import TargetRuntimeError
-from plans.resonance_pc.src.bridge.client import BridgeClient
+from plans.resonance_pc.src.bridge.client import BridgeClient, NamedPipeTransport
 from plans.resonance_pc.src.bridge.native_bundle import BOOTSTRAP_DLL, HOST_DLL, stage_bootstrap, stage_host
 from plans.resonance_pc.src.services import input_bridge_service
 
@@ -90,3 +99,66 @@ def test_old_host_instance_rejection_does_not_mark_input_uncertain():
         client.request("drag")
     assert requests[0]["host_instance"] == 1
     assert not client.uncertain
+
+
+def test_pipe_reads_large_board_reply_before_bootstrap_disconnects():
+    pipe = rf"\\.\pipe\aura-board-test-{uuid4().hex}"
+    expected = {"board": {"cells": [{"type": "elite_battle", "event_template_id": 86100140}] * 150}}
+    response = json.dumps(expected).encode() + b"\n"
+    assert 4096 < len(response) < NamedPipeTransport.MAX_MESSAGE
+    server = win32pipe.CreateNamedPipe(
+        pipe, win32pipe.PIPE_ACCESS_DUPLEX, win32pipe.PIPE_TYPE_BYTE | win32pipe.PIPE_WAIT,
+        1, 65536, 65536, 2000, None,
+    )
+
+    def reply():
+        try:
+            win32pipe.ConnectNamedPipe(server, None)
+        except pywintypes.error as exc:
+            if exc.winerror != winerror.ERROR_PIPE_CONNECTED:
+                raise
+        _, request = win32file.ReadFile(server, 1024)
+        assert json.loads(request)["op"] == "deep_dive_board"
+        win32file.WriteFile(server, response)
+        win32pipe.DisconnectNamedPipe(server)
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            work = pool.submit(reply)
+            actual = NamedPipeTransport(os.getpid()).exchange(pipe, {"sequence": 1, "op": "deep_dive_board"}, 2)
+            work.result(timeout=2)
+    finally:
+        server.Close()
+    assert actual == expected
+
+
+def test_pipe_cancels_pending_read_when_reply_times_out():
+    pipe = rf"\\.\pipe\aura-board-timeout-{uuid4().hex}"
+    server = win32pipe.CreateNamedPipe(
+        pipe, win32pipe.PIPE_ACCESS_DUPLEX, win32pipe.PIPE_TYPE_BYTE | win32pipe.PIPE_WAIT,
+        1, 65536, 65536, 2000, None,
+    )
+    timed_out = Event()
+
+    def hold_reply():
+        try:
+            win32pipe.ConnectNamedPipe(server, None)
+        except pywintypes.error as exc:
+            if exc.winerror != winerror.ERROR_PIPE_CONNECTED:
+                raise
+        win32file.ReadFile(server, 1024)
+        assert timed_out.wait(3)
+        win32pipe.DisconnectNamedPipe(server)
+
+    try:
+        with ThreadPoolExecutor(max_workers=1) as pool:
+            work = pool.submit(hold_reply)
+            try:
+                with pytest.raises(TargetRuntimeError, match="Bridge response deadline expired") as error:
+                    NamedPipeTransport(os.getpid()).exchange(pipe, {"sequence": 1, "op": "deep_dive_board"}, .25)
+                assert error.value.code == "input_result_unknown"
+            finally:
+                timed_out.set()
+            work.result(timeout=2)
+    finally:
+        server.Close()

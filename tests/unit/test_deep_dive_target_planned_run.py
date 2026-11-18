@@ -1,15 +1,114 @@
 import asyncio
 from copy import deepcopy
+from types import SimpleNamespace
+
+import numpy as np
+import pytest
 
 from plans.resonance_pc.src.actions import consciousness_deep_dive_planned_run_pc_actions as flow
+from plans.resonance_pc.src.actions._deep_dive_inspiration_planner import plan_inspiration
+from plans.resonance_pc.src.actions._deep_dive_native_layout import controls_from_board
 from plans.resonance_pc.src.actions._deep_dive_planner_rules import coord_dict, move_dict
+from plans.resonance_pc.src.actions import _deep_dive_planned_run_vision as vision
+from plans.aura_base.src.platform.contracts import TargetRuntimeError
+
+
+def test_native_rotation_uses_projected_control_and_cancels_mismatched_preview():
+    layout = dict(coordinate_frame='native_board', success=True, layout_complete=True,
+                  player_cell=coord_dict(4))
+    snapshot = dict(layout=layout, plane_epoch='p', scan_epoch=1, map_revision=0)
+    action = flow.directed.begin_layer_rotation(3, 4, snapshot)
+    assert action['phase'] == 'open_mode'
+    raw = dict(size=3, frame=10, width=1280, height=720, player=dict(face=1, row=2, col=2),
+               turn={}, moves=[], rotations=[dict(name='back', next_face=2, point=[530, 241])])
+    controls = controls_from_board(raw)
+    scene = dict(valid=True, scene='choose_rotate')
+    for _ in range(3):
+        step = flow.directed.advance_operation(action, None, scene, snapshot, native_controls=controls)
+    assert step['action'] == 'select_rotate' and step['point'] == [530, 241]
+    assert action['binding']['source'] == 'bridge'
+
+    scene = dict(valid=True, scene='rotate_preview', rotate_cancel_point=[480, 543],
+                 rotate_confirm_point=[790, 543])
+    wrong = controls_from_board(dict(raw, preview_face=4, rotations=[]))
+    for _ in range(2):
+        step = flow.directed.advance_operation(action, None, scene, snapshot, native_controls=wrong)
+    assert step['action'] == 'cancel_rotation'
+    assert action['preview_evidence']['observed_rotation_id'] == 2
+    assert not action['submitted']
+
+
+@pytest.mark.parametrize('selected_col,expected', [(1, 'entry_selected'), (3, 'blocked')])
+def test_native_move_requires_the_actual_selected_destination(selected_col, expected):
+    cells = [dict(coord_dict(slot), occupant='none', occupant_status='confirmed',
+                  node_status='known', node_kind='empty', icon_id='white_diamond') for slot in range(54)]
+    cells[7].update(node_kind='shop', icon_id='blue_scales')
+    layout = dict(coordinate_frame='native_board', success=True, layout_complete=True,
+                  player_cell=coord_dict(4), cells=cells)
+    snapshot = dict(layout=layout, plane_epoch='p', scan_epoch=1, map_revision=0)
+    action = flow.directed.begin_move(7, 4, snapshot)
+    raw = dict(size=3, frame=20, width=1280, height=720, player=dict(face=1, row=2, col=2), turn={},
+               rotations=[], moves=[dict(face=1, row=2, col=1, point=[531, 391])])
+    scene = dict(valid=True, scene='choose_move')
+    for _ in range(3):
+        step = flow.directed.advance_operation(action, None, scene, snapshot, native_controls=controls_from_board(raw))
+    assert step['action'] == 'select_move' and step['point'] == [531, 391]
+    scene = dict(valid=True, scene='event_entry', event_type='shop')
+    picked = controls_from_board(dict(raw, selected=dict(face=1, row=2, col=selected_col)))
+    if selected_col == 1:
+        unclear = dict(valid=True, scene='ambiguous_event_entry')
+        assert flow.directed.advance_operation(
+            action, None, unclear, snapshot, native_controls=picked)['status'] == 'waiting'
+    for _ in range(2):
+        step = flow.directed.advance_operation(action, None, scene, snapshot, native_controls=picked)
+    assert step['status'] == expected
+
+
+@pytest.mark.parametrize('player,boss,inspirations,rounds,rotations,expected_yield', [
+    (21, 23, (18, 20), 3, 1, 0),  # Taking the nearby inspiration reduces the deadline probability.
+    (4, 0, (1,), 1, 0, 1),  # Both moves next to the boss meet on time, and one picks up inspiration.
+])
+def test_combined_solver_prefers_deadline_probability_then_inspiration(
+        player, boss, inspirations, rounds, rotations, expected_yield):
+    result = plan_inspiration(player, boss, inspirations, rounds, rotations_left=rotations,
+                              encounter_first=True, time_budget_sec=60.)
+    assert result['objective'] == 'max_deadline_encounter_probability_then_inspiration'
+    assert result['metrics']['deadline_encounter_probability'] == pytest.approx(1.)
+    assert result['metrics']['expected_successful_new_inspirations'] == pytest.approx(expected_yield)
+    if expected_yield:
+        assert result['next_action'] == move_dict(player, inspirations[0])
+
+
+@pytest.mark.parametrize('unavailable', [False, True])
+def test_planned_hud_gets_turn_from_bridge_and_never_reads_quota_glyphs(monkeypatch, unavailable):
+    def read_turn():
+        if unavailable:
+            raise TargetRuntimeError('deep_dive_turn_unavailable', 'counter missing')
+        return dict(rounds_remaining=3, moves_used=1, moves_total=1, rotations_used=0, rotations_total=1, frame=16)
+
+    def read_pair(image, name):
+        assert name == 'inspirations'
+        return (1, 2), {}
+
+    monkeypatch.setattr(vision.hud_templates, '_read_pair', read_pair)
+    monkeypatch.setattr(vision, 'read_rounds_template', lambda image: pytest.fail('visual round lookup'))
+    app = SimpleNamespace(controller=SimpleNamespace(bridge=SimpleNamespace(read_deep_dive_turn=read_turn)))
+    scene = dict(valid=True, scene='board', plane_evidence={'plane_index': 1})
+    hud = asyncio.run(flow._read_runtime_hud(app, np.zeros((720, 1280, 3), dtype=np.uint8), None, scene))
+    assert hud['collected_count'] == 1
+    if unavailable:
+        assert all(hud[field] is None for field in vision.TURN_FIELDS)
+    else:
+        assert hud['rounds_remaining'] == 3 and hud['moves_used'] == 1
+        assert all(hud['evidence_source'][field] == 'bridge_turn' for field in vision.TURN_FIELDS)
 
 
 def test_missing_destination_enters_requested_read_instead_of_input(tmp_path, monkeypatch):
     layout = dict(cells=[dict(coord_dict(i), occupant='unknown', occupant_status='unknown',
                              node_status='unknown', icon_id=None) for i in range(54)],
                   player_cell=coord_dict(4), singularity_cell=coord_dict(31), inspiration_cells=[])
-    hud = dict(rounds_remaining=6, moves_used=0, rotations_used=0, collected_count=0, inspiration_total=0)
+    hud = dict(rounds_remaining=6, moves_used=0, moves_total=1, rotations_used=0, rotations_total=1,
+               collected_count=0, inspiration_total=0)
     state = dict(status='running', phase='planning', strategy='chase', layout=layout,
                  hud=hud, collected_count=0, planning_time_budget_sec=1., sequence=0,
                  wide_reference={'status': 'ready'}, plane_epoch='p', scan_epoch=1, map_revision=0,
@@ -17,12 +116,16 @@ def test_missing_destination_enters_requested_read_instead_of_input(tmp_path, mo
     move = move_dict(4, 1)
     async def save(*_args): pass
     monkeypatch.setattr(flow, '_save', save)
-    monkeypatch.setattr(flow, 'plan_current_state', lambda *_args, **_kwargs:
-                        dict(success=True, status='solved', next_action=move))
+    def solve(_layout, *, strategy, rounds_remaining, moves_left, rotations_left, **_kwargs):
+        assert strategy == flow.ENCOUNTER_THEN_INSPIRATION
+        assert (rounds_remaining, moves_left, rotations_left) == (6, 1, 1)
+        return dict(success=True, status='solved', next_action=move)
+    monkeypatch.setattr(flow, 'plan_current_state', solve)
     monkeypatch.setattr(flow.directed, 'begin_move', lambda *_: (_ for _ in ()).throw(
         AssertionError('unread destination reached input binding')))
     asyncio.run(flow._plan(state, None, None))
     assert state['phase'] == 'supplement_cells'
+    assert state['strategy'] == flow.ENCOUNTER_THEN_INSPIRATION
     assert state['required_cells'] == [1]
     assert state['layout']['cells'][1]['node_status'] == 'unknown'
 

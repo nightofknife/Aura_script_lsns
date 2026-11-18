@@ -75,7 +75,7 @@ private:
   void begin(const std::shared_ptr<Command> &);
   void tick();
   void finish(const std::string &status = "completed", const std::string &code = "",
-              const std::string &message = "");
+              const std::string &message = "", Json board = nullptr);
   void cleanup(bool cancel);
   void clear_module_pointer();
   void restore();

@@ -11,7 +11,11 @@ consciousness_deep_dive_plan_pc:
       - {name: turn_budget, type: number, default: 6, min: 1, max: 30}
       - {name: time_budget_sec, type: number, default: 30, min: 0.1}
   steps:
+    require_bridge:
+      action: resonance_pc.require_deep_dive_bridge
+      params: {require_live: false}
     plan:
+      depends_on: require_bridge
       action: resonance_pc.plan_consciousness_deep_dive_layout
       timeout: -1
       params:

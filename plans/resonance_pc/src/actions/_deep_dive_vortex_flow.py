@@ -4,8 +4,12 @@ from ._deep_dive_node_rewards import changed
 
 
 def _signature(o):
-    return (o['scene'],tuple((r['group'],r['state']) for r in o.get('event_options',[])),
-            tuple((round(r['point'][0]/10),r['selected']) for r in o.get('cards',[])))
+    return [o['scene'], [[r['group'], r['state']] for r in o.get('event_options', [])],
+            [[round(r['point'][0] / 10), r['selected']] for r in o.get('cards', [])]]
+
+
+def _option_set(rows):
+    return [[row['title'], row['group']] for row in rows]
 
 
 def reset_observation(state):
@@ -57,8 +61,7 @@ def step(state,o,now):
             retry=scene=='event_entry' and o.get('event_type')==event_type
         elif kind in ('option_select','option_submit'):
             rows=o.get('event_options',[]);i=pending['index']
-            current_set=[(r['title'],r['group']) for r in rows]
-            if option_page and current_set != pending['option_set']:
+            if option_page and _option_set(rows) != pending['option_set']:
                 return _fail(state,'漩涡选项组合发生变化：后续选项分支暂未支持')
             target=rows[i] if i<len(rows) else None
             same=target is not None and target['group']==pending['group']
@@ -110,9 +113,9 @@ def step(state,o,now):
             return _fail(state, '未支持的漩涡选项：'+target.get('title','')+'；'+', '.join(target.get('unsupported_reasons',[])))
         if target['state']=='selected':
             return _issue(state,'option_submit',target['point'],now,index=i,group=target['group'],
-                          option_set=[(r['title'],r['group']) for r in rows])
+                          option_set=_option_set(rows))
         return _issue(state,'option_select',target['point'],now,index=i,group=target['group'],
-                      option_set=[(r['title'],r['group']) for r in rows])
+                      option_set=_option_set(rows))
     if selection:
         cards=sorted(o['cards'],key=lambda r:r['point'][0])
         if len(cards) not in (1,2,3):return _fail(state,'不支持的候选卡数量')

@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import pytest
 
@@ -34,6 +36,19 @@ def test_supported_workflow_blue_reward_ending_return():
     assert flow.step(s,ending,5.5)[0]=='vortex_dismiss_ending'
     assert stable(s,{'scene':'board','event_board':True},7)[0]=='vortex_returned'
     assert 'event_trace' not in s and s['vortex_trace']
+
+
+def test_option_selection_survives_saved_session_round_trips():
+    state = init()
+    observation = {'scene': 'event_options', 'event_options': [row()]}
+    assert flow.step(state, observation, 1)[0] == 'wait'
+    state = json.loads(json.dumps(state))
+    assert flow.step(state, observation, 1.4)[0] == 'vortex_option_select'
+    observation['event_options'][0]['state'] = 'selected'
+    state = json.loads(json.dumps(state))
+    assert flow.step(state, observation, 2)[0] == 'wait'
+    state = json.loads(json.dumps(state))
+    assert flow.step(state, observation, 2.4)[0] == 'vortex_option_submit'
 
 
 def test_unsupported_is_skipped_when_simple_supported_choice_exists():

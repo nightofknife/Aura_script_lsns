@@ -1,4 +1,5 @@
 #include "runtime.hpp"
+#include "deep_dive_board.hpp"
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -125,6 +126,9 @@ void Runtime::observe() {
     for (auto it = capabilities_.begin(); it != capabilities_.end(); ++it)
       it.value() = qualified.value(it.key(), false);
     capabilities_["frame_stream"] = capture_loop_installed_ && qualified.value("frame_stream", false);
+    capabilities_["deep_dive_board"] = deep_dive_board_available();
+    capabilities_["deep_dive_turn"] = capabilities_["deep_dive_board"];
+    capabilities_["deep_dive_controls"] = capabilities_["deep_dive_board"];
   }
 }
 Json Runtime::result() {
@@ -436,6 +440,22 @@ void Runtime::begin(const std::shared_ptr<Command> &c) {
   }
   if (!owned_)
     throw Error("session_invalid", "Input ownership not acquired");
+  if (op_ == "deep_dive_board") {
+    // A read failure must leave the current pointer and held buttons alone.
+    try {
+      if (!capabilities_.value("deep_dive_board", false))
+        throw Error("deep_dive_board_unsupported", "The client lacks the Deep Dive reader ABI");
+      const bool controls = a.value("controls_only", false);
+      if (controls)
+        verify_viewport(c->request.value("viewport", Json::object()));
+      finish("completed", "", "", read_deep_dive_board(a.value("turn_only", false), controls));
+    } catch (const Error &e) {
+      finish("rejected", e.code, e.what());
+    } catch (const std::exception &e) {
+      finish("rejected", "deep_dive_board_read_failed", e.what());
+    }
+    return;
+  }
   verify_viewport(c->request.value("viewport", Json::object()));
   if (op_ == "stream_start") {
     if (!capabilities_.value("frame_stream", false))
@@ -588,7 +608,7 @@ void Runtime::tick() {
   }
 }
 void Runtime::finish(const std::string &status, const std::string &code,
-                     const std::string &message) {
+                     const std::string &message, Json board) {
   if (!active_)
     return;
   auto c = active_;
@@ -604,6 +624,8 @@ void Runtime::finish(const std::string &status, const std::string &code,
   const bool closing = (op_ == "close" && status == "completed") ||
                        (failed_hello && !background_saved_ && !owner_process_);
   Json r = result();
+  if (!board.is_null())
+    r["board"] = std::move(board);
   {
     std::lock_guard<std::mutex> l(mutex_);
     active_.reset();

@@ -16,7 +16,8 @@ FetchContent_MakeAvailable(minhook json)
 add_library(resonance_bridge_bootstrap SHARED
   host/host.cpp host/lifecycle.cpp host/unity_hooks.cpp host/il2cpp.cpp)
 add_library(resonance_bridge_host SHARED
-  host/payload.cpp host/runtime.cpp host/il2cpp.cpp host/frame_stream.cpp)
+  host/payload.cpp host/runtime.cpp host/il2cpp.cpp host/frame_stream.cpp
+  host/deep_dive_board.cpp)
 foreach(target IN ITEMS resonance_bridge_bootstrap resonance_bridge_host)
   set_target_properties(${target} PROPERTIES PREFIX "")
   target_link_libraries(${target} PRIVATE nlohmann_json::nlohmann_json)

@@ -88,18 +88,13 @@ class ConsciousnessDeepDivePanel(QWidget):
             loop_note.setWordWrap(True)
             layout.addWidget(loop_note)
             planned_run_note = QLabel(
-                "关卡内自动运行从玩家棋盘或位面间隙开始，实时扫描、规划并执行行动。"
+                "从玩家棋盘或位面间隙开始，每回合读取最新棋盘。优先提高期限内遇到奇点的概率，概率相同时尽量多拿灵感。"
                 "队员不足五人时暂停；到达结算后保存结果并保留画面。", self
             )
             planned_run_note.setWordWrap(True)
             planned_run_note.setProperty("caption", True)
             layout.addWidget(planned_run_note)
             planned_run_options = QHBoxLayout()
-            planned_run_options.addWidget(QLabel("运行策略", self))
-            self.planned_run_strategy_combo = QComboBox(self)
-            self.planned_run_strategy_combo.addItem("只追奇点", "chase")
-            self.planned_run_strategy_combo.addItem("灵感收益优先", "inspiration")
-            planned_run_options.addWidget(self.planned_run_strategy_combo)
             planned_run_options.addWidget(QLabel("自动运行回合安全上限", self))
             self.planned_run_safety_limit_spin = QSpinBox(self)
             self.planned_run_safety_limit_spin.setRange(1, 100)
@@ -111,7 +106,7 @@ class ConsciousnessDeepDivePanel(QWidget):
             self.planned_run_button.clicked.connect(self._request_planned_run)
             layout.addWidget(self.planned_run_button)
         if self._developer_mode:
-            scan_note = QLabel("布局扫描从魔方界面开始，拖动观察六面并导出目标位置和节点图标，供人工对照。", self)
+            scan_note = QLabel("启用桥接输入器后，从当前棋盘直读六面节点和对象位置，并导出布局报告。", self)
             scan_note.setWordWrap(True)
             scan_note.setProperty("caption", True)
             layout.addWidget(scan_note)
@@ -202,7 +197,7 @@ class ConsciousnessDeepDivePanel(QWidget):
         self._task_running = True
         self._scan_report_path = ""
         self.summary_label.clear()
-        self._set_result_status("正在拖动魔方并识别布局……", "running")
+        self._set_result_status("正在通过桥接器读取棋盘……", "running")
         self._set_run_status("扫描中", "running")
         self._sync_controls()
 
@@ -210,7 +205,6 @@ class ConsciousnessDeepDivePanel(QWidget):
         if self._runner_busy or self._task_running:
             return
         self.runPlannedRunRequested.emit({
-            "strategy": self.planned_run_strategy_combo.currentData(),
             "safety_round_limit": self.planned_run_safety_limit_spin.value(),
         })
 
@@ -264,7 +258,8 @@ class ConsciousnessDeepDivePanel(QWidget):
 
     def _render_planned_run_snapshot(self) -> None:
         payload = self._planned_run_snapshot
-        strategy = {"chase": "只追奇点", "inspiration": "灵感收益优先"}.get(
+        strategy = {"encounter_then_inspiration": "奇点相遇概率优先", "chase": "只追奇点",
+                    "inspiration": "灵感收益优先"}.get(
             str(payload.get("strategy") or ""), ""
         )
         summary = [f"运行策略：{strategy}"] if strategy else []
@@ -404,7 +399,9 @@ class ConsciousnessDeepDivePanel(QWidget):
         faces = payload.get("faces_observed", 0)
         if isinstance(faces, (list, tuple, dict)):
             faces = len(faces)
-        summary = [f"已识别 {payload.get('known_cells', 0)} / 54 格 · 已观察 {faces} / 6 面"]
+        size = payload.get('size', 3)
+        total = 6 * size**2 if type(size) is int and 1 <= size <= 9 else 54
+        summary = [f"已识别 {payload.get('known_cells', 0)} / {total} 格 · 已观察 {faces} / 6 面"]
         if targets:
             summary.append("目标位置已确认；节点图案未作为完整布局验收。")
         for key, label in (("report_path", "报告"), ("json_path", "布局 JSON"),
@@ -483,7 +480,7 @@ class ConsciousnessDeepDivePanel(QWidget):
     def _sync_controls(self) -> None:
         idle = not self._runner_busy and not self._task_running
         for name in ("loop_button", "loop_count_spin", "planned_run_button",
-                     "planned_run_strategy_combo", "planned_run_safety_limit_spin",
+                     "planned_run_safety_limit_spin",
                      "scan_button", "plan_button", "plan_strategy_combo", "plan_turn_budget_spin",
                      "plan_layout_button", "plan_latest_button", "plan_layout_edit"):
             control = getattr(self, name, None)

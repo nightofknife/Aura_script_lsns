@@ -37,6 +37,7 @@ public:
   Obj call_interface(Obj target, Class iface, const char *name,
                      std::initializer_list<void *> args = {});
   Obj stat(Class c, const char *name, std::initializer_list<void *> args = {});
+  Obj static_object(Class c, const char *field);
   Obj create(Class c);
   Obj type(Class c);
   Obj string(const char *s);

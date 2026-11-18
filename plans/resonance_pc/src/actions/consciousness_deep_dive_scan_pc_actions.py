@@ -30,6 +30,7 @@ from ._deep_dive_layout_report import write_layout_report
 from ._deep_dive_scan_policy import FaceScanPolicy, CellScanPolicy, FaceFirstScanPolicy, MixedFaceScanPolicy
 from ._deep_dive_scan_stream import ScanVisionStream
 from ._deep_dive_target_readiness import targets_readiness
+from ._deep_dive_native_layout import layout_from_board
 
 MIN_DRAG_GAP_SEC = .2
 MAX_RECOGNITION_SEC = 90.
@@ -1245,54 +1246,26 @@ async def reset_layout_view(app, output_dir, *, time_budget_sec=10, observe_fn=N
 
 @action_info(name="resonance_pc.scan_consciousness_deep_dive_layout", public=True,
              read_only=False, timeout=-1,
-             description="Scan an already open normal Deep Dive board and save its reconstructed layout.")
-@requires_services(app="plans/aura_base/app", ocr='plans/aura_base/ocr',
-                   entity_detector='resonance_pc_deep_dive_entity_detector')
+             description="Read the open Deep Dive board through the bridge and export its layout.")
+@requires_services(bridge="resonance_pc_input_bridge")
 async def scan_consciousness_deep_dive_layout(max_steps: int = 96, time_budget_sec: float = 300,
                                             drag_step_px: int = 300, drag_duration_sec: float = .15,
                                             settle_sec: float = .2, recognition_goal: str = 'targets',
                                             scan_route: str = 'cells',
                                             startup_fast: bool = False,
-                                            app=None, ocr=None, entity_detector=None):
-    from ._deep_dive_planned_run_vision import observe, read_hud
-    invocation_started = time.monotonic()
-    expected = None
-    if recognition_goal == 'targets' or scan_route == 'four_views':
-        captures = []
-        for attempt in range(2):
-            if attempt == 0:
-                # Warm up the frame source before waiting on its generations. At task startup
-                # no capture producer necessarily exists yet.
-                capture = await _capture_serial(app)
-            else:
-                capture, _ = await _capture_after_input(app)
-            if not capture.success or capture.image is None:
-                return dict(success=False, status='blocked', reason='initial_hud_capture_failed')
-            observed = observe(capture.image)
-            hud, cancelled = await _await_serial(asyncio.to_thread(
-                read_hud, capture.image, ocr, observation=observed))
-            if cancelled:
-                raise asyncio.CancelledError()
-            pair = (hud.get('collected_count'), hud.get('inspiration_total'))
-            if not _player_board(observed) or any(type(value) is not int for value in pair):
-                return dict(success=False, status='blocked', reason='initial_target_inventory_unknown')
-            captures.append(pair)
-        if captures[0] != captures[1] or not 0 <= captures[0][0] <= captures[0][1]:
-            return dict(success=False, status='blocked', reason='initial_target_inventory_unstable')
-        expected = captures[0][1]-captures[0][0]
-    from ._deep_dive_scan_budget import resolve_scan_budget
-    remaining = resolve_scan_budget(scan_route, time_budget_sec)-(time.monotonic()-invocation_started)
-    if remaining < 5.:
-        return dict(success=False, status='blocked', reason='initial_hud_time_budget_exhausted')
-    outcome = await run_layout_scan(app, max_steps=max_steps, time_budget_sec=remaining,
-                                    drag_step_px=drag_step_px, drag_duration_sec=drag_duration_sec,
-                                    settle_sec=settle_sec, recognition_goal=recognition_goal,
-                                    expected_inspirations=expected, entity_detector=entity_detector,
-                                    scan_route=scan_route,
-                                    startup_fast=startup_fast,
-                                    observe_fn=observe)
-    summary = dict(outcome['summary'])
-    summary['invocation_elapsed_sec'] = round(time.monotonic()-invocation_started, 3)
-    if summary['status'] == 'interrupted':
-        summary['status'] = 'blocked'
-    return summary
+                                            bridge=None):
+    # Accept the old scan options from saved callers. The snapshot is atomic.
+    started = time.monotonic()
+    board, cancelled = await _await_serial(asyncio.to_thread(bridge.read_deep_dive_board))
+    if cancelled:
+        raise asyncio.CancelledError()
+    _cancel_check()
+    layout = layout_from_board(board)
+    run_id = datetime.now().strftime('%Y%m%d-%H%M%S') + '-' + uuid4().hex[:8]
+    output_dir = resolve_base_path() / 'logs' / 'deep_dive_scan' / run_id
+    layout['run_id'] = run_id
+    paths = write_layout_report(layout, output_dir)
+    summary = {key: layout[key] for key in ('success', 'status', 'reason', 'layout_complete',
+               'recognition_goal', 'recognition_backend', 'size', 'known_cells', 'faces_observed')}
+    return dict(summary, **paths, run_id=run_id, output_dir=str(output_dir), steps=0,
+                total_elapsed_sec=round(time.monotonic() - started, 3))

@@ -352,6 +352,32 @@ class ResonancePcInputBridgeService:
             self._ready()
             return (0, 0, self._viewport["width"], self._viewport["height"])
 
+    def read_deep_dive_board(self) -> dict:
+        return self._read_deep_dive("board")
+
+    def read_deep_dive_turn(self) -> dict:
+        return self._read_deep_dive("turn")
+
+    def read_deep_dive_controls(self) -> dict:
+        return self._read_deep_dive("controls")
+
+    def _read_deep_dive(self, kind):
+        if not self.enabled:
+            raise TargetRuntimeError("input_bridge_required", "请启用桥接输入器后读取识海深潜棋盘。")
+        capability = f"deep_dive_{kind}"
+        with target_operation_guard(self.target_runtime), activity("data", f"bridge.{capability}"), self._lock:
+            self._ready()
+            if not self._capabilities.get(capability):
+                raise TargetRuntimeError("deep_dive_board_unsupported", "当前桥接宿主未提供识海深潜棋盘读取。")
+            result = self._client.request("deep_dive_board", {"turn_only": kind == "turn",
+                                          "controls_only": kind == "controls"},
+                                          viewport=self._viewport, timeout=3.0)["result"]
+        board = result.get("board")
+        schema = f"resonance_pc.{capability}.v1"
+        if not isinstance(board, dict) or board.get("schema") != schema:
+            raise TargetRuntimeError("deep_dive_board_invalid", "桥接器返回了无效的棋盘快照。")
+        return dict(board, frame=result["frame"])
+
     def open_frame_stream(self):
         stream = self.active_frame_stream(current_root_cid())
         if stream is not None:
