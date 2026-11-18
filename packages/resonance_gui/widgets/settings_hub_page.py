@@ -226,7 +226,7 @@ class SettingsHubPage(QWidget):
         layout.addLayout(two_columns)
 
         self.use_input_bridge = QCheckBox("使用桥接输入器", page)
-        self.use_input_bridge.setToolTip("默认关闭；保存设置后用于后续任务")
+        self.use_input_bridge.setToolTip("保存设置后，下一次桥接任务会自动加载输入器。")
         self.use_input_bridge.clicked.connect(self._show_bridge_warning)
         layout.addWidget(self.use_input_bridge)
 
@@ -264,7 +264,13 @@ class SettingsHubPage(QWidget):
 
     def _show_bridge_warning(self, checked: bool) -> None:
         if checked:
-            QMessageBox.warning(self, "风险提示", "有违规风险，自行使用")
+            QMessageBox.warning(
+                self,
+                "风险提示",
+                "有违规风险，自行使用。\n\n"
+                "保存设置后，下一次桥接任务会自动加载输入器。"
+                "如果游戏中仍加载着不支持热更新的旧版桥接器，需要重启游戏一次。",
+            )
 
     @staticmethod
     def _section(text: str, parent: QWidget) -> QLabel:

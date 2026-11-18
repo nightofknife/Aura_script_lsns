@@ -253,10 +253,15 @@ def test_bridge_click_uses_unity_dimensions_across_window_states(monkeypatch):
     monkeypatch.setattr(bridges.win32gui, "IsWindow", lambda hwnd: hwnd == 202)
     monkeypatch.setattr(bridges.win32gui, "IsIconic", lambda hwnd: minimized)
     monkeypatch.setattr(bridges.win32process, "GetWindowThreadProcessId", lambda hwnd: (1, 101))
+    monkeypatch.setattr(bridges, "stage_host", lambda assets, cache: "A" * 64)
 
     def request(op, args=None, viewport=None, timeout=10.0, cancel_token=None):
         if op == "status":
-            return {"result": {"state": "ready", "capabilities": {"frame_stream": True}}}
+            return {"result": {"state": "ready", "bootstrap_abi": 1, "host_state": "loaded",
+                               "host_instance": 1, "cache_root": "cache",
+                               "capabilities": {"frame_stream": True}}}
+        if op == "prepare_host":
+            return {"result": {"host_instance": 1}}
         calls.append((op, dict(args or {}), dict(viewport or {})))
         if op == "hello":
             return {"result": {"viewport": {**viewport, "width": 1280, "height": 720},

@@ -1,4 +1,6 @@
-#include "runtime.hpp"
+#include "il2cpp.hpp"
+#include "lifecycle.hpp"
+#include "unity_hooks.hpp"
 #include <bcrypt.h>
 #include <filesystem>
 #include <fstream>
@@ -20,10 +22,12 @@ std::wstring module_path(HMODULE m) {
   p.resize(n);
   return p;
 }
+} // namespace
+
 std::string sha256(const fs::path &p) {
   std::ifstream f(p, std::ios::binary);
   if (!f)
-    throw Error("version_mismatch", "Cannot read fingerprint file");
+    throw Error("hash_failed", "Cannot read file for hashing");
   BCRYPT_ALG_HANDLE alg{};
   BCRYPT_HASH_HANDLE hash{};
   if (BCryptOpenAlgorithmProvider(&alg, BCRYPT_SHA256_ALGORITHM, nullptr, 0) < 0)
@@ -54,6 +58,10 @@ std::string sha256(const fs::path &p) {
     s << std::setw(2) << int(b);
   return s.str();
 }
+
+namespace {
+std::string startup_error;
+
 Json profile() {
   auto ga = sha256(module_path(GetModuleHandleW(L"GameAssembly.dll"))),
        up = sha256(module_path(GetModuleHandleW(L"UnityPlayer.dll")));
@@ -117,13 +125,31 @@ void serve(HANDLE pipe) {
     std::string line;
     if (read_line(pipe, line)) {
       auto q = Json::parse(line);
-      ULONG client{};
-      if (!GetNamedPipeClientProcessId(pipe, &client))
-        throw Error("session_invalid", "Cannot identify pipe client");
-      q["_client_pid"] = client;
-      if (q.contains("process_created") && q.at("process_created") != std::to_string(stamp))
-        throw Error("process_changed", "Target process creation identity changed");
-      auto r = runtime.submit(q);
+      Json r;
+      try {
+        ULONG client{};
+        if (!GetNamedPipeClientProcessId(pipe, &client))
+          throw Error("session_invalid", "Cannot identify pipe client");
+        q["_client_pid"] = client;
+        if (q.contains("process_created") && q.at("process_created") != std::to_string(stamp))
+          throw Error("process_changed", "Target process creation identity changed");
+        if (q.value("op", "") == "status" && !startup_error.empty()) {
+          r = {{"status", "completed"},
+               {"result", {{"state", "failed"}, {"error", startup_error},
+                           {"bootstrap_abi", bootstrap_abi}, {"host_state", "unloaded"}}}};
+        } else if (!startup_error.empty()) {
+          throw Error("bridge_failed", startup_error);
+        } else {
+          r = bridge_request(q);
+        }
+      } catch (const Error &e) {
+        r = {{"status", "rejected"}, {"error", {{"code", e.code}, {"message", e.what()}}}};
+      } catch (const std::exception &e) {
+        r = {{"status", "rejected"}, {"error", {{"code", "protocol_invalid"}, {"message", e.what()}}}};
+      }
+      r["version"] = 1;
+      r["sequence"] = q.value("sequence", uint64_t(0));
+      r["session"] = q.value("session", "");
       r["pid"] = GetCurrentProcessId();
       r["process_created"] = std::to_string(stamp);
       std::string data = r.dump() + "\n";
@@ -152,15 +178,20 @@ void serve(HANDLE pipe) {
 }
 DWORD WINAPI worker(void *) {
   try {
-    runtime.initialize(profile());
-  } catch (const Error &e) {
-    runtime.fail(e.code, e.what());
+    auto directory = fs::path(module_path(self_module)).parent_path();
+    configure_host_cache(directory.parent_path().parent_path(), profile());
+    start_unity_hooks();
+    // The server and its I/O threads belong to the process-lifetime bootstrap.
+    // The idle timer keeps working even when the game stops presenting frames.
+    std::thread([] {
+      for (;;) {
+        Sleep(100);
+        maintain_host();
+      }
+    }).detach();
   } catch (const std::exception &e) {
-    runtime.fail("initialization_failed", e.what());
+    startup_error = e.what();
   }
-  // The pipe worker must not remain registered with the managed VM while it
-  // blocks indefinitely in Win32 IPC; all subsequent Unity work is main-thread.
-  il.detach();
   PSECURITY_DESCRIPTOR sd{};
   try {
     sd = pipe_security();

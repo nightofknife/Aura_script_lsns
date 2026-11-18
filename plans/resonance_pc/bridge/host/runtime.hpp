@@ -1,5 +1,6 @@
 #pragma once
 #include "frame_stream.hpp"
+#include "host_api.hpp"
 #include <atomic>
 #include <condition_variable>
 #include <deque>
@@ -20,12 +21,13 @@ struct Command {
 };
 class Runtime {
 public:
-  void initialize(const Json &profile);
+  void initialize(Json profile, bool capture);
   Json submit(const Json &q);
+  bool idle();
   void publish();
   void complete();
   void capture_frame();
-  void event_update(Obj es, Method method);
+  void event_update(Obj es, Method method, EventUpdateFn original);
   void fail(std::string code, std::string reason);
   bool owns() const { return owned_.load(); }
   bool exclusive_drag() const { return direct_.load(); }
@@ -55,10 +57,8 @@ private:
   uint64_t generation_{}, last_frame_{}, frame_{}, completed_frame_{};
   std::atomic<bool> owned_{false}, direct_{false};
   std::atomic<uint64_t> last_tick_{0};
-  bool initialized_{}, loop_installed_{}, background_saved_{}, background_value_{};
+  bool background_saved_{}, background_value_{};
   int observed_{}, event_observed_{};
-  Obj last_event_{};
-  Root loop_root_;
   Json profile_, capabilities_;
   std::shared_ptr<Command> active_;
   std::string op_;
@@ -71,8 +71,6 @@ private:
   bool scroll_target_{}, drag_begun_{};
   int drag_scene_{};
   Root gesture_event_system_;
-  void install_loop();
-  void uninstall_loop();
   void observe();
   void begin(const std::shared_ptr<Command> &);
   void tick();
@@ -94,9 +92,4 @@ private:
   void set_event_position(Vec2 p, Vec2 delta);
   bool current_target_valid();
 };
-extern Runtime &runtime;
-void install_input_hooks();
-void disable_input_hooks();
-using EventUpdateFn = void (*)(Obj, Method);
-extern EventUpdateFn original_event_update;
 } // namespace bridge
