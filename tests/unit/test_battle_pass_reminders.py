@@ -7,11 +7,14 @@ import cv2
 import pytest
 
 from packages.aura_core.scheduler.operation_scope import OperationScope
+from plans.aura_base.src.services.interaction_service import InteractionService
 from plans.aura_base.src.services.observation_service import Frame, ObservationService
 from plans.aura_base.src.services.vision_service import VisionService
+from plans.resonance_pc.src.actions import _daily_reward_flow
 from plans.resonance_pc.src.actions._battle_pass_entries import reminder_control
 from plans.resonance_pc.src.actions._battle_pass_reward_flow import BattlePassRewardFlow
 from plans.resonance_pc.src.actions._battle_pass_reward_vision import BattlePassRewardReader
+from tests.interaction_clock import install_clock
 
 
 SCREENSHOTS = (
@@ -102,3 +105,76 @@ def test_flow_processes_visible_reminders_using_only_clicks(monkeypatch, rows):
     assert calls == expected
     assert result["passes_processed"] == len(rows)
     assert result["list_scrolls"] == 0
+
+
+def without_claim_button(image):
+    after = image.copy()
+    # Keep varied background pixels in the button search region.
+    after[630:720, 1015:1280] = image[450:540, 1015:1280]
+    return after
+
+
+@pytest.fixture
+def first_manual_after_claim():
+    image = without_claim_button(client_image("04_manual"))
+    image[75:100, 181:209] = 0
+    return image
+
+
+@pytest.mark.parametrize("first_tasks_overlay", [True, False], ids=["task-popup", "no-task-popup"])
+def test_manual_claim_without_overlay_continues_to_second_pass(
+    monkeypatch, first_tasks_overlay, first_manual_after_claim,
+):
+    main = client_image("05_main")
+    first_tasks = client_image("03_tasks")
+    first_manual = client_image("04_manual")
+    first_tasks_after_claim = without_claim_button(first_tasks)
+
+    second_manual = first_manual.copy()
+    second_manual[75:100, 181:209] = 0
+    second_manual[178:198, 20:34] = second_manual[103:123, 20:34]
+    second_manual[103:123, 20:34] = 0
+    second_tasks = first_tasks_after_claim.copy()
+    second_tasks[75:225, :209] = second_manual[75:225, :209]
+    second_manual_after_claim = without_claim_button(second_manual)
+    second_manual_after_claim[150:175, 181:209] = 0
+
+    steps = [((871, 50), first_manual), ((708, 670), first_tasks)]
+    if first_tasks_overlay:
+        steps.extend([((1146, 670), client_image("01_mission_reward")),
+                      ((500, 500), first_tasks_after_claim)])
+    else:
+        steps.append(((1146, 670), first_tasks_after_claim))
+    steps.extend([
+        ((467, 670), first_manual),
+        ((1146, 669), first_manual_after_claim),
+        ((110, 187), second_manual),
+        ((708, 670), second_tasks),
+        ((467, 670), second_manual),
+        ((1146, 669), client_image("02_level_reward")),
+        ((500, 500), second_manual_after_claim),
+        ((197, 37), main),
+    ])
+    pending = iter(steps)
+    observation = Replay(main)
+
+    def click(*, x, y):
+        point, image = next(pending)
+        assert (x, y) == point
+        observation.image = image
+        return True
+
+    app = SimpleNamespace(click=click)
+    with install_clock(monkeypatch, _daily_reward_flow):
+        flow = BattlePassRewardFlow(app, observation, InteractionService(app, observation))
+        result = flow.run()
+
+    assert next(pending, None) is None
+    assert result["status"] == "collected"
+    assert result["passes_processed"] == 2
+    assert result["passes"] == [
+        {"row_y": 112, "task_claim_clicks": 1, "level_claim_clicks": 1},
+        {"row_y": 187, "task_claim_clicks": 0, "level_claim_clicks": 1},
+    ]
+    assert result["reward_overlays"] == 1 + first_tasks_overlay
+    assert result["returned_to_main"] is True

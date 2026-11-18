@@ -90,10 +90,13 @@ class BattlePassRewardFlow(DailyRewardFlow):
                 raise self.error("battle_pass_reward_selection_changed", "领取期间通行证选择发生变化，已停止。")
             if page.absent(control):
                 return
-            # A disappearing button alone does not prove receipt of rewards.
-            # The reward title must be confirmed before we continue.
-            self.transition(f"claim_{kind}", lambda p: self._current_pass(p, kind) and p.present(control),
-                            lambda p: p.page_state == "reward", control)
+            self.transition(
+                f"claim_{kind}",
+                lambda p: self._current_pass(p, kind) and p.present(control),
+                lambda p: p.page_state == "reward",
+                control,
+                post_click_target=lambda p: self._current_pass(p, kind) and p.absent(control),
+            )
         raise self.error("battle_pass_reward_cycle_limit", "通行证奖励页面反复变化超过上限，已停止。")
 
     def result(self, status, reason=None):
