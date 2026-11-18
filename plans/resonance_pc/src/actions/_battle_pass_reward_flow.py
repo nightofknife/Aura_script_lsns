@@ -27,8 +27,8 @@ class BattlePassRewardFlow(DailyRewardFlow):
         self.active_row = None
         super().__init__(app, observation, interaction)
 
-    def error(self, code, message):
-        error = super().error(code, message)
+    def error(self, code, message, **context):
+        error = super().error(code, message, **context)
         error.detail.update(active_row=self.active_row, processed_passes=list(self.processed))
         return error
 

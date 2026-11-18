@@ -6,6 +6,7 @@ from collections.abc import Mapping
 import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.utils.task_errors import recognition_failure
 from ._city_panel_vision import CityPanelVisionError, probe_city
 
 TIMEOUT_SEC = 15.0
@@ -135,5 +136,8 @@ def enter_city_shop(*, app, vision, point, entry_type, page_state, target_probe,
         time.sleep(min(POLL_INTERVAL_SEC, max(0.0, deadline - time.monotonic())))
         check_cancelled()
     detail = details()
+    if entry_type == "exchange":
+        detail.update(recognition_failure("进入交易所", "交易所菜单", "template", "timeout",
+                                          timeout_sec=TIMEOUT_SEC))
     logger.warning("[CityShopEntry] phase=timeout detail=%s", detail)
     raise CityShopEntryError("city_shop_entry_timeout", "Shop menu was not confirmed before entry timeout", detail)

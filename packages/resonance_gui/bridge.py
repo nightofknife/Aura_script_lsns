@@ -316,7 +316,8 @@ class RunnerBridge(QObject):
                 }
             )
             if request_cancel:
-                self._log_message(f"任务状态连续读取失败，正在请求停止并等待执行端确认：{exc}")
+                logger.warning("[TaskPoll] cid=%s error=%s", self._current_cid, exc)
+                self._log_message("多次无法读取任务状态，正在请求停止并等待确认。")
                 self._request_cancel(reason="poll_error")
             return
 
@@ -333,7 +334,8 @@ class RunnerBridge(QObject):
                             return
                     except Exception as exc:  # noqa: BLE001
                         if not self._input_close_failed:
-                            self._log_message(f"桥接输入会话关闭未确认，正在重试：{exc}")
+                            logger.warning("[TaskInput] cid=%s close error=%s", self._current_cid, exc)
+                            self._log_message("游戏操作尚未确认结束，正在重试关闭。")
                             self._input_close_failed = True
                         return
                 self._finish_current(run)
@@ -453,11 +455,11 @@ class RunnerBridge(QObject):
                 {
                     "stage": "run_task",
                     "task_ref": item["task_ref"],
+                    "label": item["label"],
                     "kind": item.get("kind"),
                     "error": str(exc),
                 }
             )
-            self._log_message(f"执行失败：{item['label']} - {exc}")
             self._reset_current()
             self._set_busy(False)
 

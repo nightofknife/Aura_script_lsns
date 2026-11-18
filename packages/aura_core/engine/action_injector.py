@@ -28,6 +28,7 @@ from ..types import TaskRefResolver
 from .action_resolver import ActionResolver
 from .execution_facade import _await_scoped
 from ..utils.middleware import middleware_manager
+from ..utils.task_errors import SubtaskFailed
 
 if TYPE_CHECKING:
     from .execution_engine import ExecutionEngine
@@ -239,7 +240,7 @@ class ActionInjector:
         if tfr.get("status") != "SUCCESS":
             error_info = tfr.get("error", {"message": "Unknown error in sub-task."})
             from packages.aura_core.observability.failure_evidence import attach_evidence, evidence_from
-            error = Exception(f"Sub-task '{task_ref}' failed. Reason: {error_info}")
+            error = SubtaskFailed(task_ref, error_info)
             attach_evidence(error, evidence_from(tfr) + evidence_from(error_info))
             raise error
 

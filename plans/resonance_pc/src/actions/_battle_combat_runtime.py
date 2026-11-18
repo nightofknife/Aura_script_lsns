@@ -8,6 +8,7 @@ import time
 
 from packages.aura_core.scheduler.operation_scope import OperationTimeout
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.utils.task_errors import recognition_failure
 from ._battle_ui import BattleUi, compact, find_text
 
 
@@ -168,7 +169,13 @@ async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interv
             await budget.sleep_async(poll)
     except OperationTimeout as exc:
         ui.scope.checkpoint()
-        raise BattleResolutionError("battle_outcome_unconfirmed", last_outcome=previous) from exc
+        raise BattleResolutionError(
+            "battle_outcome_unconfirmed", last_outcome=previous,
+            **recognition_failure(
+                "确认战斗结算", " / ".join([*titles["victory"], *titles["defeat"]]), "text", "timeout",
+                timeout_sec=timeout_sec, next_step="请先在游戏内查看本场作战结果。",
+            ),
+        ) from exc
 
     capture = {"requested": capture_count, "selected": 0, "available": bool(arrest_hit)}
     branch = "next_step"

@@ -19,6 +19,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.engine.action_injector import ActionInjector
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_core.utils.task_errors import task_error_details
 from packages.aura_core.config.template import TemplateRenderer
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.operation_scope import OperationScope, OperationTimeout, current_operation_scope
@@ -91,6 +92,7 @@ class NodeExecutor:
                  "ancestor_may_retry": bool(parent_scope.get("ancestor_may_retry") or parent_scope.get("may_retry")),
                  "may_retry": False}
         scope_token = failure_scope.set(scope)
+        node_name = self.engine.nodes.get(node_id, {}).get("name")
         try:
             loop_info = getattr(node_context, "data", {}).get("loop", {}) or {}
         except Exception:
@@ -100,7 +102,7 @@ class NodeExecutor:
             """构建事件基础载荷"""
             payload = {
                 "node_id": node_id,
-                "node_name": self.engine.nodes.get(node_id, {}).get("name"),
+                "node_name": node_name,
                 "start_time": start_time,
                 "loop_index": loop_info.get("index", 0) or 0,
             }
@@ -270,13 +272,12 @@ class NodeExecutor:
             execution_success = False
             logger.error(f"节点'{node_id}'遇到控制流异常: {e}", exc_info=self.engine.debug_mode)
             self.engine.step_states[node_id] = self.engine.StepState.FAILED
-            error_details = {
-                "type": type(e).__name__,
-                "message": str(e),
-                "severity": getattr(e, 'severity', 'error')
-            }
+            error_details = task_error_details(
+                e, task=scope["task"], node=node_id, node_name=node_name,
+            )
+            error_details["severity"] = getattr(e, "severity", "error")
             attach_evidence(error_details, await capture_failure(e, terminal=True))
-            if self.engine.debug_mode:
+            if self.engine.debug_mode or "recognition" in error_details:
                 error_details["traceback"] = getattr(
                     e, 'get_full_traceback', lambda: traceback.format_exc()
                 )()
@@ -297,9 +298,11 @@ class NodeExecutor:
             execution_success = False
             logger.error(f"节点'{node_id}'执行失败: {e}", exc_info=True)
             self.engine.step_states[node_id] = self.engine.StepState.FAILED
-            error_details = {"type": type(e).__name__, "message": str(e)}
+            error_details = task_error_details(
+                e, task=scope["task"], node=node_id, node_name=node_name,
+            )
             attach_evidence(error_details, await capture_failure(e, terminal=True))
-            if self.engine.debug_mode:
+            if self.engine.debug_mode or "recognition" in error_details or "cause" in error_details:
                 error_details["traceback"] = traceback.format_exc()
 
             if self.engine.event_callback:

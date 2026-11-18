@@ -14,6 +14,7 @@ import win32gui
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.utils.exceptions import StopTaskException
+from packages.aura_core.utils.task_errors import recognition_failure
 from packages.aura_game.executable_locator import validate_executable_path
 
 from .runtime_preflight_pc_actions import resonance_pc_require_client_resolution
@@ -235,7 +236,8 @@ def resonance_pc_enter_main(
     launched_pid: Optional[int] = None
     if target is None and not running:
         if not bool(launch_if_not_running):
-            raise StopTaskException("Resonance PC is not running and launch_if_not_running is false.", success=False)
+            raise StopTaskException("Resonance PC is not running and launch_if_not_running is false.",
+                                    success=False, details={"code": "window_not_found"})
         launch_result = dict(
             process_manager.start_process(
                 identifier=PROCESS_IDENTIFIER,
@@ -324,6 +326,10 @@ def resonance_pc_enter_main(
     raise StopTaskException(
         f"Resonance PC main screen was not reached within {max_rounds} rounds; last state={last_state}.",
         success=False,
+        details=recognition_failure(
+            "确认启动后的主界面", " / ".join(MAIN_MARKERS), "text", "unconfirmed",
+            next_step="请查看游戏是否停在登录、更新或弹窗界面。",
+        ),
     )
 
 

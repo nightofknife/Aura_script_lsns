@@ -303,6 +303,52 @@ def test_bad_refresh_never_uses_old_snapshot_or_dispatches_business(window, prob
     assert window.workflow_page._tree_items["refresh_recovery"].text(1) == "失败"
 
 
+def test_recognition_failure_is_readable_in_workflow_independent_task_and_history(window):
+    configure(window)
+    window._start_workflow()
+    task_label = "货运前数据刷新"
+    error = {
+        "node_id": "refresh",
+        "type": "StopTaskException",
+        "message": "internal recognition information",
+        "traceback": "Traceback: private stack",
+        "recognition": {
+            "step": "确认主界面", "target": "列车主界面", "kind": "template",
+            "outcome": "timeout", "timeout_sec": 8,
+        },
+    }
+    result = {
+        "cid": "recognition-failed", "status": "failed", "task_name": PC_PLAYER_DATA_REFRESH_TASK_REF,
+        "final_result": {"status": "FAILED", "error": error, "failure_evidence": [{
+            "error_code": "StopTaskException", "evidence_id": "test-shot",
+            "screenshot": "errors/test-session/test-shot.png",
+        }]},
+        "gui_item": {"task_ref": PC_PLAYER_DATA_REFRESH_TASK_REF, "label": task_label},
+    }
+    expected = "货运前数据刷新 · 确认主界面：等待 8 秒后仍未识别到「列车主界面」。"
+    window.workflow_page.runtime_tabs.setCurrentIndex(1)
+    finish_refresh(window, result)
+
+    workflow = window.workflow_page
+    assert workflow.runtime_tabs.currentIndex() == 0
+    assert expected in workflow.current_operation_label.text()
+    assert workflow.log_view.toPlainText().count(expected) == 1
+    assert "private stack" not in workflow.log_view.toPlainText()
+    assert workflow.failure_detail_button._payload["final_result"]["error"]["traceback"] == error["traceback"]
+
+    window._active_game_name = PC_GAME_NAME
+    window._small_task_active_ref = PC_PLAYER_DATA_REFRESH_TASK_REF
+    window._on_task_finished(result)
+    assert window.independent_failure_details._summary == expected
+
+    history_row = {key: value for key, value in result.items() if key != "gui_item"}
+    window._on_history_loaded([history_row])
+    window._open_history_row(0, 0)
+    assert window.history_table.item(0, 3).text() == expected
+    assert window.run_detail.toPlainText() == expected
+    assert window.history_failure_details._payload["final_result"]["failure_evidence"][0]["evidence_id"] == "test-shot"
+
+
 def test_cancel_during_refresh_blocks_late_success_and_restart_refreshes_again(window):
     configure(window)
     cancels, trades, refreshes = [], [], []
@@ -330,7 +376,10 @@ def test_refresh_exception_stops_workflow(window):
     window._on_busy_changed(False)
     assert not window._workflow_active
     assert not window._workflow_pending
-    assert "page not found" in window.workflow_page.log_view.toPlainText()
+    log = window.workflow_page.log_view.toPlainText()
+    assert "任务未能启动" in log
+    assert "page not found" not in log
+    assert window.workflow_page.failure_detail_button._payload["error"] == "page not found"
 
 
 @pytest.mark.parametrize("current", [0, 900])
@@ -353,7 +402,7 @@ def test_timeout_cancel_cannot_continue_even_with_success_result(window):
     assert not window._workflow_active
     assert not window._workflow_pending
     assert window._workflow_recovery_snapshot == {}
-    assert "刷新超时" in window.workflow_page.log_view.toPlainText()
+    assert "货运前数据刷新：执行超时" in window.workflow_page.log_view.toPlainText()
 
 
 def test_failure_keeps_only_existing_configured_close_cleanup(window, monkeypatch):

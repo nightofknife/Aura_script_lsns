@@ -25,7 +25,9 @@ from packages.aura_core.observability.failure_evidence import (
 )
 from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.utils.task_errors import recognition_failure
 from ._bounded_observation import ObservationBudget, wait_for_observation
+from ._recognition_failure import with_template_failure
 from ._template_observation import observe_template
 from ._navigation_templates import GLOBAL_BACK, GLOBAL_CITY_MAIN
 from ._cancellable_wait import async_sleep_slices, sleep_slices
@@ -102,7 +104,7 @@ class CityTradeFlowError(RuntimeError):
         super().__init__(message)
         self.code = str(code)
         self.message = str(message)
-        self.detail = detail or {}
+        self.detail = with_template_failure(detail)
 
     def to_dict(self) -> Dict[str, Any]:
         return {"code": self.code, "message": self.message, "detail": self.detail}
@@ -569,7 +571,8 @@ def _wait_template(
     if result.matched:
         return result.value
     return {"valid": False, "found": None, "confidence": None, "reason": "observation_timeout",
-            "template": template, "region": list(region), "last_match": result.value}
+            "template": template, "region": list(region), "last_match": result.value,
+            "timeout_sec": timeout_sec}
 
 
 def _probe_shop_menu(app: Any, vision: Any) -> Dict[str, Any]:
@@ -1328,6 +1331,9 @@ def resonance_pc_buy_goods_on_buy_page(
                               settlement=settlement, settlement_after_confirm=settlement_after_confirm)
             _raise_error("buy_transaction_not_confirmed", "Purchase settlement was not confirmed",
                          {"book_result": book_result, "negotiation": negotiation,
+                          **recognition_failure(
+                              "确认买入结果", "买入结算画面", "template", "unconfirmed",
+                              next_step="请先在游戏内确认交易结果。"),
                           "settlement": settlement, "settlement_after_confirm": settlement_after_confirm,
                           "confirm_panel": confirm_panel, "confirm_click": confirm_click,
                           "selected_products": selected})

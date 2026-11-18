@@ -79,6 +79,7 @@ from packages.resonance_shared.freight_parameters import (
     DEFAULT_RECOVERY_THRESHOLDS,
     freight_control_state, validate_freight_recovery_thresholds,
 )
+from ..run_failure import present_run_failure
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog, normalize_black_moon_settings
 from .freight_passenger_panel import FreightPassengerPanel
@@ -2175,9 +2176,10 @@ class TradePage(QWidget):
         self.preview_state_hint.hide()
         self.preview_result_hint.hide()
         business_status = str(summary.get("status") or status)
+        failure = present_run_failure(payload, task_label="PC 自动跑商")
         self.run_status_value.setText(self._status_label(business_status))
         self.stage_title.setText(self._status_label(business_status))
-        detail = str(summary.get("reason") or "路线执行结束")
+        detail = failure.text if failure else str(summary.get("reason") or "路线执行结束")
         attention = freight_passenger_attention(summary.get("passenger"), cancelled=business_status in {"cancelled", "failed", "error", "timeout"})
         self.stage_detail.setText(f"{detail}\n{attention}" if attention else detail)
         if summary.get("snapshot_id"):
@@ -2190,7 +2192,7 @@ class TradePage(QWidget):
             for index in range(len(summary.get("route") or [])):
                 self._route_statuses[index] = "completed"
         self._apply_route_statuses()
-        self._render_result(summary)
+        self._render_result({**summary, "reason": detail, "error": None} if failure else summary)
         self.set_busy(False)
         self._active_mode = ""
         self._refresh_debug()
@@ -2203,6 +2205,7 @@ class TradePage(QWidget):
         summary = trade_result_summary(payload)
         runner_status = extract_status(payload)
         business_status = str(summary.get("status") or runner_status)
+        failure = present_run_failure(payload, task_label="计算跑商方案")
         failure_status = next(
             (status for status in (runner_status, business_status)
              if status in {"failed", "error", "timeout", "cancelled", "blocked"}),
@@ -2214,14 +2217,14 @@ class TradePage(QWidget):
             self._plan_stale = False
             self.preview_state_hint.hide()
             self.preview_result_hint.hide()
-            reason = str(summary.get("reason") or payload.get("error") or "方案计算未完成")
+            reason = failure.text if failure else "方案计算未完成。"
             self.run_status_value.setText(self._status_label(failure_status))
             self.stage_title.setText(self._status_label(failure_status))
             self.stage_detail.setText(reason)
             self.route_tree.clear()
             self._route_statuses = {}
             self._clear_result()
-            self._render_result({**summary, "status": failure_status, "reason": reason, "route": []})
+            self._render_result({**summary, "status": failure_status, "reason": reason, "error": None, "route": []})
             self.set_busy(False)
             self._active_mode = ""
             self._refresh_debug()
@@ -2289,8 +2292,10 @@ class TradePage(QWidget):
         self._elapsed_timer.stop()
         self.run_status_value.setText("失败")
         self.stage_title.setText("任务失败")
-        self.stage_detail.setText(str(payload.get("error") or "未知错误"))
-        self.reason_label.setText(str(payload.get("error") or "未知错误"))
+        failure = present_run_failure({"status": "failed", **payload})
+        message = failure.text if failure else "任务执行中断。"
+        self.stage_detail.setText(message)
+        self.reason_label.setText(message)
         self.set_busy(False)
         self._active_mode = ""
         self._last_result = dict(payload)

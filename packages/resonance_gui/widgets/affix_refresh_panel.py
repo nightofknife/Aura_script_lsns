@@ -14,6 +14,7 @@ from PySide6.QtWidgets import (
 
 from ..affix_catalog import decimal_value, eligible_affixes, normalize_affix_inputs
 from ..config_repository import ResonanceConfigRepository
+from ..run_failure import present_run_failure
 
 
 STAGES = {
@@ -293,6 +294,8 @@ class AffixRefreshPanel(QWidget):
             return
         payload = event.get("payload", event)
         if isinstance(payload, Mapping):
+            if failure := present_run_failure(payload, task_label="装备词缀刷新"):
+                payload = {**payload, "message": failure.text}
             self._merge(payload)
             self._render()
 

@@ -9,8 +9,20 @@ import time
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.scheduler.operation_scope import OperationScope, OperationTimeout, current_operation_scope
+from packages.aura_core.utils.task_errors import recognition_failure
 from ....aura_base.src.services.interaction_service import TransitionPolicy, TransitionProbe, TransitionState
 from ._daily_reward_vision import DailyRewardError, DailyRewardReader
+
+
+_PAGE_LABELS = {
+    "main": "列车主界面", "daily": "每日任务页", "reward": "奖励弹窗",
+    "tasks": "通行证任务页", "manual": "通行证手册页",
+}
+_CONTROL_LABELS = {
+    "main_entry_with_red": "带红点的奖励入口", "claimable": "领取按钮",
+    "activity_gold": "活跃度奖励", "reward_exit": "奖励弹窗",
+    "city_main": "返回列车主界面的按钮",
+}
 
 
 def _cancel_check():
@@ -37,13 +49,13 @@ class DailyRewardFlow:
         self.clicks = defaultdict(int)
         self.reward_overlays = 0
 
-    def error(self, code, message):
+    def error(self, code, message, **context):
         code = code.replace("daily_reward", self.error_prefix, 1)
         message = message.replace("每日奖励", self.label)
         return self.error_type(code, message, {"stage": self.stage,
             "last_observation": self.last.summary() if self.last is not None else None,
             "stage_clicks": dict(self.clicks), "reward_overlays": self.reward_overlays,
-            "elapsed_ms": round((time.monotonic() - self.started) * 1000)})
+            "elapsed_ms": round((time.monotonic() - self.started) * 1000), **context})
 
     def observe(self, scope):
         self.scope.checkpoint()
@@ -73,7 +85,10 @@ class DailyRewardFlow:
             accept=lambda value: value.page_state in allowed,
             is_unknown=lambda value: value.page_state == "unknown", equivalent=self.equivalent)
         if result is None:
-            raise self.error("daily_reward_page_unconfirmed", "未能稳定确认每日奖励所在页面，已停止。")
+            targets = "或".join(_PAGE_LABELS.get(page, self.label + "页面") for page in sorted(allowed))
+            raise self.error("daily_reward_page_unconfirmed", "未能稳定确认每日奖励所在页面，已停止。",
+                             **recognition_failure("确认当前页面", targets, "template", "timeout",
+                                                   timeout_sec=timeout))
         return result
 
     def transition(self, stage, source, target, control, *, fixed_point=None, post_click_target=None):
@@ -122,9 +137,15 @@ class DailyRewardFlow:
             logger.info("[%s] stage=%s click=%s point=%s", self.log_label, stage, self.clicks[stage], point)
             return self.app.click(x=round(point[0]), y=round(point[1]))
 
+        control_label = _CONTROL_LABELS.get(control, self.label + "操作入口")
         result = self.interaction.run_transition(probe, click, scope=stage_scope, policy=policy, state=state,
-            source_unconfirmed=lambda: self.error("daily_reward_source_unconfirmed", "未能确认可点击的原页面，已停止补点。"),
-            exhausted=lambda: self.error("daily_reward_transition_unconfirmed", "每日奖励点击后的页面变化未确认，已停止。"))
+            source_unconfirmed=lambda: self.error(
+                "daily_reward_source_unconfirmed", "未能确认可点击的原页面，已停止补点。",
+                **recognition_failure("确认操作入口", control_label, "template", "unconfirmed")),
+            exhausted=lambda: self.error(
+                "daily_reward_transition_unconfirmed", "每日奖励点击后的页面变化未确认，已停止。",
+                **recognition_failure("确认点击结果", self.label + "操作后的页面", "template", "unconfirmed",
+                                      next_step="请先在游戏内查看领取结果。")))
         return result.observation.hit
 
     @staticmethod

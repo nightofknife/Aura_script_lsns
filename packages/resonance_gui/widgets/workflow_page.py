@@ -59,8 +59,10 @@ from PySide6.QtWidgets import (
 
 from ..config_repository import ResonanceConfigRepository
 from ..battle_plan import battle_editor_day_summary
+from ..run_failure import present_run_failure
 from .toggle_button import ToggleButton as QCheckBox
 from .market_warning_label import MarketWarningLabel
+from .failure_details import FailureDetailsButton
 from ..logic import (
     WorkflowFreightProgressState,
     expected_profit_per_fatigue,
@@ -1017,9 +1019,13 @@ class WorkflowPage(QWidget):
         self.run_button.clicked.connect(self._toggle_run)
         header.addWidget(self.run_button)
         layout.addLayout(header)
+        terminal_row = QHBoxLayout()
         self.runtime_task_label = QLabel("正在运行：无", panel)
         self.runtime_task_label.setWordWrap(True)
-        layout.addWidget(self.runtime_task_label)
+        terminal_row.addWidget(self.runtime_task_label, 1)
+        self.failure_detail_button = FailureDetailsButton(panel)
+        terminal_row.addWidget(self.failure_detail_button)
+        layout.addLayout(terminal_row)
         self.runtime_tabs = QTabWidget(panel)
         self.runtime_tabs.setObjectName("workflowRuntimeTabs")
         self.runtime_progress_page = QWidget(panel)
@@ -1313,6 +1319,7 @@ class WorkflowPage(QWidget):
         self._stopping = False
         self._active_runtime_kind = ""
         self.runtime_task_label.setText("正在运行：准备开始")
+        self.failure_detail_button.set_report()
         self.current_operation_label.setText("当前操作：准备开始")
         self.operation_elapsed_label.clear()
         self._busy = True
@@ -1375,7 +1382,7 @@ class WorkflowPage(QWidget):
         parent.setExpanded(True)
         self._tree_items["refresh_recovery"] = item
 
-    def mark_step(self, step: str, state: str, detail: str = "") -> None:
+    def mark_step(self, step: str, state: str, detail: str = "", *, log_detail: bool = True) -> None:
         item = self._tree_items.get(step)
         state_text = {
             "waiting": "等待", "running": "执行中", "success": "完成",
@@ -1389,7 +1396,7 @@ class WorkflowPage(QWidget):
         top_step = str(parent.data(0, Qt.ItemDataRole.UserRole)) if parent is not None else step
         if top_step in self._task_status and step != "refresh_recovery":
             self._set_left_status(top_step, state)
-        if detail:
+        if detail and log_detail:
             self.append_log(f"{state_text} · {detail}")
         top_steps = [self.run_tree.topLevelItem(i) for i in range(self.run_tree.topLevelItemCount())]
         done = sum(1 for row in top_steps if row.text(1) in {"完成", "跳过"})
@@ -1524,14 +1531,14 @@ class WorkflowPage(QWidget):
         self._set_editing_enabled(True)
         terminal = "已完成" if success else "已停止" if stopped else "失败"
         self.runtime_task_label.setText(f"运行结果：{terminal}")
-        self.current_operation_label.setText(f"当前操作：{message}")
-        self.task_progress_label.setText(f"{terminal} · {message}")
+        self.current_operation_label.setText(message)
+        self.task_progress_label.setText(terminal)
         if success:
             self.task_progress_bar.setValue(self.task_progress_bar.maximum())
             self._set_internal_progress("当前流程已完成", 100)
         else:
-            self._set_internal_terminal(message, "cancelled" if stopped else "failed")
-            self.log_toggle.setChecked(True)
+            self._set_internal_terminal("", "cancelled" if stopped else "failed")
+            self.runtime_tabs.setCurrentWidget(self.runtime_progress_page)
         self.append_log(message)
         self.compact_task_label.setText(terminal)
         self._sync_compact_controls()
@@ -1650,9 +1657,8 @@ class WorkflowPage(QWidget):
         reposition = summary.get("reposition")
         if isinstance(reposition, Mapping) and reposition.get("required"):
             notes.append(f"先定位到线路起点，预计疲劳 {self._display_plan_value(reposition.get('expected_fatigue'))}（已计入总疲劳）")
-        error = summary.get("error")
-        if isinstance(error, Mapping) and error.get("message"):
-            notes.append(str(error["message"]))
+        if failure := present_run_failure(summary, task_label="PC 自动跑商"):
+            notes.append(failure.text)
         if summary.get("planning_status") == "target_unreachable":
             notes.append(f"目标不可达，收益缺口 {self._display_plan_value(summary.get('target_gap'))}")
         if summary.get("trade_mode") == "fixed":
