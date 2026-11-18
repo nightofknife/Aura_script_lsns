@@ -17,23 +17,27 @@ import sys
 import subprocess
 import time
 import uuid
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Iterable, Literal
 import urllib.parse
 import urllib.request
 import urllib.error
 import zipfile
 
 
-RELEASES_URL = "https://github.com/nightofknife/Aura_script_lsns/releases"
-LATEST_CHECKSUMS_URL = f"{RELEASES_URL}/latest/download/SHA256SUMS.txt"
-FAILURE_MESSAGE = "更新失败，请前往 GitHub Releases 手动下载最新版本。"
-VERSION_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
-SHA256_RE = re.compile(r"^([0-9a-fA-F]{64})\s+\*?(.+?)\s*$")
-RELEASE_ASSET_RE = re.compile(
-    r"^AuraResonance-(v\d+\.\d+\.\d+)-win-x64-cpu\.zip$",
-    re.IGNORECASE,
+from packages.aura_core.release_manifest import (
+    EXPERIMENTAL_INDEX_URL,
+    LATEST_CHECKSUMS_URL,
+    MAX_CHECKSUM_BYTES,
+    RELEASES_URL,
+    parse_cpu_manifest,
+    release_version_key,
 )
-MAX_CHECKSUM_BYTES = 2 * 1024 * 1024
+
+
+UpdateChannel = Literal["stable", "experimental"]
+CHANNEL_LABELS = {"stable": "正式版", "experimental": "测试版"}
+FAILURE_MESSAGE = "更新失败，请前往 GitHub Releases 手动下载最新版本。"
+MAX_INDEX_BYTES = 4096
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
 MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024
@@ -91,10 +95,8 @@ class LatestRelease:
 
 
 def parse_version(value: Any) -> tuple[int, int, int] | None:
-    match = VERSION_RE.fullmatch(str(value or "").strip())
-    if match is None:
-        return None
-    return tuple(int(part) for part in match.groups())
+    key = release_version_key(value)
+    return key[:3] if key is not None else None
 
 
 def application_root() -> Path:
@@ -130,45 +132,71 @@ def _open_url(
             time.sleep(0.5 * (attempt + 1))
 
 
+def _fetch_experimental_tag(
+    *, opener: Callable[..., Any] | None, timeout_sec: float,
+) -> str:
+    request = _request(EXPERIMENTAL_INDEX_URL, accept="application/json")
+    try:
+        with _open_url(request, opener=opener, timeout_sec=timeout_sec) as response:
+            contents = response.read(MAX_INDEX_BYTES + 1)
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            raise UpdateError("暂时没有可用的测试版。可以重新运行更新器选择正式版。") from exc
+        raise
+
+    if len(contents) > MAX_INDEX_BYTES:
+        raise UpdateError("测试版索引过大")
+    try:
+        index = json.loads(contents)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise UpdateError("测试版索引无效") from exc
+    tag = index.get("tag") if isinstance(index, dict) else None
+    if (
+        not isinstance(tag, str)
+        or tag != tag.strip()
+        or not tag.endswith("-E")
+        or parse_version(tag) is None
+    ):
+        raise UpdateError("测试版索引缺少有效的 vX.X.X-E 标签")
+    return tag
+
+
 def fetch_latest_release(
     *,
+    channel: UpdateChannel = "stable",
     opener: Callable[..., Any] | None = None,
     timeout_sec: float = 15.0,
 ) -> LatestRelease:
-    request = _request(LATEST_CHECKSUMS_URL, accept="text/plain")
+    expected_tag = None
+    checksums_url = LATEST_CHECKSUMS_URL
+    if channel == "experimental":
+        expected_tag = _fetch_experimental_tag(opener=opener, timeout_sec=timeout_sec)
+        checksums_url = f"{RELEASES_URL}/download/{expected_tag}/SHA256SUMS.txt"
+
+    request = _request(checksums_url, accept="text/plain")
     with _open_url(request, opener=opener, timeout_sec=timeout_sec) as response:
         raw = response.read(MAX_CHECKSUM_BYTES + 1)
     if len(raw) > MAX_CHECKSUM_BYTES:
         raise UpdateError("最新版本校验文件过大")
 
-    checksums = parse_checksums(raw)
-    tags = {
-        match.group(1)
-        for filename in checksums
-        if (match := RELEASE_ASSET_RE.fullmatch(filename)) is not None
-    }
-    if len(tags) != 1:
-        raise UpdateError("无法从 SHA256SUMS.txt 唯一确定最新正式版版本号")
-    tag = next(iter(tags))
-    if parse_version(tag) is None:
-        raise UpdateError("SHA256SUMS.txt 中的最新版本号无效")
+    try:
+        tag, checksums = parse_cpu_manifest(raw)
+    except ValueError as exc:
+        raise UpdateError(str(exc)) from exc
+    if expected_tag is not None and tag != expected_tag:
+        raise UpdateError(f"测试版索引指向 {expected_tag}，但校验清单列出的是 {tag}")
+    if channel == "stable" and tag.endswith("-E"):
+        raise UpdateError("正式版通道返回了测试版清单")
 
-    asset_names = (f"AuraResonance-{tag}-win-x64-cpu.zip",)
-    missing = [name for name in asset_names if name.casefold() not in checksums]
-    if missing:
-        raise UpdateError("SHA256SUMS.txt 缺少正式版资产：" + ", ".join(missing))
-
+    name = f"AuraResonance-{tag}-win-x64-cpu.zip"
     encoded_tag = urllib.parse.quote(tag, safe="")
-    assets = tuple(
-        ReleaseAsset(
-            name=name,
-            url=f"{RELEASES_URL}/download/{encoded_tag}/{urllib.parse.quote(name, safe='')}",
-        )
-        for name in asset_names
+    asset = ReleaseAsset(
+        name=name,
+        url=f"{RELEASES_URL}/download/{encoded_tag}/{urllib.parse.quote(name, safe='')}",
     )
     return LatestRelease(
         tag=tag,
-        assets=assets,
+        assets=(asset,),
         checksums=checksums,
     )
 
@@ -220,29 +248,6 @@ def download_asset(
             partial.unlink()
         raise
     return digest.hexdigest()
-
-
-def parse_checksums(contents: bytes) -> dict[str, str]:
-    try:
-        text = contents.decode("utf-8-sig")
-    except UnicodeDecodeError as exc:
-        raise UpdateError("SHA256SUMS.txt is not valid UTF-8") from exc
-
-    result: dict[str, str] = {}
-    for line in text.splitlines():
-        if not line.strip():
-            continue
-        match = SHA256_RE.fullmatch(line)
-        if match is None:
-            raise UpdateError("SHA256SUMS.txt contains an invalid line")
-        filename = match.group(2).strip()
-        if filename != Path(filename).name:
-            raise UpdateError("SHA256SUMS.txt contains an invalid filename")
-        key = filename.casefold()
-        if key in result:
-            raise UpdateError("SHA256SUMS.txt contains a duplicate filename")
-        result[key] = match.group(1).lower()
-    return result
 
 
 def expected_checksum(checksums: dict[str, str], asset: ReleaseAsset) -> str:
@@ -339,14 +344,14 @@ def load_installed_release(root: Path) -> tuple[str, str]:
     tag = str(info.get("release_label") or "").strip()
     profile = str(info.get("profile") or "").strip().lower()
     if parse_version(tag) is None or profile != "cpu":
-        raise UpdateError("更新器仅支持带有正式 vX.X.X 版本号的 CPU 完整包")
+        raise UpdateError("更新器支持 vX.X.X 或 vX.X.X-E 版本的 CPU 完整包")
     return tag, profile
 
 
 def validate_staged_release(root: Path, *, tag: str, profile: str) -> None:
     info = _load_json(root / "BUILD-INFO.json")
     if (
-        parse_version(info.get("release_label")) != parse_version(tag)
+        str(info.get("release_label") or "").strip() != tag
         or str(info.get("profile") or "").strip().lower() != profile
     ):
         raise UpdateError("Downloaded release does not match the selected tag and profile")
@@ -720,6 +725,7 @@ def update_lock(root: Path):
 def perform_update(
     root: Path,
     *,
+    channel: UpdateChannel = "stable",
     opener: Callable[..., Any] | None = None,
 ) -> bool:
     root = root.resolve()
@@ -732,15 +738,17 @@ def perform_update(
             terminate_installed_processes(root)
         if recover_pending_updates(root):
             raise UpdateError("已恢复上次中断的更新，请重新运行更新器检查新版")
-        return _perform_update_locked(root, opener=opener)
+        return _perform_update_locked(root, channel=channel, opener=opener)
 
 
-def _perform_update_locked(root: Path, *, opener: Callable[..., Any] | None) -> bool:
+def _perform_update_locked(
+    root: Path, *, channel: UpdateChannel, opener: Callable[..., Any] | None,
+) -> bool:
     current_tag, profile = load_installed_release(root)
-    LOG.info("phase=check_version installed=%s profile=%s", current_tag, profile)
-    release = fetch_latest_release(opener=opener)
-    current_version = parse_version(current_tag)
-    latest_version = parse_version(release.tag)
+    LOG.info("phase=check_version installed=%s profile=%s channel=%s", current_tag, profile, channel)
+    release = fetch_latest_release(channel=channel, opener=opener)
+    current_version = release_version_key(current_tag)
+    latest_version = release_version_key(release.tag)
     if latest_version is None or current_version is None:
         raise UpdateError("Release version is invalid")
     if latest_version <= current_version:
@@ -782,7 +790,7 @@ def self_check() -> None:
         raise UpdateError("Portable-data preservation self-check failed")
 
 
-def _launch_helper(root: Path) -> None:
+def _launch_helper(root: Path, *, channel: UpdateChannel = "stable") -> None:
     # Start a standalone copy before downloading or modifying anything. Only
     # the helper acquires the install lock, so there is no lock handoff gap.
     directory = _confined_child(root, ".update-work", "helpers", uuid.uuid4().hex)
@@ -796,7 +804,7 @@ def _launch_helper(root: Path) -> None:
         close_session, make_resume_descriptor, session_environment, start_session,
     )
     from packages.aura_core.observability.logging.stream_capture import install_capture, uninstall_capture
-    LOG.info("phase=helper_staged path=%s", helper)
+    LOG.info("phase=helper_staged channel=%s path=%s", channel, helper)
     descriptor = make_resume_descriptor()
     env.update(session_environment(descriptor))
     # Transfer file ownership before spawning. The original executable must
@@ -804,7 +812,7 @@ def _launch_helper(root: Path) -> None:
     uninstall_capture()
     close_session()
     try:
-        subprocess.Popen([str(helper), "--apply-root", str(root)], cwd=root, env=env,
+        subprocess.Popen([str(helper), "--apply-root", str(root), "--channel", channel], cwd=root, env=env,
                          creationflags=getattr(subprocess, "CREATE_NEW_CONSOLE", 0), close_fds=True)
     except Exception:
         start_session(descriptor["log_root"], descriptor=descriptor, cleanup=False, role="updater")
@@ -899,10 +907,59 @@ def _report_failure(error: BaseException, *, wait_for_enter: bool) -> None:
         _wait_for_enter_after_failure()
 
 
-def main(argv: list[str] | None = None) -> int:
+def choose_update_channel() -> UpdateChannel | None:
+    import tkinter as tk
+    from tkinter import ttk
+
+    window = tk.Tk()
+    window.withdraw()
+    window.title("Aura 更新")
+    window.resizable(False, False)
+    channel = tk.StringVar(master=window, value="stable")
+    selection: UpdateChannel | None = None
+
+    def confirm(_event: object = None) -> None:
+        nonlocal selection
+        selection = "experimental" if channel.get() == "experimental" else "stable"
+        window.destroy()
+
+    content = ttk.Frame(window, padding=20)
+    content.grid(sticky="nsew")
+    ttk.Label(content, text="选择更新通道").grid(sticky="w", pady=(0, 12))
+    ttk.Radiobutton(content, text="正式版（推荐）", variable=channel, value="stable").grid(sticky="w")
+    ttk.Radiobutton(content, text="测试版（-E）", variable=channel, value="experimental").grid(
+        sticky="w", pady=(8, 0),
+    )
+    ttk.Label(content, text="测试版可提前体验新功能，可能不稳定。").grid(sticky="w", pady=(6, 16))
+
+    buttons = ttk.Frame(content)
+    buttons.grid(sticky="e")
+    cancel_button = ttk.Button(buttons, text="取消", command=window.destroy)
+    cancel_button.grid(row=0, column=0, padx=(0, 8))
+    cancel_button.bind("<Return>", lambda _event: window.destroy())
+    continue_button = ttk.Button(buttons, text="继续", command=confirm)
+    continue_button.grid(row=0, column=1)
+    continue_button.bind("<Return>", confirm)
+    window.bind("<Escape>", lambda _event: window.destroy())
+
+    window.update_idletasks()
+    x = max(0, (window.winfo_screenwidth() - window.winfo_reqwidth()) // 2)
+    y = max(0, (window.winfo_screenheight() - window.winfo_reqheight()) // 2)
+    window.geometry(f"+{x}+{y}")
+    window.deiconify()
+    continue_button.focus_set()
+    window.mainloop()
+    return selection
+
+
+def main(
+    argv: list[str] | None = None,
+    *, channel_picker: Callable[[], UpdateChannel | None] | None = None,
+) -> int:
     parser = argparse.ArgumentParser(description="Aura 独立更新器")
     parser.add_argument("--self-check", action="store_true", help=argparse.SUPPRESS)
     parser.add_argument("--apply-root", type=Path, help=argparse.SUPPRESS)
+    parser.add_argument("--channel", choices=CHANNEL_LABELS, help="指定更新通道并跳过选择窗口")
     args = parser.parse_args(argv)
     if args.self_check:
         check_logging = bool(str(os.environ.get("AURA_LOG_ROOT") or "").strip())
@@ -933,18 +990,23 @@ def main(argv: list[str] | None = None) -> int:
     root = args.apply_root.resolve() if args.apply_root else application_root()
     log_path = None
     try:
+        channel = args.channel or "stable"
+        if args.channel is None and args.apply_root is None and channel_picker is not None:
+            channel = channel_picker()
+            if channel is None:
+                return 0
         log_path = _setup_log(root, resume=bool(args.apply_root))
         if getattr(sys, "frozen", False) and args.apply_root is None:
-            _launch_helper(root)
+            _launch_helper(root, channel=channel)
             return 0
         if args.apply_root:
             _wait_for_updater_exit(root)
-        _write_console_line("正在检查最新正式版……", "Checking the latest formal release...")
-        updated = perform_update(root)
+        _write_console_line(f"正在检查最新{CHANNEL_LABELS[channel]}……", f"Checking the {channel} channel...")
+        updated = perform_update(root, channel=channel)
         if updated:
             _write_console_line("更新完成。", "Update completed.")
         else:
-            _write_console_line("当前已是最新正式版。", "The installed release is already current.")
+            _write_console_line("所选通道没有比当前版本更新的版本。", "No newer release on the selected channel.")
         if args.apply_root:
             _wait_for_enter_after_failure()
         return 0
@@ -962,4 +1024,4 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    raise SystemExit(main(channel_picker=choose_update_channel))
