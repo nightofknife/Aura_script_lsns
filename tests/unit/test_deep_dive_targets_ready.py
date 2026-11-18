@@ -103,11 +103,13 @@ def test_low_score_masks_do_not_claim_targets_but_strong_unassociated_candidates
     assert targets_readiness(value)['reason']=='target_candidate_associations_incomplete'
 
 
-@pytest.mark.parametrize('strategy',['chase','inspiration'])
-def test_both_algorithms_receive_proven_targets_without_filling_unknown_pages(monkeypatch,strategy):
+@pytest.mark.parametrize('strategy',['chase','inspiration',planner.ENCOUNTER_THEN_INSPIRATION])
+def test_strategies_receive_proven_targets_without_filling_unknown_pages(monkeypatch,strategy):
     value=layout();before=deepcopy(value);calls=[];move=move_dict(4,1)
     def solve(player,boss,*args,**kwargs):
         calls.append((player,boss,args))
+        if strategy != 'chase':
+            assert kwargs['encounter_first'] == (strategy == planner.ENCOUNTER_THEN_INSPIRATION)
         return dict(status='solved',next_action=move,player_turn_actions=[move],
             predicted_boss_branches=[],boss_branches=[],deadline_probability=1.,
             metrics=dict(deadline_encounter_probability=1.))
@@ -115,7 +117,7 @@ def test_both_algorithms_receive_proven_targets_without_filling_unknown_pages(mo
     result=planner.plan_current_state(value,strategy,rounds_remaining=1,moves_left=1,rotations_left=0)
     assert result['success'] and result['required_cells']==[1]
     assert calls[0][:2]==(4,31)
-    if strategy=='inspiration':assert calls[0][2][0]==(3,35)
+    if strategy!='chase':assert calls[0][2][0]==(3,35)
     assert value==before
 
 

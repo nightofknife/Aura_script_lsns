@@ -1,10 +1,8 @@
-"""Finite-horizon inspiration yield planning using only NumPy.
+"""Finite-horizon encounter and inspiration planning using NumPy.
 
-The objective is expected collected inspiration credited to a meeting before
-the deadline. A deadline miss contributes zero to that objective; actual
-pickups before a miss are separately reported. Boss consumption is irreversible
-in this model. No training assets, game-source files or offline analysis caches
-are dependencies of this solver.
+Inspiration yield is credited on branches that meet before the deadline.
+Actual pickups on other branches are tracked separately. Boss consumption
+is irreversible in the model.
 """
 from __future__ import annotations
 
@@ -24,6 +22,8 @@ from ._deep_dive_planner_rules import (
 _EMPTY = EMPTY_INSPIRATION
 _BASE = 55
 _TOLERANCE = 1e-12
+_YIELD_ORDER = ((1, 1), (0, 1), (2, 1), (4, -1))
+_ENCOUNTER_ORDER = ((0, 1), (1, 1), (2, 1), (4, -1))
 _TABLES = None
 _BUILD_LOCK = threading.Lock()
 
@@ -206,12 +206,10 @@ def _tables(checkpoint: Callable) -> _Tables:
         _BUILD_LOCK.release()
 
 
-def _lex_better(candidate, current, selected):
+def _lex_better(candidate, current, selected, order):
     better = ~selected
     tied = selected.copy()
-    # Success-weighted total inspiration, then arrival probability, then
-    # actual pickups, then the first moment of successful meeting time.
-    for column, sign in ((1, 1), (0, 1), (2, 1), (4, -1)):
+    for column, sign in order:
         difference = sign * (candidate[:, column] - current[:, column])
         better |= tied & (difference > _TOLERANCE)
         tied &= np.abs(difference) <= _TOLERANCE
@@ -236,7 +234,7 @@ def _boss_step(previous, tables: _Tables, baseline: int, checkpoint: Callable):
     return boss_values
 
 
-def _step(previous, tables: _Tables, baseline: int, checkpoint: Callable):
+def _step(previous, tables: _Tables, baseline: int, checkpoint: Callable, order):
     length = len(tables.states)
     boss_values = _boss_step(previous, tables, baseline, checkpoint)
     current = np.zeros_like(previous)
@@ -252,14 +250,14 @@ def _step(previous, tables: _Tables, baseline: int, checkpoint: Callable):
             terminal = target == -2
             values[terminal] = (1., baseline + count, 0., 0., 1.)
             legal = valid & (target != -1)
-            take = legal & _lex_better(values, best, selected)
+            take = legal & _lex_better(values, best, selected, order)
             best[take] = values[take]
             selected |= legal
             checkpoint()
         if np.any(valid & ~selected):
             raise RuntimeError("Nonterminal state has no player action")
         current[count] = best
-    return current, boss_values
+    return current
 
 
 def _index(tables: _Tables, player: int, boss: int, inspirations: tuple[int, ...]):
@@ -282,12 +280,13 @@ def _after_player(action, inspirations):
 def plan_inspiration(player: int, boss: int, inspirations: tuple[int, ...], turn_budget: int,
                      *, collected_count: int = 0, cancel_check: Callable | None = None,
                      time_budget_sec: float = 30., moves_left: int = 1,
-                     rotations_left: int = 1) -> dict:
+                     rotations_left: int = 1, encounter_first: bool = False) -> dict:
     """Optimize a known layout; no assumption about initial spawn is needed.
 
     collected_count supplies previously confirmed pickups for consistent
-    rolling replanning. At most two remaining freely visible inspirations are
-    supported. Results contain one player turn and immediate boss branches;
+    rolling replanning. With encounter_first, deadline encounter probability
+    takes precedence over inspiration yield at every decision. Up to two free
+    inspirations are supported. Results contain one turn and its boss branches;
     the actual branch should be observed before requesting the next plan.
     """
     player, boss = validate_slot(player), validate_slot(boss)
@@ -311,20 +310,11 @@ def plan_inspiration(player: int, boss: int, inspirations: tuple[int, ...], turn
     checkpoint = lambda: _deadline_check(deadline, cancel_check)
     checkpoint()
     tables = _tables(checkpoint)
-    root = _index(tables, player, boss, inspirations)
-    previous = np.zeros((3, len(tables.states), 5))
-    partial_turn = moves_left != 1 or rotations_left != 1
-    for horizon in range(1, turn_budget + 1):
-        if horizon == turn_budget and partial_turn:
-            before_last = previous
-            boss_values = _boss_step(previous, tables, collected_count, checkpoint)
-            current = None
-            break
-        current, boss_values = _step(previous, tables, collected_count, checkpoint)
-        if horizon == turn_budget:
-            before_last = previous
-            break
-        previous = current
+    order = _ENCOUNTER_ORDER if encounter_first else _YIELD_ORDER
+    continuation_values = np.zeros((3, len(tables.states), 5))
+    for _ in range(turn_budget - 1):
+        continuation_values = _step(continuation_values, tables, collected_count, checkpoint, order)
+    boss_values = _boss_step(continuation_values, tables, collected_count, checkpoint)
     selected = None
     selected_value = None
     selected_remaining = ()
@@ -338,15 +328,12 @@ def plan_inspiration(player: int, boss: int, inspirations: tuple[int, ...], turn
             target = _index(tables, action.final_player, action.final_boss, remaining)
             value = boss_values[gain, target].copy()
             value[2] += gain
-        if selected is None or _lex_better(value[None, :], selected_value[None, :], np.ones(1, bool))[0]:
+        if selected is None or _lex_better(value[None, :], selected_value[None, :], np.ones(1, bool), order)[0]:
             selected, selected_value = action, value
             selected_remaining, selected_gain = remaining, gain
     if selected is None:
         raise RuntimeError("No legal player action selected")
-    root_value = selected_value if partial_turn else current[0, root]
-    if not partial_turn and np.max(np.abs(root_value - selected_value)) > 1e-8:
-        raise RuntimeError("Selected action does not match the exhaustive value table")
-    probability, score, picked_up, consumed, moment = map(float, root_value)
+    probability, score, picked_up, consumed, moment = map(float, selected_value)
     branches = []
     if not selected.terminal:
         for outcome in boss_outcomes(selected.final_player, selected.final_boss):
@@ -366,14 +353,15 @@ def plan_inspiration(player: int, boss: int, inspirations: tuple[int, ...], turn
                           remaining_rounds=turn_budget - 1)
             if not outcome.terminal:
                 target = _index(tables, outcome.final_player, outcome.final_boss, survivors)
-                continuation = before_last[selected_gain, target]
+                continuation = continuation_values[selected_gain, target]
                 branch["continuation_deadline_probability"] = float(continuation[0])
                 branch["continuation_expected_successful_total_inspirations"] = float(continuation[1])
             branches.append(branch)
     sequence = deepcopy(list(selected.sequence))
     return dict(
         status="solved", success=True,
-        objective="max_expected_inspiration_at_encounter_before_deadline",
+        objective=("max_deadline_encounter_probability_then_inspiration" if encounter_first
+                   else "max_expected_inspiration_at_encounter_before_deadline"),
         next_action=sequence[0], player_turn_actions=sequence,
         player_turn_terminal=selected.terminal, boss_branches=branches,
         planned_player_pickup_count=selected_gain,
@@ -388,7 +376,7 @@ def plan_inspiration(player: int, boss: int, inspirations: tuple[int, ...], turn
                     completed_horizon=turn_budget, state_count=len(tables.states),
                     model_optimality="numerical_exhaustive", comparison_tolerance=_TOLERANCE,
                     elapsed_sec=time.monotonic() - started,
-                    remaining_free_inspiration_limit=2, current_turn_partial=partial_turn,
+                    remaining_free_inspiration_limit=2, current_turn_partial=(moves_left, rotations_left) != (1, 1),
                     current_moves_left=int(moves_left), current_rotations_left=int(rotations_left)),
         guarantee_type="probabilistic", requires_observation_after_action=True,
     )

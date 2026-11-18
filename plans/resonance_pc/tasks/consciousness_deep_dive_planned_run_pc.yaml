@@ -3,16 +3,20 @@ consciousness_deep_dive_planned_run_pc:
     role: user_task
     domain: 活动玩法
     title: 识海深潜关卡内自动运行（3×3）
-    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+    description: 每回合通过桥接器直读棋盘，优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，人数不足暂停，到达结算停止。
     entry_point: true
     inputs:
-      - {name: strategy, type: string, default: chase}
+      - {name: strategy, type: string, default: encounter_then_inspiration}
       - {name: safety_round_limit, type: number, default: 100, min: 1, max: 100}
       - {name: scan_time_budget_sec, type: number, default: 300, min: 5, max: 900}
       - {name: scan_route, type: enum, default: cells, enum: [cells, faces, mixed, vertices, target_cells, target_faces, target_framed, four_views]}
       - {name: planning_time_budget_sec, type: number, default: 30, min: 0.1, max: 300}
   steps:
+    require_bridge:
+      action: resonance_pc.require_deep_dive_bridge
+      params: {require_turn: true, require_controls: true}
     initialize:
+      depends_on: require_bridge
       action: resonance_pc.deep_dive_planned_run_initialize
       timeout: -1
       params:

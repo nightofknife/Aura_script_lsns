@@ -8,6 +8,7 @@ import time
 from uuid import uuid4
 
 from ._deep_dive_planner_rules import cell_to_slot, coord_dict, geometry
+from ._deep_dive_native_layout import bind_native_control, selected_native_destination, verify_native_preview
 from ._deep_dive_operation_frame import (
     build_operation_frame, build_wide_reference_frame, bind_move, bind_rotation, verify_rotation_preview,
 )
@@ -35,7 +36,7 @@ def prepare_operation(mode, snapshot):
             raise ValueError(readiness['reason'])
     reference = deepcopy(snapshot.get('wide_reference'))
     return dict(action_id=uuid4().hex, kind=mode,
-                phase='open_mode' if reference else 'wide_reference',
+                phase='open_mode' if reference or layout.get('coordinate_frame') == 'native_board' else 'wide_reference',
                 snapshot_version=snapshot_version(snapshot),
                 expected_actor_slot=cell_to_slot(layout['player_cell']),
                 started=time.monotonic(), progress_at=time.monotonic(),
@@ -165,7 +166,7 @@ def _probe_choice(action, frame, desired):
     return dict(status='blocked', reason='rotation_probe_candidates_exhausted')
 
 
-def advance_operation(action, image, observation, snapshot, now=None, *, target_detector=None):
+def advance_operation(action, image, observation, snapshot, now=None, *, target_detector=None, native_controls=None):
     """Mutate a working copy; the caller commits it only after fresh input guards."""
     now = time.monotonic() if now is None else now
     detector_kwargs = {} if target_detector is None else {'target_detector': target_detector}
@@ -183,6 +184,7 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
         return _wait('invalid_frame')
     scene = observation.get('scene')
     mode_scene = 'choose_move' if action['kind'] == 'move' else 'choose_rotate'
+    native = snapshot['layout'].get('coordinate_frame') == 'native_board'
     phase = action['phase']
     if now - action['started'] > 90:
         return _blocked('directed_operation_timeout')
@@ -258,24 +260,27 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
     if phase == 'mapping':
         if scene != mode_scene:
             return _wait('waiting_for_operation_mode')
-        frame = _frame(image, action, snapshot, **detector_kwargs)
-        if frame.get('status') != 'ready':
-            action['last_mapping_reason'] = frame.get('reason', 'three_face_mapping_unresolved')
-            if frame.get('status') == 'blocked':
-                return _blocked(action['last_mapping_reason'])
-            if now - action['progress_at'] > 30:
-                return _blocked(action['last_mapping_reason'])
-            return _wait(action['last_mapping_reason'])
-        binding = _binding(action, frame)
-        if action['kind'] == 'rotate':
-            binding = _probe_choice(action, frame, binding)
+        if native:
+            frame = native_controls
+            binding = bind_native_control(frame, action)
+        else:
+            frame = _frame(image, action, snapshot, **detector_kwargs)
+            if frame.get('status') != 'ready':
+                action['last_mapping_reason'] = frame.get('reason', 'three_face_mapping_unresolved')
+                if frame.get('status') == 'blocked' or now - action['progress_at'] > 30:
+                    return _blocked(action['last_mapping_reason'])
+                return _wait(action['last_mapping_reason'])
+            binding = _binding(action, frame)
+            if action['kind'] == 'rotate':
+                binding = _probe_choice(action, frame, binding)
         point = binding.get('point', binding.get('selected_point'))
         if binding.get('status') != 'ready' or point is None:
-            if now - action['progress_at'] > 30:
+            if (native and binding.get('status') == 'blocked') or now - action['progress_at'] > 30:
                 return _blocked(binding.get('reason', 'target_not_selectable'))
             return _wait(binding.get('reason'))
         signature = (action['kind'], tuple(round(float(v) / 8) for v in point),
-                     binding.get('logical_slot'), binding.get('operation_rotation_id'))
+                     binding.get('destination_slot', binding.get('logical_slot')),
+                     binding.get('rotation_id', binding.get('operation_rotation_id')))
         if not _stable(action, signature):
             return _wait('mapping_stability')
         if action['select_attempts'] >= 3:
@@ -283,20 +288,26 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
         action.update(frame=frame, binding=binding,
                       phase='move_selection_wait' if action['kind'] == 'move' else 'rotation_preview_wait')
         action['select_attempts'] += 1
-        action['evidence'].append(dict(kind='three_face_mapping', binding=binding,
+        action['evidence'].append(dict(kind='native_control_mapping' if native else 'three_face_mapping', binding=binding,
                                         geometry_quality=frame.get('geometry_quality')))
         return _issue(action, 'select_' + action['kind'], point, now, mode_scene)
     if phase == 'move_selection_wait':
         if scene == 'event_entry':
             if not _stable(action, ('entry', observation.get('event_type'))):
                 return _wait()
-            # The client does not draw a distinct selected-tile marker. The
-            # registered fresh click establishes selection intent; movement
-            # itself is confirmed later by quota and current-layout evidence.
-            action['selection_evidence'] = 'registered_fresh_target_and_entry'
+            if native:
+                if native_controls is None or native_controls['selected_slot'] is None:
+                    return _wait('native_selected_destination_pending')
+                if not selected_native_destination(native_controls, action):
+                    return _blocked('native_selected_destination_mismatch')
+            action['selection_evidence'] = ('native_selected_destination' if native else
+                                            'registered_fresh_target_and_entry')
             return dict(status='entry_selected', event_type=observation.get('event_type'),
                         action_id=action['action_id'])
         if scene == 'ambiguous_event_entry':
+            if native and (native_controls is None or native_controls['selected_slot'] is None
+                           or selected_native_destination(native_controls, action)):
+                return _wait('native_selected_node_entry_settling')
             return _blocked('unsupported_or_ambiguous_entry')
         if scene == 'board' and observation.get('move_done'):
             return dict(status='outcome_pending', action_id=action['action_id'])
@@ -310,8 +321,11 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
             return _wait()
         if not _stable(action, ('preview', action['rotation_id'])):
             return _wait()
-        verification = verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'],
-                                               **detector_kwargs)
+        if native and native_controls is None:
+            return _wait('native_preview_settling')
+        verification = (verify_native_preview(native_controls, action) if native else
+                        verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'],
+                                                **detector_kwargs))
         action['preview_evidence'] = verification
         if verification.get('status') == 'matched':
             action.update(phase='rotation_confirm_wait', submitted=True)
@@ -322,7 +336,7 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
             return _blocked('rotation_cancel_control_unavailable')
         action['probes'].append(list(action['binding'].get('point', action['binding'].get('selected_point'))))
         action.update(phase='rotation_cancel_wait',
-                      stop_after_restore=verification.get('status') != 'mismatch',
+                      stop_after_restore=native or verification.get('status') != 'mismatch',
                       restore_reason=verification.get('reason', 'rotation_preview_unresolved'))
         return _issue(action, 'cancel_rotation', cancel, now, 'rotate_preview')
     if phase == 'rotation_cancel_wait':
@@ -334,7 +348,8 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
             return _issue(action, 'cancel_rotation', observation['rotate_cancel_point'], now, 'rotate_preview')
         if scene != mode_scene:
             return _wait()
-        restored = _frame(image, action, snapshot, **detector_kwargs)
+        restored = (bind_native_control(native_controls, action) if native else
+                    _frame(image, action, snapshot, **detector_kwargs))
         if restored.get('status') != 'ready' or not _stable(action, ('restored', action['action_id'])):
             return _wait('cancel_restore_unverified')
         if action.get('stop_after_restore') or len(action['probes']) >= 4:
@@ -349,8 +364,11 @@ def advance_operation(action, image, observation, snapshot, now=None, *, target_
         if pending and now - pending['at'] >= 2:
             if action['confirm_attempts'] >= 3:
                 return _blocked('rotation_confirmation_limit')
-            verification = verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'],
-                                                   **detector_kwargs)
+            if native and native_controls is None:
+                return _wait('native_preview_settling')
+            verification = (verify_native_preview(native_controls, action) if native else
+                            verify_rotation_preview(image, snapshot['layout'], action['rotation_id'], action['frame'],
+                                                    **detector_kwargs))
             if verification.get('status') != 'matched':
                 return _blocked('rotation_confirmation_preview_changed')
             action['confirm_attempts'] += 1

@@ -8,7 +8,10 @@ consciousness_deep_dive_loop_pc:
     inputs:
       - {name: loop_count, type: number, default: 1, min: -1}
   steps:
+    require_bridge:
+      action: resonance_pc.require_deep_dive_bridge
     require_resolution:
+      depends_on: require_bridge
       action: resonance_pc.require_client_resolution
     initialize:
       action: resonance_pc.deep_dive_loop_initialize
@@ -41,8 +44,11 @@ deep_dive_cycle_pc:
     inputs:
       - {name: session_key, type: string, required: true}
   steps:
+    require_bridge:
+      action: resonance_pc.require_deep_dive_bridge
     begin:
       action: resonance_pc.deep_dive_loop_begin
+      depends_on: require_bridge
       params: {session_key: "{{ inputs.session_key }}"}
     entry:
       action: aura.run_task

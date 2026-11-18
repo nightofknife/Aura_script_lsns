@@ -1,4 +1,4 @@
-"""Public, input-free entry for the two Deep Dive movement algorithms."""
+"""Public, input-free entry for Deep Dive movement planning."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -19,6 +19,8 @@ from ._deep_dive_planner_rules import (
 from ._deep_dive_target_readiness import is_targets_layout, required_cells, targets_readiness
 
 SCHEMA = "resonance_pc.deep_dive_plan.v1"
+ENCOUNTER_THEN_INSPIRATION = "encounter_then_inspiration"
+STRATEGIES = ("chase", "inspiration", ENCOUNTER_THEN_INSPIRATION)
 
 
 def _integer(value, name: str, minimum: int, maximum: int | None = None) -> int:
@@ -34,8 +36,8 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
         raise ValueError("layout must be a scan result dictionary")
     if layout.get("schema") != "resonance_pc.deep_dive_layout.v1":
         raise ValueError("Unsupported cube layout schema")
-    if layout.get("coordinate_frame") != "scan_local":
-        raise ValueError("Layout requires explicit scan_local coordinates")
+    if layout.get("coordinate_frame") not in {"scan_local", "native_board"}:
+        raise ValueError("Layout requires explicit scan_local or native_board coordinates")
     target_mode = is_targets_layout(layout)
     if layout.get("prediction_only"):
         raise ValueError("Prediction-only layouts cannot establish a current plan")
@@ -139,11 +141,12 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
 
     chase minimizes expected encounter time; inspiration maximizes total
     confirmed-plus-future inspiration at a meeting before the deadline.
+    encounter_then_inspiration first maximizes the chance of meeting on time.
     Previously collected quantities can be supplied for consistent replanning.
     """
     started = time.monotonic()
-    if strategy not in ("chase", "inspiration"):
-        raise ValueError("strategy must be chase or inspiration")
+    if strategy not in STRATEGIES:
+        raise ValueError(f"strategy must be one of {', '.join(STRATEGIES)}")
     turns = _integer(turn_budget, "turn_budget", 1, 30)
     collected_count = _integer(collected_count, "collected_count", 0)
     if (not isinstance(time_budget_sec, Real) or isinstance(time_budget_sec, bool)
@@ -151,7 +154,7 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
         raise ValueError("time_budget_sec must be positive and finite")
     player, boss, inspirations, fingerprint = _layout_targets(layout)
     result = dict(schema=SCHEMA, strategy=strategy, turn_budget=turns,
-                  rules_version=RULES_VERSION, coordinate_frame="scan_local",
+                  rules_version=RULES_VERSION, coordinate_frame=layout["coordinate_frame"],
                   player_cell=coord_dict(player), boss_cell=coord_dict(boss),
                   inspiration_cells=[coord_dict(i) for i in inspirations],
                   collected_count=collected_count,
@@ -196,7 +199,8 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
                 raise ValueError("Inspiration planning currently supports at most two free inspirations")
             calculated = plan_inspiration(player, boss, inspirations, turns,
                                           collected_count=collected_count, cancel_check=check_cancel,
-                                          time_budget_sec=remaining_time)
+                                          time_budget_sec=remaining_time,
+                                          encounter_first=strategy == ENCOUNTER_THEN_INSPIRATION)
             result.update(calculated)
         check_cancel()
     except PlanningCancelled:
@@ -205,7 +209,7 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
         result.update(status="search_budget_exhausted", reason=str(error))
     result["success"] = result.get("status") == "solved"
     probability = result.get("metrics", {}).get("deadline_encounter_probability")
-    if result["success"] and probability == 0:
+    if result["success"] and probability == 0 and strategy != ENCOUNTER_THEN_INSPIRATION:
         result.update(status="blocked", success=False,
                       reason="selected_policy_cannot_encounter_within_turn_budget")
     result["schema"] = SCHEMA
@@ -247,8 +251,8 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
     ValueError before search.
     """
     started = time.monotonic()
-    if strategy not in ("chase", "inspiration"):
-        raise ValueError("strategy must be chase or inspiration")
+    if strategy not in STRATEGIES:
+        raise ValueError(f"strategy must be one of {', '.join(STRATEGIES)}")
     rounds = _integer(rounds_remaining, "rounds_remaining", 0, 30)
     moves = _integer(moves_left, "moves_left", 0, 1)
     rotations = _integer(rotations_left, "rotations_left", 0, 1)
@@ -269,11 +273,11 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
             allowed = ("known",) if cell["occupant"] == "none" else ("known", "not_required_target")
             if cell.get("node_status") not in allowed:
                 raise ValueError("Unknown or conflicting node content cannot be used for runtime planning")
-    if strategy == "inspiration" and len(inspirations) > 2:
+    if strategy != "chase" and len(inspirations) > 2:
         raise ValueError("Inspiration planning currently supports at most two free inspirations")
     result = dict(schema=SCHEMA, strategy=strategy, turn_budget=rounds, rounds_remaining=rounds,
                   moves_left=moves, rotations_left=rotations, collected_count=collected,
-                  rules_version=RULES_VERSION, coordinate_frame="scan_local",
+                  rules_version=RULES_VERSION, coordinate_frame=layout["coordinate_frame"],
                   player_cell=coord_dict(player), boss_cell=coord_dict(boss),
                   inspiration_cells=[coord_dict(i) for i in inspirations],
                   planned_layout_fingerprint=fingerprint,
@@ -319,11 +323,13 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
                 calculated = plan_inspiration(player, boss, inspirations, rounds,
                                               collected_count=collected, cancel_check=checkpoint,
                                               time_budget_sec=remaining_time,
-                                              moves_left=moves, rotations_left=rotations)
+                                              moves_left=moves, rotations_left=rotations,
+                                              encounter_first=strategy == ENCOUNTER_THEN_INSPIRATION)
                 result.update(calculated)
             checkpoint()
             result["success"] = result.get("status") == "solved"
-            if result["success"] and result.get("metrics", {}).get("deadline_encounter_probability") == 0:
+            probability = result.get("metrics", {}).get("deadline_encounter_probability")
+            if result["success"] and probability == 0 and strategy != ENCOUNTER_THEN_INSPIRATION:
                 result.update(status="blocked", success=False,
                               reason="selected_policy_cannot_encounter_within_turn_budget")
     except PlanningCancelled:

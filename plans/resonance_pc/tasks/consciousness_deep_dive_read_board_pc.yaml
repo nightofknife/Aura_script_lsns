@@ -1,0 +1,13 @@
+consciousness_deep_dive_read_board_pc:
+  meta:
+    role: developer
+    domain: 深潜诊断
+    title: 识海深潜棋盘直读（PC）
+    description: 通过桥接器读取当前魔方六面、节点类型和对象位置，维持游戏原生坐标。
+    entry_point: false
+    inputs: []
+  steps:
+    read_board:
+      action: resonance_pc.read_consciousness_deep_dive_board
+  returns:
+    deep_dive_board: "{{ nodes.read_board.output }}"

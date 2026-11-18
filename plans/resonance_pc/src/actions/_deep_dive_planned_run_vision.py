@@ -53,6 +53,7 @@ HUD_REGIONS = {
 }
 PLANE_NAMES = {"情感宣泄": 1, "思维解析": 2, "意义同化": 3}
 BOARD_SCENES = frozenset({"board", "choose_move", "choose_rotate", "rotate_preview"})
+TURN_FIELDS = ("rounds_remaining", "moves_used", "moves_total", "rotations_used", "rotations_total")
 # Static client proof: RubikCube.ShowCubeIcon (367-414) reads the TagFactory
 # icon and binds that exact Texture2D to grid/Icon material _MainTex. The native
 # source glyphs and Tag records are retained in templates/.../sources.json.
@@ -456,13 +457,13 @@ def _pair(text: str) -> tuple[int, int] | None:
     return (used, total) if 0 <= used <= total and 1 <= total <= 20 else None
 
 
-def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None) -> dict:
-    """Read fixed HUD ROIs. None means unknown; never derive a round budget.
+def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None,
+             native_turn: dict | None = None) -> dict:
+    """Combine the current scene's HUD evidence with optional bridge counters.
 
-    Numeric pairs are read directly from the UI. Colour flags are returned as
-    a separate, explicitly conditional fallback and never invent numeric totals.
-    OCR work is selected from the same-frame scene. Known battle/reward/event
-    overlays need no numeric HUD read. Skipped fields remain explicitly unknown.
+    An empty bridge snapshot leaves turn fields unknown. Callers that omit
+    the snapshot can still inspect the visual counters. Known battle, reward
+    and event overlays skip numeric HUD reads.
     """
     fields = ("plane_index", "rounds_remaining", "moves_used", "moves_total",
               "rotations_used", "rotations_total", "collected_count", "inspiration_total")
@@ -484,23 +485,31 @@ def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None) -> d
         if icon is not None:
             result["plane_index"] = icon
             result["evidence_source"]["plane_index"] = "native_plane_icon"
-        rounds_evidence = read_rounds_template(rgb)
-        result["rounds_template_evidence"] = rounds_evidence
-        result["rounds_remaining"] = rounds_evidence["value"]
-        if rounds_evidence["value"] is not None:
-            result["evidence_source"]["rounds_remaining"] = "native_round_glyph_templates"
-        pairs = hud_templates.read_numeric_pairs(rgb)
+        pair_fields = hud_templates.FIELDS
+        if native_turn is None:
+            rounds_evidence = read_rounds_template(rgb)
+            result["rounds_template_evidence"] = rounds_evidence
+            result["rounds_remaining"] = rounds_evidence["value"]
+            if rounds_evidence["value"] is not None:
+                result["evidence_source"]["rounds_remaining"] = "native_round_glyph_templates"
+            pairs = hud_templates.read_numeric_pairs(rgb)
+        else:
+            pair_fields = {"inspirations": hud_templates.FIELDS["inspirations"]}
+            pairs = hud_templates.read_numeric_pairs(rgb, names=tuple(pair_fields))
+            for field in TURN_FIELDS:
+                value = native_turn.get(field)
+                if type(value) is int:
+                    result[field] = value
+                    result["evidence_source"][field] = "bridge_turn"
+            result["bridge_turn_frame"] = native_turn.get("frame")
         result["numeric_pair_template_evidence"] = pairs.get("evidence", {})
-        for field in ("moves_used", "moves_total", "rotations_used", "rotations_total",
-                      "collected_count", "inspiration_total"):
-            if pairs.get(field) is not None:
-                result[field] = pairs[field]
-                result["evidence_source"][field] = "native_font_pair_templates"
+        for pair in pair_fields.values():
+            for field in pair:
+                if pairs.get(field) is not None:
+                    result[field] = pairs[field]
+                    result["evidence_source"][field] = "native_font_pair_templates"
         names = (["plane"] if icon is None else []) + [
-            name for name, used, total in (
-                ("moves", "moves_used", "moves_total"),
-                ("rotations", "rotations_used", "rotations_total"),
-                ("inspirations", "collected_count", "inspiration_total"))
+            name for name, (used, total) in pair_fields.items()
             if result[used] is None or result[total] is None]
     elif scene == "ambiguous_event_entry":
         names = ["entry_title", "popup"]

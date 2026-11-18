@@ -1849,7 +1849,7 @@ exports:
     - name: strategy
       type: Any
       required: false
-      default: chase
+      default: encounter_then_inspiration
     - name: safety_round_limit
       type: Any
       required: false
@@ -1890,14 +1890,42 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.require_deep_dive_bridge
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_read_board_pc_actions
+    function: require_deep_dive_bridge
+    public: true
+    read_only: true
+    timeout: null
+    description: Require the input bridge before running a Deep Dive task.
+    parameters:
+    - name: require_live
+      type: Any
+      required: false
+      default: true
+    - name: require_turn
+      type: Any
+      required: false
+      default: false
+    - name: require_controls
+      type: Any
+      required: false
+      default: false
+  - name: resonance_pc.read_consciousness_deep_dive_board
+    module: plans.resonance_pc.src.actions.consciousness_deep_dive_read_board_pc_actions
+    function: read_consciousness_deep_dive_board
+    public: true
+    read_only: true
+    timeout: null
+    description: Read six faces, node types and object positions from the live Deep
+      Dive board.
+    parameters: []
   - name: resonance_pc.scan_consciousness_deep_dive_layout
     module: plans.resonance_pc.src.actions.consciousness_deep_dive_scan_pc_actions
     function: scan_consciousness_deep_dive_layout
     public: true
     read_only: false
     timeout: -1
-    description: Scan an already open normal Deep Dive board and save its reconstructed
-      layout.
+    description: Read the open Deep Dive board through the bridge and export its layout.
     parameters:
     - name: max_steps
       type: Any
@@ -3490,7 +3518,7 @@ exports:
   - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
     title: 识海深潜关卡内自动运行（3×3）
     source: tasks/consciousness_deep_dive_planned_run_pc.yaml
-    description: 从玩家棋盘或位面间隙开始，每回合先用实体模型与实时几何确认全部目标，普通节点按需补读，使用三面联合映射执行规划移动和旋转；覆盖关卡内位面，人数不足暂停，结算只检测停止。
+    description: 每回合通过桥接器直读棋盘，优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，人数不足暂停，到达结算停止。
     role: user_task
     domain: 活动玩法
   - id: consciousness_deep_dive_plan_pc/consciousness_deep_dive_plan_pc
@@ -3505,11 +3533,16 @@ exports:
     description: 从魔方棋盘随机移动和旋转，独立处理回生空洞和莫测漩涡的已支持选项、空白节点、战斗领奖及商店返回；漩涡例外停留保留现场，到结算即停止。
     role: internal
     domain: 活动玩法
+  - id: consciousness_deep_dive_read_board_pc/consciousness_deep_dive_read_board_pc
+    title: 识海深潜棋盘直读（PC）
+    source: tasks/consciousness_deep_dive_read_board_pc.yaml
+    description: 通过桥接器读取当前魔方六面、节点类型和对象位置，维持游戏原生坐标。
+    role: developer
+    domain: 深潜诊断
   - id: consciousness_deep_dive_scan_pc/consciousness_deep_dive_scan_pc
     title: 识海深潜魔方布局扫描（人工对比）
     source: tasks/consciousness_deep_dive_scan_pc.yaml
-    description: 从普通魔方界面开始，默认通过实体模型与实时几何扫描六面，目标清单确认后结束并保留未知普通格；recognition_goal=full
-      可继续完整图案扫描。
+    description: 从当前棋盘通过桥接器直读六面节点和对象位置，并导出布局报告。
     role: developer
     domain: 深潜诊断
   - id: daily_rewards_pc/collect_rewards_pc
@@ -3683,4 +3716,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-18T11:27:05Z'
+  generated_at: '2026-11-18T16:59:17Z'

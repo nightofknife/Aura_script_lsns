@@ -119,6 +119,13 @@ Obj Il2Cpp::call_interface(Obj o, Class iface, const char *n, std::initializer_l
 Obj Il2Cpp::stat(Class c, const char *n, std::initializer_list<void *> a) {
   return invoke(method(c, n, int(a.size())), nullptr, a);
 }
+Obj Il2Cpp::static_object(Class c, const char *name) {
+  void (*get_static)(void *, void *){};
+  symbol(module, get_static, "il2cpp_field_static_get_value");
+  Obj value{};
+  get_static(field_(c, name), &value);
+  return value;
+}
 Obj Il2Cpp::create(Class c) { return new_(c); }
 Obj Il2Cpp::type(Class c) { return type_object_(class_type_(c)); }
 Obj Il2Cpp::string(const char *s) { return string_(s); }

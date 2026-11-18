@@ -187,19 +187,20 @@ def _read_pair(rgb, name):
     return (used, total), evidence
 
 
-def read_numeric_pairs(rgb):
+def read_numeric_pairs(rgb, *, names=FIELDS):
     """Return six int-or-None fields and per-pair visual evidence; never OCR."""
     result = {field: None for fields in FIELDS.values() for field in fields}
     result.update(evidence={}, confidence={}, schema='resonance_pc.deep_dive_hud_pairs.v1')
     if not isinstance(rgb, np.ndarray) or rgb.shape != (720, 1280, 3) or rgb.dtype != np.uint8:
         result['status'] = 'invalid_frame'
         return result
-    for name, fields in FIELDS.items():
+    for name in names:
+        fields = FIELDS[name]
         pair, evidence = _read_pair(rgb, name)
         result['evidence'][name] = evidence
         result['confidence'][name] = evidence.get('confidence', 0.)
         if pair is not None:
             result[fields[0]], result[fields[1]] = pair
-    result['status'] = ('complete' if all(result[field] is not None for fields in FIELDS.values()
-                                        for field in fields) else 'partial')
+    result['status'] = ('complete' if all(result[field] is not None for name in names
+                                        for field in FIELDS[name]) else 'partial')
     return result

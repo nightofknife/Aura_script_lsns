@@ -12,10 +12,9 @@ from plans.resonance_pc.src.actions import consciousness_deep_dive_scan_pc_actio
 from plans.resonance_pc.src.actions._deep_dive_layout_vision import LayoutScanner
 
 
-def test_fast_startup_crosses_real_dispatch_and_public_action_boundary(monkeypatch):
+def test_public_layout_read_accepts_old_inputs_and_uses_only_bridge(tmp_path, monkeypatch):
     import yaml
     from packages.aura_core.scheduler.validation import InputValidator
-    from plans.resonance_pc.src.actions import _deep_dive_planned_run_vision as page
     task = yaml.safe_load(Path('plans/resonance_pc/tasks/consciousness_deep_dive_scan_pc.yaml').read_text('utf8'))
     definition = task['consciousness_deep_dive_scan_pc']
     valid, inputs = InputValidator(None).validate_inputs_against_meta(
@@ -24,22 +23,20 @@ def test_fast_startup_crosses_real_dispatch_and_public_action_boundary(monkeypat
     assert inputs['startup_fast'] is True
     valid, defaults = InputValidator(None).validate_inputs_against_meta(definition['meta']['inputs'], {})
     assert valid and defaults['startup_fast'] is False
-    rgb = np.zeros((720,1280,3),np.uint8)
-    capture = SimpleNamespace(success=True,image=rgb)
-    async def captured(*args, **kwargs): return capture
-    async def after(*args, **kwargs): return capture, {}
     seen = []
-    async def core(app, **kwargs):
-        seen.append(kwargs['startup_fast'])
-        return {'summary': {'status':'partial'}}
-    monkeypatch.setattr(scan,'_capture_serial',captured)
-    monkeypatch.setattr(scan,'_capture_after_input',after)
-    monkeypatch.setattr(scan,'run_layout_scan',core)
-    monkeypatch.setattr(page,'observe',lambda image: dict(valid=True,scene='board',player_turn=True))
-    monkeypatch.setattr(page,'read_hud',lambda *args, **kwargs: dict(collected_count=0,inspiration_total=2))
-    asyncio.run(scan.scan_consciousness_deep_dive_layout(
-        app=object(),entity_detector=object(),startup_fast=inputs['startup_fast']))
+    size = 5
+    def read():
+        seen.append(True)
+        return dict(schema='resonance_pc.deep_dive_board.v1', coordinate_base=1, size=size,
+                    faces=[dict(face=face, rows=[[dict(type='empty') for _ in range(size)]
+                                                 for _ in range(size)]) for face in range(1, 7)],
+                    objects=[dict(type='player', face=2, row=1, col=2)])
+    monkeypatch.setattr(scan, 'resolve_base_path', lambda: tmp_path)
+    outcome = asyncio.run(scan.scan_consciousness_deep_dive_layout(
+        **inputs, bridge=SimpleNamespace(read_deep_dive_board=read)))
     assert seen == [True]
+    assert outcome['success'] and outcome['size'] == 5 and outcome['known_cells'] == 150 and outcome['steps'] == 0
+    assert 'cell-D-4-4' in Path(outcome['report_path']).read_text('utf8')
 
 
 def source(fid, stamp, generation=None):

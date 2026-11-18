@@ -10,7 +10,10 @@ consciousness_deep_dive_random_run_pc:
       - {name: random_seed, type: number, default: 0}
 
   steps:
+    require_bridge:
+      action: resonance_pc.require_deep_dive_bridge
     initialize:
+      depends_on: require_bridge
       action: resonance_pc.deep_dive_single_run_initialize
       params:
         round_budget: "{{ inputs.round_budget }}"

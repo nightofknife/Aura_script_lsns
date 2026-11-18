@@ -38,11 +38,42 @@ the game once when migrating from the original single-DLL bridge.
   `None` follows plan configuration. Existing endpoint hold time is still honored.
 - `cancel_input()` cancels and cleans up a gesture; `release_all()` releases held
   input. These are different operations.
+- `deep_dive_board` reads the currently loaded Deep Dive Lua model on Unity's
+  main thread. It returns the actual board size, six faces of typed cells, and
+  player, singularity and item positions. The RPC uses the existing bridge
+  session and leaves the Lua stack and virtual input state as it found them.
 - Keyboard, text and relative look commands are deliberately unsupported in v1.
 
 See `../docs/input-bridge-contract.md` for defaults and exact parameter semantics.
 Long physical-style holds can invoke the game's own long-press handling; they are
 not guaranteed to become a short click when released.
+
+### Deep Dive board snapshot
+
+Call `resonance_pc.read_consciousness_deep_dive_board` from a PC Deep Dive task,
+or run `tasks:consciousness_deep_dive_read_board_pc.yaml:consciousness_deep_dive_read_board_pc`
+with bridge mode enabled and a board open. The returned schema is
+`resonance_pc.deep_dive_board.v1`. `faces[n].rows[r][c]` uses JSON array offsets,
+and the explicit `face`, `row` and `col` of objects use the client's 1-based
+coordinates. Each face has `size` rows of `size` cells. A cell provides `type`
+and, when present, its `event_template_id`, `type_id` and `event_id`.
+`node_types` provides the client label for each observed type ID. Unknown event
+types keep the raw event template ID. While the board is in transition, the
+reader reports `deep_dive_board_busy`.
+
+`turn` is captured with the board and gives used, total and remaining counts
+for rounds, moves and rotations. The totals include the client's active action
+bonuses. Remaining rounds follow the on-screen calculation
+`GetMaxRoundNum() - stepNum`, bounded at zero for an exhausted deadline.
+Pass `turn_only: true` to the same RPC for counters alone during a board
+transition or a rotation preview.
+
+Pass `controls_only: true` for `resonance_pc.deep_dive_controls.v1`. It returns
+the player slot, active move destinations, rotation button names and their
+resulting player faces, with camera-projected client pixel coordinates. Pending
+selection is reported as `selected` for a move or `preview_face` for a rotation.
+The planner matches these against its destination slot or layer permutation
+before confirming the action. Controls are sampled again after view changes.
 
 ## Build
 

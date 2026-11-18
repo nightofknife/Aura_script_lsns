@@ -66,13 +66,15 @@ def test_planned_run_uses_its_safety_limit_and_consumes_progress_snapshot(window
     window.requestRunPcTask.connect(lambda *args: calls.append(args))
     panel.planned_run_button.click()
     assert calls[0][0] == PC_CONSCIOUSNESS_DEEP_DIVE_PLANNED_RUN_TASK_REF
-    assert calls[0][1] == {"strategy": "chase", "safety_round_limit": 19}
+    assert calls[0][1] == {"safety_round_limit": 19}
     assert calls[0][3] == 0.0
     window._active_game_name = PC_GAME_NAME
     window._on_run_updated({"user_data": {"deep_dive_planned_run": {
         "schema": "resonance_pc.deep_dive_planned_run.v1", "phase": "scan_turn",
+        "strategy": "encounter_then_inspiration",
         "scan_progress": {"view_index": 2}, "turns_completed": 3}}})
     assert "视角 2/4" in panel.status_label.text()
+    assert "奇点相遇概率优先" in panel.summary_label.text()
     assert "已完成回合：3" in panel.summary_label.text()
 
 

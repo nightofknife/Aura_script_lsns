@@ -2,6 +2,7 @@
 import asyncio
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -11,7 +12,6 @@ from plans.resonance_pc.src.actions import consciousness_deep_dive_planned_run_p
 from plans.resonance_pc.src.actions._deep_dive_scan_budget import (
     SCAN_ROUTES, resolve_scan_budget, post_scan_recognition_budget,
 )
-from plans.resonance_pc.src.actions._deep_dive_planner_rules import coord_dict
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -92,28 +92,55 @@ def test_initialize_persists_normalized_route_and_budget(tmp_path, monkeypatch, 
     assert saved[-1]['post_scan_recognition_elapsed_sec'] == 0.
 
 
-@pytest.mark.parametrize('route,expected', [('cells', 90.), ('four_views', 300.)])
-def test_scan_turn_forwards_route_without_bypassing_target_readiness(tmp_path, monkeypatch, route, expected):
+@pytest.mark.parametrize('route', ['cells', 'four_views'])
+@pytest.mark.parametrize('changed', [False, True])
+def test_scan_turn_uses_native_board_with_legacy_route_settings(tmp_path, monkeypatch, route, changed):
     received = []
-    async def scan(_app, **kwargs):
-        received.append(kwargs)
-        # Geometry can contain 54 slots while all target evidence is unresolved.
-        return dict(success=True, status='complete', reason='fixture_targets_unresolved',
-                    layout=dict(success=True, cells=[coord_dict(i) for i in range(54)]), summary={})
+    hud = dict(moves_used=0, moves_total=1, rotations_used=0, rotations_total=1,
+               plane_index=1, rounds_remaining=5, inspiration_total=2, collected_count=0)
+    def read():
+        received.append(True)
+        player_row = 1 if len(received) == 1 else 2
+        return dict(schema='resonance_pc.deep_dive_board.v1', coordinate_base=1, size=3,
+                    turn=dict(hud, rounds_remaining=4 if changed else hud['rounds_remaining']),
+                    faces=[dict(face=face, rows=[[dict(type='empty') for _ in range(3)]
+                                                 for _ in range(3)]) for face in range(1, 7)],
+                    objects=[dict(type='player', face=2, row=player_row, col=2),
+                             dict(type='singularity', face=2, row=3, col=2)])
     state = dict(status='running', scan_route=route, scan_time_budget_sec=300., scan_epoch=0,
-                 safety_round_limit=100, turns_completed=0, output_dir=str(tmp_path))
-    hud = dict(moves_used=0, rotations_used=0, rounds_remaining=5, inspiration_total=2, collected_count=0)
-    monkeypatch.setattr(flow, 'run_layout_scan', scan)
+                 safety_round_limit=100, turns_completed=0, output_dir=str(tmp_path), plane_epoch='fixture')
     monkeypatch.setattr(flow, '_adopt_plane', lambda *_args: None)
     monkeypatch.setattr(flow, '_progress_ledger', lambda *_args: None)
     monkeypatch.setattr(flow, '_save', _nothing)
     monkeypatch.setattr(flow, '_stop', lambda state, reason, *_args, **_kw:
                         state.update(status='blocked', reason=reason))
-    asyncio.run(flow._scan_turn(state, object(), None, None, hud))
-    assert received[0]['scan_route'] == route and received[0]['time_budget_sec'] == expected
-    assert received[0]['expected_inspirations'] == 2
-    assert state['status'] == 'blocked' and state['reason'].startswith('scan_not_complete:')
+    app = SimpleNamespace(controller=SimpleNamespace(bridge=SimpleNamespace(read_deep_dive_board=read)))
+    asyncio.run(flow._scan_turn(state, app, None, None, hud))
+    assert received == [True]
+    if changed:
+        assert state['scan_epoch'] == 0 and state['hud_stable'] == 0
+        assert 'scan_candidate' not in state
+        return
+    assert state['phase'] == 'accept_scan' and state['scan_candidate']['coordinate_frame'] == 'native_board'
+    assert state['scan_candidate']['player_cell'] == dict(face='F', row=1, col=0)
+    assert state['scan_candidate']['singularity_cell'] == dict(face='F', row=1, col=2)
     assert state['layout'] is None and state['input_owner'] is None
+
+    state.update(phase='enemy_wait', waiting_round=5, plane_turns=0, map_revision=0, pose_epoch=0,
+                 layout=state['scan_candidate'], plan={'status': 'solved'})
+    hud['rounds_remaining'] = 4
+    observation = dict(scene='board', valid=True, player_turn=True)
+
+    async def next_turn():
+        for _ in range(4):
+            await flow._advance_state(state, app, None, None, None, observation, hud)
+
+    asyncio.run(next_turn())
+    assert received == [True, True] and state['scan_epoch'] == 2
+    assert state['phase'] == 'accept_scan' and state['turns_completed'] == 1
+    assert state['layout'] is None and state['plan'] is None
+    assert state['scan_candidate']['player_cell'] == dict(face='F', row=1, col=1)
+    assert state['scan_candidate']['native_board']['turn']['rounds_remaining'] == 4
 
 
 @pytest.mark.parametrize('route,captures', [('cells', 0), ('four_views', 1)])
