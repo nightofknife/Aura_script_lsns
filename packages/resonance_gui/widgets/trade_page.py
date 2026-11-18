@@ -857,6 +857,11 @@ class TradePage(QWidget):
         self.auto_trailer.toggled.connect(self._sync_trailer_controls)
         self.trailer_daily_first_n.textChanged.connect(self._trailer_count_changed)
 
+        parameter_heading(layout, "行驶辅助")
+        self.auto_escort = FreightSwitch("自动护卫队员迎击", content)
+        self.auto_escort.setToolTip("城际行驶时每 5 秒检查一次护卫队迎击。沿用当前编队，战败后报案并恢复前进。")
+        parameter_row(layout, "自动护卫队员迎击", self.auto_escort)
+
         parameter_heading(layout, "到站操作")
         self.auto_cape_island_investment = FreightSwitch("蜃息岛投资", content)
         parameter_row(layout, "蜃息岛投资", self.auto_cape_island_investment)
@@ -1599,7 +1604,7 @@ class TradePage(QWidget):
         # These controls also have main-window autosave listeners. Restoring a
         # draft must not save partially restored values or reject its bento list.
         blockers = [QSignalBlocker(widget) for widget in (
-            self.auto_sparkling_water, self.auto_bento, self.auto_pickup,
+            self.auto_sparkling_water, self.auto_bento, self.auto_pickup, self.auto_escort,
             self.auto_pickup_interval_sec,
         )]
         try:
@@ -1701,6 +1706,7 @@ class TradePage(QWidget):
                 raise ValueError(f"{key} 必须为非负整数或未设置。")
             getattr(self, key).setValue(value if value is not None else -1)
         self.auto_pickup.setChecked(bool(values.get("auto_pickup", False)))
+        self.auto_escort.setChecked(values.get("auto_escort") is True)
         self.allow_stale_market.setChecked(validate_allow_stale_market(values.get("allow_stale_market", False)))
         interval = validate_pickup_click_interval(values.get("auto_pickup_interval_sec", 0.5))
         blocked = self.auto_pickup_interval_sec.blockSignals(True)
@@ -1827,6 +1833,7 @@ class TradePage(QWidget):
         })
         if not self.preview_mode:
             inputs.update(self._black_moon_values())
+            inputs["auto_escort"] = self.auto_escort.isChecked()
             inputs["allow_stale_market"] = self.allow_stale_market.isChecked()
             count = self._trailer_count() if self.auto_trailer.isChecked() else self._last_trailer_count
             inputs.update(auto_trailer=self.auto_trailer.isChecked(),
@@ -2302,6 +2309,7 @@ class TradePage(QWidget):
             self.bento_priority_panel,
             *(getattr(self, key) for key in FREIGHT_RECOVERY_THRESHOLD_KEYS),
             self.auto_pickup,
+            self.auto_escort,
             self.auto_trailer,
             self.allow_stale_market,
             self.auto_cape_island_investment,

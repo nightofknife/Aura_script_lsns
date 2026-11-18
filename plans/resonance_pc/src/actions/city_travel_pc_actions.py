@@ -9,6 +9,7 @@ import re
 import time
 from pathlib import Path
 
+import cv2
 import numpy as np
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -16,7 +17,7 @@ from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.runtime_trace import log_event, log_poll
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
-from ._city_panel_vision import CityPanelVisionError, probe_visit_entry
+from ._city_panel_vision import CityPanelVisionError, VISIT_REGION, VISIT_THRESHOLD, probe_visit_entry
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button, POLL_INTERVAL
 from ._operation_progress import observe_operation
 from ._cancellable_wait import sleep_slices
@@ -28,6 +29,7 @@ from ._intercity_map_geometry import (
     coarse_drag, plan_drag_batch, predict_target_from_labels,
 )
 from ._travel_gear_recovery import TravelGearRecovery
+from ._travel_escort import ScreenTemplate, TravelEscort
 
 class IntercityDestinationError(RuntimeError):
     """Structured error for intercity destination action."""
@@ -1229,11 +1231,14 @@ def resonance_pc_intercity_depart_and_wait(
     trailer_daily_first_n: int = 1,
     trailer_payment: str = "gold",
     expect_passenger_settlement: bool = False,
+    auto_escort: bool = False,
     *,
     pickup_on_trailer_only: bool = False,
 ) -> Dict[str, Any]:
     _check_intercity_cancelled()
     validate_trailer_options(use_trailer, trailer_daily_first_n, trailer_payment)
+    if type(auto_escort) is not bool:
+        raise ValueError("auto_escort must be a boolean")
     if app is None or ocr is None or vision is None:
         raise RuntimeError("app/ocr/vision services are required for intercity_depart_and_wait.")
 
@@ -1347,6 +1352,7 @@ def resonance_pc_intercity_depart_and_wait(
                 ocr=ocr,
                 vision=vision,
                 **({"expect_passenger_settlement": True} if expect_passenger_settlement else {}),
+                **({"auto_escort": True} if auto_escort else {}),
                 **({"auto_pickup": True, "auto_pickup_interval_sec": pickup_interval}
                    if pickup_enabled else {}),
             )
@@ -1572,7 +1578,7 @@ class _TravelPickup:
     name="resonance_pc.wait_intercity_arrival",
     public=True,
     read_only=False,
-    description="Wait for station or city entry; optionally pick up cargo while the travel horn is visible.",
+    description="Wait for station or city entry, with optional cargo pickup and escort battle handling.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -1593,10 +1599,13 @@ def resonance_pc_wait_intercity_arrival(
     auto_pickup: bool = False,
     auto_pickup_interval_sec: float = 0.5,
     expect_passenger_settlement: bool = False,
+    auto_escort: bool = False,
 ) -> Dict[str, Any]:
     """Wait for station or city-entry templates; retain ocr for existing callers."""
     if app is None or vision is None:
         raise RuntimeError("app/vision services are required for wait_intercity_arrival.")
+    if type(auto_escort) is not bool:
+        raise ValueError("auto_escort must be a boolean")
 
     with _TravelPickup(app, vision, enabled=auto_pickup, interval_sec=auto_pickup_interval_sec) as pickup:
         return _wait_intercity_arrival_loop(
@@ -1604,6 +1613,7 @@ def resonance_pc_wait_intercity_arrival(
             arrival_template_threshold, arrival_click_max_attempts,
             arrival_click_verify_interval_sec, app, vision, pickup,
             expect_passenger_settlement=expect_passenger_settlement,
+            auto_escort=auto_escort,
         )
 
 
@@ -1630,7 +1640,7 @@ def _wait_intercity_arrival_loop(
     arrival_template_region: Optional[List[int]], arrival_template_threshold: float,
     arrival_click_max_attempts: int, arrival_click_verify_interval_sec: float,
     app: Any, vision: Any, pickup: "_TravelPickup",
-    *, expect_passenger_settlement: bool = False,
+    *, expect_passenger_settlement: bool = False, auto_escort: bool = False,
 ) -> Dict[str, Any]:
 
     arrival_region = _coerce_region(arrival_template_region, _ARRIVAL_BUTTON_REGION)
@@ -1641,6 +1651,22 @@ def _wait_intercity_arrival_loop(
     deadline = started + timeout
     gear_recovery = (TravelGearRecovery(app, vision, started=started, check_cancelled=_check_intercity_cancelled)
                      if pickup.enabled else None)
+    escort = None
+    if auto_escort:
+        return_screens = {
+            "station": ScreenTemplate(str(arrival_template or _ARRIVAL_BUTTON_TEMPLATE),
+                                       tuple(arrival_region), float(arrival_template_threshold)),
+            "city_main": ScreenTemplate("templates/navigation/city/visit_entry.png", VISIT_REGION,
+                                         VISIT_THRESHOLD, False, cv2.TM_SQDIFF_NORMED),
+            "traveling": ScreenTemplate(_TRAVEL_HORN_TEMPLATE, tuple(_TRAVEL_HORN_REGION),
+                                        _TRAVEL_HORN_THRESHOLD, False),
+        }
+        if expect_passenger_settlement:
+            return_screens["passenger_settlement"] = ScreenTemplate(
+                _PASSENGER_ARRIVAL_TEMPLATE, tuple(_PASSENGER_ARRIVAL_REGION), 0.90,
+            )
+        escort = TravelEscort(app, vision, started=started, check_cancelled=_check_intercity_cancelled,
+                              return_screens=return_screens)
     poll_count = 0
     trace: List[Dict[str, Any]] = []
     last_station: Dict[str, Any] = {}
@@ -1658,6 +1684,7 @@ def _wait_intercity_arrival_loop(
                         "poll_count": poll_count, "elapsed_sec": round(time.monotonic() - started, 3),
                         "arrival_point": None, "arrival_click_attempts": 0,
                         "passenger_settlement": settlement, "pickup_click_count": pickup.click_count,
+                        **({"encounter_actions": escort.count} if escort is not None else {}),
                         "trace": trace[-20:]}
         station = _click_arrival_template_until_absent(
             app=app,
@@ -1696,6 +1723,7 @@ def _wait_intercity_arrival_loop(
                 "arrival_click_attempts": station["click_attempts"],
                 "station_template": station,
                 "pickup_click_count": pickup.click_count,
+                **({"encounter_actions": escort.count} if escort is not None else {}),
                 "trace": trace[-20:],
             }
 
@@ -1728,6 +1756,7 @@ def _wait_intercity_arrival_loop(
                 "station_template": station,
                 "city_main": city_main,
                 "pickup_click_count": pickup.click_count,
+                **({"encounter_actions": escort.count} if escort is not None else {}),
                 "trace": trace[-20:],
             }
 
@@ -1743,13 +1772,22 @@ def _wait_intercity_arrival_loop(
         trace = trace[-20:]
 
         _check_intercity_cancelled()
+        if escort is not None and escort.tick(deadline):
+            if pickup.enabled:
+                gear_recovery = TravelGearRecovery(
+                    app, vision, started=time.monotonic(), check_cancelled=_check_intercity_cancelled,
+                )
+            continue
+        wait_interval = interval
+        if escort is not None:
+            wait_interval = min(interval, max(0.0, escort.next_check_at - time.monotonic()))
         if gear_recovery is not None:
             gear_recovery.tick(deadline)
             if not gear_recovery.paused:
                 pickup.tick(deadline)
-            pickup.wait(deadline, max_wait_sec=interval, gear_recovery=gear_recovery)
+            pickup.wait(deadline, max_wait_sec=wait_interval, gear_recovery=gear_recovery)
         else:
-            _sleep_with_cancel(interval)
+            _sleep_with_cancel(wait_interval)
 
     pickup.end_reason = "timeout"
     _raise_error(

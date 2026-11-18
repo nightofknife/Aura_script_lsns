@@ -35,6 +35,36 @@ def _template(gear: str) -> tuple[np.ndarray, np.ndarray]:
     return cv2.cvtColor(image, cv2.COLOR_BGRA2RGB), (image[:, :, 3] == 255).astype(np.uint8) * 255
 
 
+def match_selected_gear(vision, image: np.ndarray, gear: str):
+    x, y, width, height = _BRAKE_REGION if gear == "b" else _DRIVE_REGION
+    left, top = x - _GEAR_REGION[0], y - _GEAR_REGION[1]
+    try:
+        template, mask = _template(gear)
+        match = vision.find_template(
+            source_image=image[top:top + height, left:left + width],
+            template_image=template, mask_image=mask, threshold=_THRESHOLD,
+            use_grayscale=False, match_method=cv2.TM_SQDIFF_NORMED,
+        )
+        if (type(match.found) is bool and math.isfinite(match.confidence)
+                and not match.debug_info.get("error")):
+            return match
+    except Exception:
+        logger.warning("[TravelGear] matching failed gear=%s", gear, exc_info=True)
+    return None
+
+
+def drive_point_from_brake(match) -> tuple[int, int] | None:
+    if match is None or not match.found or match.center_point is None:
+        return None
+    x = _BRAKE_REGION[0] + match.center_point[0] + _DRIVE_OFFSET[0]
+    y = _BRAKE_REGION[1] + match.center_point[1] + _DRIVE_OFFSET[1]
+    left, top, width, height = _DRIVE_REGION
+    margin = _TEMPLATE_SIZE // 2
+    if left + margin <= x <= left + width - margin and top + margin <= y <= top + height - margin:
+        return x, y
+    return None
+
+
 class TravelGearRecovery:
     def __init__(self, app, vision, *, started: float, check_cancelled) -> None:
         self.app = app
@@ -62,34 +92,8 @@ class TravelGearRecovery:
             return image
         return None
 
-    def _match(self, image: np.ndarray, gear: str, region: tuple[int, int, int, int]):
-        x, y, width, height = region
-        left, top = x - _GEAR_REGION[0], y - _GEAR_REGION[1]
-        try:
-            template, mask = _template(gear)
-            match = self.vision.find_template(
-                source_image=image[top:top + height, left:left + width],
-                template_image=template, mask_image=mask, threshold=_THRESHOLD,
-                use_grayscale=False, match_method=cv2.TM_SQDIFF_NORMED,
-            )
-            if (type(match.found) is bool and math.isfinite(match.confidence)
-                    and not match.debug_info.get("error")):
-                return match
-        except Exception:
-            logger.warning("[TravelGear] matching failed gear=%s", gear, exc_info=True)
-        return None
-
     def _brake_point(self, image: np.ndarray) -> tuple[int, int] | None:
-        match = self._match(image, "b", _BRAKE_REGION)
-        if match is None or not match.found or match.center_point is None:
-            return None
-        x = _BRAKE_REGION[0] + match.center_point[0] + _DRIVE_OFFSET[0]
-        y = _BRAKE_REGION[1] + match.center_point[1] + _DRIVE_OFFSET[1]
-        left, top, width, height = _DRIVE_REGION
-        margin = _TEMPLATE_SIZE // 2
-        if left + margin <= x <= left + width - margin and top + margin <= y <= top + height - margin:
-            return x, y
-        return None
+        return drive_point_from_brake(match_selected_gear(self.vision, image, "b"))
 
     def _click_drive(self, point: tuple[int, int], deadline: float) -> None:
         self.check_cancelled()
@@ -110,7 +114,7 @@ class TravelGearRecovery:
         point = self._pending_drive_point
         self._pending_drive_point = None
         if image is not None:
-            drive = self._match(image, "d", _DRIVE_REGION)
+            drive = match_selected_gear(self.vision, image, "d")
             if drive is not None and drive.found:
                 self._resume_pickup()
                 return
@@ -134,7 +138,7 @@ class TravelGearRecovery:
             self._brake_hits = 0
             return
         if self.paused:
-            drive = self._match(image, "d", _DRIVE_REGION)
+            drive = match_selected_gear(self.vision, image, "d")
             if drive is not None and drive.found:
                 self._resume_pickup()
                 return

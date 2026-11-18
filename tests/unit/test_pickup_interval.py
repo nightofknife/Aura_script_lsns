@@ -179,16 +179,21 @@ def test_gui_enable_disable_collect_save_and_restore(repo):
     try:
         assert page.auto_pickup_interval_sec.value() == 0.5
         assert not page.auto_pickup_interval_sec.isEnabled()
+        assert page.collect_task_inputs()["auto_escort"] is False
+        page.auto_escort.setChecked(True)
         page.auto_pickup.setChecked(True)
         assert page.auto_pickup_interval_sec.isEnabled()
         page.auto_pickup_interval_sec.setValue(2.5)
         inputs = page.collect_task_inputs()
         assert inputs["auto_pickup"] and inputs["auto_pickup_interval_sec"] == 2.5
+        assert inputs["auto_escort"] is True
         repo.save_trade_inputs(page.collect_ui_state())
         page.set_inputs(repo.load_trade_inputs())
         assert page.auto_pickup_interval_sec.value() == 2.5
+        assert page.auto_escort.isChecked()
         page.set_busy(True)
         assert not page.auto_pickup_interval_sec.isEnabled()
+        assert not page.auto_escort.isEnabled()
         page.set_busy(False)
         assert page.auto_pickup_interval_sec.isEnabled()
         page.auto_pickup.setChecked(False)
@@ -196,6 +201,7 @@ def test_gui_enable_disable_collect_save_and_restore(repo):
         preview = TradePage(repo, preview_mode=True)
         assert preview.pickup_timing_panel.isHidden()
         assert "auto_pickup_interval_sec" not in repo.load_trade_preview_inputs()
+        assert "auto_escort" not in preview.collect_ui_state()
         preview.deleteLater()
     finally:
         page.deleteLater()
