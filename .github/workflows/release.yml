@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: Release tag in vX.X.X format
+        description: Release tag in vX.X.X or vX.X.X-E format
         type: string
         required: false
 
@@ -40,6 +40,7 @@ jobs:
     outputs:
       scope: ${{ steps.classify.outputs.scope }}
       release_label: ${{ steps.label.outputs.release_label }}
+      source_commit: ${{ steps.release_source.outputs.source_commit }}
       publish_allowed: ${{ steps.release_source.outputs.publish_allowed }}
     steps:
       - uses: actions/checkout@v4
@@ -57,6 +58,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to resolve $env:GITHUB_SHA to a commit."
           }
+          "source_commit=$sourceCommit" >> $env:GITHUB_OUTPUT
           $mergeBase = (git merge-base $sourceCommit refs/remotes/origin/main).Trim()
           if ($LASTEXITCODE -ne 0) {
             throw "Failed to compare $sourceCommit with origin/main."
@@ -95,12 +97,13 @@ jobs:
             $releaseVersion = ""
           }
           if ($releaseVersion) {
-            if ($releaseVersion -notmatch '^v\d+\.\d+\.\d+$') {
-              throw "Release version must use vX.X.X format: '$releaseVersion'."
+            if ($releaseVersion -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-E)?$') {
+              throw "Release version must use vX.X.X format for formal builds or vX.X.X-E for experimental builds. Received '$releaseVersion'."
             }
             $sourceVersion = (python -c "from packages.resonance_gui import __version__; print(__version__)").Trim()
             if ($LASTEXITCODE -ne 0) { throw "Failed to read the application version." }
-            if ($sourceVersion -ne $releaseVersion) {
+            $baseVersion = $releaseVersion -creplace '-E$', ''
+            if ($sourceVersion -cne $baseVersion) {
               throw "Release version '$releaseVersion' does not match application version '$sourceVersion'."
             }
           }
@@ -282,6 +285,9 @@ jobs:
     permissions:
       contents: write
     needs: [scope, ci, build-cpu, verify-cpu]
+    concurrency:
+      group: aura-publish-${{ needs.scope.outputs.release_label }}
+      cancel-in-progress: false
     if: >-
       ${{
         always() &&
@@ -304,23 +310,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           MANUAL_TAG: ${{ inputs.release_tag }}
           RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
+          SOURCE_COMMIT: ${{ needs.scope.outputs.source_commit }}
         run: |
           $tag = if ($env:GITHUB_REF -like "refs/tags/*") { $env:GITHUB_REF_NAME } else { $env:MANUAL_TAG }
-          if (-not $tag) { throw "A release tag is required for publishing." }
-          if ($tag -notmatch '^v\d+\.\d+\.\d+$') {
-            throw "Release tag must use vX.X.X format: '$tag'."
+          if ($tag -cne $env:RELEASE_LABEL -or $tag -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-E)?$') {
+            throw "Release tag must match the packaged vX.X.X or vX.X.X-E label. Received '$tag'."
           }
-          gh release view $tag --repo $env:GITHUB_REPOSITORY *> $null
-          if ($LASTEXITCODE -ne 0) {
-            gh release create $tag `
-              --repo $env:GITHUB_REPOSITORY `
-              --target $env:GITHUB_SHA `
-              --title $tag `
-              --notes "Automated Aura Resonance package build for $tag."
-            if ($LASTEXITCODE -ne 0) { throw "Failed to create release $tag." }
-          }
-          gh release edit $tag --repo $env:GITHUB_REPOSITORY --title $tag
-          if ($LASTEXITCODE -ne 0) { throw "Failed to normalize release title for $tag." }
+          $isExperimental = $tag.EndsWith('-E')
+          $prereleaseFlag = "--prerelease=$($isExperimental.ToString().ToLowerInvariant())"
           $expectedAssets = @(
             "AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip",
             "SHA256SUMS.txt"
@@ -332,7 +329,93 @@ jobs:
           if ($assets.Count -ne 2 -or $unexpected.Count -ne 0) {
             throw "Expected CPU release archive and SHA256SUMS.txt; found $($assets.Count) release assets."
           }
-          foreach ($asset in $assets) {
-            gh release upload $tag $asset.FullName --repo $env:GITHUB_REPOSITORY --clobber
-            if ($LASTEXITCODE -ne 0) { throw "Failed to upload $($asset.Name)." }
+
+          $existing = gh release view $tag --repo $env:GITHUB_REPOSITORY --json isDraft 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag `
+              --repo $env:GITHUB_REPOSITORY `
+              --target $env:SOURCE_COMMIT `
+              --title $tag `
+              --notes "Automated Aura Resonance package build for $tag." `
+              --draft $prereleaseFlag
+            if ($LASTEXITCODE -ne 0) { throw "Failed to create draft release $tag." }
+            $isDraft = $true
+          } else {
+            $isDraft = ($existing | ConvertFrom-Json).isDraft
           }
+
+          if ($isDraft) {
+            # Keep both downloads private until the release is ready.
+            foreach ($asset in $assets) {
+              gh release upload $tag $asset.FullName --repo $env:GITHUB_REPOSITORY --clobber
+              if ($LASTEXITCODE -ne 0) { throw "Failed to upload $($asset.Name)." }
+            }
+            $makeLatest = -not $isExperimental
+            if ($makeLatest) {
+              $latestTag = gh release view --repo $env:GITHUB_REPOSITORY --json tagName --jq .tagName 2>$null
+              if ($LASTEXITCODE -eq 0 -and $latestTag -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+$') {
+                $makeLatest = [version]($tag.Substring(1)) -ge [version]($latestTag.Substring(1))
+              }
+            }
+            $latestFlag = "--latest=$($makeLatest.ToString().ToLowerInvariant())"
+            gh release edit $tag --repo $env:GITHUB_REPOSITORY --title $tag --draft=false $prereleaseFlag $latestFlag
+            if ($LASTEXITCODE -ne 0) { throw "Failed to publish release $tag." }
+          }
+
+          $published = gh release view $tag --repo $env:GITHUB_REPOSITORY --json name,isDraft,isPrerelease,assets
+          if ($LASTEXITCODE -ne 0) { throw "Failed to read published release $tag." }
+          $release = $published | ConvertFrom-Json
+          if ($release.isDraft -or $release.isPrerelease -ne $isExperimental -or $release.name -cne $tag) {
+            throw "Published release $tag has the wrong title or release channel."
+          }
+          $uploadedNames = @($release.assets | Where-Object { $_.size -gt 0 } | ForEach-Object { $_.name })
+          $missing = @($expectedAssets | Where-Object { $_ -cnotin $uploadedNames })
+          if ($missing.Count -ne 0) { throw "Published release $tag is missing $($missing -join ', ')." }
+
+      - name: Update experimental channel index
+        if: endsWith(needs.scope.outputs.release_label, '-E')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
+          SOURCE_COMMIT: ${{ needs.scope.outputs.source_commit }}
+        run: |
+          $tag = $env:RELEASE_LABEL
+          $branch = 'release-channels'
+          $repo = "repos/$env:GITHUB_REPOSITORY"
+          $branchEndpoint = "$repo/git/ref/heads/$branch"
+          gh api $branchEndpoint --silent 2>$null
+          if ($LASTEXITCODE -ne 0) {
+            gh api --method POST "$repo/git/refs" -f "ref=refs/heads/$branch" -f "sha=$env:SOURCE_COMMIT" --silent
+            if ($LASTEXITCODE -ne 0) {
+              gh api $branchEndpoint --silent
+              if ($LASTEXITCODE -ne 0) { throw "Failed to initialize the update channel branch '$branch'." }
+            }
+          }
+
+          $indexEndpoint = "$repo/contents/experimental.json"
+          $newVersion = [version](($tag -creplace '^v|-E$', ''))
+          $json = @{ tag = $tag } | ConvertTo-Json -Compress
+          $content = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$json`n"))
+          # Re-read both the tag and the blob SHA after a competing publication.
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            $writeArgs = @('-f', "branch=$branch", '-f', "content=$content", '-f', "message=Publish experimental update $tag")
+            $existing = gh api --method GET $indexEndpoint -f "ref=$branch" 2>$null
+            if ($LASTEXITCODE -eq 0) {
+              $indexFile = $existing | ConvertFrom-Json
+              $indexJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($indexFile.content))
+              $activeTag = ($indexJson | ConvertFrom-Json).tag
+              if ($activeTag -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+-E$') {
+                $activeVersion = [version](($activeTag -creplace '^v|-E$', ''))
+                if ($activeVersion -ge $newVersion) {
+                  Write-Host "Experimental update index already points to $activeTag."
+                  exit 0
+                }
+              }
+              $writeArgs += @('-f', "sha=$($indexFile.sha)")
+            }
+            gh api --method PUT $indexEndpoint @writeArgs --silent
+            if ($LASTEXITCODE -eq 0) { exit 0 }
+            if ($attempt -lt 3) { Start-Sleep -Seconds $attempt }
+          }
+          throw "Failed to update the experimental channel index for $tag."
