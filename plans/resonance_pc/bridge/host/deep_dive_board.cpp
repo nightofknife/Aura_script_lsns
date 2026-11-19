@@ -1,5 +1,7 @@
 #include "deep_dive_board.hpp"
 #include "deep_dive_event_choices.hpp"
+#include "deep_dive_event_trace.hpp"
+#include "deep_dive_formation.hpp"
 #include "il2cpp.hpp"
 
 #include <algorithm>
@@ -453,6 +455,57 @@ Json perform_action(LuaState *state, const Json &args) {
   return result;
 }
 
+Json read_event_trace(LuaState *state, const std::string &mode) {
+  const LuaView lua(lua_api(), state);
+  if (lua.api.load_string(state, deep_dive_event_trace_script) != 0)
+    return {{"status", "compile_failed"}};
+  lua.api.push_string(state, mode.c_str());
+  if (lua.api.protected_call(state, 1, 1, 0, 0, nullptr) != 0)
+    return {{"status", "trace_failed"}};
+  const int result = lua.top();
+  if (lua.type(result) != lua_table)
+    return {{"status", "invalid_trace"}};
+  Json trace{{"status", lua.text(result, "status")}};
+  if (trace["status"] != "active")
+    return trace;
+
+  for (auto key : {"round", "moves", "rotations", "option_event_id", "option_state"})
+    if (auto value = lua.number(result, key))
+      trace[key] = *value;
+  trace["need_start_round"] = lua.flag(result, "need_start_round");
+  for (auto key : {"player", "selected"}) {
+    const int cell = lua.field(result, key);
+    if (lua.type(cell) == lua_table) {
+      Json position = Json::object();
+      for (auto field : {"face", "row", "col", "template_id", "event_id"})
+        if (auto value = lua.number(cell, field))
+          position[field] = *value;
+      trace[key] = std::move(position);
+    }
+    lua.restore(result);
+  }
+  const int records = lua.field(result, "records");
+  trace["records"] = Json::array();
+  if (lua.type(records) == lua_table) {
+    const auto count = std::min<size_t>(lua.api.raw_length(state, records), 24);
+    for (int i = 1; i <= int(count); ++i) {
+      const int row = lua.at(records, i);
+      if (lua.type(row) == lua_table) {
+        Json record = Json::object();
+        for (auto key : {"sequence", "request", "event_id"})
+          if (auto value = lua.number(row, key))
+            record[key] = *value;
+        for (auto key : {"stage", "protocol", "coord"})
+          if (auto value = lua.text(row, key); !value.empty())
+            record[key] = std::move(value);
+        trace["records"].push_back(std::move(record));
+      }
+      lua.restore(records);
+    }
+  }
+  return trace;
+}
+
 Json perform_choice(LuaState *state, const Json &args) {
   const auto command = args.at("command").get<std::string>();
   const bool read = command == "read";
@@ -465,7 +518,10 @@ Json perform_choice(LuaState *state, const Json &args) {
   const int id = read ? 0 : args.at("id").get<int>();
   const bool selection = kind == "options" || kind == "cards";
   const bool direct_confirm = kind == "battle_defeat" || kind == "battle_victory" ||
-                              kind == "rest_shortage" || kind == "rest_finish";
+                              kind == "rest_shortage" || kind == "rest_finish" ||
+                              kind == "formation_fill" || kind == "formation_start" ||
+                              kind == "formation_leave" || kind == "formation_quit" ||
+                              kind == "formation_finish";
   const bool supported = selection ? command != "discard" :
                          (kind == "replacement" && command == "discard") ||
                          (direct_confirm && command == "confirm");
@@ -484,7 +540,7 @@ Json perform_choice(LuaState *state, const Json &args) {
     lua.api.raw_set(state, registry);
   }
   static const auto script = std::string(deep_dive_choice_prelude) + deep_dive_reward_choice_script +
-                             deep_dive_event_choice_script;
+                             deep_dive_formation_script + deep_dive_event_choice_script;
   if (lua.api.load_string(state, script.c_str()) != 0)
     throw Error("deep_dive_choice_failed", "Could not load the Deep Dive choice handler");
   lua.api.push_value(state, tracking);
@@ -511,6 +567,12 @@ Json perform_choice(LuaState *state, const Json &args) {
   const auto reason = lua.text(result, "reason");
   if (!reason.empty())
     snapshot["reason"] = reason;
+  for (const auto field : {"selected_count", "available_count", "required_count"})
+    if (const auto value = lua.number(result, field))
+      snapshot[field] = *value;
+  const auto trace_mode = args.value("event_trace", std::string{});
+  if (trace_mode == "sample" || trace_mode == "stop")
+    snapshot["event_trace"] = read_event_trace(state, trace_mode);
   if (status != "ready" && status != "submitted")
     return snapshot;
   const auto observed_revision = lua.number(result, "revision").value_or(0);

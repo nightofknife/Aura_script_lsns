@@ -142,8 +142,8 @@ if network_busy() then
 end
 
 local url = UIManager and UIManager:GetCurrentPanelURL()
-local panel = read_reward_choice(url) or read_event_choice(url) or read_battle_result(url)
-    or read_rest_settlement(url)
+local panel = read_formation_exit(url) or read_formation(url) or read_reward_choice(url)
+    or read_event_choice(url) or read_battle_result(url) or read_rest_settlement(url)
 if not panel then
     tracking.identity = nil
     if command == 'read' then return {status='absent', kind='none'} end
@@ -166,7 +166,8 @@ if command == 'read' then
     if not panel.ready then return {status='waiting', kind=panel.kind, reason=panel.reason} end
     local status = tracking.submitted and 'submitted' or 'ready'
     return {status=status, kind=panel.kind, revision=tracking.revision,
-            subject_id=panel.subject_id, rows=panel.rows}
+            subject_id=panel.subject_id, rows=panel.rows, selected_count=panel.selected_count,
+            available_count=panel.available_count, required_count=panel.required_count}
 end
 if panel.kind ~= kind or tracking.revision ~= revision or panel.subject_id ~= subject then
     return {status='changed'}
@@ -176,6 +177,8 @@ local row = panel.rows[index]
 if not row or row.index ~= index or row.id ~= id or row.disabled then return {status='changed'} end
 local direct_confirm = kind == 'battle_defeat' or kind == 'battle_victory'
     or kind == 'rest_shortage' or kind == 'rest_finish'
+    or kind == 'formation_fill' or kind == 'formation_start' or kind == 'formation_leave'
+    or kind == 'formation_quit' or kind == 'formation_finish'
 if command == 'confirm' and not direct_confirm and not row.selected then
     return {status='changed'}
 end
@@ -189,6 +192,8 @@ if kind == 'options' then
         panel.controller.OptionConfirmClick(index)
         status = 'submitted'
     end
+elseif kind == 'formation_fill' and command == 'confirm' then
+    status = panel.fill()
 elseif direct_confirm and command == 'confirm' then
     panel.confirm(nil, nil)
     status = 'submitted'

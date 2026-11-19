@@ -87,6 +87,12 @@ panel revision. Selection, confirmation and discarding an incoming item use
 the original UI handlers. The host checks the panel revision and target before
 input and accepts at most one confirmation or discard per panel instance.
 
+Set `AURA_DEEP_DIVE_EVENT_TRACE=1` with a host built from this source to trace
+Deep Dive event stalls. The runtime log records `cube.move` and `cube.event`
+submission and callback stages, grid coordinates, and the event IDs and turn
+state seen by the client. The trace excludes raw request and response bodies.
+It is disabled by default and the runner detaches it when the bridge closes.
+
 ## Build
 
 Use PowerShell 7 from the repository root with CMake, Ninja and an x64 C++17

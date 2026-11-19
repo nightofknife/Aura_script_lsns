@@ -1,6 +1,8 @@
 """Synthetic ring evidence and HUD limits must agree before either strategy acts."""
 import asyncio
 from copy import deepcopy
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -49,6 +51,42 @@ def test_boss_swallowing_does_not_require_count_equality(tmp_path, count):
     run['scan_candidate'] = layout(count)
     assert flow._accept_scan_candidate(run, HUD)
     assert run['layout']['inspiration_consistency']['valid']
+
+
+@pytest.mark.parametrize('item_first,consumed_quantity', [(False, 1), (True, 2)])
+def test_singularity_overlap_continues_through_native_planning(tmp_path, monkeypatch, item_first, consumed_quantity):
+    hud = dict(HUD, rounds_remaining=3, collected_count=1)
+    singularity = dict(type='singularity', face=2, row=3, col=2)
+    consumed = dict(singularity, type='inspiration', item_id=11400622, quantity=consumed_quantity)
+    free = dict(consumed, face=1, row=1, quantity=1)
+    overlap = [consumed, singularity] if item_first else [singularity, consumed]
+    board = dict(schema='resonance_pc.deep_dive_board.v1', coordinate_base=1, size=3,
+                 turn=dict(hud, move_distance=1),
+                 faces=[dict(face=face, rows=[[dict(type='empty') for _ in range(3)]
+                                             for _ in range(3)]) for face in range(1, 7)],
+                 objects=[dict(type='player', face=2, row=1, col=2), *overlap, free])
+    app = SimpleNamespace(controller=SimpleNamespace(bridge=SimpleNamespace(read_deep_dive_board=lambda: board)))
+    run = dict(status='running', phase='scan_turn', plane_index=hud['plane_index'], plane_epoch='fixture',
+               scan_epoch=0, map_revision=0, pose_epoch=0, hud_stable=0, terminal_stable=0,
+               safety_round_limit=100, turns_completed=0, planning_time_budget_sec=10,
+               reward_ledger={}, event_stack=[], output_dir=str(tmp_path))
+    observation = dict(valid=True, scene='board', player_turn=True)
+    monkeypatch.setattr(flow, '_save', AsyncMock())
+
+    async def scan_and_plan():
+        for _ in range(5):
+            await flow._advance_state(run, app, None, None, None, observation, hud)
+
+    asyncio.run(scan_and_plan())
+    assert run['status'] == 'running' and run['phase'] == 'operation'
+    assert run['pending_action']['kind'] in {'move', 'rotate'}
+    layout = run['layout']
+    assert layout['singularity_cell'] == dict(face='F', row=1, col=2)
+    assert layout['inspiration_cells'] == [dict(face='U', row=1, col=0)]
+    cell = next(cell for cell in layout['cells'] if cell['occupant'] == 'singularity')
+    assert cell['objects'] == [singularity]
+    assert consumed in layout['native_board']['objects']
+    assert run['collected_count'] == 1 and run['reward_ledger']['1']['gained'] == 0
 
 
 def test_uncollected_upper_bound_and_cached_list_cannot_bypass_gate():

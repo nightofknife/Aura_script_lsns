@@ -3,7 +3,7 @@ consciousness_deep_dive_loop_pc:
     role: user_task
     domain: 活动玩法
     title: 识海深潜循环（PC）
-    description: 从活动首页开始下潜，通过桥接器执行规划，结算后返回活动首页。循环次数为 -1 时持续运行。
+    description: 从活动首页开始下潜，通过桥接器执行规划，结算后返回活动首页。组队补不满时结算并重开，该次不计入循环次数。循环次数为 -1 时持续运行。
     entry_point: true
     inputs:
       - {name: loop_count, type: number, default: 1, min: -1}

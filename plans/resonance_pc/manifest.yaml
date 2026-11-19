@@ -3508,7 +3508,7 @@ exports:
   - id: consciousness_deep_dive_loop_pc/consciousness_deep_dive_loop_pc
     title: 识海深潜循环（PC）
     source: tasks/consciousness_deep_dive_loop_pc.yaml
-    description: 从活动首页开始下潜，通过桥接器执行规划，结算后返回活动首页。循环次数为 -1 时持续运行。
+    description: 从活动首页开始下潜，通过桥接器执行规划，结算后返回活动首页。组队补不满时结算并重开，该次不计入循环次数。循环次数为 -1 时持续运行。
     role: user_task
     domain: 活动玩法
   - id: consciousness_deep_dive_loop_pc/deep_dive_cycle_pc
@@ -3526,7 +3526,7 @@ exports:
   - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
     title: 识海深潜关卡内自动运行
     source: tasks/consciousness_deep_dive_planned_run_pc.yaml
-    description: 通过桥接器读取三至五阶棋盘。优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，位面间隙缺员时结束下潜。
+    description: 通过桥接器读取三至五阶棋盘，优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。战前缺员时从候补补全，人数不足时结束下潜。
     role: user_task
     domain: 活动玩法
   - id: consciousness_deep_dive_plan_pc/consciousness_deep_dive_plan_pc
@@ -3724,4 +3724,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-19T09:59:18Z'
+  generated_at: '2026-11-19T14:20:05Z'

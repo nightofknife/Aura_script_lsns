@@ -6,6 +6,12 @@ import shutil
 from pathlib import Path
 
 
+NATIVE_BATTLE_LEVELS = {
+    (89800039, 86100250): 20101954,
+    (89800042, 86100259): 20101959,  # 狭路相逢 · 手下败将不足为惧
+}
+
+
 def option_policy(effects, single=False, recurring=False):
     if not effects:
         return dict(group='End',blocked=False,supported=True,
@@ -68,9 +74,10 @@ def main():
         for o in es:
             effects = o['effects']
             policy=option_policy(effects,len(es)==1,'/多次触发/' in event['idCN'])
-            if (event['id'] == 89800039 and o['id'] == 86100250 and len(effects) == 1
-                    and effects[0]['orderType'] == 'Level' and effects[0].get('levelId') == 20101954):
-                policy['battle_level'] = 20101954
+            battle_level = NATIVE_BATTLE_LEVELS.get((event['id'], o['id']))
+            if (battle_level is not None and len(effects) == 1
+                    and effects[0]['orderType'] == 'Level' and effects[0].get('levelId') == battle_level):
+                policy['battle_level'] = battle_level
             options[o['id']]={'id':o['id'],'title':o['optionName'],
                 'description':re.sub('<[^>]+>','',o['optionDes']),
                 'effects':effects,'text_key':refs[o['id']]['text_key'],**policy}

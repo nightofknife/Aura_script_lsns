@@ -105,10 +105,12 @@ async def checkpoint_loop(session_key:str,stage:str,child_result:dict,state_stor
         if stage=='entry':s['stage']='single'
         elif stage=='single':
             s['stage']='cleanup'
-            s['last_result']={k:result.get(k) for k in ('outcome','game_success','turns_completed',
+            s['last_result']={k:result.get(k) for k in ('outcome','game_success','turns_completed','reason',
                                                        'last_frame','final_frame','report_path')}
         else:
-            s['completed_runs']+=1;s['stage']='activity_home';s['last_frame']=result.get('last_frame','')
+            if s['last_result'].get('reason') != 'formation_shortage_settled':
+                s['completed_runs']+=1
+            s['stage']='activity_home';s['last_frame']=result.get('last_frame','')
             if s['loop_count']!=-1 and s['completed_runs']>=s['loop_count']:s['status']='completed'
     if stage=='single':
         child_key=result.get('session_key','')

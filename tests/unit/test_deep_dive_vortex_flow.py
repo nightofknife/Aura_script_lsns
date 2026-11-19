@@ -5,6 +5,7 @@ import pytest
 
 from plans.resonance_pc.src.actions import _deep_dive_vortex_flow as flow
 from plans.resonance_pc.src.actions import _deep_dive_vortex_vision as vision
+from plans.resonance_pc.src.actions._deep_dive_native_choices import observe_choice
 from tools.build_deep_dive_vortex_catalog import option_policy
 
 
@@ -62,16 +63,26 @@ def test_only_unsupported_choices_stop():
     assert stable(s,o,1)==('vortex_blocked',None)
 
 
-def test_native_battle_option_waits_for_its_sub_battle():
-    option = next(item for item in vision.catalog()['options'] if item['id'] == 86100250)
-    identity = dict(revision=1, kind='options', subject_id=89800039, index=1, id=option['id'])
+@pytest.mark.parametrize('event_id,option_id,level_id', [
+    (89800039, 86100250, 20101954),
+    (89800042, 86100259, 20101959),
+])
+def test_native_battle_option_waits_for_its_sub_battle(event_id, option_id, level_id):
+    event = next(item for item in vision.catalog()['events'] if item['id'] == event_id)
+    # Keep the first event's alternate branches disabled to exercise its battle choice.
+    rows = [dict(index=index, id=item, selected=False, disabled=event_id == 89800039 and item != option_id)
+            for index, item in enumerate(event['options'], 1)]
+    target = next(row for row in rows if row['id'] == option_id)
+    snapshot = dict(status='ready', revision=1, kind='options', subject_id=event_id, rows=rows)
+    identity = dict(revision=1, kind='options', subject_id=event_id, index=target['index'], id=option_id)
     state = init()
-    observation = {'scene':'event_options','event_options':[dict(option, native=identity, state='normal')]}
+    observation = observe_choice({}, snapshot, 'vortex')
     assert stable(state,observation,1)==('vortex_option_select',dict(identity,command='select'))
-    observation['event_options'][0]['state'] = 'selected'
+    target['selected'] = True
+    observation = observe_choice({}, snapshot, 'vortex')
     assert stable(state,observation,2)==('vortex_option_submit',dict(identity,command='confirm'))
     assert stable(state,{'scene':'board','event_board':True},6)==('wait',None)
-    assert state['vortex_pending']['battle_level'] == 20101954
+    assert state['vortex_pending']['battle_level'] == level_id
 
 
 def test_all_no_effect_exits_are_preferred_even_in_recurring_events():

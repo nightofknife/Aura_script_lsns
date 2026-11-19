@@ -74,6 +74,8 @@ class ResonancePcInputBridgeService:
         self._identity = None
         self._needs_hello = True
         self._capabilities = {}
+        self._deep_dive_trace = os.environ.get("AURA_DEEP_DIVE_EVENT_TRACE") == "1"
+        self._deep_dive_trace_state = None
         self._trace_mode = None
         self._trace_cids = set()
         self._trace_plan = current_plan_name.get()
@@ -369,12 +371,25 @@ class ResonancePcInputBridgeService:
             self._ready()
             if not self._capabilities.get("deep_dive_choices"):
                 raise TargetRuntimeError("deep_dive_choice_unsupported", "当前桥接宿主未提供识海深潜选项。")
-            reply = self._client.request("deep_dive_choice", {"command": "read"},
+            args = {"command": "read"}
+            if self._deep_dive_trace:
+                args["event_trace"] = "sample"
+            reply = self._client.request("deep_dive_choice", args,
                                          viewport=self._viewport, timeout=3.0)
-        snapshot = reply.get("result", {}).get("choice")
+            snapshot = reply.get("result", {}).get("choice")
+            if self._deep_dive_trace and isinstance(snapshot, dict):
+                trace = dict(snapshot.pop("event_trace", {"status": "missing"}))
+                records = trace.pop("records", [])
+                trace["choice_kind"] = snapshot.get("kind")
+                trace["choice_status"] = snapshot.get("status")
+                if records or trace != self._deep_dive_trace_state:
+                    log_event("deep_dive.event_trace", snapshot=trace, records=records)
+                    self._deep_dive_trace_state = trace
         if (not isinstance(snapshot, dict) or snapshot.get("schema") != "resonance_pc.deep_dive_choice.v1"
                 or snapshot.get("kind") not in {"none", "options", "cards", "replacement",
-                                                "battle_defeat", "battle_victory", "rest_shortage", "rest_finish"}
+                                                "battle_defeat", "battle_victory", "rest_shortage", "rest_finish",
+                                                "formation_fill", "formation_start", "formation_leave",
+                                                "formation_quit", "formation_finish"}
                 or snapshot.get("status") not in {"absent", "waiting", "ready", "submitted"}):
             raise TargetRuntimeError("deep_dive_choice_invalid", "桥接器返回了无效的识海深潜选项快照。")
         return snapshot
@@ -572,6 +587,13 @@ class ResonancePcInputBridgeService:
                         client.request("stream_stop", viewport=self._viewport, timeout=2.0)
                 except TargetRuntimeError as exc:
                     log_event("capture.bridge_stop_unconfirmed", code=exc.code)
+                if self._deep_dive_trace_state is not None:
+                    try:
+                        client.request("deep_dive_choice", {"command": "read", "event_trace": "stop"},
+                                       viewport=self._viewport, timeout=2.0)
+                    except TargetRuntimeError as exc:
+                        log_event("deep_dive.event_trace_stop_unconfirmed", code=exc.code)
+                    self._deep_dive_trace_state = None
                 try:
                     client.request("close", viewport=self._viewport, timeout=2.0)
                 except TargetRuntimeError as exc:

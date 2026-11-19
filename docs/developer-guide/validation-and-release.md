@@ -51,6 +51,14 @@ $env:TMPDIR = $testTemp
 .\scripts\run_cli.ps1 tasks resonance_pc
 ```
 
+## 发布版本号
+
+- 源码中的应用版本使用 `vX.X.X`，例如 `v1.12.1`。同一基础版本的测试包沿用该源码版本。
+- 正式包、Git 标签和 GitHub Release 标题使用 `vX.X.X`。测试包使用 `vX.X.X-E.N`，其中 `N` 是不带前导零的正整数。
+- 测试版以最新正式版为基础，编号从 1 开始递增。例如 `v1.12.1-E.2` 之后发布 `v1.12.1-E.3`，切换到新的正式版本后重新从 `E.1` 开始。
+- GitHub Release 标题与标签完全一致。功能说明写在发布说明里，平台和构建类型按打包约定写在附件名里。例如 `AuraResonance-v1.12.1-E.3-win-x64-cpu.zip`。
+- 编号测试版以 GitHub 预发布形式进入测试版更新通道，正式版通道继续指向正式版本。
+
 ## Release Smoke
 
 仓库 PR 和普通 `main` 推送只运行现有源码 CI，不再重复构建完整发行包。
