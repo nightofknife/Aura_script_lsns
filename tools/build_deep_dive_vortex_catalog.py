@@ -66,10 +66,14 @@ def main():
         events.append({'id':event['id'],'name':event['name'],'variant':event['idCN'],
                        'options':[o['id'] for o in es]})
         for o in es:
-            policy=option_policy(o['effects'],len(es)==1,'/多次触发/' in event['idCN'])
+            effects = o['effects']
+            policy=option_policy(effects,len(es)==1,'/多次触发/' in event['idCN'])
+            if (event['id'] == 89800039 and o['id'] == 86100250 and len(effects) == 1
+                    and effects[0]['orderType'] == 'Level' and effects[0].get('levelId') == 20101954):
+                policy['battle_level'] = 20101954
             options[o['id']]={'id':o['id'],'title':o['optionName'],
                 'description':re.sub('<[^>]+>','',o['optionDes']),
-                'effects':o['effects'],'text_key':refs[o['id']]['text_key'],**policy}
+                'effects':effects,'text_key':refs[o['id']]['text_key'],**policy}
     output=args.plan/'templates/deep_dive/deep_dive_vortex';output.mkdir(parents=True,exist_ok=True)
     for key in {o['text_key'] for o in options.values()}:
         for state in ('normal','disabled','selected'):

@@ -1,15 +1,17 @@
 """Owner-scoped node, battle and reward flows; the caller owns all input."""
 from __future__ import annotations
 
-import math
 from uuid import uuid4
 
 from . import _deep_dive_event_flow as healing
 from . import _deep_dive_vortex_flow as vortex
-from ._deep_dive_node_rewards import changed
+from ._deep_dive_choice_target import (
+    can_retry, choice_target, matching_card, native_key, new_card_panel, ordered_cards,
+    pending_target, result_progress, target_fields,
+)
+from ._deep_dive_node_rewards import ITEM_REPLACEMENT, RESULT
 
 BOARD = {'board', 'choose_move', 'choose_rotate'}
-RESULT = {'event_result', 'reward_obtained'}
 SELECTION = {'event_card_selection', 'battle_reward_selection'}
 REWARD = RESULT | SELECTION
 
@@ -36,8 +38,8 @@ def create_context(event_type, owner, now, *, source_action_id=None, resume='sca
 
 
 def _signature(o):
-    return repr((o.get('scene'), [(r.get('point'), r.get('selected'))
-                                for r in o.get('cards', [])]))
+    return repr((o.get('scene'), [(r.get('point'), r.get('selected'), native_key(r.get('native')))
+                                  for r in o.get('cards', [])], native_key(o.get('native'))))
 
 
 def _stable(context, o, now):
@@ -49,10 +51,12 @@ def _stable(context, o, now):
     return context['stable'] >= 2
 
 
-def _step(status='waiting', *, point=None, action=None, reason=None, evidence=None):
+def _step(status='waiting', *, target=None, action=None, reason=None, evidence=None):
     result = {'status': status}
-    if point is not None:
-        result.update(point=list(map(int, point)), action=action)
+    if isinstance(target, dict):
+        result.update(action=action, native=dict(target))
+    elif target is not None:
+        result.update(action=action, point=list(map(int, target)))
     if reason:
         result['reason'] = reason
     if evidence:
@@ -60,25 +64,25 @@ def _step(status='waiting', *, point=None, action=None, reason=None, evidence=No
     return result
 
 
-def _issue(context, action, point, now, **extra):
-    context['pending'] = dict(action=action, point=list(point), at=now, tries=1, **extra)
+def _issue(context, action, input_target, now, **extra):
+    context['pending'] = dict(action=action, at=now, tries=1, **target_fields(input_target), **extra)
     context['progress_at'] = now
     context['trace'].append(dict(action=action, at=now))
     context['signature'] = None
     context['stable'] = 0
-    return _step('input_requested', point=point, action=action)
+    return _step('input_requested', target=input_target, action=action)
 
 
 def _retry(context, now):
     pending = context['pending']
-    if now - pending['at'] < 2:
+    if not can_retry(pending) or now - pending['at'] < 2:
         return _step()
     if pending['tries'] >= 3:
         return _step('blocked', reason=pending['action'] + ': confirmation retry limit')
     pending.update(at=now, tries=pending['tries'] + 1)
     context['signature'] = None
     context['stable'] = 0
-    return _step('input_requested', point=pending['point'], action='retry_' + pending['action'])
+    return _step('input_requested', target=pending_target(pending), action='retry_' + pending['action'])
 
 
 def _reward_step(context, o, now, resume_scenes):
@@ -91,6 +95,9 @@ def _reward_step(context, o, now, resume_scenes):
     scene = o.get('scene')
     if now - reward['progress_at'] > 30:
         return _step('blocked', reason='reward_chain_no_progress')
+    if scene == 'native_choice_wait':
+        reward.update(signature=None, stable=0)
+        return _step()
     if scene not in REWARD:
         reward['between'] = True
         if not _stable(reward, o, now):
@@ -103,36 +110,47 @@ def _reward_step(context, o, now, resume_scenes):
             return _step('completed', evidence='reward_chain_returned_to_owner')
         return _step()
     reward['seen'] = True
-    if reward.pop('between', False):
-        reward['pending'] = None
-        reward['progress_at'] = now
-    if not _stable(reward, o, now) or not o.get('click'):
-        return _step()
     pending = reward.get('pending')
+    if reward.pop('between', False) and not (pending or {}).get('native'):
+        reward['pending'] = None
+        pending = None
+        reward['progress_at'] = now
+    cards = o.get('cards', [])
+    has_control = o.get('click') or o.get('native') or any('native' in card for card in cards)
+    if not _stable(reward, o, now) or not has_control:
+        return _step()
     if pending:
         kind = pending['action']
-        cards = o.get('cards', [])
-        target = next((r for r in cards if math.dist(r['point'], pending.get('target', r['point'])) < 20), None)
+        target = matching_card(cards, pending)
+        if kind == 'select_reward' and scene in SELECTION and 'native' in pending and (
+                target is None or any(card['selected'] and card is not target for card in cards)):
+            return _step('blocked', reason='native_reward_selection_changed')
         accepted = ((kind == 'select_reward' and scene in SELECTION and target and target['selected'])
-                    or (kind == 'confirm_reward' and scene in RESULT)
-                    or (kind == 'dismiss_reward' and
-                        (scene in SELECTION or changed(pending.get('visual'), o.get('result_visual')))))
+                    or (kind == 'confirm_reward' and
+                        (scene in RESULT or scene in SELECTION and new_card_panel(cards, pending)))
+                    or (kind in {'dismiss_reward', 'discard_new_item'} and
+                        (scene in SELECTION or result_progress(pending, o))))
         if accepted:
             reward['pending'] = None
             reward['progress_at'] = now
-        else:
+        elif 'native' not in pending or scene in SELECTION and target is not None:
             return _retry(reward, now)
+        else:
+            return _step()
     if scene in SELECTION:
-        cards = sorted(o.get('cards', []), key=lambda r: r['point'][0])
+        cards = ordered_cards(cards)
         if len(cards) not in (1, 2, 3):
             return _step('blocked', reason='unsupported_reward_card_count')
         target = cards[0 if len(cards) < 3 else 1]
         if any(r['selected'] and r is not target for r in cards):
             return _step('blocked', reason='non_target_reward_selected')
         kind = 'confirm_reward' if target['selected'] else 'select_reward'
-        point = o['click'] if target['selected'] else target['point']
-        return _issue(reward, kind, point, now, target=target['point'])
-    return _issue(reward, 'dismiss_reward', o['click'], now, visual=o.get('result_visual'))
+        point = o.get('click') if target['selected'] else target.get('point')
+        input_target = choice_target(target, 'confirm' if target['selected'] else 'select', point)
+        return _issue(reward, kind, input_target, now, target=target.get('point'))
+    kind = 'discard_new_item' if scene == ITEM_REPLACEMENT else 'dismiss_reward'
+    target = choice_target(o, 'discard', o.get('click')) if scene == ITEM_REPLACEMENT else o['click']
+    return _issue(reward, kind, target, now, visual=o.get('result_visual'), result_scene=scene)
 
 
 def advance_context(context, observation, now):
@@ -152,7 +170,16 @@ def advance_context(context, observation, now):
             (vortex if kind == 'vortex' else healing).reset_observation(context['flow'])
         return _step()
     if scene == 'battle_defeat':
-        return _step('blocked', reason='battle_defeat')
+        if kind not in {'battle', 'elite_battle', 'boss_battle'} or not o.get('native'):
+            return _step('blocked', reason='battle_defeat_without_owner')
+        if context['phase'] == 'defeat_return':
+            if now - context['progress_at'] >= 45:
+                return _step('blocked', reason='battle_defeat_settlement_timeout')
+            return _step()
+        if not _stable(context, o, now):
+            return _step()
+        context.update(phase='defeat_return', victory=False)
+        return _issue(context, 'battle_defeat_next', choice_target(o, 'confirm', None), now)
     total_limit = 900 if kind in {'battle', 'elite_battle', 'boss_battle'} else 180
     if now - context['started'] >= total_limit:
         return _step('blocked', reason='event_total_timeout')
@@ -182,19 +209,26 @@ def advance_context(context, observation, now):
         return result
     if kind in {'healing', 'item', 'vortex'}:
         flow = vortex if kind == 'vortex' else healing
-        action, point = flow.step(context['flow'], o, now)
+        action, target = flow.step(context['flow'], o, now)
         if action in {'event_returned', 'vortex_returned'}:
             return _step('completed', evidence='node_flow_returned')
         if action in {'event_blocked', 'vortex_blocked'}:
             return _step('blocked', reason=context['flow'].get(prefix + '_error', action))
-        if point is not None:
-            return _step('input_requested', point=point, action=action)
+        if target is not None:
+            return _step('input_requested', target=target, action=action)
         return _step()
     if not _stable(context, o, now):
         return _step()
     pending = context.get('pending')
     if pending:
         action = pending['action']
+        if action == 'battle_next':
+            if scene in {'native_choice_wait', 'unknown'} or scene == 'battle_victory' and 'native' in pending:
+                if now - context['progress_at'] >= 45:
+                    return _step('blocked', reason='battle_victory_return_timeout')
+                return _step()
+            if scene == 'battle_victory' and o.get('native'):
+                return _issue(context, action, choice_target(o, 'confirm', None), now)
         accepted = ((action == 'battle_start' and scene != 'battle_formation')
                     or (action == 'battle_next' and scene != 'battle_victory')
                     or (action == 'shop_back' and scene in BOARD)
@@ -219,7 +253,7 @@ def advance_context(context, observation, now):
         if scene in BOARD and (o.get('player_turn') or enemy_board):
             if now - context['started'] >= 5 and context['stable'] >= 3:
                 return _step('completed', evidence='empty_node_stable_board')
-        elif scene == 'event_entry' and o.get('event_type') == 'empty':
+        elif scene == 'event_entry' and o.get('event_type') == 'empty' and not context.get('native_entry_submitted'):
             # The first entry click belongs to the parent move transaction.
             if now - context['progress_at'] >= 2:
                 context['entry_clicks'] = 2
@@ -242,11 +276,12 @@ def advance_context(context, observation, now):
         return _issue(context, 'battle_start', o['click'], now)
     if context['phase'] in {'entry_wait', 'battle_wait'} and scene == 'battle_victory':
         context.update(victory=True, phase='battle_rewards', progress_at=now)
-        return _issue(context, 'battle_next', o['click'], now)
+        return _issue(context, 'battle_next', choice_target(o, 'confirm', o.get('click')), now)
     if context['phase'] == 'battle_rewards':
+        resume = BOARD | ({'event_ending'} if context['owner'] == 'vortex_sub_battle' else {'rest_area'})
         if scene in REWARD or context.get('reward'):
-            return _reward_step(context, o, now, BOARD | {'rest_area'})
-        if context['victory'] and scene in BOARD | {'rest_area'} and now - context['stable_since'] >= 1:
+            return _reward_step(context, o, now, resume)
+        if context['victory'] and scene in resume and now - context['stable_since'] >= 1:
             return _step('completed', evidence='battle_victory_and_return')
     phase_limit = 600 if context['phase'] == 'battle_wait' else 45
     if now - context['progress_at'] >= phase_limit:

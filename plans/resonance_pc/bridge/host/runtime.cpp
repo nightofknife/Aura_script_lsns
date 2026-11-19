@@ -129,6 +129,8 @@ void Runtime::observe() {
     capabilities_["deep_dive_board"] = deep_dive_board_available();
     capabilities_["deep_dive_turn"] = capabilities_["deep_dive_board"];
     capabilities_["deep_dive_controls"] = capabilities_["deep_dive_board"];
+    capabilities_["deep_dive_actions"] = capabilities_["deep_dive_board"];
+    capabilities_["deep_dive_choices"] = capabilities_["deep_dive_board"];
   }
 }
 Json Runtime::result() {
@@ -456,7 +458,31 @@ void Runtime::begin(const std::shared_ptr<Command> &c) {
     }
     return;
   }
+  if (op_ == "deep_dive_choice" && a.value("command", std::string{}) == "read") {
+    try {
+      if (!capabilities_.value("deep_dive_choices", false))
+        throw Error("deep_dive_choice_unsupported", "The client lacks the Deep Dive choice bridge");
+      finish("completed", "", "", execute_deep_dive_choice(a));
+    } catch (const Error &e) {
+      finish("rejected", e.code, e.what());
+    } catch (const std::exception &e) {
+      finish("rejected", "deep_dive_choice_failed", e.what());
+    }
+    return;
+  }
   verify_viewport(c->request.value("viewport", Json::object()));
+  if (op_ == "deep_dive_action") {
+    if (!capabilities_.value("deep_dive_actions", false))
+      throw Error("deep_dive_action_unsupported", "The client lacks the Deep Dive action bridge");
+    finish("completed", "", "", execute_deep_dive_action(a));
+    return;
+  }
+  if (op_ == "deep_dive_choice") {
+    if (!capabilities_.value("deep_dive_choices", false))
+      throw Error("deep_dive_choice_unsupported", "The client lacks the Deep Dive choice bridge");
+    finish("completed", "", "", execute_deep_dive_choice(a));
+    return;
+  }
   if (op_ == "stream_start") {
     if (!capabilities_.value("frame_stream", false))
       throw Error("bridge_capture_unsupported", "This Unity profile has no frame-end capture");
@@ -624,8 +650,10 @@ void Runtime::finish(const std::string &status, const std::string &code,
   const bool closing = (op_ == "close" && status == "completed") ||
                        (failed_hello && !background_saved_ && !owner_process_);
   Json r = result();
-  if (!board.is_null())
-    r["board"] = std::move(board);
+  if (!board.is_null()) {
+    const auto key = op_ == "deep_dive_choice" ? "choice" : op_ == "deep_dive_action" ? "action" : "board";
+    r[key] = std::move(board);
+  }
   {
     std::lock_guard<std::mutex> l(mutex_);
     active_.reset();

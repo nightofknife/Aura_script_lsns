@@ -76,7 +76,7 @@
 | 灵敏度及拖距探针 | 部分隐藏、部分仅 YAML 入口 | 合并 | 统一参数化校准工具，保留单次与多次采集模式 |
 | 节点卡只读探针 | YAML 入口 | 降级 | 开发诊断，不作为用户玩法任务 |
 
-依赖链：[完整循环](../../plans/resonance_pc/tasks/consciousness_deep_dive_loop_pc.yaml) → 入场 → `single_run_test` → 收尾；[规划运行器](../../plans/resonance_pc/src/actions/consciousness_deep_dive_planned_run_pc_actions.py)直接复用扫描与规划模块。
+依赖链为完整循环 → 入场 → 关卡内自动运行 → 结算返回活动首页。 [完整循环](../../plans/resonance_pc/tasks/consciousness_deep_dive_loop_pc.yaml) · [规划运行器](../../plans/resonance_pc/src/actions/consciousness_deep_dive_planned_run_pc_actions.py)
 
 ## PC YAML 全量任务清单
 
@@ -109,7 +109,7 @@
 | `consciousness_deep_dive_planned_run_pc.yaml` | 玩法运行模式 | 合并 | 归玩法的关卡继续模式；规划单局与随机单局实现分开保留 |
 | `consciousness_deep_dive_scan_pc.yaml` | 内部扫描与开发诊断 | 降级 | 收起普通按钮，保留扫描实现与报告能力 |
 | `consciousness_deep_dive_sensitivity_probe_pc.yaml` | 开发校准 | 合并 | 单次 320px 探针与拖距工具统一入口 |
-| `consciousness_deep_dive_single_run_test_pc.yaml` | 内部单局操作 | 降级 | 保留并更名；正式循环仍以 `round_budget=20` 调用 |
+| `consciousness_deep_dive_random_run_pc.yaml` | 内部单局操作 | 降级 | 随机游走诊断 |
 | `enter_reforming_center_pc.yaml` | 内部导航 | 降级 | 从主界面进入整顿中心，保留独立起点契约 |
 | `fill_product_workshop_staff_pc.yaml` | 用户任务 | 保留 | 生产车间补人，调用共享房间操作 |
 | `maintain_raw_material_workshop_pc.yaml` | 内部单车间流程 | 降级 | 全车间维护复用，保留按房间参数运行能力 |

@@ -1,6 +1,8 @@
 """Drain inspiration before node content and passive rewards after node content."""
 RETURN_PHASES = {'battle_loot','battle_obtain','battle_notice_wait','shop_return',
                  'empty_wait','rotate_ready','rotate_options'}
+ITEM_REPLACEMENT = 'item_replacement'
+RESULT = frozenset({'event_result', 'reward_obtained', ITEM_REPLACEMENT})
 
 
 def changed(previous, current):
@@ -8,10 +10,25 @@ def changed(previous, current):
             and len(current)>0 and sum(abs(a-b) for a,b in zip(previous,current))/len(current)>8.)
 
 
+def result_changed(previous_scene, previous_visual, observation):
+    scene = observation['scene']
+    return ((previous_scene is not None and previous_scene != scene
+             and ITEM_REPLACEMENT in (previous_scene, scene))
+            or changed(previous_visual, observation.get('result_visual')))
+
+
+def fresh_discard_point(expected, observed):
+    before, after = expected.get('result_visual'), observed.get('result_visual')
+    if (observed.get('valid') and observed['scene'] == ITEM_REPLACEMENT
+            and before and after and len(before) == len(after) and not changed(before, after)):
+        return observed.get('click')
+    return None
+
+
 def step(state, o, now):
     """Return None to resume the original phase; otherwise one guarded action."""
     scene=o['scene'];phase=state['phase']
-    result=scene in {'event_result','reward_obtained'}
+    result=scene in RESULT
     selection=scene in {'event_card_selection','battle_reward_selection'}
     prefix='vortex' if phase=='vortex_dispatch' else 'event'
     entry=(phase in {'battle_prepare','shop_wait'} or
@@ -22,15 +39,18 @@ def step(state, o, now):
     intercept=(phase in RETURN_PHASES and (scene=='event_result' or
                phase in {'shop_return','empty_wait','rotate_ready','rotate_options','battle_notice_wait'}
                and (result or selection)))
-    intercept = intercept or entry and (result or selection)
+    intercept = (intercept or entry and (result or selection) or
+                 scene == ITEM_REPLACEMENT and phase not in {'event_dispatch', 'vortex_dispatch'})
     active=state.get('node_reward')
     if not intercept and active is None:return None
     if active is None and phase=='battle_notice_wait' and now-state.get('phase_started',0)<2:
         return 'wait',None
     if active is None:
         active={'started':now,'progress_at':now,'attempts':0,'at':0,'pending':None,'signature':None,'stable':0,
-                'entry':entry}
+                'entry':entry, 'replacement_seen':False}
         state['node_reward']=active
+    if scene == ITEM_REPLACEMENT:
+        active['replacement_seen'] = True
     if now-active['progress_at']>=30:
         state['event_error']='节点额外奖励30秒未取得进展'
         return 'event_blocked',None
@@ -41,6 +61,8 @@ def step(state, o, now):
                   if not active['entry'] else
                   scene=='battle_formation' if phase=='battle_prepare' else
                   scene=='shop' if phase=='shop_wait' else scene=='event_options')
+        if not active['entry'] and active.get('replacement_seen'):
+            resume = resume or scene in {'event_entry', 'battle_formation', 'battle_victory', 'shop'}
         if resume:
             state.pop('node_reward',None)
             state['phase_started']=now
@@ -63,7 +85,7 @@ def step(state, o, now):
     if result and changed(active.get('observed_visual'),o.get('result_visual')):
         active['stable']=0
     active['observed_visual']=o.get('result_visual')
-    signature=(scene,tuple((round(r['point'][0]/10),r['selected']) for r in cards))
+    signature = [scene, [[round(r['point'][0] / 10), r['selected']] for r in cards]]
     if signature==active['signature']:active['stable']+=1
     else:active['signature']=signature;active['stable']=1
     if active['stable']<2:return 'wait',None
@@ -79,9 +101,10 @@ def step(state, o, now):
         kind='confirm' if target['selected'] else 'select'
         point=o['click'] if target['selected'] else target['point']
     else:
-        kind='dismiss';point=o['click']
+        kind = 'discard_new_item' if scene == ITEM_REPLACEMENT else 'dismiss'
+        point = o['click']
     visual=o.get('result_visual')
-    new_result=kind=='dismiss' and changed(active.get('visual'),visual)
+    new_result = result and result_changed(active.get('result_scene'), active.get('visual'), o)
     if kind==active['pending'] and not new_result:
         if now-active['at']<2:return 'wait',None
         if active['attempts']>=3:
@@ -90,7 +113,8 @@ def step(state, o, now):
     elif now-active['at']<1 and active['pending'] is not None:
         return 'wait',None
     else:active['attempts']=0
-    active.update(pending=kind,at=now,progress_at=now,visual=visual,attempts=active['attempts']+1,stable=0)
+    active.update(pending=kind,at=now,progress_at=now,visual=visual,result_scene=scene,
+                  attempts=active['attempts']+1,stable=0)
     state['phase_started']=now
     if phase in {'battle_loot','battle_obtain'}:
         state['phase']='battle_notice_wait'

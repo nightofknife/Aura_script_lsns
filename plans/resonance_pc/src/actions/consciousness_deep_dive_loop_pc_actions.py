@@ -26,14 +26,14 @@ def validate_count(value):
 
 
 def child_output(stage,result):
-    field={'entry':'deep_dive','single':'deep_dive_single_run','cleanup':'deep_dive_cleanup'}[stage]
+    field={'entry':'deep_dive','single':'deep_dive_planned_run','cleanup':'deep_dive_cleanup'}[stage]
     return result.get(field,{}) if isinstance(result,dict) else {}
 
 
 def successful(stage,payload):
     if not isinstance(payload,dict) or payload.get('success') is not True or payload.get('status')!='completed':return False
     if stage=='entry':return payload.get('page_state')=='deep_dive_board'
-    if stage=='single':return payload.get('terminal')=='settlement'
+    if stage=='single':return payload.get('terminal_reached') is True and payload.get('terminal')=='settlement'
     return payload.get('page_state')=='deep_dive_activity_home'
 
 
@@ -105,11 +105,16 @@ async def checkpoint_loop(session_key:str,stage:str,child_result:dict,state_stor
         if stage=='entry':s['stage']='single'
         elif stage=='single':
             s['stage']='cleanup'
-            s['last_result']={k:result.get(k) for k in ('outcome','turns_completed','last_frame')}
+            s['last_result']={k:result.get(k) for k in ('outcome','game_success','turns_completed',
+                                                       'last_frame','final_frame','report_path')}
         else:
             s['completed_runs']+=1;s['stage']='activity_home';s['last_frame']=result.get('last_frame','')
             if s['loop_count']!=-1 and s['completed_runs']>=s['loop_count']:s['status']='completed'
-    if stage=='cleanup':
+    if stage=='single':
+        child_key=result.get('session_key','')
+        if isinstance(child_key,str) and child_key.startswith('deep_dive_planned_run:'):
+            await state_store.delete(child_key)
+    elif stage=='cleanup':
         child_key=child_result.get('session_key','') if isinstance(child_result,dict) else ''
         if isinstance(child_key,str) and child_key.startswith('deep_dive_cleanup:'):await state_store.delete(child_key)
     await save(s,state_store,event_bus)

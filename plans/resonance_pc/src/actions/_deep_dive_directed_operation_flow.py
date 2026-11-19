@@ -38,7 +38,7 @@ def prepare_operation(mode, snapshot):
     return dict(action_id=uuid4().hex, kind=mode,
                 phase='open_mode' if reference or layout.get('coordinate_frame') == 'native_board' else 'wide_reference',
                 snapshot_version=snapshot_version(snapshot),
-                expected_actor_slot=cell_to_slot(layout['player_cell']),
+                expected_actor_slot=cell_to_slot(layout['player_cell'], cube_size=layout.get('size', 3)),
                 started=time.monotonic(), progress_at=time.monotonic(),
                 mode_attempts=0, select_attempts=0, confirm_attempts=0,
                 pending_input=None, frame=None, binding=None, stable_signature=None,
@@ -48,17 +48,20 @@ def prepare_operation(mode, snapshot):
 
 def begin_move(destination_slot, expected_origin_slot, snapshot):
     action = prepare_operation('move', snapshot)
+    layout = snapshot['layout']
+    cube_size = layout.get('size', 3)
     origin = int(expected_origin_slot)
     destination = int(destination_slot)
     if action['expected_actor_slot'] != origin:
         raise ValueError('actor_mismatch')
-    geo = geometry()
+    geo = geometry(cube_size=cube_size, move_distance=layout.get('move_distance', 1))
     if destination not in geo.moves[origin, :geo.counts[origin]]:
-        raise ValueError('target_not_adjacent_same_face')
-    target = next(row for row in snapshot['layout']['cells'] if cell_to_slot(row) == destination)
-    required = check_required_cells(snapshot['layout'], dict(kind='move', destination_slot=destination))
+        reason = 'target_not_adjacent_same_face' if layout.get('move_distance', 1) == 1 else 'target_outside_move_range'
+        raise ValueError(reason)
+    required = check_required_cells(layout, dict(kind='move', destination_slot=destination))
     if not required['ready']:
         raise ValueError(required['reason'])
+    target = next(row for row in layout['cells'] if cell_to_slot(row, cube_size=cube_size) == destination)
     action.update(destination_slot=destination, target_occupant=target['occupant'],
                   target_node_kind=target.get('node_kind'), target_icon_id=target.get('icon_id'))
     return action
@@ -69,7 +72,8 @@ def begin_layer_rotation(rotation_id, expected_actor_slot, snapshot):
     rotation = int(rotation_id)
     if action['expected_actor_slot'] != int(expected_actor_slot):
         raise ValueError('actor_mismatch')
-    if rotation not in geometry().actor_rotations[action['expected_actor_slot']]:
+    cube_size = snapshot['layout'].get('size', 3)
+    if rotation not in geometry(cube_size=cube_size).actor_rotations[action['expected_actor_slot']]:
         raise ValueError('rotation_not_available_to_actor')
     action['rotation_id'] = rotation
     return action
@@ -77,21 +81,25 @@ def begin_layer_rotation(rotation_id, expected_actor_slot, snapshot):
 
 def rotated_layout(layout, rotation_id):
     """An explicit prediction used only for confirmation, never a fresh scan."""
+    cube_size = layout.get('size', 3)
     result = deepcopy(layout)
-    permutation = geometry().rotations[int(rotation_id)]
-    cells = [None] * 54
+    permutation = geometry(cube_size=cube_size).rotations[int(rotation_id)]
+
+    def rotated_cell(cell):
+        destination = permutation[cell_to_slot(cell, cube_size=cube_size)]
+        return coord_dict(int(destination), cube_size=cube_size)
+
+    cells = [None] * (6 * cube_size**2)
     for old in layout['cells']:
-        source = cell_to_slot(old)
-        destination = int(permutation[source])
+        new_cell = rotated_cell(old)
         row = deepcopy(old)
-        row.update(coord_dict(destination))
+        row.update(new_cell)
         row['evidence_source'] = 'rotation_prediction'
-        cells[destination] = row
+        cells[new_cell['slot']] = row
     result['cells'] = cells
-    result['player_cell'] = coord_dict(int(permutation[cell_to_slot(layout['player_cell'])]))
-    result['singularity_cell'] = coord_dict(int(permutation[cell_to_slot(layout['singularity_cell'])]))
-    result['inspiration_cells'] = [coord_dict(int(permutation[cell_to_slot(c)]))
-                                   for c in layout.get('inspiration_cells', [])]
+    result['player_cell'] = rotated_cell(layout['player_cell'])
+    result['singularity_cell'] = rotated_cell(layout['singularity_cell'])
+    result['inspiration_cells'] = [rotated_cell(c) for c in layout.get('inspiration_cells', [])]
     result['prediction_only'] = True
     return result
 

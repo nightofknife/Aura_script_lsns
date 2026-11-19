@@ -503,11 +503,22 @@ async def advance_deep_dive_single_run(session_key: str, app: Any = None, ocr: A
     if state["status"] != "running":
         return {"status": state["status"], "phase": state["phase"]}
     _cancelled()
-    if state['phase'] == 'vortex_dispatch':
-        image, observed = await tracked_to_thread(_capture, app, 'vortex')
+    capture_args = (app, 'vortex') if state['phase'] == 'vortex_dispatch' else (app,)
+    image, observed = await tracked_to_thread(_capture, *capture_args)
+    replacement = observed['scene'] == node_rewards.ITEM_REPLACEMENT
+    working = copy.deepcopy(state) if replacement else state
+    action, point = _advance_state(working, observed)
+    if replacement and point is not None:
+        # Commit the reward transition only if a fresh panel still shows the
+        # same incoming item and a visible discard button.
+        _, fresh = await tracked_to_thread(_capture, *capture_args)
+        point = node_rewards.fresh_discard_point(observed, fresh)
+        if point is None:
+            action = 'wait'
+        else:
+            state = working
     else:
-        image, observed = await tracked_to_thread(_capture, app)
-    action, point = _advance_state(state, observed)
+        state = working
     if action in {"move_confirmed", "event_completed", "battle_completed", "shop_completed"}:
         try:
             progress = await tracked_to_thread(_read_progress, image, ocr)

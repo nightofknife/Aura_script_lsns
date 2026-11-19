@@ -76,11 +76,15 @@ class WindowSizeOnly:
 def test_initialize_persists_normalized_route_and_budget(tmp_path, monkeypatch, route, expected):
     saved = []
     async def capture(*_args):
-        return None, dict(scene='board', player_turn=True)
+        return None, dict(valid=True, scene='board', player_turn=True)
+    async def normalize(_app, command):
+        assert command == 'normalize'
+        return 'ready'
     async def save(state, *_args):
         saved.append(deepcopy(state))
     monkeypatch.setattr(flow, 'resolve_base_path', lambda: tmp_path)
     monkeypatch.setattr(flow, '_capture', capture)
+    monkeypatch.setattr(flow, '_execute_native_action', normalize)
     monkeypatch.setattr(flow, '_save', save)
     monkeypatch.setattr(flow, '_terminal', lambda *_args: False)
     monkeypatch.setattr(flow, '_cancel_check', lambda: None)
@@ -102,12 +106,13 @@ def test_scan_turn_uses_native_board_with_legacy_route_settings(tmp_path, monkey
         received.append(True)
         player_row = 1 if len(received) == 1 else 2
         return dict(schema='resonance_pc.deep_dive_board.v1', coordinate_base=1, size=3,
-                    turn=dict(hud, rounds_remaining=4 if changed else hud['rounds_remaining']),
+                    turn=dict(hud, rounds_remaining=4 if changed else hud['rounds_remaining'], move_distance=1),
                     faces=[dict(face=face, rows=[[dict(type='empty') for _ in range(3)]
                                                  for _ in range(3)]) for face in range(1, 7)],
                     objects=[dict(type='player', face=2, row=player_row, col=2),
                              dict(type='singularity', face=2, row=3, col=2)])
     state = dict(status='running', scan_route=route, scan_time_budget_sec=300., scan_epoch=0,
+                 plane_index=hud['plane_index'],
                  safety_round_limit=100, turns_completed=0, output_dir=str(tmp_path), plane_epoch='fixture')
     monkeypatch.setattr(flow, '_adopt_plane', lambda *_args: None)
     monkeypatch.setattr(flow, '_progress_ledger', lambda *_args: None)

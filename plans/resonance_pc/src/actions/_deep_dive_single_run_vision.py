@@ -12,6 +12,7 @@ import numpy as np
 from ._deep_dive_entry_card_vision import classify_entry_card
 from ._deep_dive_battle_vision import detect_battle_page
 from ._deep_dive_event_vision import detect_event_page, board_visible
+from ._deep_dive_item_replacement_vision import detect_item_replacement
 from ._deep_dive_match_cache import exact_roi_cache
 
 
@@ -104,7 +105,8 @@ def _rotate_options(mask: np.ndarray) -> list[dict]:
     return _dedupe(options)
 
 
-def observe(image_rgb: np.ndarray, event_family: str = 'healing') -> dict:
+def observe(image_rgb: np.ndarray, event_family: str = 'healing', *, read_operation_options: bool = True,
+            read_event_choices: bool = True) -> dict:
     """Classify one client frame; uncertain frames never provide click candidates."""
     if not isinstance(image_rgb, np.ndarray) or image_rgb.shape != (720, 1280, 3) or image_rgb.dtype != np.uint8:
         return {"valid": False, "scene": "invalid_frame", "options": [], "scores": {}}
@@ -116,6 +118,10 @@ def observe(image_rgb: np.ndarray, event_family: str = 'healing') -> dict:
         return {"valid": False, "scene": "blank_frame", "options": [], "scores": {}}
     bgr = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR)
     gray = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+    if read_event_choices:
+        replacement = detect_item_replacement(bgr, gray)
+        if replacement is not None:
+            return replacement
     matches = {name: _match(gray, name) for name in REGIONS}
     scores = {name: row["score"] for name, row in matches.items()}
     result = {"valid": True, "scene": "unknown", "options": [], "scores": scores,
@@ -136,20 +142,20 @@ def observe(image_rgb: np.ndarray, event_family: str = 'healing') -> dict:
     if event_family == 'vortex':
         from ._deep_dive_vortex_vision import detect_event_page as vortex_page, board_visible as vortex_board
         result['event_board'] = vortex_board(image_rgb)
-        page = vortex_page(image_rgb)
+        page = vortex_page(image_rgb, read_choices=read_event_choices)
         if page is not None:
             result.update(page)
             return result
     else:
         result['event_board'] = board_visible(image_rgb)
-    battle_page = detect_battle_page(image_rgb)
+    battle_page = detect_battle_page(image_rgb, read_choices=read_event_choices)
     if battle_page is not None:
         result.update(battle_page)
         return result
     if event_family != 'vortex' and scores["event_vortex_choice_title"] >= .85 and scores["event_vortex_floor"] >= .85:
         result.update(scene="event_vortex_choice", event_type="vortex_floor_collapse")
         return result
-    event_page = detect_event_page(image_rgb) if event_family != 'vortex' else None
+    event_page = detect_event_page(image_rgb, read_choices=read_event_choices) if event_family != 'vortex' else None
     if event_page is not None:
         result.update(event_page)
         return result
@@ -179,11 +185,17 @@ def observe(image_rgb: np.ndarray, event_family: str = 'healing') -> dict:
     if not result["player_turn"]:
         return result
     if move_cyan >= 2000 and rotate_cyan < 2000:
+        if not read_operation_options:
+            result["scene"] = "choose_move"
+            return result
         options = _move_options(cyan)
         if 1 <= len(options) <= 4:
             result.update(scene="choose_move", options=options)
         return result
     if rotate_cyan >= 2000 and move_cyan < 2000:
+        if not read_operation_options:
+            result["scene"] = "choose_rotate"
+            return result
         options = _rotate_options(cyan)
         if 2 <= len(options) <= 4:
             result.update(scene="choose_rotate", options=options)

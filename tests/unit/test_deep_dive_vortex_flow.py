@@ -62,6 +62,18 @@ def test_only_unsupported_choices_stop():
     assert stable(s,o,1)==('vortex_blocked',None)
 
 
+def test_native_battle_option_waits_for_its_sub_battle():
+    option = next(item for item in vision.catalog()['options'] if item['id'] == 86100250)
+    identity = dict(revision=1, kind='options', subject_id=89800039, index=1, id=option['id'])
+    state = init()
+    observation = {'scene':'event_options','event_options':[dict(option, native=identity, state='normal')]}
+    assert stable(state,observation,1)==('vortex_option_select',dict(identity,command='select'))
+    observation['event_options'][0]['state'] = 'selected'
+    assert stable(state,observation,2)==('vortex_option_submit',dict(identity,command='confirm'))
+    assert stable(state,{'scene':'board','event_board':True},6)==('wait',None)
+    assert state['vortex_pending']['battle_level'] == 20101954
+
+
 def test_all_no_effect_exits_are_preferred_even_in_recurring_events():
     exits=[o for o in vision.catalog()['options'] if not o['effects']]
     assert len(exits)==29

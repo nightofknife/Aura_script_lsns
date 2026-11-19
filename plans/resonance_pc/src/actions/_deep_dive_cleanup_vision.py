@@ -4,6 +4,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from ._deep_dive_planned_run_vision import _match as _match_native_title
+
 ROOT=Path(__file__).resolve().parents[2]/'templates/deep_dive/deep_dive_cleanup'
 REGIONS={'settlement_title':(480,45,810,160),'continue':(525,605,760,695),
          'confirm':(525,600,780,695),'activity_title':(480,35,825,195),
@@ -32,9 +34,14 @@ def observe(rgb):
     result={'valid':True,'scene':'unknown','scores':scores}
     if scores['activity_title']>=.85 and scores['start_dive']>=.86:
         return {**result,'scene':'activity_home'}
-    if scores['settlement_title']>=.85:
-        if scores['confirm']>=.87 and scores['continue']<.8:
-            return {**result,'scene':'settlement_details','click':points['confirm']}
-        if scores['continue']>=.87 and scores['confirm']<.8:
-            return {**result,'scene':'settlement_summary','click':[1000,640]}
+    details = scores['confirm'] >= .87 and scores['continue'] < .8
+    summary = scores['continue'] >= .87 and scores['confirm'] < .8
+    if not (details or summary):
+        return result
+    for title in ('settlement_victory', 'settlement_failure'):
+        scores[title], _ = _match_native_title(gray, title)
+    if scores['settlement_title'] >= .85 or max(scores['settlement_victory'], scores['settlement_failure']) >= .86:
+        if details:
+            return {**result, 'scene': 'settlement_details', 'click': points['confirm']}
+        return {**result, 'scene': 'settlement_summary', 'click': [1000, 640]}
     return result

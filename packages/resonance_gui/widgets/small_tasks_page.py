@@ -52,7 +52,7 @@ TASK_TOOLTIPS = {
     USER_DATA_TASK_ID: "选择更新范围并刷新用户数据；在数据快照中查看最近一次结果。",
     TRADE_PREVIEW_TASK_ID: "使用所选城市和货运参数计算交易方案，不执行游戏中的买卖。",
     TEAM_RECOMMENDATION_TASK_ID: "根据最新角色与仓库装备数据匹配固定配队，不自动配置队伍。",
-    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "执行完整随机循环，或在当前关卡实时规划运行。",
+    CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "从活动首页完整下潜，或从当前关卡开始自动运行。",
     ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
     AFFIX_REFRESH_TASK_ID: "按目标和胶卷上限自动刷新词缀，命中后停止，由你手动替换。",
     DAILY_REWARDS_TASK_ID: "从站场主界面分别启动每日任务奖励或通行证奖励收集。",

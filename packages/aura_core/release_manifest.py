@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from typing import NamedTuple
 
 
 RELEASES_URL = "https://github.com/nightofknife/Aura-Resonance/releases"
@@ -11,22 +12,32 @@ EXPERIMENTAL_INDEX_URL = (
 )
 MAX_CHECKSUM_BYTES = 2 * 1024 * 1024
 
-_VERSION_RE = re.compile(r"(v?)([0-9]+)\.([0-9]+)\.([0-9]+)(-E)?")
+_VERSION_CORE = r"([0-9]+)\.([0-9]+)\.([0-9]+)"
+_EXPERIMENTAL_SUFFIX = r"(-E(?:\.([1-9][0-9]*))?)?"
+_VERSION_RE = re.compile(rf"(v?){_VERSION_CORE}{_EXPERIMENTAL_SUFFIX}")
 _CHECKSUM_RE = re.compile(r"([0-9a-fA-F]{64})\s+\*?(.+?)\s*")
-_CPU_ASSET_RE = re.compile(r"AuraResonance-(v[0-9]+\.[0-9]+\.[0-9]+(?:-E)?)-win-x64-cpu\.zip")
+_CPU_ASSET_RE = re.compile(rf"AuraResonance-(v{_VERSION_CORE}{_EXPERIMENTAL_SUFFIX})-win-x64-cpu\.zip")
+
+
+class ReleaseVersionKey(NamedTuple):
+    major: int
+    minor: int
+    patch: int
+    stable: bool
+    serial: int
 
 
 def release_version_key(
     value: object, *, allow_unprefixed: bool = False,
-) -> tuple[int, int, int, bool] | None:
-    """Sort numerically, with the formal build after its matching test build."""
+) -> ReleaseVersionKey | None:
+    """Sort test serials numerically. The matching formal build has precedence."""
     match = _VERSION_RE.fullmatch(str(value or "").strip())
     if match is None:
         return None
-    prefix, major, minor, patch, experimental = match.groups()
+    prefix, major, minor, patch, experimental, serial = match.groups()
     if not prefix and not allow_unprefixed:
         return None
-    return int(major), int(minor), int(patch), experimental is None
+    return ReleaseVersionKey(int(major), int(minor), int(patch), experimental is None, int(serial or 0))
 
 
 def parse_cpu_manifest(contents: bytes) -> tuple[str, dict[str, str]]:

@@ -431,6 +431,7 @@ async def _run_transition(
     next_timeout_sec: float = _NEXT_STATE_TIMEOUT_SEC,
     next_stable_scans: int = 2,
     next_error_code: Optional[str] = None,
+    board_also_ready: bool = False,
 ) -> Dict[str, Any]:
     started_at = time.monotonic()
     click_result = await _click_until_original_absent(
@@ -440,20 +441,23 @@ async def _run_transition(
         engine=engine,
         fixed_click_point=fixed_click_point,
     )
-    next_match = await _wait_for_target(
-        next_state,
-        app=app,
-        vision=vision,
-        engine=engine,
-        timeout_sec=next_timeout_sec,
-        stable_scans=next_stable_scans,
-        error_code=next_error_code
-        or (
-            "deep_dive_board_not_ready"
-            if next_state.key == _BOARD_READY.key
-            else "deep_dive_next_state_timeout"
-        ),
-    )
+    if board_also_ready:
+        next_state, next_match = await _wait_for_boon_destination(app=app, vision=vision, engine=engine)
+    else:
+        next_match = await _wait_for_target(
+            next_state,
+            app=app,
+            vision=vision,
+            engine=engine,
+            timeout_sec=next_timeout_sec,
+            stable_scans=next_stable_scans,
+            error_code=next_error_code
+            or (
+                "deep_dive_board_not_ready"
+                if next_state.key == _BOARD_READY.key
+                else "deep_dive_next_state_timeout"
+            ),
+        )
     result = {
         "step": step,
         **click_result,
@@ -469,6 +473,38 @@ async def _run_transition(
         result["elapsed_ms"],
     )
     return result
+
+
+async def _wait_for_boon_destination(*, app: Any, vision: Any, engine: ExecutionEngine):
+    """After confirming the boon, accept either its announcement or a ready board."""
+    deadline = time.monotonic() + _BOARD_READY_TIMEOUT_SEC
+    previous_target = None
+    previous_center = None
+    consecutive = 0
+    while time.monotonic() < deadline:
+        _check_cancelled()
+        for target, required in ((_REWARD_MARKER, 2), (_BOARD_READY, 3)):
+            match = await _find_target(target, app=app, vision=vision, engine=engine)
+            center = getattr(match, "center_point", None)
+            if not getattr(match, "found", False) or not isinstance(center, (list, tuple)) or len(center) != 2:
+                continue
+            if (target == previous_target and previous_center is not None
+                    and all(abs(a - b) <= _STABLE_CENTER_TOLERANCE_PX for a, b in zip(center, previous_center))):
+                consecutive += 1
+            else:
+                consecutive = 1
+            previous_target, previous_center = target, center
+            if consecutive >= required:
+                return target, match
+            break
+        else:
+            previous_target, previous_center, consecutive = None, None, 0
+        await aura_sleep(_POLL_INTERVAL_SEC)
+    raise ConsciousnessDeepDiveError(
+        "deep_dive_board_not_ready",
+        "确认开局增益后未能识别授奖页或玩家棋盘。",
+        {"timeout_sec": _BOARD_READY_TIMEOUT_SEC},
+    )
 
 
 @action_info(
@@ -560,29 +596,30 @@ async def resonance_pc_consciousness_deep_dive_enter_stage(
             next_error_code="deep_dive_boon_selection_not_confirmed",
         )
     )
-    transitions.append(
-        await _run_transition(
-            "confirm_boon",
-            _BOON_CONFIRM,
-            _REWARD_MARKER,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
+    boon = await _run_transition(
+        "confirm_boon",
+        _BOON_CONFIRM,
+        _REWARD_MARKER,
+        app=app,
+        vision=vision,
+        engine=engine,
+        board_also_ready=True,
     )
-    transitions.append(
-        await _run_transition(
-            "dismiss_reward",
-            _REWARD_MARKER,
-            _BOARD_READY,
-            app=app,
-            vision=vision,
-            engine=engine,
-            fixed_click_point=_REWARD_DISMISS_POINT,
-            next_timeout_sec=_BOARD_READY_TIMEOUT_SEC,
-            next_stable_scans=3,
+    transitions.append(boon)
+    if boon["next_state"]["key"] == _REWARD_MARKER.key:
+        transitions.append(
+            await _run_transition(
+                "dismiss_reward",
+                _REWARD_MARKER,
+                _BOARD_READY,
+                app=app,
+                vision=vision,
+                engine=engine,
+                fixed_click_point=_REWARD_DISMISS_POINT,
+                next_timeout_sec=_BOARD_READY_TIMEOUT_SEC,
+                next_stable_scans=3,
+            )
         )
-    )
     return {
         "success": True,
         "status": "completed",

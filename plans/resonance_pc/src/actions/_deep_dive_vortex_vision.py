@@ -134,10 +134,10 @@ def cards(gray):
     return sorted(unique,key=lambda r:r['point'][0])
 
 
-def detect_event_page(rgb):
+def detect_event_page(rgb, *, read_choices=True):
     bgr=cv2.cvtColor(rgb,cv2.COLOR_RGB2BGR);gray=cv2.cvtColor(rgb,cv2.COLOR_RGB2GRAY)
     confirm,point=match(gray,'selection_confirm',(500,600,810,675))
-    if confirm>=.85:
+    if read_choices and confirm>=.85:
         candidates=cards(gray)
         title=max(match(gray,n,(520,8,800,85))[0] for n in
                   ('selection_dice_title','selection_push_title','selection_reward_title'))
@@ -154,8 +154,9 @@ def detect_event_page(rgb):
     if heading is None:
         return {'scene':'uncertain_event','valid':False}
     if heading:
-        options=event_options(bgr)
-        if options:return {'scene':'event_options','event_options':options}
+        if read_choices:
+            options=event_options(bgr)
+            if options:return {'scene':'event_options','event_options':options}
         # NPC and portal events use the same title decoration, in a different
         # position after finish1. No character/name/narrative template required.
         emblem=ending_emblem_present(gray)

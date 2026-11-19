@@ -10,11 +10,11 @@ import time
 
 from ._deep_dive_chase_planner import plan_chase
 from ._deep_dive_inspiration_planner import (
-    PlanningBudgetExceeded, PlanningCancelled, plan_inspiration,
+    MAX_FREE_INSPIRATIONS, PlanningBudgetExceeded, PlanningCancelled, plan_inspiration,
 )
 from ._deep_dive_planner_rules import (
-    FACES, RULES_VERSION, cell_to_slot, coord_dict, geometry, player_actions,
-    remaining_player_actions,
+    cell_to_slot, coord_dict, geometry, remaining_player_actions, rules_version,
+    validate_cube_size, validate_move_distance,
 )
 from ._deep_dive_target_readiness import is_targets_layout, required_cells, targets_readiness
 
@@ -38,6 +38,8 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
         raise ValueError("Unsupported cube layout schema")
     if layout.get("coordinate_frame") not in {"scan_local", "native_board"}:
         raise ValueError("Layout requires explicit scan_local or native_board coordinates")
+    cube_size = validate_cube_size(layout.get("size", 3))
+    cell_count = 6 * cube_size**2
     target_mode = is_targets_layout(layout)
     if layout.get("prediction_only"):
         raise ValueError("Prediction-only layouts cannot establish a current plan")
@@ -48,14 +50,14 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
     if readiness is not None and not readiness["ready"]:
         raise ValueError(readiness["reason"])
     cells = layout.get("cells")
-    if not isinstance(cells, list) or len(cells) != 54:
-        raise ValueError("Only a three-by-three cube with 54 cells is supported")
+    if not isinstance(cells, list) or len(cells) != cell_count:
+        raise ValueError(f"A {cube_size}x{cube_size} cube requires {cell_count} cells")
     occupants = {}
     fingerprint_cells = []
     for cell in cells:
         if not isinstance(cell, dict):
             raise ValueError("Each cell must be an object")
-        slot = cell_to_slot(cell)
+        slot = cell_to_slot(cell, cube_size=cube_size)
         if slot in occupants:
             raise ValueError("Duplicate cube coordinate")
         kind = cell.get("occupant")
@@ -64,8 +66,6 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
             raise ValueError("Unknown or conflicting target occupancy cannot be planned")
         occupants[slot] = kind
         fingerprint_cells.append((slot, kind, cell.get("icon_id"), cell.get("node_status")))
-    if set(occupants) != set(range(54)):
-        raise ValueError("Cube coordinates are incomplete")
     players = [slot for slot, kind in occupants.items() if kind == "player"]
     bosses = [slot for slot, kind in occupants.items() if kind == "singularity"]
     inspirations = tuple(sorted(slot for slot, kind in occupants.items() if kind == "inspiration"))
@@ -77,54 +77,61 @@ def _layout_targets(layout: dict, *, allow_partial_turn: bool = False):
         raise ValueError("Exactly one player and one singularity must be confirmed")
     player, boss = players[0], bosses[0]
     for field, actual in (("player_cell", player), ("singularity_cell", boss)):
-        if layout.get(field) is not None and cell_to_slot(layout[field]) != actual:
+        if layout.get(field) is not None and cell_to_slot(layout[field], cube_size=cube_size) != actual:
             raise ValueError(f"{field} contradicts the cell occupancy map")
     if layout.get("inspiration_cells") is not None:
         declared = layout["inspiration_cells"]
-        if not isinstance(declared, list) or sorted(cell_to_slot(cell) for cell in declared) != list(inspirations):
+        if (not isinstance(declared, list)
+                or sorted(cell_to_slot(cell, cube_size=cube_size) for cell in declared) != list(inspirations)):
             raise ValueError("inspiration_cells contradicts the cell occupancy map")
     phase = layout.get("planning_state", {})
     if not isinstance(phase, dict):
         raise ValueError("planning_state must be an object")
-    for name in ("moves_left", "rotations_left", "move_distance"):
+    move_distance = validate_move_distance(phase.get("move_distance", layout.get("move_distance", 1)))
+    if "move_distance" in layout and validate_move_distance(layout["move_distance"]) != move_distance:
+        raise ValueError("planning_state.move_distance contradicts the layout move distance")
+    for name in ("moves_left", "rotations_left"):
         if name not in phase:
             continue
         value = _integer(phase[name], name, 0)
-        if allow_partial_turn and name != "move_distance":
+        if allow_partial_turn:
             if value not in (0, 1):
                 raise ValueError("This version supports at most one remaining move and rotation")
         elif value != 1:
-            raise ValueError("This version requires one move, one rotation and adjacent movement")
+            raise ValueError("This version requires one move and one rotation")
     fingerprint = hashlib.sha256(json.dumps(
         sorted(fingerprint_cells), ensure_ascii=False, separators=(",", ":"),
     ).encode("utf-8")).hexdigest()
-    return player, boss, inspirations, fingerprint
+    return cube_size, move_distance, player, boss, inspirations, fingerprint
 
 
 def _chase_inspiration_branches(result: dict, player: int, boss: int,
                                 inspirations: tuple[int, ...], collected_count: int,
-                                moves_left: int = 1, rotations_left: int = 1):
+                                moves_left: int = 1, rotations_left: int = 1,
+                                *, cube_size: int, move_distance: int):
     """The chase choice ignores inspiration, but branch state must not lose it."""
     sequence = result.get("player_turn_actions", [])
-    selected = next((action for action in remaining_player_actions(player, boss, moves_left, rotations_left)
-                     if list(action.sequence) == sequence), None)
+    available = remaining_player_actions(player, boss, moves_left, rotations_left,
+                                         cube_size=cube_size, move_distance=move_distance)
+    selected = next((action for action in available if list(action.sequence) == sequence), None)
     if selected is None:
         raise RuntimeError("Chase result has no corresponding legal player action")
     remaining = tuple(i for i in inspirations if i != selected.pickup_original_slot)
     gained = len(inspirations) - len(remaining)
+    rotations = geometry(cube_size=cube_size, move_distance=move_distance).rotations
     if selected.rotation_id is not None:
-        permutation = geometry().rotations[selected.rotation_id]
+        permutation = rotations[selected.rotation_id]
         remaining = tuple(sorted(int(permutation[i]) for i in remaining))
     result["planned_player_pickup_count"] = gained
-    result["inspiration_after_player_turn"] = [coord_dict(i) for i in remaining]
+    result["inspiration_after_player_turn"] = [coord_dict(i, cube_size=cube_size) for i in remaining]
     branches = deepcopy(result.get("predicted_boss_branches", []))
     for branch in branches:
         survivors = tuple(i for i in remaining if i != branch["eat_original_slot"])
         lost = len(remaining) - len(survivors)
         if branch["rotation_id"] is not None:
-            permutation = geometry().rotations[branch["rotation_id"]]
+            permutation = rotations[branch["rotation_id"]]
             survivors = tuple(sorted(int(permutation[i]) for i in survivors))
-        branch.update(inspiration_cells=[coord_dict(i) for i in survivors],
+        branch.update(inspiration_cells=[coord_dict(i, cube_size=cube_size) for i in survivors],
                       player_cell=branch["player"], boss_cell=branch["boss"],
                       encounter=branch["terminal"],
                       collected_count=collected_count + gained,
@@ -152,16 +159,22 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
     if (not isinstance(time_budget_sec, Real) or isinstance(time_budget_sec, bool)
             or not math.isfinite(time_budget_sec) or time_budget_sec <= 0):
         raise ValueError("time_budget_sec must be positive and finite")
-    player, boss, inspirations, fingerprint = _layout_targets(layout)
+    cube_size, move_distance, player, boss, inspirations, fingerprint = _layout_targets(layout)
+    size_description = "three-by-three" if cube_size == 3 else f"{cube_size}x{cube_size}"
+    move_description = ("one adjacent same-face move" if move_distance == 1
+                        else "one same-face move of up to two steps")
     result = dict(schema=SCHEMA, strategy=strategy, turn_budget=turns,
-                  rules_version=RULES_VERSION, coordinate_frame=layout["coordinate_frame"],
-                  player_cell=coord_dict(player), boss_cell=coord_dict(boss),
-                  inspiration_cells=[coord_dict(i) for i in inspirations],
+                  cube_size=cube_size, move_distance=move_distance,
+                  rules_version=rules_version(cube_size=cube_size, move_distance=move_distance),
+                  coordinate_frame=layout["coordinate_frame"],
+                  player_cell=coord_dict(player, cube_size=cube_size),
+                  boss_cell=coord_dict(boss, cube_size=cube_size),
+                  inspiration_cells=[coord_dict(i, cube_size=cube_size) for i in inspirations],
                   collected_count=collected_count,
                   planned_layout_fingerprint=fingerprint, execution_mode="planning_only",
                   requires_observation_after_action=True,
                   rule_assumptions=[
-                      "three-by-three cube; one adjacent same-face move and one layer rotation per turn",
+                      f"{size_description} cube; {move_description} and one layer rotation per turn",
                       "player may move then rotate or rotate then move",
                       "same-face boss uniformly chooses a neighbour reducing Manhattan distance",
                       "different-face boss uniformly chooses a same-face neighbour",
@@ -183,7 +196,8 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
             raise PlanningBudgetExceeded("planning_time_budget_exhausted")
         if strategy == "chase":
             calculated = plan_chase(player, boss, turns, cancel_check=check_cancel,
-                                    time_budget_sec=remaining_time, objective=chase_objective)
+                                    time_budget_sec=remaining_time, objective=chase_objective,
+                                    cube_size=cube_size, move_distance=move_distance)
             result.update(calculated)
             result["metrics"] = dict(
                 optimal_expected_turns=calculated.get("optimal_expected_turns"),
@@ -193,14 +207,16 @@ def plan_layout(layout: dict, strategy: str = "chase", turn_budget: int = 6,
                 expected_encounter_turns_given_deadline=calculated.get("conditional_expected_turns_by_deadline"),
             )
             if calculated.get("status") == "solved":
-                _chase_inspiration_branches(result, player, boss, inspirations, collected_count)
+                _chase_inspiration_branches(result, player, boss, inspirations, collected_count,
+                                            cube_size=cube_size, move_distance=move_distance)
         else:
-            if len(inspirations) > 2:
-                raise ValueError("Inspiration planning currently supports at most two free inspirations")
+            if len(inspirations) > MAX_FREE_INSPIRATIONS:
+                raise ValueError(f"Inspiration planning supports at most {MAX_FREE_INSPIRATIONS} free inspirations")
             calculated = plan_inspiration(player, boss, inspirations, turns,
                                           collected_count=collected_count, cancel_check=check_cancel,
                                           time_budget_sec=remaining_time,
-                                          encounter_first=strategy == ENCOUNTER_THEN_INSPIRATION)
+                                          encounter_first=strategy == ENCOUNTER_THEN_INSPIRATION,
+                                          cube_size=cube_size, move_distance=move_distance)
             result.update(calculated)
         check_cancel()
     except PlanningCancelled:
@@ -262,7 +278,8 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
         raise ValueError("time_budget_sec must be positive and finite")
     if chase_objective not in ("min_expected_encounter_turns", "max_deadline_encounter_probability"):
         raise ValueError("Unsupported chase objective")
-    player, boss, inspirations, fingerprint = _layout_targets(layout, allow_partial_turn=True)
+    cube_size, move_distance, player, boss, inspirations, fingerprint = _layout_targets(
+        layout, allow_partial_turn=True)
     phase = layout.get("planning_state", {})
     for name, actual in (("moves_left", moves), ("rotations_left", rotations),
                          ("rounds_remaining", rounds), ("collected_count", collected)):
@@ -273,13 +290,16 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
             allowed = ("known",) if cell["occupant"] == "none" else ("known", "not_required_target")
             if cell.get("node_status") not in allowed:
                 raise ValueError("Unknown or conflicting node content cannot be used for runtime planning")
-    if strategy != "chase" and len(inspirations) > 2:
-        raise ValueError("Inspiration planning currently supports at most two free inspirations")
+    if strategy != "chase" and len(inspirations) > MAX_FREE_INSPIRATIONS:
+        raise ValueError(f"Inspiration planning supports at most {MAX_FREE_INSPIRATIONS} free inspirations")
     result = dict(schema=SCHEMA, strategy=strategy, turn_budget=rounds, rounds_remaining=rounds,
                   moves_left=moves, rotations_left=rotations, collected_count=collected,
-                  rules_version=RULES_VERSION, coordinate_frame=layout["coordinate_frame"],
-                  player_cell=coord_dict(player), boss_cell=coord_dict(boss),
-                  inspiration_cells=[coord_dict(i) for i in inspirations],
+                  cube_size=cube_size, move_distance=move_distance,
+                  rules_version=rules_version(cube_size=cube_size, move_distance=move_distance),
+                  coordinate_frame=layout["coordinate_frame"],
+                  player_cell=coord_dict(player, cube_size=cube_size),
+                  boss_cell=coord_dict(boss, cube_size=cube_size),
+                  inspiration_cells=[coord_dict(i, cube_size=cube_size) for i in inspirations],
                   planned_layout_fingerprint=fingerprint,
                   planned_scan_epoch=layout.get("scan_epoch", layout.get("run_id")),
                   execution_mode="planning_only", requires_observation_after_action=True,
@@ -308,7 +328,8 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
             elif strategy == "chase":
                 calculated = plan_chase(player, boss, rounds, cancel_check=checkpoint,
                                         time_budget_sec=remaining_time, objective=chase_objective,
-                                        moves_left=moves, rotations_left=rotations)
+                                        moves_left=moves, rotations_left=rotations,
+                                        cube_size=cube_size, move_distance=move_distance)
                 result.update(calculated)
                 result["metrics"] = dict(
                     optimal_expected_turns=calculated.get("optimal_expected_turns"),
@@ -318,13 +339,15 @@ def plan_current_state(layout: dict, strategy: str = "chase", rounds_remaining: 
                     expected_encounter_turns_given_deadline=calculated.get("conditional_expected_turns_by_deadline"),
                 )
                 if calculated.get("status") == "solved":
-                    _chase_inspiration_branches(result, player, boss, inspirations, collected, moves, rotations)
+                    _chase_inspiration_branches(result, player, boss, inspirations, collected, moves, rotations,
+                                                cube_size=cube_size, move_distance=move_distance)
             else:
                 calculated = plan_inspiration(player, boss, inspirations, rounds,
                                               collected_count=collected, cancel_check=checkpoint,
                                               time_budget_sec=remaining_time,
                                               moves_left=moves, rotations_left=rotations,
-                                              encounter_first=strategy == ENCOUNTER_THEN_INSPIRATION)
+                                              encounter_first=strategy == ENCOUNTER_THEN_INSPIRATION,
+                                              cube_size=cube_size, move_distance=move_distance)
                 result.update(calculated)
             checkpoint()
             result["success"] = result.get("status") == "solved"

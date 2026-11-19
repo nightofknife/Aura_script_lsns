@@ -8,24 +8,26 @@ from __future__ import annotations
 import math
 from numbers import Integral, Real
 
-from ._deep_dive_planner_rules import FACES, cell_to_slot
+from ._deep_dive_planner_rules import FACES, cell_to_slot, validate_cube_size
 
 TARGETS = ("player", "singularity", "inspiration")
 
 
 def _cells(layout):
+    cube_size = validate_cube_size(layout.get("size", 3))
+    slot_count = len(FACES) * cube_size**2
     values = layout.get("cells")
-    if not isinstance(values, list) or len(values) != 54:
-        raise ValueError("targets_require_54_real_cells")
+    if not isinstance(values, list) or len(values) != slot_count:
+        raise ValueError(f"targets_require_{slot_count}_real_cells")
     result = {}
     for row in values:
         if not isinstance(row, dict):
             raise ValueError("invalid_cell")
-        slot = cell_to_slot(row)
+        slot = cell_to_slot(row, cube_size=cube_size)
         if slot in result:
             raise ValueError("duplicate_cell_coordinate")
         result[slot] = row
-    if set(result) != set(range(54)):
+    if set(result) != set(range(slot_count)):
         raise ValueError("incomplete_cell_coordinates")
     return result
 
@@ -72,7 +74,7 @@ def targets_readiness(layout, expected_inspirations=None):
     if not isinstance(layout, dict):
         return dict(base, reason="invalid_layout")
     if (layout.get("schema") != "resonance_pc.deep_dive_layout.v1"
-            or layout.get("coordinate_frame") != "scan_local"):
+            or layout.get("coordinate_frame") != "scan_local" or layout.get("size", 3) != 3):
         return dict(base, reason="unsupported_target_layout")
     if layout.get("prediction_only"):
         return dict(base, reason="prediction_only_layout")
@@ -189,7 +191,8 @@ def required_cells(layout, action):
     if not isinstance(action, dict) or action.get("kind") not in ("move",):
         return []
     destination = action.get("destination_slot", action.get("destination"))
-    slot = int(destination) if isinstance(destination, Integral) and not isinstance(destination, bool) else cell_to_slot(destination)
+    slot = (int(destination) if isinstance(destination, Integral) and not isinstance(destination, bool)
+            else cell_to_slot(destination, cube_size=layout.get("size", 3)))
     cells = _cells(layout)
     if slot not in cells:
         raise ValueError("invalid_move_destination")

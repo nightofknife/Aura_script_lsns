@@ -61,8 +61,9 @@ and, when present, its `event_template_id`, `type_id` and `event_id`.
 types keep the raw event template ID. While the board is in transition, the
 reader reports `deep_dive_board_busy`.
 
-`turn` is captured with the board and gives used, total and remaining counts
-for rounds, moves and rotations. The totals include the client's active action
+`turn` is captured with the board and includes the current plane index from the
+client's `cfg.faceIndex`, plus used, total and remaining counts for rounds,
+moves and rotations. The totals include the client's active action
 bonuses. Remaining rounds follow the on-screen calculation
 `GetMaxRoundNum() - stepNum`, bounded at zero for an exhausted deadline.
 Pass `turn_only: true` to the same RPC for counters alone during a board
@@ -72,8 +73,19 @@ Pass `controls_only: true` for `resonance_pc.deep_dive_controls.v1`. It returns
 the player slot, active move destinations, rotation button names and their
 resulting player faces, with camera-projected client pixel coordinates. Pending
 selection is reported as `selected` for a move or `preview_face` for a rotation.
-The planner matches these against its destination slot or layer permutation
-before confirming the action. Controls are sampled again after view changes.
+This reader is available for inspecting the visible controls.
+
+`deep_dive_action` runs the current client's UI handlers for movement and layer
+rotation on the Unity thread. It checks the map, player slot, plane and quotas
+before selection and confirmation. Move selection uses the live move list, and
+rotation confirmation checks the client's pending preview. The game handles the
+confirmation and outcome normally.
+
+`deep_dive_choice` reads the active event option, reward card or full-inventory
+panel. The snapshot returns ordered IDs, availability, selected state and a
+panel revision. Selection, confirmation and discarding an incoming item use
+the original UI handlers. The host checks the panel revision and target before
+input and accepts at most one confirmation or discard per panel instance.
 
 ## Build
 
