@@ -30,7 +30,7 @@
     "drink_again": {
       "path": "templates/recovery/water/controls/drink_again.png",
       "roi": [895, 465, 80, 80],
-      "threshold": 0.90
+      "threshold": 0.85
     }
   }
 }
