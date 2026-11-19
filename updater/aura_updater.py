@@ -679,12 +679,15 @@ def install_staged_release(staged_root: Path, install_root: Path) -> None:
         state["status"] = "completed"
         _journal_write(journal, state)
         LOG.info("phase=completed backup=%s", transaction / "backup")
-    except Exception as exc:
+    except (Exception, KeyboardInterrupt) as exc:
         LOG.exception("phase=install_failed")
         try:
             _rollback(install_root, journal, state)
         except Exception as rollback_error:
-            raise UpdateError(f"安装失败：{exc}；{rollback_error}") from exc
+            reason = "安装已中断" if isinstance(exc, KeyboardInterrupt) else f"安装失败：{exc}"
+            raise UpdateError(f"{reason}；{rollback_error}") from exc
+        if isinstance(exc, KeyboardInterrupt):
+            raise
         raise UpdateError(f"安装失败，已恢复旧版本：{exc}") from exc
     # Retain this successful backup; older successful versions can now go.
     for old_journal in transaction.parent.glob("*/transaction.json"):

@@ -245,7 +245,8 @@ def test_invalid_download_leaves_old_installation_untouched(tmp_path, monkeypatc
     assert not (root / "escaped.txt").exists()
 
 
-def test_replace_failure_rolls_back_all_managed_paths(tmp_path, monkeypatch):
+@pytest.mark.parametrize("interrupt", [False, True])
+def test_replace_failure_rolls_back_all_managed_paths(tmp_path, monkeypatch, interrupt):
     root = make_release(tmp_path / "installed", "v1.9.9")
     staged = make_release(tmp_path / "source", "v1.9.10")
     before = snapshot(root)
@@ -256,11 +257,13 @@ def test_replace_failure_rolls_back_all_managed_paths(tmp_path, monkeypatch):
         nonlocal failed
         if Path(source) == staged / "plans" and not failed:
             failed = True
+            if interrupt:
+                raise KeyboardInterrupt
             raise PermissionError("injected replacement failure")
         return original_replace(source, target)
 
     monkeypatch.setattr(updater.os, "replace", fail_once)
-    with pytest.raises(updater.UpdateError):
+    with pytest.raises(KeyboardInterrupt if interrupt else updater.UpdateError):
         updater.install_staged_release(staged, root)
     assert failed
     assert snapshot(root) == before
