@@ -34,8 +34,9 @@ _DIFFICULTY_DRAG_SETTLE_SEC = 0.3
 _DIFFICULTY_DRAG_DURATION_SEC = 0.5
 _DIFFICULTY_DRAG_HOLD_SEC = 0.4
 _STABLE_CENTER_TOLERANCE_PX = 2
-_DIFFICULTY_DRAG_START = (900, 360)
-_DIFFICULTY_DRAG_END = (500, 360)
+# Lower depths are left of the current selection, so drag the strip right.
+_DIFFICULTY_DRAG_START = (500, 360)
+_DIFFICULTY_DRAG_END = (900, 360)
 _REWARD_DISMISS_POINT = (640, 680)
 
 
@@ -385,7 +386,7 @@ async def _ensure_difficulty_one(
         ):
             raise ConsciousnessDeepDiveError(
                 "deep_dive_difficulty_1_not_found",
-                "向左拖动后仍未找到难度Ⅰ。",
+                "向右拖动后仍未找到难度Ⅰ。",
                 {
                     "drag_attempts": drag_attempts,
                     "elapsed_ms": int(elapsed_sec * 1000),

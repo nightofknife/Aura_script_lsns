@@ -77,6 +77,52 @@ def test_schema_completion_not_framework_success():
     assert not loop.successful('cleanup',{'success':True,'status':'completed','page_state':'deep_dive_board'})
 
 
+def test_entry_reveals_and_selects_depth_one_from_depth_seven(monkeypatch):
+    depth_selected = 7
+    distance_to_depth_one = 440
+    gestures = []
+    clicks = []
+    decisions = []
+    center = (208, 215)
+
+    def drag(*, start_x, start_y, end_x, end_y, **_):
+        nonlocal distance_to_depth_one
+        assert end_y == start_y
+        gestures.append((start_x, start_y, end_x, end_y))
+        distance_to_depth_one -= end_x - start_x
+
+    def click(*, x, y, **_):
+        nonlocal depth_selected
+        assert distance_to_depth_one <= 0 and (x, y) == center
+        clicks.append((x, y))
+        depth_selected = 1
+
+    async def wait_for_image(*, template, stable_scans, **_):
+        if template == entry._DIFFICULTY_1_SELECTED.template:
+            found = depth_selected == 1
+            if found:
+                decisions.append(stable_scans)
+        else:
+            assert template == entry._DIFFICULTY_1_UNSELECTED.template
+            found = distance_to_depth_one <= 0 and depth_selected != 1
+        return SimpleNamespace(found=found, center_point=center if found else None)
+
+    async def pause(_):
+        pass
+
+    monkeypatch.setattr(entry, 'aura_drag', drag)
+    monkeypatch.setattr(entry, 'aura_click', click)
+    monkeypatch.setattr(entry, 'aura_wait_for_image', wait_for_image)
+    monkeypatch.setattr(entry, 'aura_sleep', pause)
+
+    result = asyncio.run(entry._ensure_difficulty_one(app=None, vision=None, engine=None))
+
+    assert result['status'] == 'selected' and result['selected_state']['found']
+    assert result['drag_attempts'] == len(gestures) == 2
+    assert clicks == [center]
+    assert decisions[-1] == 2
+
+
 @pytest.mark.parametrize('key,stable_scans',[('board_ready',3),('reward_marker',2)])
 def test_boon_confirmation_recognizes_both_entry_destinations(monkeypatch, key, stable_scans):
     seen = []
