@@ -61,6 +61,8 @@ $env:TMPDIR = $testTemp
 
 启用 VPS 下载源时，将 HTTPS 站点地址保存在仓库的 Actions secret
 `AURA_UPDATE_VPS_URL` 中。允许发布的构建会将地址编码到 `更新.exe` 的资源里。
+使用专用 CA 时，把 CA 的公开 PEM 证书保存为 Actions secret `AURA_UPDATE_VPS_CA_PEM`。
+更新器直连 VPS，并仅在这条连接使用专用 CA。GitHub 回退沿用系统默认信任和代理。
 本地构建或试跑可通过同名环境变量指定地址。没有配置地址的构建直接使用 GitHub。
 地址编码用于避免源码扫描，发行包中仍可还原该地址。
 
@@ -69,6 +71,8 @@ VPS 上用 `python -m scripts.release.serve_update_mirror` 启动下载服务。
 索引包含 `tag`、`size`（字节）和 `sha256`。先下载并核对 GitHub 的校验清单，
 再发布 `releases/download/<tag>/AuraResonance-<tag>-win-x64-cpu.zip` 和对应索引。
 两个通道使用同一个服务进程，安装包通过下载队列交付。
+用 `python -m scripts.release.sync_update_mirror --mirror <镜像目录>` 同步两个通道。
+各通道校验新包成功后才切换索引，并清理该通道的旧 ZIP。
 
 行为单元套件输出最慢的 15 项耗时，后续优化以实际慢项和重复断言为依据。
 已合并跨文件的同一几何搜索、原生眼睛素材直角遍历，以及已有精确场景断言覆盖的

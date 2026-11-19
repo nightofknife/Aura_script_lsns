@@ -33,13 +33,16 @@ from packages.aura_core.release_manifest import (
     parse_cpu_manifest,
     release_version_key,
 )
-from packages.aura_core.update_mirror import MIRROR_URL_ENV, NETWORK_ERRORS, MirrorClient, MirrorError, MirrorRelease
+from packages.aura_core.update_mirror import (
+    MIRROR_CA_FILE_ENV, MIRROR_URL_ENV, NETWORK_ERRORS, MirrorClient, MirrorError, MirrorRelease,
+)
 
 
 UpdateChannel = Literal["stable", "experimental"]
 CHANNEL_LABELS = {"stable": "正式版", "experimental": "测试版"}
 FAILURE_MESSAGE = "更新失败，请前往 GitHub Releases 手动下载最新版本。"
 MIRROR_ENDPOINT_RESOURCE = "aura-update-endpoint.dat"
+MIRROR_CA_RESOURCE = "aura-update-ca.pem"
 MAX_INDEX_BYTES = 4096
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
@@ -771,6 +774,17 @@ def _configured_mirror_url() -> str:
         raise MirrorError("更新器内置的 VPS 地址无法读取") from None
 
 
+def _configured_mirror_ca() -> Path | None:
+    override = os.environ.get(MIRROR_CA_FILE_ENV, "").strip()
+    if override:
+        return Path(override)
+    bundle = getattr(sys, "_MEIPASS", None)
+    if bundle is None:
+        return None
+    ca_file = Path(bundle) / MIRROR_CA_RESOURCE
+    return ca_file if ca_file.is_file() else None
+
+
 @contextmanager
 def update_lock(root: Path):
     """An OS-owned lock survives stale files but is released on process exit."""
@@ -822,7 +836,7 @@ def _perform_update_locked(
     try:
         mirror_url = _configured_mirror_url()
         if mirror_url:
-            mirror = MirrorClient(mirror_url, opener=opener)
+            mirror = MirrorClient(mirror_url, opener=opener, ca_file=_configured_mirror_ca())
             mirrored_release = mirror.latest(channel)
     except MirrorError as exc:
         _report_mirror_fallback(exc)

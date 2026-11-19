@@ -12,6 +12,8 @@ on:
     secrets:
       updater_mirror_url:
         required: false
+      updater_mirror_ca_pem:
+        required: false
 
 permissions:
   contents: read
@@ -48,6 +50,7 @@ jobs:
           RELEASE_LABEL: ${{ inputs.release_label }}
           GH_TOKEN: ${{ github.token }}
           AURA_UPDATE_VPS_URL: ${{ secrets.updater_mirror_url }}
+          AURA_UPDATE_VPS_CA_PEM: ${{ secrets.updater_mirror_ca_pem }}
         run: |
           pwsh -NoProfile -File scripts\package_release.ps1 `
             -Profile $env:BUILD_PROFILE `
