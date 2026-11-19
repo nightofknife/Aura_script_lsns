@@ -15,7 +15,11 @@ import cv2
 import numpy as np
 
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.utils.exceptions import StopTaskException
+
+from ._bounded_observation import ObservationBudget
+from ._navigation_templates import NavigationTemplateProfile
 
 
 Region = Tuple[int, int, int, int]
@@ -24,6 +28,9 @@ _PLAN_ROOT = Path(__file__).resolve().parents[2]
 _CHARACTER_CONFIG_FILE = _PLAN_ROOT / "data" / "meta" / "player_characters.json"
 _PLAN_KEY = "resonance_pc"
 _DEBUG_CAPTURE_DIR_ENV = "AURA_CHARACTER_DEBUG_CAPTURE_DIR"
+_ROSTER_PAGE_MARKER = NavigationTemplateProfile(
+    "templates/characters/controls/roster_filter.png", (1140, 8, 125, 56), 0.85,
+)
 
 
 def _character_error(message: str) -> StopTaskException:
@@ -621,7 +628,7 @@ def scan_character_page(
     return list(observations.values())
 
 
-def _capture_region(app: Any, region: Region, *, label: str) -> np.ndarray:
+def _capture_region(app: Any, region: Region | None, *, label: str) -> np.ndarray:
     capture = app.capture(rect=region)
     if not getattr(capture, "success", False) or getattr(capture, "image", None) is None:
         raise _character_error(f"capture failed for {label}: {region}")
@@ -658,6 +665,11 @@ def _save_debug_scan_image(page_image: np.ndarray, page_number: int) -> Optional
     return output_path
 
 
+def _check_cancelled() -> None:
+    if is_current_task_cancel_requested():
+        raise _character_error("cancelled")
+
+
 def enter_character_page(
     app: Any,
     vision: Any,
@@ -667,49 +679,73 @@ def enter_character_page(
     interval_sec: float = 0.15,
     click_interval_sec: float = 0.55,
 ) -> np.ndarray:
-    """Continuously match and click the crew icon until known cards are visible."""
+    """Wait for the roster controls and a stable grid before scanning portraits."""
 
     layout = catalog["layout"]
-    entry_region = tuple(int(value) for value in layout["entry_region"])
-    deadline = time.monotonic() + max(float(timeout_sec), 0.1)
+    entry_x, entry_y, entry_width, entry_height = layout["entry_region"]
+    grid_x, grid_y, grid_width, grid_height = layout["grid_region"]
+    marker_x, marker_y, marker_width, marker_height = _ROSTER_PAGE_MARKER.roi
+    marker_path = str(_PLAN_ROOT / _ROSTER_PAGE_MARKER.path)
+    budget = ObservationBudget(
+        max(float(timeout_sec), 0.1), monotonic=time.monotonic, check_cancelled=_check_cancelled,
+    )
+    max_grid_change = float(layout["stable_capture_max_mean_diff"])
     next_click_at = 0.0
-    next_confirm_at = 0.0
-    clicked = False
-    last_confidence = 0.0
-    while time.monotonic() < deadline:
-        now = time.monotonic()
-        if now >= next_click_at:
-            entry_image = _capture_region(app, entry_region, label="character entry")
-            entry_match = vision.find_template(
-                source_image=entry_image,
-                template_image=(catalog["entry_template_image"] if "entry_template_image" in catalog
-                                else str(catalog["entry_template_path"])),
-                threshold=float(layout["entry_match_threshold"]),
-                use_grayscale=True,
-                match_method=cv2.TM_CCOEFF_NORMED,
-                preprocess="none",
-            )
-            last_confidence = float(getattr(entry_match, "confidence", 0.0) or 0.0)
-            center = getattr(entry_match, "center_point", None)
-            if bool(getattr(entry_match, "found", False)) and center is not None:
-                app.click(
-                    x=int(entry_region[0] + center[0]),
-                    y=int(entry_region[1] + center[1]),
+    previous_grid = None
+    clicks = 0
+    entry_confidence = 0.0
+    best_page_confidence = 0.0
+    while budget.active():
+        frame = _capture_region(app, None, label="character page")
+        marker = vision.find_template(
+            source_image=frame[marker_y:marker_y + marker_height, marker_x:marker_x + marker_width],
+            template_image=marker_path,
+            **_ROSTER_PAGE_MARKER.match_kwargs(),
+        )
+        best_page_confidence = max(best_page_confidence, marker.confidence)
+        if not budget.active():
+            break
+        if marker.found:
+            grid = frame[grid_y:grid_y + grid_height, grid_x:grid_x + grid_width]
+            if (
+                previous_grid is not None
+                and previous_grid.shape == grid.shape
+                and cv2.absdiff(previous_grid, grid).mean() <= max_grid_change
+            ):
+                if not budget.active():
+                    break
+                logger.info(
+                    "[CharacterPageOpen] result=confirmed clicks=%s page_confidence=%.3f",
+                    clicks, marker.confidence,
                 )
-                clicked = True
-                next_confirm_at = now + 0.3
-            next_click_at = now + max(float(click_interval_sec), 0.1)
-
-        if clicked and now >= next_confirm_at:
-            page_image = _capture_stable_grid(app, catalog)
-            if _match_character_candidates(page_image, catalog, vision):
-                return page_image
-            next_confirm_at = now + max(float(click_interval_sec), 0.1)
-        time.sleep(max(float(interval_sec), 0.05))
+                return grid
+            previous_grid = grid
+        else:
+            previous_grid = None
+            if budget.monotonic() >= next_click_at:
+                entry_match = vision.find_template(
+                    source_image=frame[entry_y:entry_y + entry_height, entry_x:entry_x + entry_width],
+                    template_image=(catalog["entry_template_image"] if "entry_template_image" in catalog
+                                    else str(catalog["entry_template_path"])),
+                    threshold=float(layout["entry_match_threshold"]),
+                    use_grayscale=True,
+                    match_method=cv2.TM_CCOEFF_NORMED,
+                    preprocess="none",
+                )
+                entry_confidence = entry_match.confidence
+                center = entry_match.center_point
+                if entry_match.found and center is not None:
+                    if not budget.active():
+                        break
+                    app.click(x=entry_x + center[0], y=entry_y + center[1])
+                    clicks += 1
+                next_click_at = budget.monotonic() + max(float(click_interval_sec), 0.1)
+        time.sleep(budget.pause_seconds(max(float(interval_sec), 0.05)))
 
     raise _character_error(
-        "character page was not confirmed within "
-        f"{float(timeout_sec):.1f}s; last entry confidence={last_confidence:.3f}"
+        f"character page did not reach a stable roster within {float(timeout_sec):.1f}s "
+        f"(clicks={clicks}, entry confidence={entry_confidence:.3f}, "
+        f"best page marker confidence={best_page_confidence:.3f})"
     )
 
 

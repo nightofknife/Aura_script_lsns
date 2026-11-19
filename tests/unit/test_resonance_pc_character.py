@@ -26,6 +26,7 @@ from packages.resonance_gui.config_repository import (
     ResonanceConfigRepository,
 )
 from packages.resonance_gui.widgets.player_data_panel import PlayerDataPanel
+from plans.aura_base.src.services.vision_service import VisionService
 from plans.resonance_pc.src.actions import character_pc_actions as characters
 from plans.resonance_pc.src.actions import player_data_pc_actions as player_data
 
@@ -148,6 +149,62 @@ def test_character_catalog_groups_multiple_skins_skips_placeholders_and_rejects_
     config_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(ValueError, match="140x140"):
         characters.load_character_catalog(config_path, plan_root=tmp_path)
+
+
+@pytest.fixture
+def roster_navigation(monkeypatch):
+    vision = VisionService()
+    monkeypatch.setattr(
+        vision, "find_all_templates_batch",
+        lambda **_kwargs: pytest.fail("portrait matching must run after page entry"),
+    )
+    elapsed = 0.0
+
+    def sleep(seconds):
+        nonlocal elapsed
+        elapsed += seconds
+
+    monkeypatch.setattr(characters, "time", SimpleNamespace(monotonic=lambda: elapsed, sleep=sleep))
+    catalog = characters.load_character_catalog()
+    profile = np.zeros((720, 1280, 3), dtype=np.uint8)
+    entry = catalog["entry_template_image"]
+    profile[472:472 + entry.shape[0], 470:470 + entry.shape[1]] = entry[:, :, None]
+
+    marker_path = REPO_ROOT / "plans/resonance_pc" / characters._ROSTER_PAGE_MARKER.path
+    marker = cv2.cvtColor(cv2.imread(str(marker_path)), cv2.COLOR_BGR2RGB)
+
+    def roster(grid_value):
+        frame = np.full_like(profile, grid_value)
+        frame[24:24 + marker.shape[0], 1161:1161 + marker.shape[1]] = marker
+        return frame
+
+    return vision, catalog, profile, roster
+
+
+def test_enter_character_page_waits_for_marker_and_stable_grid(roster_navigation):
+    vision, catalog, profile, roster = roster_navigation
+    transition = np.zeros_like(profile)
+    ready = roster(150)
+    frames = iter((profile, transition, transition, roster(100), ready, ready))
+    app = _App()
+    app.capture = lambda *, rect: SimpleNamespace(success=True, image=next(frames))
+
+    grid = characters.enter_character_page(app, vision, catalog)
+
+    assert app.clicks == [{"x": 495, "y": 503}]
+    np.testing.assert_array_equal(grid, ready[70:])
+
+
+def test_enter_character_page_times_out_if_roster_grid_keeps_changing(roster_navigation):
+    vision, catalog, profile, roster = roster_navigation
+    frames = iter((profile, roster(50), roster(100), roster(150)))
+    app = _App()
+    app.capture = lambda *, rect: SimpleNamespace(success=True, image=next(frames))
+
+    with pytest.raises(StopTaskException, match="did not reach a stable roster"):
+        characters.enter_character_page(app, vision, catalog, timeout_sec=0.5)
+
+    assert app.clicks == [{"x": 495, "y": 503}]
 
 
 def test_cross_skin_matches_at_the_same_card_are_suppressed() -> None:
