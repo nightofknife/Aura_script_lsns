@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import ctypes
 import hashlib
 import importlib.util
@@ -10,9 +11,13 @@ import json
 import os
 from pathlib import Path
 import sys
+from urllib.error import HTTPError
 import zipfile
 
 import pytest
+
+from packages.aura_core.update_mirror import MirrorRelease
+from scripts.release import serve_update_mirror
 
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -113,6 +118,116 @@ def test_cpu_update_replaces_updater_and_preserves_user_files(tmp_path):
     assert (root / "更新.exe").read_text(encoding="utf-8") == "v1.9.10:更新.exe"
     for name in retained:
         assert (root / name).read_bytes() == b"user-content"
+
+
+@pytest.mark.parametrize("condition", ["waiting", "offline", "corrupt", "cancelled", "current"])
+def test_vps_queue_and_pinned_fallback(tmp_path, monkeypatch, capsys, condition):
+    mirror = "https://update.example.test"
+    monkeypatch.setenv(updater.MIRROR_URL_ENV, mirror)
+    monkeypatch.setattr("packages.aura_core.update_mirror.time.sleep", lambda _: None)
+    tag = "v1.9.10-E.1"
+    starting_tag = tag if condition == "current" else "v1.9.10"
+    root = make_release(tmp_path / "installed", starting_tag)
+    source = make_release(tmp_path / "source", tag)
+    github, github_calls = release_server(source)
+    filename = f"AuraResonance-{tag}-win-x64-cpu.zip"
+    base = f"{updater.RELEASES_URL}/download/{tag}/"
+    manifest = github(updater._request(updater.LATEST_CHECKSUMS_URL, accept="text/plain")).getvalue()
+    payload = github(updater._request(base + filename, accept="application/octet-stream")).getvalue()
+    github_calls.clear()
+    requests = []
+    polls = iter([2, 1, 0])
+
+    def json_response(data):
+        return io.BytesIO(json.dumps(data).encode())
+
+    def request(request, *, timeout):
+        url, method = request.full_url, request.get_method()
+        requests.append((method, url))
+        if not url.startswith(mirror):
+            if url == base + "SHA256SUMS.txt":
+                return io.BytesIO(manifest)
+            return github(request, timeout=timeout)
+        path = url.removeprefix(mirror)
+        if path == "/channels/experimental":
+            return json_response({"tag": tag, "size": len(payload), "sha256": hashlib.sha256(payload).hexdigest()})
+        if path.startswith("/queue/"):
+            if method == "PUT":
+                assert json.loads(request.data) == {"tag": tag}
+                return json_response({})
+            if method == "DELETE":
+                return io.BytesIO()
+            ahead = next(polls)
+            if condition == "cancelled":
+                raise KeyboardInterrupt
+            return json_response({"state": "waiting" if ahead else "ready", "ahead": ahead})
+        assert path.startswith("/download/")
+        if condition == "offline":
+            raise HTTPError(url, 503, "Offline", {}, io.BytesIO())
+        response = io.BytesIO(payload if condition != "corrupt" else b"X" * len(payload))
+        response.headers = {"Content-Length": str(len(payload))}
+        return response
+
+    if condition == "cancelled":
+        with pytest.raises(KeyboardInterrupt):
+            updater.perform_update(root, channel="experimental", opener=request)
+        assert requests[-1][0] == "DELETE"
+        assert all(url.startswith(mirror) for _, url in requests)
+        assert not list(root.rglob("*.part"))
+        return
+    changed = updater.perform_update(root, channel="experimental", opener=request)
+    messages = capsys.readouterr().out
+    if condition == "current":
+        assert not changed
+        assert requests == [("GET", mirror + "/channels/experimental")]
+        return
+    assert changed
+    assert updater.load_installed_release(root) == (tag, "cpu")
+    assert "前面还有 2 位" in messages and "前面还有 1 位" in messages
+    if condition in {"offline", "corrupt"}:
+        assert [url for _, url in requests if not url.startswith(mirror)] == [
+            base + "SHA256SUMS.txt", base + filename,
+        ]
+        assert "切换到 GitHub" in messages
+        assert sum(url.startswith(mirror + "/download/") for _, url in requests) == (3 if condition == "offline" else 1)
+    else:
+        assert all(url.startswith(mirror) for _, url in requests)
+        assert "切换到 GitHub" not in messages
+
+
+def test_packaged_mirror_endpoint_is_read_from_encoded_resource(tmp_path, monkeypatch):
+    monkeypatch.delenv(updater.MIRROR_URL_ENV, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert updater._configured_mirror_url() == ""
+    (tmp_path / updater.MIRROR_ENDPOINT_RESOURCE).write_bytes(base64.b64encode(b"https://update.example.test"))
+    assert updater._configured_mirror_url() == "https://update.example.test"
+    monkeypatch.setenv(updater.MIRROR_URL_ENV, "https://test.example.test")
+    assert updater._configured_mirror_url() == "https://test.example.test"
+
+
+def test_vps_server_slot_is_shared_and_skips_cancelled_or_unclaimed_tickets(monkeypatch):
+    queue = serve_update_mirror.DownloadQueue()
+    stable = MirrorRelease("v1.9.10", 1, "a" * 64)
+    experimental = MirrorRelease("v1.9.10-E.1", 1, "b" * 64)
+    now = 10
+    monkeypatch.setattr(serve_update_mirror.time, "monotonic", lambda: now)
+
+    queue.join("active", stable)
+    assert queue.claim("active") == stable
+    queue.join("cancelled", experimental)
+    queue.join("unclaimed", stable)
+    queue.join("next", experimental)
+    queue.join("next", experimental)
+    assert queue.poll("next") == {"state": "waiting", "ahead": 3}
+    assert queue.claim("next") is None
+
+    queue.cancel("cancelled")
+    queue.finish("active")
+    assert queue.poll("unclaimed") == {"state": "ready", "ahead": 0}
+    now += serve_update_mirror.CLAIM_TTL + 1
+    assert queue.poll("next") == {"state": "ready", "ahead": 0}
+    assert queue.claim("next") == experimental
+    assert queue.claim("unclaimed") is None
 
 
 @pytest.mark.parametrize("failure", ["hash", "traversal"])

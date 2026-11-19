@@ -380,26 +380,35 @@ function Build-PortableUpdater {
     New-Item -ItemType Directory -Force -Path $WorkPath | Out-Null
 
     Write-Host "Building portable updater ..."
-    & $PythonPath -m PyInstaller `
-        --noconfirm `
-        --clean `
-        --onefile `
-        --console `
-        --paths $RepositoryRoot `
-        --hidden-import packages.aura_core.observability.logging.coordinator `
-        --hidden-import packages.aura_core.observability.logging.transport `
-        --hidden-import packages.aura_core.observability.logging.stream_capture `
-        --exclude-module PySide6 `
-        --exclude-module shiboken6 `
-        --icon $IconPath `
-        --name $ExecutableName `
-        --distpath $DistPath `
-        --workpath $WorkPath `
-        --specpath $WorkPath `
-        $UpdaterSource
-
-    if ($LASTEXITCODE -ne 0) {
-        throw "Portable updater build failed with exit code $LASTEXITCODE."
+    $pyInstallerArgs = @(
+        '--noconfirm', '--clean', '--onefile', '--console',
+        '--paths', $RepositoryRoot,
+        '--hidden-import', 'packages.aura_core.observability.logging.coordinator',
+        '--hidden-import', 'packages.aura_core.observability.logging.transport',
+        '--hidden-import', 'packages.aura_core.observability.logging.stream_capture',
+        '--exclude-module', 'PySide6',
+        '--exclude-module', 'shiboken6',
+        '--icon', $IconPath,
+        '--name', $ExecutableName,
+        '--distpath', $DistPath,
+        '--workpath', $WorkPath,
+        '--specpath', $WorkPath
+    )
+    $endpointFile = Join-Path $WorkPath 'aura-update-endpoint.dat'
+    try {
+        if (-not [string]::IsNullOrWhiteSpace($env:AURA_UPDATE_VPS_URL)) {
+            $endpointBytes = [System.Text.Encoding]::UTF8.GetBytes($env:AURA_UPDATE_VPS_URL.Trim())
+            [System.IO.File]::WriteAllText($endpointFile, [Convert]::ToBase64String($endpointBytes))
+            $pyInstallerArgs += @('--add-data', "$endpointFile;.")
+        }
+        & $PythonPath -m PyInstaller @pyInstallerArgs $UpdaterSource
+        if ($LASTEXITCODE -ne 0) {
+            throw "Portable updater build failed with exit code $LASTEXITCODE."
+        }
+    } finally {
+        if (Test-Path -LiteralPath $endpointFile) {
+            Remove-Item -LiteralPath $endpointFile -Force
+        }
     }
 }
 

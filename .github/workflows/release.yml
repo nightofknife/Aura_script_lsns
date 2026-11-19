@@ -248,6 +248,8 @@ jobs:
     with:
       profile: cpu
       release_label: ${{ needs.scope.outputs.release_label }}
+    secrets:
+      updater_mirror_url: ${{ needs.scope.outputs.publish_allowed == 'true' && secrets.AURA_UPDATE_VPS_URL || '' }}
 
   verify-cpu:
     runs-on: windows-2022

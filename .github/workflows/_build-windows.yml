@@ -9,6 +9,9 @@ on:
       release_label:
         required: true
         type: string
+    secrets:
+      updater_mirror_url:
+        required: false
 
 permissions:
   contents: read
@@ -44,6 +47,7 @@ jobs:
           BUILD_PROFILE: ${{ inputs.profile }}
           RELEASE_LABEL: ${{ inputs.release_label }}
           GH_TOKEN: ${{ github.token }}
+          AURA_UPDATE_VPS_URL: ${{ secrets.updater_mirror_url }}
         run: |
           pwsh -NoProfile -File scripts\package_release.ps1 `
             -Profile $env:BUILD_PROFILE `
