@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import ctypes
 from ctypes import wintypes
 from dataclasses import dataclass
@@ -32,11 +33,13 @@ from packages.aura_core.release_manifest import (
     parse_cpu_manifest,
     release_version_key,
 )
+from packages.aura_core.update_mirror import MIRROR_URL_ENV, NETWORK_ERRORS, MirrorClient, MirrorError, MirrorRelease
 
 
 UpdateChannel = Literal["stable", "experimental"]
 CHANNEL_LABELS = {"stable": "正式版", "experimental": "测试版"}
 FAILURE_MESSAGE = "更新失败，请前往 GitHub Releases 手动下载最新版本。"
+MIRROR_ENDPOINT_RESOURCE = "aura-update-endpoint.dat"
 MAX_INDEX_BYTES = 4096
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
@@ -78,6 +81,10 @@ MANAGED_PROCESS_PATHS = (
 
 
 class UpdateError(RuntimeError):
+    pass
+
+
+class AssetVerificationError(UpdateError):
     pass
 
 
@@ -167,12 +174,15 @@ def fetch_latest_release(
     channel: UpdateChannel = "stable",
     opener: Callable[..., Any] | None = None,
     timeout_sec: float = 15.0,
+    pinned_tag: str | None = None,
 ) -> LatestRelease:
-    expected_tag = None
+    expected_tag = pinned_tag
     checksums_url = LATEST_CHECKSUMS_URL
-    if channel == "experimental":
+    if expected_tag is None and channel == "experimental":
         expected_tag = _fetch_experimental_tag(opener=opener, timeout_sec=timeout_sec)
-        checksums_url = f"{RELEASES_URL}/download/{expected_tag}/SHA256SUMS.txt"
+    if expected_tag is not None:
+        encoded_tag = urllib.parse.quote(expected_tag, safe="")
+        checksums_url = f"{RELEASES_URL}/download/{encoded_tag}/SHA256SUMS.txt"
 
     request = _request(checksums_url, accept="text/plain")
     with _open_url(request, opener=opener, timeout_sec=timeout_sec) as response:
@@ -185,7 +195,7 @@ def fetch_latest_release(
     except ValueError as exc:
         raise UpdateError(str(exc)) from exc
     if expected_tag is not None and tag != expected_tag:
-        raise UpdateError(f"测试版索引指向 {expected_tag}，但校验清单列出的是 {tag}")
+        raise UpdateError(f"预期版本为 {expected_tag}，但校验清单列出的是 {tag}")
     version = release_version_key(tag)
     if channel == "stable" and (version is None or not version.stable):
         raise UpdateError("正式版通道返回了测试版清单")
@@ -222,6 +232,7 @@ def download_asset(
     opener: Callable[..., Any] | None = None,
     timeout_sec: float = 60.0,
     max_bytes: int | None = None,
+    progress: Callable[[int], None] | None = None,
 ) -> str:
     destination = destination.resolve()
     destination.parent.mkdir(parents=True, exist_ok=True)
@@ -241,13 +252,14 @@ def download_asset(
                         break
                     size += len(chunk)
                     if max_bytes is not None and size > max_bytes:
-                        raise UpdateError(f"Release asset is too large: {asset.name}")
+                        raise AssetVerificationError(f"Release asset is too large: {asset.name}")
                     digest.update(chunk)
                     handle.write(chunk)
+                    if progress is not None:
+                        progress(size)
         os.replace(partial, destination)
-    except Exception:
-        if partial.exists():
-            partial.unlink()
+    except (Exception, KeyboardInterrupt):
+        partial.unlink(missing_ok=True)
         raise
     return digest.hexdigest()
 
@@ -667,12 +679,15 @@ def install_staged_release(staged_root: Path, install_root: Path) -> None:
         state["status"] = "completed"
         _journal_write(journal, state)
         LOG.info("phase=completed backup=%s", transaction / "backup")
-    except Exception as exc:
+    except (Exception, KeyboardInterrupt) as exc:
         LOG.exception("phase=install_failed")
         try:
             _rollback(install_root, journal, state)
         except Exception as rollback_error:
-            raise UpdateError(f"安装失败：{exc}；{rollback_error}") from exc
+            reason = "安装已中断" if isinstance(exc, KeyboardInterrupt) else f"安装失败：{exc}"
+            raise UpdateError(f"{reason}；{rollback_error}") from exc
+        if isinstance(exc, KeyboardInterrupt):
+            raise
         raise UpdateError(f"安装失败，已恢复旧版本：{exc}") from exc
     # Retain this successful backup; older successful versions can now go.
     for old_journal in transaction.parent.glob("*/transaction.json"):
@@ -692,13 +707,68 @@ def _download_and_verify(
     checksums: dict[str, str],
     *,
     opener: Callable[..., Any] | None,
+    max_bytes: int = MAX_DOWNLOAD_BYTES,
+    progress: Callable[[int], None] | None = None,
 ) -> Path:
     LOG.info("phase=download asset=%s", asset.name)
-    actual = download_asset(asset, destination, opener=opener, max_bytes=MAX_DOWNLOAD_BYTES)
+    actual = download_asset(asset, destination, opener=opener, max_bytes=max_bytes, progress=progress)
     if actual.lower() != expected_checksum(checksums, asset):
         destination.unlink(missing_ok=True)
-        raise UpdateError(f"SHA-256 verification failed for {asset.name}")
+        raise AssetVerificationError(f"SHA-256 verification failed for {asset.name}")
     return destination
+
+
+def _download_from_mirror(client: MirrorClient, release: MirrorRelease, destination: Path) -> Path:
+    def waiting(ahead: int | None) -> None:
+        if ahead is None:
+            _write_console_line("VPS 下载队列已满，正在等待入队。", "The VPS queue is full. Waiting to join.")
+        else:
+            _write_console_line(f"下载排队中，前面还有 {ahead} 位。按 Ctrl+C 取消。",
+                                f"Waiting to download. {ahead} ahead. Press Ctrl+C to cancel.")
+
+    def started() -> None:
+        _write_console_line(f"正在从 VPS 下载 {release.tag}……", f"Downloading {release.tag} from the VPS...")
+
+    displayed = 0
+
+    def progress(size: int) -> None:
+        nonlocal displayed
+        percent = size * 100 // release.size
+        if percent >= displayed + 10 or percent == 100:
+            displayed = percent
+            _write_console_line(f"已下载 {percent}%", f"Downloaded {percent}%")
+
+    def open_stream(_request, *, timeout):
+        return client.stream(release, on_wait=waiting, on_start=started, timeout=timeout)
+
+    asset = ReleaseAsset(release.filename, client.base_url)
+    return _download_and_verify(
+        asset, destination, {asset.name.casefold(): release.sha256},
+        opener=open_stream, max_bytes=release.size, progress=progress,
+    )
+
+
+def _report_mirror_fallback(error: Exception) -> None:
+    LOG.warning("phase=mirror_fallback reason=%s", str(error) if isinstance(error, MirrorError) else type(error).__name__)
+    _write_console_line("VPS 更新服务暂时不可用，正在切换到 GitHub。",
+                        "The VPS update service is unavailable. Switching to GitHub.")
+
+
+def _configured_mirror_url() -> str:
+    override = os.environ.get(MIRROR_URL_ENV, "").strip()
+    bundle = getattr(sys, "_MEIPASS", None)
+    if override or bundle is None:
+        return override
+    try:
+        with (Path(bundle) / MIRROR_ENDPOINT_RESOURCE).open("rb") as resource:
+            encoded = resource.read(4097)
+        if len(encoded) > 4096:
+            raise ValueError("Invalid endpoint resource size")
+        return base64.b64decode(encoded, validate=True).decode("utf-8").strip()
+    except FileNotFoundError:
+        return ""
+    except (OSError, ValueError):
+        raise MirrorError("更新器内置的 VPS 地址无法读取") from None
 
 
 @contextmanager
@@ -748,9 +818,19 @@ def _perform_update_locked(
 ) -> bool:
     current_tag, profile = load_installed_release(root)
     LOG.info("phase=check_version installed=%s profile=%s channel=%s", current_tag, profile, channel)
-    release = fetch_latest_release(channel=channel, opener=opener)
+    mirror, mirrored_release, release = None, None, None
+    try:
+        mirror_url = _configured_mirror_url()
+        if mirror_url:
+            mirror = MirrorClient(mirror_url, opener=opener)
+            mirrored_release = mirror.latest(channel)
+    except MirrorError as exc:
+        _report_mirror_fallback(exc)
+    if mirrored_release is None:
+        release = fetch_latest_release(channel=channel, opener=opener)
+    selected_tag = mirrored_release.tag if mirrored_release is not None else release.tag
     current_version = release_version_key(current_tag)
-    latest_version = release_version_key(release.tag)
+    latest_version = release_version_key(selected_tag)
     if latest_version is None or current_version is None:
         raise UpdateError("Release version is invalid")
     same_base_channel_switch = (
@@ -760,28 +840,29 @@ def _perform_update_locked(
         and latest_version[:3] == current_version[:3]
     )
     if latest_version <= current_version and not same_base_channel_switch:
-        LOG.info("phase=already_current latest=%s", release.tag)
+        LOG.info("phase=already_current latest=%s", selected_tag)
         return False
 
     work_root = _confined_child(root, ".update-work", "downloads", uuid.uuid4().hex)
-    download_root = work_root
-    checksums = release.checksums
-
-    main_asset = select_asset(release, f"-win-x64-{profile}.zip")
-    main_archive = _download_and_verify(
-        main_asset,
-        download_root / main_asset.name,
-        checksums,
-        opener=opener,
-    )
-    expected_main_root = main_asset.name[:-4]
+    main_archive = None
+    if mirrored_release is not None:
+        assert mirror is not None
+        try:
+            main_archive = _download_from_mirror(mirror, mirrored_release, work_root / mirrored_release.filename)
+        except (MirrorError, AssetVerificationError, *NETWORK_ERRORS) as exc:
+            _report_mirror_fallback(exc)
+            release = fetch_latest_release(channel=channel, opener=opener, pinned_tag=selected_tag)
+    if main_archive is None:
+        assert release is not None
+        main_asset = select_asset(release, f"-win-x64-{profile}.zip")
+        main_archive = _download_and_verify(main_asset, work_root / main_asset.name, release.checksums, opener=opener)
     staged_root = extract_release_archive(
         main_archive,
         work_root / "staging",
-        expected_top_level=expected_main_root,
+        expected_top_level=main_archive.stem,
     )
-    validate_staged_release(staged_root, tag=release.tag, profile=profile)
-    LOG.info("phase=staged tag=%s", release.tag)
+    validate_staged_release(staged_root, tag=selected_tag, profile=profile)
+    LOG.info("phase=staged tag=%s", selected_tag)
     terminate_installed_processes(root)
     install_staged_release(staged_root, root)
     shutil.rmtree(work_root, ignore_errors=True)
@@ -1018,6 +1099,9 @@ def main(
         if args.apply_root:
             _wait_for_enter_after_failure()
         return 0
+    except KeyboardInterrupt:
+        _write_console_line("已取消更新。", "Update cancelled.")
+        return 130
     except Exception as exc:
         LOG.exception("phase=failed")
         if log_path:
