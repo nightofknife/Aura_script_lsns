@@ -71,7 +71,8 @@ class MirrorClient:
             raise MirrorError("VPS 更新地址必须是 HTTPS 站点地址")
         self.base_url = base_url.rstrip("/")
         if opener is None:
-            handlers = [_RejectRedirects()]
+            # The mirror is a direct route. GitHub fallback keeps the normal system proxy.
+            handlers = [request.ProxyHandler({}), _RejectRedirects()]
             if ca_file is not None:
                 try:
                     context = ssl.create_default_context(cafile=str(ca_file))

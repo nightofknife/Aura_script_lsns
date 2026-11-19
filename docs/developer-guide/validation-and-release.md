@@ -62,7 +62,7 @@ $env:TMPDIR = $testTemp
 启用 VPS 下载源时，将 HTTPS 站点地址保存在仓库的 Actions secret
 `AURA_UPDATE_VPS_URL` 中。允许发布的构建会将地址编码到 `更新.exe` 的资源里。
 使用专用 CA 时，把 CA 的公开 PEM 证书保存为 Actions secret `AURA_UPDATE_VPS_CA_PEM`。
-这张 CA 只用于连接 VPS。GitHub 回退仍使用系统默认信任。
+更新器直连 VPS，并仅在这条连接使用专用 CA。GitHub 回退沿用系统默认信任和代理。
 本地构建或试跑可通过同名环境变量指定地址。没有配置地址的构建直接使用 GitHub。
 地址编码用于避免源码扫描，发行包中仍可还原该地址。
 
