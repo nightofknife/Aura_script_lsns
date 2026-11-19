@@ -3,7 +3,7 @@ consciousness_deep_dive_planned_run_pc:
     role: user_task
     domain: 活动玩法
     title: 识海深潜关卡内自动运行
-    description: 通过桥接器读取三至五阶棋盘。优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，位面间隙缺员时结束下潜。
+    description: 通过桥接器读取三至五阶棋盘，优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。战前缺员时从候补补全，人数不足时结束下潜。
     entry_point: true
     inputs:
       - {name: strategy, type: string, default: encounter_then_inspiration}

@@ -84,6 +84,7 @@ hiddenimports += [
     "win32event",
     "win32file",
     "win32pipe",
+    "winerror",
     "pythoncom",
     "pywintypes",
 ]

@@ -222,6 +222,11 @@ def advance_context(context, observation, now):
     pending = context.get('pending')
     if pending:
         action = pending['action']
+        if action == 'battle_start' and 'native' in pending and scene in {
+                'battle_formation', 'native_choice_wait', 'unknown'}:
+            if now - pending['at'] >= 45:
+                return _step('blocked', reason='battle_start_transition_timeout')
+            return _step()
         if action == 'battle_next':
             if scene in {'native_choice_wait', 'unknown'} or scene == 'battle_victory' and 'native' in pending:
                 if now - context['progress_at'] >= 45:
@@ -272,8 +277,17 @@ def advance_context(context, observation, now):
             return _step('blocked', reason='shop_no_progress')
         return _step()
     if context['phase'] == 'entry_wait' and scene == 'battle_formation':
+        native_kind = (o.get('native') or {}).get('kind')
+        if native_kind == 'formation_leave':
+            return _step()
+        if native_kind == 'formation_fill':
+            if now - context['progress_at'] >= 45:
+                return _step('blocked', reason='formation_fill_no_progress')
+            context['progress_at'] = now
+            context['trace'].append(dict(action='formation_fill', at=now))
+            return _step('input_requested', target=choice_target(o, 'confirm', None), action='formation_fill')
         context.update(phase='battle_wait', seen_content=True, progress_at=now)
-        return _issue(context, 'battle_start', o['click'], now)
+        return _issue(context, 'battle_start', choice_target(o, 'confirm', o.get('click')), now)
     if context['phase'] in {'entry_wait', 'battle_wait'} and scene == 'battle_victory':
         context.update(victory=True, phase='battle_rewards', progress_at=now)
         return _issue(context, 'battle_next', choice_target(o, 'confirm', o.get('click')), now)

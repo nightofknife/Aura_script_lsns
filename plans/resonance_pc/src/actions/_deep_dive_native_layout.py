@@ -63,14 +63,23 @@ def layout_from_board(board):
         raise ValueError('incomplete_native_board_coordinates')
 
     targets = {kind: [] for kind in ('player', 'singularity', 'inspiration')}
-    for obj in board['objects']:
-        key = _coordinate(obj['face'], obj['row'], obj['col'], size)
-        cells[key].setdefault('objects', []).append(dict(obj))
-        if obj['type'] in targets:
-            targets[obj['type']].append(key)
-            cell = cells[key]
+    objects = board['objects']
+    singularity_positions = {(obj['face'], obj['row'], obj['col'])
+                             for obj in objects if obj['type'] == 'singularity'}
+    for obj in objects:
+        position = (obj['face'], obj['row'], obj['col'])
+        key = _coordinate(*position, size)
+        kind = obj['type']
+        # The bridge can still list inspiration at the singularity's position.
+        # Treat it as consumed in the planning layout. native_board keeps the raw read.
+        if kind == 'inspiration' and position in singularity_positions:
+            continue
+        cell = cells[key]
+        cell.setdefault('objects', []).append(dict(obj))
+        if kind in targets:
+            targets[kind].append(key)
             if cell['occupant'] == 'none':
-                cell['occupant'] = obj['type']
+                cell['occupant'] = kind
             else:
                 cell.update(occupant='unknown', occupant_status='conflict')
     if len(targets['player']) != 1 or len(targets['singularity']) > 1:

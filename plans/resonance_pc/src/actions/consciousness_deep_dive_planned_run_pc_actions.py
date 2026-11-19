@@ -53,7 +53,9 @@ PHASE_LIMITS = {'scan_turn': 90, 'accept_scan': 30, 'planning': 45,
                 'reset_wide': 20, 'wide_reference': 45, 'read_registration_anchors': 15, 'supplement_cells': 15,
                 'operation': 100, 'operation_outcome': 45, 'verify_move': 45,
                 'enemy_wait': 180, 'plane_transition': 90, 'rest_area': 45,
-                'next_plane_wait': 90, 'shortage_settlement': 60, 'event_dispatch': 960}
+                'next_plane_wait': 90, 'shortage_settlement': 60, 'formation_shortage_settlement': 60,
+                'event_dispatch': 960}
+FORMATION_SETTLEMENT_STEPS = ('formation_leave', 'formation_quit', 'formation_finish')
 _RUN_OCR = ContextVar('deep_dive_planned_run_ocr', default=None)
 _RUN_DETECTOR = ContextVar('deep_dive_planned_run_detector', default=None)
 _RUN_ANCHOR_READ = ContextVar('deep_dive_planned_run_anchor_read', default=None)
@@ -308,9 +310,13 @@ def _terminal(state, image, observation):
         state.update(terminal_signature=signature, terminal_stable=1)
     # Freeze all other input even before the second confirmation.
     if state['terminal_stable'] >= 2:
-        shortage = state.get('shortage_settlement') or {}
-        reason = ('insufficient_battle_roles_settled' if 'rest_finish' in shortage.get('submitted', [])
-                  else 'settlement_observed')
+        rest_shortage = state.get('shortage_settlement') or {}
+        formation_shortage = state.get('formation_shortage_settlement') or {}
+        reason = 'settlement_observed'
+        if 'formation_finish' in formation_shortage.get('submitted', []):
+            reason = 'formation_shortage_settled'
+        elif 'rest_finish' in rest_shortage.get('submitted', []):
+            reason = 'insufficient_battle_roles_settled'
         state.update(status='completed', phase='stopped', input_owner=None,
                      reason=reason, terminal_reached=True, terminal='settlement',
                      outcome=signature)
@@ -321,7 +327,7 @@ def _terminal(state, image, observation):
         state['final_frame'] = _frame(state, image, 'settlement')
         if state.get('pending_action') and not state['pending_action'].get('confirmed'):
             state['pending_action'].update(interrupted=True, outcome='unknown')
-        _log(state, 'terminal', outcome=signature)
+        _log(state, 'terminal', outcome=signature, reason=reason)
     return True
 
 
@@ -780,7 +786,8 @@ async def _scan_turn(state, app, state_store, event_bus, hud):
     if not layout['layout_complete'] or layout['singularity_cell'] is None:
         _stop(state, 'native_board_not_ready')
         return
-    if any(obj['type'] == 'inspiration' and obj['quantity'] != 1 for obj in board['objects']):
+    if any(obj['type'] == 'inspiration' and obj['quantity'] != 1
+           for cell in layout['cells'] for obj in cell.get('objects', ())):
         _stop(state, 'unsupported_inspiration_stack')
         return
     _progress_ledger(state, hud)
@@ -1163,6 +1170,11 @@ async def _events(state, app, image, observation):
         _log(state, 'vortex_battle_started', level_id=pending['battle_level'],
              choice_id=pending['native']['id'])
         return
+    if (context['event_type'] in {'battle', 'elite_battle', 'boss_battle'}
+            and context['phase'] == 'entry_wait'
+            and (observation.get('native') or {}).get('kind') == 'formation_leave'):
+        await _settle_for_formation_shortage(state, app, image, observation)
+        return
     working = deepcopy(context)
     direct_boss = await _boss_formation_after_reward(state, app, observation, context)
     consumed_node = await _battle_node_consumed_after_reward(state, app, observation, context, now)
@@ -1177,7 +1189,8 @@ async def _events(state, app, image, observation):
             if status in {'applied', 'submitted'}:
                 state['event_stack'][-1] = _jsonable(working)
                 _log(state, 'native_event_choice', action=step['action'], choice_id=target['id'],
-                     panel=target['kind'], revision=target['revision'], status=status)
+                     panel=target['kind'], revision=target['revision'], status=status,
+                     **observation.get('formation', {}))
         elif await _fresh_click(state, app, step['point'], observation, image):
             state['event_stack'][-1] = _jsonable(working)
         return
@@ -1270,6 +1283,30 @@ async def _settle_for_shortage(state, app, image, observation):
         _log(state, 'rest_shortage_settlement', step=kind, rest_id=settlement['rest_id'])
 
 
+async def _settle_for_formation_shortage(state, app, image, observation):
+    target = observation.get('native') or {}
+    kind = target.get('kind')
+    settlement = state.get('formation_shortage_settlement')
+    submitted = settlement['submitted'] if settlement else []
+    remaining = FORMATION_SETTLEMENT_STEPS[len(submitted):]
+    if not remaining or kind != remaining[0] or not _stable_scene(state, observation):
+        return
+    level_id = target['subject_id']
+    if settlement and level_id != settlement['level_id']:
+        _stop(state, 'formation_changed_before_settlement', image)
+        return
+    status = await _execute_native_choice(app, dict(target, command='confirm'))
+    if status != 'submitted':
+        return
+    if settlement is None:
+        settlement = dict(level_id=level_id, submitted=submitted)
+        state['formation_shortage_settlement'] = settlement
+        _phase(state, 'formation_shortage_settlement')
+    submitted.append(kind)
+    _log(state, 'formation_shortage_settlement', step=kind, level_id=level_id,
+         **observation.get('formation', {}))
+
+
 async def _advance_state(state, app, state_store, event_bus, image, observation, raw_hud):
     scene = observation.get('scene')
     waiting_for_player = state['phase'] == 'enemy_wait'
@@ -1287,6 +1324,9 @@ async def _advance_state(state, app, state_store, event_bus, image, observation,
     if not observation.get('valid'):
         state['hud_stable'] = 0
         state['scene_stable'] = 0
+        return
+    if state['phase'] == 'formation_shortage_settlement':
+        await _settle_for_formation_shortage(state, app, image, observation)
         return
     if (state['phase'] == 'shortage_settlement'
             or scene == 'rest_finish' and not state.get('event_stack')
@@ -1621,10 +1661,11 @@ async def advance_deep_dive_planned_run(session_key: str, app: Any = None, ocr: 
         if state['phase'] == 'read_registration_anchors' and image is not None:
             anchor_task = asyncio.create_task(_owned(asyncio.to_thread(_read_anchor_frame, image, state, observation)))
         raw_hud = {key: None for key in HUD_KEYS}
-        native_kind = (observation.get('native') or {}).get('kind')
+        native_kind = observation.get('native_choice_kind')
         if (observation.get('valid')
                 and observation.get('scene') not in {'settlement', 'uncertain_settlement'}
-                and native_kind not in {'rest_shortage', 'rest_finish'}):
+                and native_kind not in {'rest_shortage', 'rest_finish', 'formation_fill', 'formation_start',
+                                        *FORMATION_SETTLEMENT_STEPS}):
             raw_hud = await _read_runtime_hud(app, image, ocr, observation)
             observation = enrich_observation(observation, raw_hud)
         if anchor_task is not None:

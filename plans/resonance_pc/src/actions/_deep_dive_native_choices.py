@@ -21,7 +21,7 @@ def observe_choice(observation, snapshot, event_type):
     status = snapshot['status']
     if status == 'absent':
         return observation
-    current = dict(observation, valid=True, scene='native_choice_wait',
+    current = dict(observation, valid=True, scene='native_choice_wait', native_choice_kind=kind,
                    native_choice_reason=snapshot.get('reason'))
     current.pop('click', None)
     if status != 'ready':
@@ -35,6 +35,12 @@ def observe_choice(observation, snapshot, event_type):
     if kind == 'replacement':
         return dict(current, scene=ITEM_REPLACEMENT, native=controls[0])
     if kind in {'battle_defeat', 'battle_victory'}:
+        return dict(current, scene=kind, native=controls[0])
+    if kind in {'formation_fill', 'formation_start', 'formation_leave'}:
+        counts = {key: snapshot[key] for key in ('selected_count', 'available_count', 'required_count')
+                  if key in snapshot}
+        return dict(current, scene='battle_formation', native=controls[0], formation=counts)
+    if kind in {'formation_quit', 'formation_finish'}:
         return dict(current, scene=kind, native=controls[0])
     if kind in {'rest_shortage', 'rest_finish'}:
         return dict(current, scene='rest_area' if kind == 'rest_shortage' else 'rest_finish', native=controls[0])
