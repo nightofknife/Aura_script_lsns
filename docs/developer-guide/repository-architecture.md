@@ -1,6 +1,6 @@
 # Repository Architecture
 
-Aura_script_lsns keeps the reusable framework and the Resonance Windows client plan in one source tree.
+Aura-Resonance keeps the reusable framework and the Resonance Windows client plan in one source tree.
 
 ```text
 packages/aura_core      runtime, scheduler, manifests, observability

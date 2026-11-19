@@ -1,4 +1,4 @@
-# Aura_script_lsns Docs
+# Aura-Resonance Docs
 
 This documentation describes the Resonance automation project in this repository.
 

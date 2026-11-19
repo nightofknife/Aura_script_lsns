@@ -3,10 +3,10 @@ from __future__ import annotations
 import re
 
 
-RELEASES_URL = "https://github.com/nightofknife/Aura_script_lsns/releases"
+RELEASES_URL = "https://github.com/nightofknife/Aura-Resonance/releases"
 LATEST_CHECKSUMS_URL = f"{RELEASES_URL}/latest/download/SHA256SUMS.txt"
 EXPERIMENTAL_INDEX_URL = (
-    "https://raw.githubusercontent.com/nightofknife/Aura_script_lsns/"
+    "https://raw.githubusercontent.com/nightofknife/Aura-Resonance/"
     "release-channels/experimental.json"
 )
 MAX_CHECKSUM_BYTES = 2 * 1024 * 1024

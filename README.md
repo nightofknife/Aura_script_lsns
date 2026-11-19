@@ -1,6 +1,6 @@
 # Aura 雷索纳斯自动化助手
 
-Aura 是一款面向 Windows 版《雷索纳斯》的桌面自动化工具，提供跑商、货运附加客运和战斗调度功能。
+Aura 是一款面向《雷索纳斯》（Resonance Solstice）Windows PC 客户端的非官方自动化助手，支持自动跑商、货运附加客运和自动战斗。
 
 程序通过识别游戏画面并操作鼠标键盘完成任务。发布包已经包含运行环境，普通用户无需安装 Python。
 
@@ -37,7 +37,7 @@ QQ群：`454978565`
 
 ## 下载
 
-前往 [最新正式版下载页面](https://github.com/nightofknife/Aura_script_lsns/releases/latest)，根据电脑情况选择压缩包。
+前往 [最新正式版下载页面](https://github.com/nightofknife/Aura-Resonance/releases/latest)，根据电脑情况选择压缩包。
 
 | 版本 | 适合人群 | 文件名 |
 | --- | --- | --- |
@@ -96,6 +96,6 @@ GUI 顶部的“？”或 `F1` 可打开离线跑商入门教程，内容仅介�
 
 ## 更新
 
-新版本发布后，从 [Releases](https://github.com/nightofknife/Aura_script_lsns/releases) 下载完整压缩包并解压到新目录。不要只覆盖旧版本中的个别可执行文件。
+新版本发布后，从 [Releases](https://github.com/nightofknife/Aura-Resonance/releases) 下载完整压缩包并解压到新目录。不要只覆盖旧版本中的个别可执行文件。
 
 当前应用与发布包面向《雷索纳斯》Windows PC 客户端。开发诊断、素材生产与四视角研究的使用方式见 [开发指南](docs/developer-guide/resonance-development.md)。

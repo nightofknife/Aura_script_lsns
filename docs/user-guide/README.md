@@ -1,6 +1,6 @@
 # User Guide
 
-Aura_script_lsns is used from either the Resonance GUI or the local CLI.
+Aura-Resonance is used from either the Resonance GUI or the local CLI.
 
 Start here:
 
