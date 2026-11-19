@@ -19,7 +19,7 @@ on:
         type: boolean
         default: false
       release_tag:
-        description: Release tag in vX.X.X or vX.X.X-E format
+        description: Release tag in vX.X.X or vX.X.X-E-N format
         type: string
         required: false
 
@@ -40,6 +40,7 @@ jobs:
     outputs:
       scope: ${{ steps.classify.outputs.scope }}
       release_label: ${{ steps.label.outputs.release_label }}
+      is_experimental: ${{ steps.label.outputs.is_experimental }}
       source_commit: ${{ steps.release_source.outputs.source_commit }}
       publish_allowed: ${{ steps.release_source.outputs.publish_allowed }}
     steps:
@@ -96,19 +97,23 @@ jobs:
             $label = $env:GITHUB_SHA.Substring(0, 7)
             $releaseVersion = ""
           }
+          $isExperimental = $false
           if ($releaseVersion) {
-            if ($releaseVersion -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-E)?$') {
-              throw "Release version must use vX.X.X format for formal builds or vX.X.X-E for experimental builds. Received '$releaseVersion'."
+            if ($releaseVersion -cmatch '^(?<base>v[0-9]+\.[0-9]+\.[0-9]+)(?:-E-(?<serial>[1-9][0-9]*))?$') {
+              $baseVersion = $Matches['base']
+              $isExperimental = $Matches.ContainsKey('serial')
+            } else {
+              throw "Release version must use vX.X.X format for formal builds or vX.X.X-E-N for experimental builds, where N is a positive integer. Received '$releaseVersion'."
             }
             $sourceVersion = (python -c "from packages.resonance_gui import __version__; print(__version__)").Trim()
             if ($LASTEXITCODE -ne 0) { throw "Failed to read the application version." }
-            $baseVersion = $releaseVersion -creplace '-E$', ''
             if ($sourceVersion -cne $baseVersion) {
               throw "Release version '$releaseVersion' does not match application version '$sourceVersion'."
             }
           }
           $label = $label -replace '[^A-Za-z0-9._-]', '-'
           "release_label=$label" >> $env:GITHUB_OUTPUT
+          "is_experimental=$($isExperimental.ToString().ToLowerInvariant())" >> $env:GITHUB_OUTPUT
 
       - name: Detect release scope
         id: classify
@@ -310,13 +315,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           MANUAL_TAG: ${{ inputs.release_tag }}
           RELEASE_LABEL: ${{ needs.scope.outputs.release_label }}
+          IS_EXPERIMENTAL: ${{ needs.scope.outputs.is_experimental }}
           SOURCE_COMMIT: ${{ needs.scope.outputs.source_commit }}
         run: |
           $tag = if ($env:GITHUB_REF -like "refs/tags/*") { $env:GITHUB_REF_NAME } else { $env:MANUAL_TAG }
-          if ($tag -cne $env:RELEASE_LABEL -or $tag -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(-E)?$') {
-            throw "Release tag must match the packaged vX.X.X or vX.X.X-E label. Received '$tag'."
+          if ($tag -cne $env:RELEASE_LABEL -or $tag -cnotmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-E-[1-9][0-9]*)?$') {
+            throw "Release tag must match the packaged vX.X.X or vX.X.X-E-N label. Received '$tag'."
           }
-          $isExperimental = $tag.EndsWith('-E')
+          $isExperimental = $env:IS_EXPERIMENTAL -eq 'true'
           $prereleaseFlag = "--prerelease=$($isExperimental.ToString().ToLowerInvariant())"
           $expectedAssets = @(
             "AuraResonance-$env:RELEASE_LABEL-win-x64-cpu.zip",
@@ -373,7 +379,7 @@ jobs:
           if ($missing.Count -ne 0) { throw "Published release $tag is missing $($missing -join ', ')." }
 
       - name: Update experimental channel index
-        if: endsWith(needs.scope.outputs.release_label, '-E')
+        if: needs.scope.outputs.is_experimental == 'true'
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
@@ -394,7 +400,13 @@ jobs:
           }
 
           $indexEndpoint = "$repo/contents/experimental.json"
-          $newVersion = [version](($tag -creplace '^v|-E$', ''))
+          $experimentalPattern = '^v(?<base>[0-9]+\.[0-9]+\.[0-9]+)-E(?:-(?<serial>[1-9][0-9]*))?$'
+          if ($tag -cmatch $experimentalPattern -and $Matches.ContainsKey('serial')) {
+            $newVersion = [version]($Matches['base'])
+            $newSerial = [bigint]($Matches['serial'])
+          } else {
+            throw "Experimental update index requires a numbered release tag. Received '$tag'."
+          }
           $json = @{ tag = $tag } | ConvertTo-Json -Compress
           $content = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes("$json`n"))
           # Re-read both the tag and the blob SHA after a competing publication.
@@ -405,9 +417,10 @@ jobs:
               $indexFile = $existing | ConvertFrom-Json
               $indexJson = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String($indexFile.content))
               $activeTag = ($indexJson | ConvertFrom-Json).tag
-              if ($activeTag -cmatch '^v[0-9]+\.[0-9]+\.[0-9]+-E$') {
-                $activeVersion = [version](($activeTag -creplace '^v|-E$', ''))
-                if ($activeVersion -ge $newVersion) {
+              if ($activeTag -cmatch $experimentalPattern) {
+                $activeVersion = [version]($Matches['base'])
+                $activeSerial = if ($Matches.ContainsKey('serial')) { [bigint]($Matches['serial']) } else { [bigint]0 }
+                if ($activeVersion -gt $newVersion -or ($activeVersion -eq $newVersion -and $activeSerial -ge $newSerial)) {
                   Write-Host "Experimental update index already points to $activeTag."
                   exit 0
                 }

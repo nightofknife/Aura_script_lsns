@@ -28,8 +28,10 @@ def _canonical_version(value: Any) -> str:
     parsed = release_version_key(value, allow_unprefixed=True)
     if parsed is None:
         return ""
-    major, minor, patch, stable = parsed
-    suffix = "" if stable else "-E"
+    major, minor, patch, stable, serial = parsed
+    suffix = ""
+    if not stable:
+        suffix = f"-E-{serial}" if serial else "-E"
     return f"v{major}.{minor}.{patch}{suffix}"
 
 
@@ -42,7 +44,7 @@ def _read_current_tag(root: Path) -> str:
 
 
 def current_version_label(*, base_path: Path | None = None) -> str:
-    """Return the canonical release label, including ``-E`` for a test build.
+    """Return the canonical release label, including the test build suffix.
 
     Historical source builds could record a bare numeric version. Keep accepting
     those builds for updates, but normalize every user-facing label to include
@@ -65,7 +67,8 @@ def _read_latest_tag(contents: bytes) -> str:
         tag, _ = parse_cpu_manifest(contents)
     except ValueError:
         return ""
-    return "" if tag.endswith("-E") else tag
+    version = release_version_key(tag)
+    return tag if version is not None and version.stable else ""
 
 
 def check_for_update(

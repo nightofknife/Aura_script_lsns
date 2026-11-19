@@ -151,13 +151,14 @@ def _fetch_experimental_tag(
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise UpdateError("测试版索引无效") from exc
     tag = index.get("tag") if isinstance(index, dict) else None
+    version = release_version_key(tag)
     if (
         not isinstance(tag, str)
         or tag != tag.strip()
-        or not tag.endswith("-E")
-        or parse_version(tag) is None
+        or version is None
+        or version.stable
     ):
-        raise UpdateError("测试版索引缺少有效的 vX.X.X-E 标签")
+        raise UpdateError("测试版索引缺少有效的 vX.X.X-E-编号 标签")
     return tag
 
 
@@ -185,7 +186,8 @@ def fetch_latest_release(
         raise UpdateError(str(exc)) from exc
     if expected_tag is not None and tag != expected_tag:
         raise UpdateError(f"测试版索引指向 {expected_tag}，但校验清单列出的是 {tag}")
-    if channel == "stable" and tag.endswith("-E"):
+    version = release_version_key(tag)
+    if channel == "stable" and (version is None or not version.stable):
         raise UpdateError("正式版通道返回了测试版清单")
 
     name = f"AuraResonance-{tag}-win-x64-cpu.zip"
@@ -344,7 +346,7 @@ def load_installed_release(root: Path) -> tuple[str, str]:
     tag = str(info.get("release_label") or "").strip()
     profile = str(info.get("profile") or "").strip().lower()
     if parse_version(tag) is None or profile != "cpu":
-        raise UpdateError("更新器支持 vX.X.X 或 vX.X.X-E 版本的 CPU 完整包")
+        raise UpdateError("更新器支持 vX.X.X 或 vX.X.X-E-编号 版本的 CPU 完整包")
     return tag, profile
 
 
@@ -751,7 +753,13 @@ def _perform_update_locked(
     latest_version = release_version_key(release.tag)
     if latest_version is None or current_version is None:
         raise UpdateError("Release version is invalid")
-    if latest_version <= current_version:
+    same_base_channel_switch = (
+        channel == "experimental"
+        and current_version.stable
+        and not latest_version.stable
+        and latest_version[:3] == current_version[:3]
+    )
+    if latest_version <= current_version and not same_base_channel_switch:
         LOG.info("phase=already_current latest=%s", release.tag)
         return False
 
@@ -927,7 +935,7 @@ def choose_update_channel() -> UpdateChannel | None:
     content.grid(sticky="nsew")
     ttk.Label(content, text="选择更新通道").grid(sticky="w", pady=(0, 12))
     ttk.Radiobutton(content, text="正式版（推荐）", variable=channel, value="stable").grid(sticky="w")
-    ttk.Radiobutton(content, text="测试版（-E）", variable=channel, value="experimental").grid(
+    ttk.Radiobutton(content, text="测试版（-E-编号）", variable=channel, value="experimental").grid(
         sticky="w", pady=(8, 0),
     )
     ttk.Label(content, text="测试版可提前体验新功能，可能不稳定。").grid(sticky="w", pady=(6, 16))
