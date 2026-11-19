@@ -2,8 +2,8 @@ consciousness_deep_dive_planned_run_pc:
   meta:
     role: user_task
     domain: 活动玩法
-    title: 识海深潜关卡内自动运行（3×3）
-    description: 每回合通过桥接器直读棋盘，优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，人数不足暂停，到达结算停止。
+    title: 识海深潜关卡内自动运行
+    description: 通过桥接器读取三至五阶棋盘。优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，位面间隙缺员时结束下潜。
     entry_point: true
     inputs:
       - {name: strategy, type: string, default: encounter_then_inspiration}
@@ -14,7 +14,7 @@ consciousness_deep_dive_planned_run_pc:
   steps:
     require_bridge:
       action: resonance_pc.require_deep_dive_bridge
-      params: {require_turn: true, require_controls: true}
+      params: {require_turn: true, require_actions: true, require_choices: true}
     initialize:
       depends_on: require_bridge
       action: resonance_pc.deep_dive_planned_run_initialize

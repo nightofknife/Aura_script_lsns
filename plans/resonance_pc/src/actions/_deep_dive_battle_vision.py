@@ -54,7 +54,7 @@ def _cards(gray):
     return sorted(unique, key=lambda c: c["point"][0])
 
 
-def detect_battle_page(image_rgb):
+def detect_battle_page(image_rgb, *, read_choices=True):
     gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
     probes = {
         "formation": match(gray, "battle_formation_title", (500, 10, 790, 100)),
@@ -70,12 +70,12 @@ def detect_battle_page(image_rgb):
     base = {"scores": scores}
     if scores["obtained"] >= .85 and scores["exit"] >= .85:
         return {**base, "scene": "reward_obtained", "click": [280, 630]}
-    if scores["selection"] >= .85 and scores["confirm"] >= .85:
+    if read_choices and scores["selection"] >= .85 and scores["confirm"] >= .85:
         cards = _cards(gray)
         count = sum(card['selected'] for card in cards)
         return {**base, "scene": "battle_reward_selection", "cards": cards,
                 "selected_count": count, "required_count": 1, "click": probes["confirm"][1]}
-    if scores["victory"] >= .85 and scores["next"] >= .85:
+    if read_choices and scores["victory"] >= .85 and scores["next"] >= .85:
         return {**base, "scene": "battle_victory", "click": probes["next"][1]}
     if scores["formation"] >= .85 and scores["start"] >= .85:
         return {**base, "scene": "battle_formation", "click": probes["start"][1]}

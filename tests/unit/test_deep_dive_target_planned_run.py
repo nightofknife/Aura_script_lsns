@@ -80,11 +80,12 @@ def test_combined_solver_prefers_deadline_probability_then_inspiration(
 
 
 @pytest.mark.parametrize('unavailable', [False, True])
-def test_planned_hud_gets_turn_from_bridge_and_never_reads_quota_glyphs(monkeypatch, unavailable):
+def test_planned_hud_gets_plane_and_turn_from_bridge(monkeypatch, unavailable):
     def read_turn():
         if unavailable:
             raise TargetRuntimeError('deep_dive_turn_unavailable', 'counter missing')
-        return dict(rounds_remaining=3, moves_used=1, moves_total=1, rotations_used=0, rotations_total=1, frame=16)
+        return dict(plane_index=2, rounds_remaining=3, moves_used=1, moves_total=1,
+                    rotations_used=0, rotations_total=1, frame=16)
 
     def read_pair(image, name):
         assert name == 'inspirations'
@@ -92,14 +93,15 @@ def test_planned_hud_gets_turn_from_bridge_and_never_reads_quota_glyphs(monkeypa
 
     monkeypatch.setattr(vision.hud_templates, '_read_pair', read_pair)
     monkeypatch.setattr(vision, 'read_rounds_template', lambda image: pytest.fail('visual round lookup'))
+    monkeypatch.setattr(vision, '_ocr_text', lambda *_args: pytest.fail('visual plane lookup'))
     app = SimpleNamespace(controller=SimpleNamespace(bridge=SimpleNamespace(read_deep_dive_turn=read_turn)))
     scene = dict(valid=True, scene='board', plane_evidence={'plane_index': 1})
-    hud = asyncio.run(flow._read_runtime_hud(app, np.zeros((720, 1280, 3), dtype=np.uint8), None, scene))
+    hud = asyncio.run(flow._read_runtime_hud(app, np.zeros((720, 1280, 3), dtype=np.uint8), object(), scene))
     assert hud['collected_count'] == 1
     if unavailable:
         assert all(hud[field] is None for field in vision.TURN_FIELDS)
     else:
-        assert hud['rounds_remaining'] == 3 and hud['moves_used'] == 1
+        assert hud['plane_index'] == 2 and hud['rounds_remaining'] == 3 and hud['moves_used'] == 1
         assert all(hud['evidence_source'][field] == 'bridge_turn' for field in vision.TURN_FIELDS)
 
 

@@ -17,6 +17,7 @@ from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
 
 from ._deep_dive_movement_planner import plan_layout
+from ._deep_dive_planner_rules import FACES, validate_cube_size
 from ._deep_dive_target_readiness import is_targets_layout, targets_readiness
 
 
@@ -32,10 +33,12 @@ def _load_completed_layout(path: Path) -> dict:
             raise ValueError("魔方目标证据未通过核验：" + readiness['reason'])
     elif not complete:
         raise ValueError("需要完整扫描或目标证据已确认的魔方扫描结果。")
+    cube_size = validate_cube_size(layout.get("size", 3))
     cells = layout.get("cells")
-    if not isinstance(cells, list) or len(cells) != 54:
-        raise ValueError("魔方扫描结果必须包含 54 个格子。")
-    expected = {(face, row, col) for face in "URFDLB" for row in range(3) for col in range(3)}
+    cell_count = 6 * cube_size**2
+    if not isinstance(cells, list) or len(cells) != cell_count:
+        raise ValueError(f"魔方扫描结果必须包含 {cell_count} 个格子。")
+    expected = {(face, row, col) for face in FACES for row in range(cube_size) for col in range(cube_size)}
     actual = set()
     for cell in cells:
         if not isinstance(cell, dict):

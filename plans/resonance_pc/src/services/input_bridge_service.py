@@ -16,7 +16,7 @@ import win32process
 
 from packages.aura_core.api import service_info
 from packages.aura_core.context.plan import current_plan_name
-from packages.aura_core.observability.logging.core_logger import current_cid
+from packages.aura_core.observability.logging.core_logger import current_cid, logger
 from packages.aura_core.observability.runtime_trace import (
     activity, current_root_cid, log_event, update_runtime, register_diagnostic_provider, tracked_to_thread,
 )
@@ -334,6 +334,7 @@ class ResonancePcInputBridgeService:
                 self._accept(reply)
                 if endpoint is not None:
                     self._position = endpoint
+                return reply
             except TargetRuntimeError as exc:
                 if exc.code == "viewport_changed":
                     self._needs_hello = True
@@ -360,6 +361,48 @@ class ResonancePcInputBridgeService:
 
     def read_deep_dive_controls(self) -> dict:
         return self._read_deep_dive("controls")
+
+    def read_deep_dive_choice(self) -> dict:
+        if not self.enabled:
+            raise TargetRuntimeError("input_bridge_required", "识海深潜选项需要桥接输入器。")
+        with target_operation_guard(self.target_runtime), activity("data", "bridge.deep_dive_choice"), self._lock:
+            self._ready()
+            if not self._capabilities.get("deep_dive_choices"):
+                raise TargetRuntimeError("deep_dive_choice_unsupported", "当前桥接宿主未提供识海深潜选项。")
+            reply = self._client.request("deep_dive_choice", {"command": "read"},
+                                         viewport=self._viewport, timeout=3.0)
+        snapshot = reply.get("result", {}).get("choice")
+        if (not isinstance(snapshot, dict) or snapshot.get("schema") != "resonance_pc.deep_dive_choice.v1"
+                or snapshot.get("kind") not in {"none", "options", "cards", "replacement",
+                                                "battle_defeat", "battle_victory", "rest_shortage", "rest_finish"}
+                or snapshot.get("status") not in {"absent", "waiting", "ready", "submitted"}):
+            raise TargetRuntimeError("deep_dive_choice_invalid", "桥接器返回了无效的识海深潜选项快照。")
+        return snapshot
+
+    def execute_deep_dive_choice(self, target: dict) -> str:
+        if not self.enabled:
+            raise TargetRuntimeError("input_bridge_required", "识海深潜选项需要桥接输入器。")
+        reply = self._execute("deep_dive_choice", target, capability="deep_dive_choices",
+                              timeout=3.0, complete=True)
+        status = reply.get("result", {}).get("choice", {}).get("status")
+        if status not in {"applied", "submitted", "waiting", "changed"}:
+            raise TargetRuntimeError("deep_dive_choice_invalid", "桥接器返回了无效的识海深潜选项操作状态。")
+        return status
+
+    def execute_deep_dive_action(self, command: str, **state) -> str:
+        if not self.enabled:
+            raise TargetRuntimeError("input_bridge_required", "识海深潜操作需要桥接输入器。")
+        reply = self._execute("deep_dive_action", {"command": command, **state},
+                              capability="deep_dive_actions", timeout=3.0, complete=True)
+        result = reply.get("result", {}).get("action", {})
+        status = result.get("status")
+        if status not in {"waiting", "ready", "mode_changed", "move_selected",
+                          "rotation_previewed", "submitted", "preview_changed",
+                          "unsupported_move_options"}:
+            raise TargetRuntimeError("deep_dive_action_invalid", "桥接器返回了无效的识海深潜操作状态。")
+        if status == "waiting" and result.get("waiting_reason"):
+            logger.debug("Deep Dive native action %s waiting: %s", command, result["waiting_reason"])
+        return status
 
     def _read_deep_dive(self, kind):
         if not self.enabled:

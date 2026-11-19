@@ -9,6 +9,8 @@ from packages.aura_core.engine.node_executor import NodeExecutor
 from packages.aura_core.engine.execution_engine import ExecutionEngine
 from packages.aura_core.config.template import TemplateRenderer
 from plans.resonance_pc.src.actions import consciousness_deep_dive_loop_pc_actions as loop
+from plans.resonance_pc.src.actions import consciousness_deep_dive_pc_actions as entry
+from plans.resonance_pc.src.actions._deep_dive_runtime_events import advance_context, create_context
 
 
 class Store:
@@ -23,8 +25,9 @@ class Store:
 def child(stage,ok=True):
     p={'success':ok,'status':'completed' if ok else 'blocked','reason':'sample blocked',
        'page_state':'deep_dive_board' if stage=='entry' else 'deep_dive_activity_home',
-       'terminal':'settlement','outcome':'failure','last_frame':'saved.png','turns_completed':6}
-    return {{'entry':'deep_dive','single':'deep_dive_single_run','cleanup':'deep_dive_cleanup'}[stage]:p}
+       'terminal':'settlement','terminal_reached':ok,'outcome':'failure','game_success':False,
+       'last_frame':'saved.png','turns_completed':6}
+    return {{'entry':'deep_dive','single':'deep_dive_planned_run','cleanup':'deep_dive_cleanup'}[stage]:p}
 
 
 def seed(count):
@@ -74,6 +77,52 @@ def test_schema_completion_not_framework_success():
     assert not loop.successful('cleanup',{'success':True,'status':'completed','page_state':'deep_dive_board'})
 
 
+@pytest.mark.parametrize('key,stable_scans',[('board_ready',3),('reward_marker',2)])
+def test_boon_confirmation_recognizes_both_entry_destinations(monkeypatch, key, stable_scans):
+    seen = []
+
+    async def find(target, **_):
+        if target.key == key:
+            seen.append(target.key)
+        return SimpleNamespace(found=target.key == key, center_point=(100, 200))
+
+    async def pause(_):
+        pass
+
+    monkeypatch.setattr(entry, '_find_target', find)
+    monkeypatch.setattr(entry, 'aura_sleep', pause)
+    target, match = asyncio.run(entry._wait_for_boon_destination(app=None, vision=None, engine=None))
+    assert target.key == key and match.found
+    assert len(seen) == stable_scans
+
+
+def test_defeat_advances_to_the_run_settlement_once():
+    context = create_context('elite_battle', 'player_move_node', 0)
+    context['phase'] = 'battle_wait'
+    target = dict(kind='battle_defeat', revision=1, subject_id=123, index=1, id=123)
+    observation = dict(scene='battle_defeat', valid=True, native=target)
+    assert advance_context(context, observation, 1)['status'] == 'waiting'
+    step = advance_context(context, observation, 2)
+    assert step['native'] == dict(target, command='confirm')
+    assert context['phase'] == 'defeat_return' and not context['victory']
+    assert advance_context(context, observation, 5)['status'] == 'waiting'
+
+
+def test_victory_waits_for_next_page_after_native_submit():
+    context = create_context('elite_battle', 'player_move_node', 0)
+    context['phase'] = 'battle_wait'
+    target = dict(kind='battle_victory', revision=1, subject_id=123, index=1, id=123)
+    observation = dict(scene='battle_victory', valid=True, native=target)
+    advance_context(context, observation, 1)
+    step = advance_context(context, observation, 2)
+    assert step['native'] == dict(target, command='confirm')
+    assert context['phase'] == 'battle_rewards' and context['victory']
+    waiting = dict(scene='native_choice_wait', valid=True)
+    advance_context(context, waiting, 3)
+    assert advance_context(context, waiting, 4)['status'] == 'waiting'
+    assert context['pending']['native'] == step['native']
+
+
 def test_infinite_engine_loop_can_exceed_1000_and_retains_one():
     async def run():
         store=Store();await store.set('running',True)
@@ -119,6 +168,8 @@ def test_yaml_stages_and_termination_contract():
     assert outer['cycles']['loop']['max_iterations']==-1
     assert outer['cycles']['loop']['retain_last']==1 and outer['cycles']['timeout']==-1
     stages=tasks['deep_dive_cycle_pc']['steps']
+    assert stages['single']['params']['task_ref'].endswith(':consciousness_deep_dive_planned_run_pc')
+    assert stages['single']['params']['inputs']=={'planning_time_budget_sec':180}
     for stage in ['entry','single','cleanup']:
         assert stages[stage]['action']=='aura.run_task'
         assert "status == 'running'" in stages[stage]['when']
@@ -151,7 +202,7 @@ def test_real_cycle_dag_skips_later_children_on_business_failure(failed_stage):
             if name=='resonance_pc.require_deep_dive_bridge':return True
             if name=='aura.run_task':
                 ref=params['task_ref']
-                stage='cleanup' if 'cleanup' in ref else 'single' if 'random_run' in ref else 'entry'
+                stage='cleanup' if 'cleanup' in ref else 'single' if 'planned_run' in ref else 'entry'
                 calls.append(stage)
                 return child(stage,stage!=failed_stage)
             if name.endswith('loop_begin'):return await loop.begin_loop_run(**params,state_store=store)
@@ -185,7 +236,7 @@ def test_full_outer_dag_runs_exactly_two_complete_cycles():
                     ref=params['task_ref']
                     if ref.endswith(':deep_dive_cycle_pc'):
                         return (await run_task('deep_dive_cycle_pc',params['inputs'])).data
-                    stage='cleanup' if 'cleanup' in ref else 'single' if 'random_run' in ref else 'entry'
+                    stage='cleanup' if 'cleanup' in ref else 'single' if 'planned_run' in ref else 'entry'
                     calls.append(stage);return child(stage)
                 if name.endswith('loop_begin'):return await loop.begin_loop_run(**params,state_store=store)
                 if name.endswith('loop_checkpoint'):return await loop.checkpoint_loop(**params,state_store=store)

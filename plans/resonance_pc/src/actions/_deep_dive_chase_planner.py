@@ -1,6 +1,6 @@
 """Optimal stochastic pursuit under the standard deep-dive turn rules.
 
-The 2,862 distinct player/boss pairs are reduced by the cube's 24 rotations.
+Distinct player/boss pairs are reduced by the cube's 24 rotations.
 Expected-time optimization uses finite-horizon lower bounds and evaluates an
 actual stationary policy for its upper bound. No symbolic algebra or analysis
 directory is required. A deadline goal is a separate finite-horizon objective.
@@ -16,8 +16,9 @@ from typing import Callable
 import numpy as np
 
 from ._deep_dive_planner_rules import (
-    RULES_VERSION, PlayerAction, action_dict, boss_branch_dict, boss_outcomes,
-    coord_dict, geometry, player_actions, remaining_player_actions, validate_slot,
+    PlayerAction, action_dict, boss_branch_dict, boss_outcomes, coord_dict,
+    geometry, player_actions, remaining_player_actions, rules_version, validate_cube_size,
+    validate_move_distance, validate_slot,
 )
 
 
@@ -42,52 +43,66 @@ class _Budget:
 
 @dataclass(frozen=True)
 class _Graph:
+    cube_size: int
+    move_distance: int
     states: tuple[tuple[int, int], ...]
     pair_indices: np.ndarray
     next_states: np.ndarray
     weights: np.ndarray
     legal: np.ndarray
     distributions: tuple[tuple[tuple[tuple[int, float], ...], ...], ...]
+    boss_distributions: tuple[tuple[tuple[int, float], ...], ...]
     guaranteed_turns: np.ndarray
 
 
-_GRAPH: _Graph | None = None
-_EXPECTED: dict | None = None
+_GRAPHS: dict[tuple[int, int], _Graph] = {}
+_EXPECTED: dict[tuple[int, int, float], dict] = {}
 
 
-def _action_distribution(action: PlayerAction, pair_indices: np.ndarray) -> tuple:
-    if action.terminal:
-        return ((-1, 1.0),)
+def _boss_distribution(player: int, boss: int, pair_indices: np.ndarray, cube_size: int) -> tuple:
     mass: dict[int, float] = {}
-    for outcome in boss_outcomes(action.final_player, action.final_boss):
+    for outcome in boss_outcomes(player, boss, cube_size=cube_size):
         state = -1 if outcome.terminal else int(pair_indices[outcome.final_player, outcome.final_boss])
         mass[state] = mass.get(state, 0.0) + outcome.probability
     return tuple(sorted(mass.items()))
 
 
-def _get_graph(budget: _Budget) -> _Graph:
-    global _GRAPH
-    if _GRAPH is not None:
-        return _GRAPH
-    group = geometry().symmetries
-    representatives = {}
-    for player in range(54):
+def _action_distribution(action: PlayerAction, pair_indices: np.ndarray, boss_distributions: tuple) -> tuple:
+    if action.terminal:
+        return ((-1, 1.0),)
+    return boss_distributions[pair_indices[action.final_player, action.final_boss]]
+
+
+def _get_graph(budget: _Budget, cube_size: int, move_distance: int) -> _Graph:
+    key = (cube_size, move_distance)
+    cached = _GRAPHS.get(key)
+    if cached is not None:
+        return cached
+    geo = geometry(cube_size)
+    slots = len(geo.moves)
+    group = geo.symmetries[:, :slots]
+    # Each ordered pair gets the smallest slot-pair key among its 24 rotations.
+    pair_keys = (group[:, :, None] * slots + group[:, None, :]).min(axis=0)
+    distinct = ~np.eye(slots, dtype=bool)
+    representatives, inverse = np.unique(pair_keys[distinct], return_inverse=True)
+    states = tuple(divmod(int(key), slots) for key in representatives)
+    pair_indices = np.full((slots, slots), -1, dtype=np.int64)
+    pair_indices[distinct] = inverse
+
+    # From any orientation of a pair, the Boss induces the same distribution
+    # over canonical successors. Build this once per pair, not once per action.
+    boss_distributions = []
+    for player, boss in states:
         budget.check()
-        for boss in range(54):
-            if player != boss:
-                pair_keys = group[:, player] * 54 + group[:, boss]
-                key = int(pair_keys.min())
-                representatives[player, boss] = divmod(key, 54)
-    states = tuple(sorted(set(representatives.values())))
-    index = {state: i for i, state in enumerate(states)}
-    pair_indices = np.full((54, 54), -1, dtype=np.int64)
-    for pair, representative in representatives.items():
-        pair_indices[pair] = index[representative]
+        boss_distributions.append(_boss_distribution(player, boss, pair_indices, cube_size))
+    boss_distributions = tuple(boss_distributions)
     distributions = []
     for player, boss in states:
         budget.check()
-        distributions.append(tuple(sorted({_action_distribution(action, pair_indices)
-                                            for action in player_actions(player, boss)})))
+        distributions.append(tuple(sorted({
+            _action_distribution(action, pair_indices, boss_distributions)
+            for action in player_actions(player, boss, cube_size=cube_size, move_distance=move_distance)
+        })))
     max_actions = max(map(len, distributions))
     next_states = np.full((len(states), max_actions, 16), -1, dtype=np.int64)
     weights = np.zeros_like(next_states, dtype=np.float64)
@@ -111,9 +126,9 @@ def _get_graph(budget: _Budget) -> _Graph:
         guaranteed = updated
     for array in (pair_indices, next_states, weights, legal, guaranteed):
         array.flags.writeable = False
-    graph = _Graph(states, pair_indices, next_states, weights, legal, tuple(distributions), guaranteed)
-    _GRAPH = graph
-    return graph
+    graph = _Graph(cube_size, move_distance, states, pair_indices, next_states, weights, legal,
+                   tuple(distributions), boss_distributions, guaranteed)
+    return _GRAPHS.setdefault(key, graph)
 
 
 def _expected_candidates(graph: _Graph, values: np.ndarray) -> np.ndarray:
@@ -148,20 +163,28 @@ def _evaluate_policy(graph: _Graph, policy: np.ndarray) -> tuple[np.ndarray, flo
 
 
 def _solve_expected(graph: _Graph, budget: _Budget, tolerance: float = 1e-9) -> dict:
-    global _EXPECTED
-    if _EXPECTED is not None:
-        return _EXPECTED
+    key = (graph.cube_size, graph.move_distance, tolerance)
+    cached = _EXPECTED.get(key)
+    if cached is not None:
+        return cached
     lower = np.zeros(len(graph.states))
     best = None
+    last_policy = None
+    evaluation = None
     for depth in range(1, 10001):
         budget.check()
         lower = _expected_candidates(graph, lower).min(axis=1)
         if depth == 1 or depth % 4 == 0:
             policy = _expected_candidates(graph, lower).argmin(axis=1)
-            try:
-                upper, evaluation_bound, residual = _evaluate_policy(graph, policy)
-            except np.linalg.LinAlgError:
+            if last_policy is None or not np.array_equal(last_policy, policy):
+                last_policy = policy
+                try:
+                    evaluation = _evaluate_policy(graph, policy)
+                except np.linalg.LinAlgError:
+                    evaluation = None
+            if evaluation is None:
                 continue
+            upper, evaluation_bound, residual = evaluation
             # Truncated optimal costs are lower bounds. Explicitly allow
             # accumulated floating arithmetic error in that bound too.
             lower_roundoff = float(np.finfo(np.float64).eps * depth * max(1.0, lower.max()) * 32)
@@ -174,8 +197,7 @@ def _solve_expected(graph: _Graph, budget: _Budget, tolerance: float = 1e-9) -> 
             if best["converged"]:
                 for field in ("values", "lower", "policy"):
                     best[field].flags.writeable = False
-                _EXPECTED = best
-                return best
+                return _EXPECTED.setdefault(key, best)
     return best or dict(converged=False)
 
 
@@ -220,8 +242,9 @@ def _physical_action(graph: _Graph, player: int, boss: int, policy: np.ndarray) 
     distribution = graph.distributions[state][int(policy[state])]
     # Whole-cube normalization only indexes values. Return primitives in the
     # caller's original coordinates, with their actual world-axis directions.
-    return next(action for action in player_actions(player, boss)
-                if _action_distribution(action, graph.pair_indices) == distribution)
+    return next(action for action in player_actions(
+                    player, boss, cube_size=graph.cube_size, move_distance=graph.move_distance)
+                if _action_distribution(action, graph.pair_indices, graph.boss_distributions) == distribution)
 
 
 def _partial_choice(graph: _Graph, expected: dict, player: int, boss: int, turns: int,
@@ -230,12 +253,13 @@ def _partial_choice(graph: _Graph, expected: dict, player: int, boss: int, turns
     fast_probability, fast_moment = _fixed_policy_deadline(graph, expected["policy"], turns - 1, budget)
     deadline = _deadline_solution(graph, turns - 1, budget)
     candidates = []
-    for action in remaining_player_actions(player, boss, moves_left, rotations_left):
+    for action in remaining_player_actions(player, boss, moves_left, rotations_left,
+                                            cube_size=graph.cube_size, move_distance=graph.move_distance):
         budget.check()
         expected_turns = 1.0
         fast_p = fast_m = deadline_p = deadline_m = 0.0
         worst = 0.0
-        for successor, weight in _action_distribution(action, graph.pair_indices):
+        for successor, weight in _action_distribution(action, graph.pair_indices, graph.boss_distributions):
             if successor == -1:
                 fast_p += weight
                 fast_m += weight
@@ -269,7 +293,8 @@ def _partial_choice(graph: _Graph, expected: dict, player: int, boss: int, turns
 def plan_chase(player: int, boss: int, turn_budget: int, cancel_check=None,
                time_budget_sec: float = 30.0,
                objective: str = "min_expected_encounter_turns", *,
-               moves_left: int = 1, rotations_left: int = 1) -> dict:
+               moves_left: int = 1, rotations_left: int = 1, cube_size: int = 3,
+               move_distance: int = 1) -> dict:
     """Return the next logical turn and stochastic continuation information.
 
     min_expected_encounter_turns selects an unlimited stationary policy and
@@ -278,17 +303,24 @@ def plan_chase(player: int, boss: int, turn_budget: int, cancel_check=None,
     meeting by that deadline. Neither objective promises a finite worst case.
     """
     started = time.monotonic()
-    player, boss = validate_slot(player), validate_slot(boss)
-    remaining_player_actions(player, boss, moves_left, rotations_left)
+    cube_size = validate_cube_size(cube_size)
+    move_distance = validate_move_distance(move_distance)
+    player, boss = validate_slot(player, cube_size), validate_slot(boss, cube_size)
+    remaining_player_actions(player, boss, moves_left, rotations_left,
+                             cube_size=cube_size, move_distance=move_distance)
     if (not isinstance(turn_budget, Integral) or isinstance(turn_budget, bool)
             or not 0 <= turn_budget <= 256):
         raise ValueError("turn_budget must be an integer in [0, 256]")
     turn_budget = int(turn_budget)
     if objective not in ("min_expected_encounter_turns", "max_deadline_encounter_probability"):
         raise ValueError("Unsupported chase objective")
-    result = dict(strategy="chase", objective=objective, rules_version=RULES_VERSION,
-                  turn_budget=turn_budget, player=coord_dict(player), boss=coord_dict(boss),
-                  rule_assumptions=["one face-local adjacent move and one layer rotation per player turn",
+    player_moves = ("one face-local adjacent move and one layer rotation per player turn"
+                    if move_distance == 1 else
+                    "one face-local move within Manhattan distance two and one layer rotation per player turn")
+    result = dict(strategy="chase", objective=objective,
+                  rules_version=rules_version(cube_size, move_distance=move_distance),
+                  turn_budget=turn_budget, player=coord_dict(player, cube_size), boss=coord_dict(boss, cube_size),
+                  rule_assumptions=[player_moves,
                                     "boss chooses uniformly among legal face-local moves then four rotations",
                                     "same-face boss moves only reduce Manhattan distance",
                                     "move collision ends the turn before any remaining rotation",
@@ -309,7 +341,7 @@ def plan_chase(player: int, boss: int, turn_budget: int, cancel_check=None,
     budget = _Budget(time_budget_sec, cancel_check)
     try:
         budget.check()
-        graph = _get_graph(budget)
+        graph = _get_graph(budget, cube_size, move_distance)
         expected = _solve_expected(graph, budget)
         if not expected.get("converged"):
             raise _Interrupted("search_budget_exhausted")
@@ -340,8 +372,8 @@ def plan_chase(player: int, boss: int, turn_budget: int, cancel_check=None,
                                    else expected["policy"])
         branch_dicts = []
         if not chosen.terminal:
-            for outcome in boss_outcomes(chosen.final_player, chosen.final_boss):
-                branch = boss_branch_dict(outcome)
+            for outcome in boss_outcomes(chosen.final_player, chosen.final_boss, cube_size=cube_size):
+                branch = boss_branch_dict(outcome, cube_size=cube_size)
                 branch["remaining_turns"] = turn_budget - 1
                 if not outcome.terminal and turn_budget > 1:
                     successor_action = _physical_action(graph, outcome.final_player, outcome.final_boss,
@@ -350,7 +382,7 @@ def plan_chase(player: int, boss: int, turn_budget: int, cancel_check=None,
                 branch_dicts.append(branch)
         result.update(status="solved", terminal=chosen.terminal,
                       next_action=deepcopy(chosen.sequence[0]), player_turn_actions=deepcopy(list(chosen.sequence)),
-                      selected_action=action_dict(chosen), predicted_boss_branches=branch_dicts,
+                      selected_action=action_dict(chosen, cube_size=cube_size), predicted_boss_branches=branch_dicts,
                       expected_turns=(success_moment / probability if probability > 0 else None)
                       if use_deadline else selected_expected,
                       expected_turns_scope="conditional_on_encounter_by_deadline" if use_deadline

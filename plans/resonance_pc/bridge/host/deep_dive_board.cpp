@@ -1,4 +1,5 @@
 #include "deep_dive_board.hpp"
+#include "deep_dive_event_choices.hpp"
 #include "il2cpp.hpp"
 
 #include <algorithm>
@@ -21,9 +22,12 @@ struct LuaApi {
   int (*check_stack)(LuaState *, int){};
   int (*type)(LuaState *, int){};
   const char *(*push_string)(LuaState *, const char *){};
+  void (*push_integer)(LuaState *, int64_t){};
   void (*push_nil)(LuaState *){};
   void (*push_value)(LuaState *, int){};
   int (*raw_get)(LuaState *, int){};
+  void (*raw_set)(LuaState *, int){};
+  void (*create_table)(LuaState *, int, int){};
   int (*raw_get_index)(LuaState *, int, int64_t){};
   size_t (*raw_length)(LuaState *, int){};
   int (*next)(LuaState *, int){};
@@ -47,9 +51,12 @@ struct LuaApi {
     LUA(check_stack, "checkstack");
     LUA(type, "type");
     LUA(push_string, "pushstring");
+    LUA(push_integer, "pushinteger");
     LUA(push_nil, "pushnil");
     LUA(push_value, "pushvalue");
     LUA(raw_get, "rawget");
+    LUA(raw_set, "rawset");
+    LUA(create_table, "createtable");
     LUA(raw_get_index, "rawgeti");
     LUA(raw_length, "rawlen");
     LUA(next, "next");
@@ -73,7 +80,7 @@ const LuaApi &lua_api() {
 }
 
 // All indexes used below are absolute, except the Lua registry pseudo-index.
-// Board fields use raw reads. Action totals use the client's two quota getters.
+// Board fields use raw reads and action limits use the client's own getters.
 struct LuaView {
   const LuaApi &api;
   LuaState *state;
@@ -114,12 +121,16 @@ struct LuaView {
     restore(index - 1);
     return value;
   }
-  std::optional<int> quota(int model, const char *getter) const {
+  std::optional<int> quota(int model, const char *getter, int argument = 0) const {
     const auto stack = top();
     const auto function = field(model, getter);
     std::optional<int> result;
-    if (type(function) == lua_function && api.protected_call(state, 0, 1, 0, 0, nullptr) == 0)
-      result = number(top());
+    if (type(function) == lua_function) {
+      if (argument)
+        api.push_value(state, argument);
+      if (api.protected_call(state, argument ? 1 : 0, 1, 0, 0, nullptr) == 0)
+        result = number(top());
+    }
     restore(stack);
     return result;
   }
@@ -217,7 +228,30 @@ void read_items(const LuaView &lua, int cell, int face, int row, int col,
   }
   lua.restore(items - 1);
 }
+std::optional<int> read_move_distance(const LuaView &lua, int model, int config) {
+  const auto base = lua.number(config, "initialDistance");
+  if (!base)
+    return std::nullopt;
+  const auto stack = lua.top();
+  const auto manager = lua.field(model, "itemAttrManager");
+  const auto globals = lua.at(registry, 2);
+  const auto kinds = lua.type(globals) == lua_table ? lua.field(globals, "Enum_RogueItemOrderType") : 0;
+  const auto key = kinds && lua.type(kinds) == lua_table ? lua.field(kinds, "StepDistanceItem") : 0;
+  const auto bonus = key && lua.type(key) != lua_nil && lua.type(manager) == lua_table
+                         ? lua.quota(manager, "GetAttr", key) : std::nullopt;
+  lua.restore(stack);
+  if (!bonus || *bonus > std::numeric_limits<int>::max() - *base)
+    return std::nullopt;
+  return *base + *bonus;
+}
+
 Json read_turn(const LuaView &lua, int model) {
+  const auto config = lua.field(model, "cfg");
+  const auto plane = lua.type(config) == lua_table ? lua.number(config, "faceIndex") : std::nullopt;
+  const auto move_distance = plane ? read_move_distance(lua, model, config) : std::nullopt;
+  lua.restore(config - 1);
+  if (!plane || *plane < 1)
+    throw Error("deep_dive_turn_unavailable", "Deep Dive plane index is unavailable");
   const auto rounds_used = lua.number(model, "stepNum");
   const auto moves = lua.number(model, "curMoveNum");
   const auto rotations = lua.number(model, "curRotNum");
@@ -227,13 +261,280 @@ Json read_turn(const LuaView &lua, int model) {
   const auto total_rotations = lua.quota(model, "GetMaxRotNum");
   if (!rounds_used || !total_rounds || !moves || !rotations || !total_moves || !total_rotations)
     throw Error("deep_dive_turn_unavailable", "Deep Dive turn counters are unavailable");
-  return {{"schema", "resonance_pc.deep_dive_turn.v1"},
+  Json turn = {{"schema", "resonance_pc.deep_dive_turn.v1"},
+          {"plane_index", *plane},
           {"rounds_remaining", std::max(*total_rounds - *rounds_used, 0)},
           {"rounds_used", *rounds_used}, {"rounds_total", *total_rounds},
           {"moves_used", *moves}, {"moves_total", *total_moves},
           {"moves_left", std::max(*total_moves - *moves, 0)},
           {"rotations_used", *rotations}, {"rotations_total", *total_rotations},
           {"rotations_left", std::max(*total_rotations - *rotations, 0)}};
+  if (move_distance)
+    turn["move_distance"] = *move_distance;
+  return turn;
+}
+
+// Call the installed client's UI handlers. The bridge supplies checked native
+// coordinates and uses the same confirmation path as a player using the UI.
+constexpr auto action_handler = R"lua(
+local model, op, face, row, col, move_distance = ...
+local prefix = 'UICubeRogueMain/'
+local controller = package.loaded[prefix .. 'UICubeRoguewMainController']
+local view = package.loaded[prefix .. 'UICubeRogueMainView']
+local buttons = package.loaded[prefix .. 'UICubeRogueMainViewFunction']
+if not controller or not view or not buttons then return 'waiting' end
+
+local function visible(widget)
+    if type(widget) == 'table' then widget = widget.self end
+    return widget and not widget:IsNull() and widget.gameObject.activeInHierarchy
+end
+local function matches(cell)
+    return cell and cell.face == face and cell.row == row and cell.col == col
+end
+local function press(name)
+    buttons['CubeRogueMain_' .. name .. '_Click'](nil, nil)
+end
+
+if not visible(view.Group_ActionInformation) or not visible(view.Group_MoveTips.Group_PlayerMove)
+    or visible(view.Group_MoveTips.Group_BossMove) then return 'waiting', 'player_controls_inactive' end
+if visible(view.Group_EventOptions) or visible(view.Group_RestArea) or visible(view.Group_Enter) then
+    return 'waiting', 'board_overlay_active'
+end
+-- needTriggerRoundEnd is only consulted by the client while needStartRound is
+-- set. The round-start callback clears needStartRound and can leave it set.
+if model.needStartRound or model.bossRotating or not controller.CanDealRotStuff() then
+    return 'waiting', 'round_transition_or_animation'
+end
+local card = visible(view.Group_EventDetails)
+local preview = visible(view.Group_ConfirmRot)
+if op == 'confirm_move' then
+    if not card or not visible(view.Group_EventDetails.Btn_Fight)
+        or not controller.playerMoving or model.hasConfirmRot ~= true
+        or not matches(model.curSelectCube) or not model.CanMoveToCube(face, row, col) then
+        return 'waiting', 'move_confirmation_not_ready'
+    end
+    press('Group_EventDetails_Btn_Fight')
+    return 'submitted'
+end
+if op == 'confirm_rotate' then
+    if card or not preview or model.hasConfirmRot ~= false
+        or not visible(view.Group_ConfirmRot.Group_Confirm.Btn_) then return 'waiting', 'rotation_confirmation_not_ready' end
+    if model.rubikCube.GetRotateNextFace(model.roleCtrl.face, model.isHorizon, model.clockwise) ~= face then
+        return 'preview_changed'
+    end
+    press('Group_ConfirmRot_Group_Confirm_Btn_')
+    return model.hasConfirmRot and 'submitted' or 'waiting'
+end
+if card or preview or model.hasConfirmRot ~= true then return 'waiting', 'unconfirmed_selection' end
+local move_button = 'Group_ActionInformation_Group_Move_Btn_'
+local spin_button = 'Group_ActionInformation_Group_Spin_Btn_'
+if op == 'normalize' then
+    if controller.playerMoving then
+        press(move_button)
+        return controller.playerMoving and 'waiting' or 'mode_changed'
+    elseif controller.playerRotating then
+        press(spin_button)
+        return controller.playerRotating and 'waiting' or 'mode_changed'
+    end
+    return 'ready'
+end
+local actor = model.roleCtrl
+if op == 'prepare_move' then
+    if not controller.playerMoving then
+        press(move_button)
+        return controller.playerMoving and 'mode_changed' or 'waiting', 'move_mode_not_open'
+    end
+    local target
+    for _,cell in pairs(model.canMoveCubes or {}) do
+        local distance = math.abs(cell.row - actor.x) + math.abs(cell.col - actor.y)
+        if cell.face ~= actor.face or distance < 1 or distance > move_distance then
+            return 'unsupported_move_options'
+        end
+        if matches(cell) then target = cell end
+    end
+    if not target or not model.CanMoveToCube(face, row, col) then return 'waiting', 'move_target_not_available' end
+    local events = CS.UnityEngine.EventSystems
+    local event_system = events.EventSystem.current
+    if not event_system or event_system:IsNull() then return 'waiting' end
+    local event = events.PointerEventData(event_system)
+    -- The down handler clears the client's own drag marker. No mouse screen
+    -- coordinates are used to select the target (the registered cell is passed in).
+    controller.OnCubePointerDown(event, target)
+    controller.OnCubePointerUp(event, target)
+    return matches(model.curSelectCube) and 'move_selected' or 'waiting', 'native_move_selection_not_applied'
+end
+if not controller.playerRotating then
+    press(spin_button)
+    return controller.playerRotating and 'mode_changed' or 'waiting', 'rotation_mode_not_open'
+end
+local arrows = actor.rotBtns
+if not arrows or arrows:IsNull() or not arrows.activeInHierarchy then return 'waiting', 'rotation_controls_inactive' end
+for _, direction in ipairs({{'forward', 1, -1}, {'back', 1, 1}, {'left', -1, -1}, {'right', -1, 1}}) do
+    local name, vertical, clockwise = direction[1], direction[2], direction[3]
+    local button = arrows.transform:Find(name)
+    if button and not button:IsNull() and button.gameObject.activeInHierarchy
+        and model.rubikCube.GetRotateNextFace(actor.face, vertical == -1, clockwise) == face then
+        controller.OnPlayerRotBtnClick(vertical, clockwise)
+        return model.hasConfirmRot == false and 'rotation_previewed' or 'waiting', 'native_rotation_preview_not_applied'
+    end
+end
+return 'waiting', 'rotation_direction_not_available'
+)lua";
+
+Json perform_action(LuaState *state, const Json &args) {
+  const auto op = args.at("command").get<std::string>();
+  const bool move = op == "prepare_move" || op == "confirm_move";
+  const bool rotate = op == "prepare_rotate" || op == "confirm_rotate";
+  if (!move && !rotate && op != "normalize")
+    throw Error("deep_dive_action_invalid", "Unknown Deep Dive action");
+  const LuaView lua(lua_api(), state);
+  const auto loaded = lua.field(registry, "_LOADED");
+  const auto model = lua.type(loaded) == lua_table
+                         ? lua.field(loaded, "UICubeRogueMain/UICubeRogueMainDataModel") : 0;
+  const auto rubik = model && lua.type(model) == lua_table ? lua.field(model, "rubikCube") : 0;
+  const int size = rubik && lua.type(rubik) == lua_table ? lua.number(rubik, "size").value_or(0) : 0;
+  if (size < 3 || size > 5 || lua.type(lua.field(rubik, "obj")) != lua_userdata)
+    throw Error("deep_dive_board_unavailable", "A loaded 3x3, 4x4 or 5x5 Deep Dive board is required");
+  lua.restore(rubik);
+  int move_distance = 0;
+  if (move || rotate) {
+    const auto map_id = lua.number(model, "mapID");
+    const auto role = lua.field(model, "roleCtrl");
+    const auto &origin = args.at("actor");
+    const auto turn = read_turn(lua, model);
+    const auto &expected = args.at("turn");
+    move_distance = turn.value("move_distance", 0);
+    if (move_distance < 1 || move_distance > 2 ||
+        move_distance != args.value("move_distance", move_distance))
+      throw Error("deep_dive_action_state_changed", "Deep Dive move distance is unavailable or changed before input");
+    if (size != args.value("cube_size", size) ||
+        !map_id || *map_id != args.at("map_id").get<int>() || lua.type(role) != lua_table ||
+        lua.number(role, "face") != origin.at("face").get<int>() ||
+        lua.number(role, "x") != origin.at("row").get<int>() ||
+        lua.number(role, "y") != origin.at("col").get<int>())
+      throw Error("deep_dive_action_state_changed", "The Deep Dive map or player changed before input");
+    for (const char *key : {"plane_index", "rounds_remaining", "moves_used", "moves_total",
+                           "rotations_used", "rotations_total"}) {
+      if (turn.at(key) != expected.at(key))
+        throw Error("deep_dive_action_state_changed", "Deep Dive turn changed before input");
+    }
+    if (turn.at(move ? "moves_left" : "rotations_left") == 0)
+      throw Error("deep_dive_action_state_changed", "No remaining Deep Dive action quota");
+    lua.restore(rubik);
+  }
+  const int face = args.value("face", 0);
+  const int row = args.value("row", 0);
+  const int col = args.value("col", 0);
+  if (((move || rotate) && (face < 1 || face > face_count)) ||
+      (move && (row < 1 || row > size || col < 1 || col > size)))
+    throw Error("deep_dive_action_invalid", "Invalid native Deep Dive target");
+
+  if (lua.api.load_string(lua.state, action_handler) != 0)
+    throw Error("deep_dive_action_failed", "Could not load the Deep Dive UI handler");
+  lua.api.push_value(lua.state, model);
+  lua.api.push_string(lua.state, op.c_str());
+  for (int value : {face, row, col, move_distance})
+    lua.api.push_integer(lua.state, value);
+  if (lua.api.protected_call(lua.state, 6, 2, 0, 0, nullptr) != 0) {
+    size_t length{};
+    const auto details = lua.api.string(lua.state, lua.top(), &length);
+    throw Error("deep_dive_action_failed", details ? std::string(details, std::min(size_t(240), length))
+                                                  : "The Deep Dive UI handler failed");
+  }
+  size_t length{};
+  const auto status = lua.api.string(lua.state, lua.top() - 1, &length);
+  if (!status || length > 40)
+    throw Error("deep_dive_action_failed", "Missing Deep Dive action result");
+  Json result{{"status", std::string(status, length)}};
+  if (result["status"] == "waiting") {
+    if (const auto reason = lua.api.string(lua.state, lua.top(), &length); reason && length <= 60)
+      result["waiting_reason"] = std::string(reason, length);
+  }
+  return result;
+}
+
+Json perform_choice(LuaState *state, const Json &args) {
+  const auto command = args.at("command").get<std::string>();
+  const bool read = command == "read";
+  if (!read && command != "select" && command != "confirm" && command != "discard")
+    throw Error("deep_dive_choice_invalid", "Unknown Deep Dive choice command");
+  const auto kind = read ? std::string{} : args.at("kind").get<std::string>();
+  const int revision = read ? 0 : args.at("revision").get<int>();
+  const int subject = read ? 0 : args.at("subject_id").get<int>();
+  const int index = read ? 0 : args.at("index").get<int>();
+  const int id = read ? 0 : args.at("id").get<int>();
+  const bool selection = kind == "options" || kind == "cards";
+  const bool direct_confirm = kind == "battle_defeat" || kind == "battle_victory" ||
+                              kind == "rest_shortage" || kind == "rest_finish";
+  const bool supported = selection ? command != "discard" :
+                         (kind == "replacement" && command == "discard") ||
+                         (direct_confirm && command == "confirm");
+  if (!read && (revision < 1 || subject < 1 || index < 1 || index > 4 || id < 1 ||
+                !supported))
+    throw Error("deep_dive_choice_invalid", "Invalid Deep Dive choice target");
+
+  const LuaView lua(lua_api(), state);
+  constexpr auto key = "AuraBridge.DeepDiveChoice.v1";
+  const auto tracking = lua.field(registry, key);
+  if (lua.type(tracking) != lua_table) {
+    lua.restore(tracking - 1);
+    lua.api.create_table(state, 0, 5);
+    lua.api.push_string(state, key);
+    lua.api.push_value(state, tracking);
+    lua.api.raw_set(state, registry);
+  }
+  static const auto script = std::string(deep_dive_choice_prelude) + deep_dive_reward_choice_script +
+                             deep_dive_event_choice_script;
+  if (lua.api.load_string(state, script.c_str()) != 0)
+    throw Error("deep_dive_choice_failed", "Could not load the Deep Dive choice handler");
+  lua.api.push_value(state, tracking);
+  lua.api.push_string(state, command.c_str());
+  lua.api.push_integer(state, revision);
+  lua.api.push_string(state, kind.c_str());
+  for (const int value : {subject, index, id})
+    lua.api.push_integer(state, value);
+  if (lua.api.protected_call(state, 7, 1, 0, 0, nullptr) != 0) {
+    size_t size{};
+    const auto error = lua.api.string(state, lua.top(), &size);
+    throw Error("deep_dive_choice_failed", error ? std::string(error, std::min(size_t(240), size))
+                                                  : "The Deep Dive choice handler failed");
+  }
+
+  const auto result = lua.top();
+  if (lua.type(result) != lua_table)
+    throw Error("deep_dive_choice_failed", "Missing Deep Dive choice result");
+  const auto status = lua.text(result, "status");
+  if (!read)
+    return {{"status", status}};
+  Json snapshot = {{"schema", "resonance_pc.deep_dive_choice.v1"}, {"status", status},
+                   {"kind", lua.text(result, "kind")}};
+  const auto reason = lua.text(result, "reason");
+  if (!reason.empty())
+    snapshot["reason"] = reason;
+  if (status != "ready" && status != "submitted")
+    return snapshot;
+  const auto observed_revision = lua.number(result, "revision").value_or(0);
+  const auto observed_subject = lua.number(result, "subject_id").value_or(0);
+  const int rows = lua.field(result, "rows");
+  const auto count = lua.type(rows) == lua_table ? lua.api.raw_length(state, rows) : 0;
+  if (!observed_revision || !observed_subject || count == 0 || count > 4)
+    throw Error("deep_dive_choice_failed", "Invalid Deep Dive choice list");
+  snapshot["revision"] = observed_revision;
+  snapshot["subject_id"] = observed_subject;
+  snapshot["rows"] = Json::array();
+  for (int position = 1; position <= int(count); ++position) {
+    const auto row = lua.at(rows, position);
+    if (lua.type(row) != lua_table || lua.number(row, "index") != position)
+      throw Error("deep_dive_choice_failed", "Invalid Deep Dive choice row");
+    const auto option_id = lua.number(row, "id").value_or(0);
+    if (!option_id)
+      throw Error("deep_dive_choice_failed", "Missing Deep Dive choice ID");
+    snapshot["rows"].push_back({{"id", option_id}, {"index", position},
+                                 {"disabled", lua.flag(row, "disabled")},
+                                 {"selected", lua.flag(row, "selected")}});
+    lua.restore(rows);
+  }
+  return snapshot;
 }
 
 // This fixed reader calls the same camera getter and face lookup as the UI.
@@ -449,5 +750,23 @@ nlohmann::json read_deep_dive_board(bool turn_only, bool controls_only) {
   if (!state)
     throw Error("deep_dive_board_unavailable", "The game Lua state is unavailable");
   return read_snapshot(state, turn_only, controls_only);
+}
+
+nlohmann::json execute_deep_dive_action(const nlohmann::json &args) {
+  const auto state = current_lua_state();
+  if (!state)
+    throw Error("deep_dive_board_unavailable", "The game Lua state is unavailable");
+  return perform_action(state, args);
+}
+
+nlohmann::json execute_deep_dive_choice(const nlohmann::json &args) {
+  const auto state = current_lua_state();
+  if (!state) {
+    // The client can replace its Lua environment during battle exit.
+    if (args.at("command") == "read")
+      return {{"schema", "resonance_pc.deep_dive_choice.v1"}, {"status", "waiting"}, {"kind", "none"}};
+    return {{"status", "waiting"}};
+  }
+  return perform_choice(state, args);
 }
 } // namespace bridge

@@ -18,6 +18,7 @@ import numpy as np
 from . import _deep_dive_single_run_vision as single
 from . import _deep_dive_hud_templates as hud_templates
 from ._deep_dive_match_cache import exact_roi_cache
+from ._deep_dive_node_rewards import ITEM_REPLACEMENT
 
 
 ROOT = Path(__file__).resolve().parents[2] / "templates/deep_dive/deep_dive_planned_run"
@@ -53,7 +54,7 @@ HUD_REGIONS = {
 }
 PLANE_NAMES = {"情感宣泄": 1, "思维解析": 2, "意义同化": 3}
 BOARD_SCENES = frozenset({"board", "choose_move", "choose_rotate", "rotate_preview"})
-TURN_FIELDS = ("rounds_remaining", "moves_used", "moves_total", "rotations_used", "rotations_total")
+TURN_FIELDS = ("plane_index", "rounds_remaining", "moves_used", "moves_total", "rotations_used", "rotations_total")
 # Static client proof: RubikCube.ShowCubeIcon (367-414) reads the TagFactory
 # icon and binds that exact Texture2D to grid/Icon material _MainTex. The native
 # source glyphs and Tag records are retained in templates/.../sources.json.
@@ -232,9 +233,13 @@ class _FrameProbes(dict):
         return value
 
 
-def observe(rgb: np.ndarray, event_family: str = "healing") -> dict:
+def observe(rgb: np.ndarray, event_family: str = "healing", *, read_operation_options: bool = True,
+            read_event_choices: bool = True) -> dict:
     """Extend legacy page observations without input or temporal assumptions."""
-    result = single.observe(rgb, event_family=event_family)
+    result = single.observe(rgb, event_family=event_family, read_operation_options=read_operation_options,
+                            read_event_choices=read_event_choices)
+    if result["scene"] == ITEM_REPLACEMENT:
+        return result
     result.update(raw_move_options=[], raw_rotation_options=[],
                   yellow_frame_candidates=[], white_frame_candidates=[],
                   fresh_scan_ready=False, enemy_turn=False, plane_index=None,
@@ -301,8 +306,9 @@ def observe(rgb: np.ndarray, event_family: str = "healing") -> dict:
                          np.array([40, 255, 255], np.uint8))
     white = cv2.inRange(hsv, np.array([0, 0, 185], np.uint8),
                         np.array([179, 85, 255], np.uint8))
-    result["raw_move_options"] = _tile_frames(cyan, "cyan")
-    result["raw_rotation_options"] = _rotation_arrows(cyan)
+    if read_operation_options:
+        result["raw_move_options"] = _tile_frames(cyan, "cyan")
+        result["raw_rotation_options"] = _rotation_arrows(cyan)
     result["yellow_frame_candidates"] = _tile_frames(yellow, "yellow_unowned")
     result["white_frame_candidates"] = _tile_frames(white, "white_unowned")
     result["plane_evidence"] = _plane_icon(gray)
@@ -332,7 +338,7 @@ def observe(rgb: np.ndarray, event_family: str = "healing") -> dict:
         "cyan_arrow_count": len(result["raw_rotation_options"]),
         "arrow_roi": list(BOARD_ROI),
     }
-    if result.get("scene") != "rotate_preview" and result.get("player_turn"):
+    if read_operation_options and result.get("scene") != "rotate_preview" and result.get("player_turn"):
         if move_cyan >= 2000 and rot_cyan < 2000 and result["raw_move_options"]:
             result.update(scene="choose_move", options=result["raw_move_options"])
         elif rot_cyan >= 2000 and move_cyan < 2000 and result["raw_rotation_options"]:
@@ -461,8 +467,8 @@ def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None,
              native_turn: dict | None = None) -> dict:
     """Combine the current scene's HUD evidence with optional bridge counters.
 
-    An empty bridge snapshot leaves turn fields unknown. Callers that omit
-    the snapshot can still inspect the visual counters. Known battle, reward
+    An empty bridge snapshot leaves the plane and turn fields unknown. Callers
+    that omit the snapshot can inspect the visual HUD. Known battle, reward
     and event overlays skip numeric HUD reads.
     """
     fields = ("plane_index", "rounds_remaining", "moves_used", "moves_total",
@@ -481,12 +487,12 @@ def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None,
     scene = observation.get("scene", "unknown")
     board = scene in BOARD_SCENES
     if board:
-        icon = observation.get("plane_evidence", {}).get("plane_index")
-        if icon is not None:
-            result["plane_index"] = icon
-            result["evidence_source"]["plane_index"] = "native_plane_icon"
         pair_fields = hud_templates.FIELDS
         if native_turn is None:
+            icon = observation.get("plane_evidence", {}).get("plane_index")
+            if icon is not None:
+                result["plane_index"] = icon
+                result["evidence_source"]["plane_index"] = "native_plane_icon"
             rounds_evidence = read_rounds_template(rgb)
             result["rounds_template_evidence"] = rounds_evidence
             result["rounds_remaining"] = rounds_evidence["value"]
@@ -508,7 +514,7 @@ def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None,
                 if pairs.get(field) is not None:
                     result[field] = pairs[field]
                     result["evidence_source"][field] = "native_font_pair_templates"
-        names = (["plane"] if icon is None else []) + [
+        names = (["plane"] if native_turn is None and icon is None else []) + [
             name for name, (used, total) in pair_fields.items()
             if result[used] is None or result[total] is None]
     elif scene == "ambiguous_event_entry":
@@ -556,7 +562,7 @@ def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None,
           and observation.get("scores", {}).get("event_enter", 0.) >= .80):
         result.update(scene="event_entry", entry_kind="boss_battle", event_type="boss_battle")
         board = False
-    if board:
+    if board and native_turn is None:
         plane = _normal(result["raw_text"].get("plane", ""))
         matched = [(name, index) for name, index in PLANE_NAMES.items() if name in plane]
         icon = observation.get("plane_evidence", {}).get("plane_index")
@@ -568,6 +574,7 @@ def read_hud(rgb: np.ndarray, ocr: Any, *, observation: dict | None = None,
             result["evidence_source"]["plane_index"] = "native_plane_icon"
         elif matched and icon is not None:
             result["errors"]["plane"] = "plane_name_icon_conflict"
+    if board:
         for roi, used_field, total_field in (("moves", "moves_used", "moves_total"),
                                             ("rotations", "rotations_used", "rotations_total"),
                                             ("inspirations", "collected_count", "inspiration_total")):

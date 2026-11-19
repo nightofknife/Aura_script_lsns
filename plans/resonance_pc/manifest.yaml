@@ -1844,7 +1844,7 @@ exports:
     public: true
     read_only: false
     timeout: -1
-    description: Start observed 3x3 in-level play without activity entry.
+    description: Start observed in-level play on native Deep Dive boards.
     parameters:
     - name: strategy
       type: Any
@@ -1907,6 +1907,14 @@ exports:
       required: false
       default: false
     - name: require_controls
+      type: Any
+      required: false
+      default: false
+    - name: require_actions
+      type: Any
+      required: false
+      default: false
+    - name: require_choices
       type: Any
       required: false
       default: false
@@ -3500,7 +3508,7 @@ exports:
   - id: consciousness_deep_dive_loop_pc/consciousness_deep_dive_loop_pc
     title: 识海深潜循环（PC）
     source: tasks/consciousness_deep_dive_loop_pc.yaml
-    description: 从活动首页依次进入、运行单局、结算收尾；循环次数为-1时持续运行，异常或取消立即停止。
+    description: 从活动首页开始下潜，通过桥接器执行规划，结算后返回活动首页。循环次数为 -1 时持续运行。
     role: user_task
     domain: 活动玩法
   - id: consciousness_deep_dive_loop_pc/deep_dive_cycle_pc
@@ -3516,9 +3524,9 @@ exports:
     role: internal
     domain: 活动玩法
   - id: consciousness_deep_dive_planned_run_pc/consciousness_deep_dive_planned_run_pc
-    title: 识海深潜关卡内自动运行（3×3）
+    title: 识海深潜关卡内自动运行
     source: tasks/consciousness_deep_dive_planned_run_pc.yaml
-    description: 每回合通过桥接器直读棋盘，优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，人数不足暂停，到达结算停止。
+    description: 通过桥接器读取三至五阶棋盘。优先提高期限内遇到奇点的概率，概率相同时争取更多灵感。执行规划的移动和层转，位面间隙缺员时结束下潜。
     role: user_task
     domain: 活动玩法
   - id: consciousness_deep_dive_plan_pc/consciousness_deep_dive_plan_pc
@@ -3716,4 +3724,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-18T16:59:17Z'
+  generated_at: '2026-11-19T09:59:18Z'

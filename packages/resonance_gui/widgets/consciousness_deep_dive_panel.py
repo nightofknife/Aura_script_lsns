@@ -58,7 +58,7 @@ class ConsciousnessDeepDivePanel(QWidget):
 
         title = QLabel("识海深潜", self)
         title.setObjectName("workflowTitle")
-        note = QLabel("完整随机循环从活动首页开始；关卡内规划运行从当前棋盘或位面间隙开始。", self)
+        note = QLabel("完整循环从活动首页开始，结算后回到首页。关卡内自动运行从当前棋盘或位面间隙开始。", self)
         note.setWordWrap(True)
         note.setProperty("caption", True)
         layout.addWidget(title)
@@ -187,7 +187,7 @@ class ConsciousnessDeepDivePanel(QWidget):
         self.cancel_button.clicked.connect(self.cancelRequested.emit)
         entry_actions.addWidget(self.cancel_button)
         if not self._developer_mode:
-            self.loop_button = QPushButton("开始完整随机循环", action_band)
+            self.loop_button = QPushButton("开始完整循环", action_band)
             self.loop_button.clicked.connect(self._request_loop)
             entry_actions.addWidget(self.loop_button)
         root.addWidget(action_band)
@@ -248,6 +248,7 @@ class ConsciousnessDeepDivePanel(QWidget):
             "verify_move": "核验玩家位置", "event_dispatch": "处理节点事件",
             "enemy_wait": "等待奇点行动", "plane_transition": "等待位面转换",
             "rest_area": "处理休整区", "next_plane_wait": "等待下一位面棋盘",
+            "shortage_settlement": "缺员结算",
             "stopped": "已停止运行",
             "execute": "执行玩家行动", "move": "移动玩家", "rotate": "旋转魔方层",
             "event": "处理节点事件", "battle": "处理战斗",
@@ -344,7 +345,11 @@ class ConsciousnessDeepDivePanel(QWidget):
                 ("expected_boss_consumed_inspirations", "平均被奇点摧毁灵感", False),
                 ("expected_encounter_turns_given_deadline", "按期到达平均回合", False),
                 ("optimal_expected_turns", "最短平均回合", False),
+                ("reward_lookahead_expected_new_inspirations", "未来两回合预计拾取灵感", False),
             ):
+                if (key == "reward_lookahead_expected_new_inspirations"
+                        and metrics.get("expected_new_inspirations") is not None):
+                    continue
                 value = metrics.get(key)
                 if isinstance(value, (float, int)) and not isinstance(value, bool):
                     if percent:
@@ -361,6 +366,7 @@ class ConsciousnessDeepDivePanel(QWidget):
             "下一步": payload.get("next_action"),
             "玩家回合动作": payload.get("player_turn_actions"),
             "评估结果": metrics,
+            "求解方式": payload.get("solver"),
         }
         if any(value is not None for value in details.values()):
             self.plan_details.setPlainText(json.dumps(details, ensure_ascii=False, indent=2))
@@ -462,7 +468,10 @@ class ConsciousnessDeepDivePanel(QWidget):
     def apply_loop_result(self,payload):
         self._task_running=False
         count=int(payload.get('completed_runs',getattr(self,'_loop_completed',0)))
-        self.summary_label.setText(f'已完成 {count} 局')
+        summary = f'已完成 {count} 局'
+        outcome = (payload.get('last_result') or {}).get('outcome')
+        result_label = {'victory': '探索完成', 'failure': '探索中断', 'unknown': '胜负未确认'}.get(outcome)
+        self.summary_label.setText(f'{summary} · 最近一局 {result_label}' if result_label else summary)
         ok=payload.get('success') is True
         message='循环完成，已停在活动首页' if ok else '循环停止：'+str(payload.get('reason') or '任务已停止')
         self._set_result_status(message,'success' if ok else 'error')
