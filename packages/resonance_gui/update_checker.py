@@ -31,7 +31,7 @@ def _canonical_version(value: Any) -> str:
     major, minor, patch, stable, serial = parsed
     suffix = ""
     if not stable:
-        suffix = f"-E-{serial}" if serial else "-E"
+        suffix = f"-E.{serial}" if serial else "-E"
     return f"v{major}.{minor}.{patch}{suffix}"
 
 

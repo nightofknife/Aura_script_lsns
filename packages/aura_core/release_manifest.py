@@ -13,7 +13,7 @@ EXPERIMENTAL_INDEX_URL = (
 MAX_CHECKSUM_BYTES = 2 * 1024 * 1024
 
 _VERSION_CORE = r"([0-9]+)\.([0-9]+)\.([0-9]+)"
-_EXPERIMENTAL_SUFFIX = r"(-E(?:-([1-9][0-9]*))?)?"
+_EXPERIMENTAL_SUFFIX = r"(-E(?:\.([1-9][0-9]*))?)?"
 _VERSION_RE = re.compile(rf"(v?){_VERSION_CORE}{_EXPERIMENTAL_SUFFIX}")
 _CHECKSUM_RE = re.compile(r"([0-9a-fA-F]{64})\s+\*?(.+?)\s*")
 _CPU_ASSET_RE = re.compile(rf"AuraResonance-(v{_VERSION_CORE}{_EXPERIMENTAL_SUFFIX})-win-x64-cpu\.zip")

@@ -2,7 +2,7 @@
 
 ## Release Naming
 
-- Source application versions use `vX.X.X`. Packaged application versions, Git release tags, and GitHub Release titles use `vX.X.X` for formal builds and `vX.X.X-E-N` for experimental builds. Use the latest formal release as the base and start each base's experimental numbering at 1.
+- Source application versions use `vX.X.X`. Packaged application versions, Git release tags, and GitHub Release titles use `vX.X.X` for formal builds and `vX.X.X-E.N` for experimental builds. Use the latest formal release as the base and start each base's experimental numbering at 1.
 - A GitHub Release title must exactly match its release tag. Do not append Chinese text, feature summaries, product names, platform names, or CPU/GPU labels.
 - Put feature summaries and other descriptive text in the release notes. Keep downloadable artifact filenames aligned with the existing release contract.
 
