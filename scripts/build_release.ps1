@@ -395,19 +395,26 @@ function Build-PortableUpdater {
         '--specpath', $WorkPath
     )
     $endpointFile = Join-Path $WorkPath 'aura-update-endpoint.dat'
+    $mirrorCaFile = Join-Path $WorkPath 'aura-update-ca.pem'
     try {
         if (-not [string]::IsNullOrWhiteSpace($env:AURA_UPDATE_VPS_URL)) {
             $endpointBytes = [System.Text.Encoding]::UTF8.GetBytes($env:AURA_UPDATE_VPS_URL.Trim())
             [System.IO.File]::WriteAllText($endpointFile, [Convert]::ToBase64String($endpointBytes))
             $pyInstallerArgs += @('--add-data', "$endpointFile;.")
+            if (-not [string]::IsNullOrWhiteSpace($env:AURA_UPDATE_VPS_CA_PEM)) {
+                [System.IO.File]::WriteAllText($mirrorCaFile, $env:AURA_UPDATE_VPS_CA_PEM.Trim() + "`n")
+                $pyInstallerArgs += @('--add-data', "$mirrorCaFile;.")
+            }
         }
         & $PythonPath -m PyInstaller @pyInstallerArgs $UpdaterSource
         if ($LASTEXITCODE -ne 0) {
             throw "Portable updater build failed with exit code $LASTEXITCODE."
         }
     } finally {
-        if (Test-Path -LiteralPath $endpointFile) {
-            Remove-Item -LiteralPath $endpointFile -Force
+        foreach ($resource in @($endpointFile, $mirrorCaFile)) {
+            if (Test-Path -LiteralPath $resource) {
+                Remove-Item -LiteralPath $resource -Force
+            }
         }
     }
 }

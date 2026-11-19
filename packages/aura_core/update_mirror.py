@@ -14,6 +14,7 @@ from packages.aura_core.release_manifest import release_version_key
 
 
 MIRROR_URL_ENV = "AURA_UPDATE_VPS_URL"
+MIRROR_CA_FILE_ENV = "AURA_UPDATE_VPS_CA_FILE"
 MAX_MIRROR_ASSET_BYTES = 2 * 1024 * 1024 * 1024
 MAX_REPLY_BYTES = 4096
 NETWORK_ERRORS = (error.URLError, ConnectionError, TimeoutError, http.client.HTTPException, ssl.SSLError)
@@ -58,7 +59,7 @@ class _RejectRedirects(request.HTTPRedirectHandler):
 
 
 class MirrorClient:
-    def __init__(self, base_url: str, *, opener=None, poll_interval: float = 3.0):
+    def __init__(self, base_url: str, *, opener=None, ca_file=None, poll_interval: float = 3.0):
         try:
             address = parse.urlsplit(base_url)
             port = address.port
@@ -69,7 +70,16 @@ class MirrorClient:
                 or address.path not in {"", "/"} or address.query or address.fragment):
             raise MirrorError("VPS 更新地址必须是 HTTPS 站点地址")
         self.base_url = base_url.rstrip("/")
-        self.open = opener or request.build_opener(_RejectRedirects()).open
+        if opener is None:
+            handlers = [_RejectRedirects()]
+            if ca_file is not None:
+                try:
+                    context = ssl.create_default_context(cafile=str(ca_file))
+                except (OSError, ValueError):
+                    raise MirrorError("VPS 专用证书无法读取") from None
+                handlers.append(request.HTTPSHandler(context=context))
+            opener = request.build_opener(*handlers).open
+        self.open = opener
         self.poll_interval = poll_interval
 
     def _request(self, path, *, method="GET", payload=None, timeout=8.0, attempts=3):

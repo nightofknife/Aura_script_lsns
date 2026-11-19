@@ -16,8 +16,8 @@ import zipfile
 
 import pytest
 
-from packages.aura_core.update_mirror import MirrorRelease
-from scripts.release import serve_update_mirror
+from packages.aura_core.update_mirror import MirrorClient, MirrorError, MirrorRelease
+from scripts.release import serve_update_mirror, sync_update_mirror
 
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -203,6 +203,57 @@ def test_packaged_mirror_endpoint_is_read_from_encoded_resource(tmp_path, monkey
     assert updater._configured_mirror_url() == "https://update.example.test"
     monkeypatch.setenv(updater.MIRROR_URL_ENV, "https://test.example.test")
     assert updater._configured_mirror_url() == "https://test.example.test"
+
+
+def test_packaged_mirror_ca_is_local_to_the_mirror(tmp_path, monkeypatch):
+    monkeypatch.delenv(updater.MIRROR_CA_FILE_ENV, raising=False)
+    monkeypatch.setattr(sys, "_MEIPASS", str(tmp_path), raising=False)
+    assert updater._configured_mirror_ca() is None
+    resource = tmp_path / updater.MIRROR_CA_RESOURCE
+    resource.write_text("invalid CA for the configuration failure test", encoding="utf-8")
+    assert updater._configured_mirror_ca() == resource
+    with pytest.raises(MirrorError, match="VPS 专用证书"):
+        MirrorClient("https://update.example.test", ca_file=resource)
+    assert isinstance(MirrorClient("https://update.example.test"), MirrorClient)
+
+
+def test_mirror_sync_keeps_previous_package_until_new_package_is_verified(tmp_path, monkeypatch):
+    stable = "v1.9.10"
+    previous = "v1.9.9"
+    experimental = "v1.9.9-E.1"
+    releases = tmp_path / "releases" / "download"
+    for tag in (previous, experimental):
+        directory = releases / tag
+        directory.mkdir(parents=True)
+        (directory / f"AuraResonance-{tag}-win-x64-cpu.zip").write_bytes(b"previous")
+    index = tmp_path / "channels" / "stable.json"
+    index.parent.mkdir()
+    old = {"tag": previous, "size": 8, "sha256": hashlib.sha256(b"previous").hexdigest()}
+    index.write_text(json.dumps(old), encoding="utf-8")
+    filename = f"AuraResonance-{stable}-win-x64-cpu.zip"
+    new = b"new release"
+    digest = hashlib.sha256(new).hexdigest()
+    monkeypatch.setattr(sync_update_mirror, "sync_target", lambda _: (stable, filename, digest))
+
+    def failed(*args):
+        raise ValueError("checksum mismatch")
+
+    monkeypatch.setattr(sync_update_mirror, "download_package", failed)
+    with pytest.raises(ValueError, match="checksum mismatch"):
+        sync_update_mirror.sync_channel(tmp_path, "stable")
+    assert json.loads(index.read_text(encoding="utf-8")) == old
+    assert (releases / previous).is_dir()
+
+    def verified(partial, tag, name, checksum):
+        partial.write_bytes(new)
+        return sync_update_mirror.verified_size(partial, checksum)
+
+    monkeypatch.setattr(sync_update_mirror, "download_package", verified)
+    sync_update_mirror.sync_channel(tmp_path, "stable")
+    assert json.loads(index.read_text(encoding="utf-8")) == {"tag": stable, "size": len(new), "sha256": digest}
+    assert (releases / stable / filename).read_bytes() == new
+    assert not (releases / previous).exists()
+    assert (releases / experimental).is_dir()
 
 
 def test_vps_server_slot_is_shared_and_skips_cancelled_or_unclaimed_tickets(monkeypatch):
