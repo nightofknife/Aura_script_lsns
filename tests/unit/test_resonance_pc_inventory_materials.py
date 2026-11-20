@@ -70,9 +70,9 @@ def test_actual_material_catalog_contains_native_visual_classes() -> None:
     assert catalog["layout"]["blur_kernel"] == (3, 3)
     assert catalog["layout"]["blur_sigma"] == 0.8
     assert catalog["layout"]["match_threshold"] == 0.85
-    assert len(catalog["items"]) == 201
-    assert len(catalog["_template_paths"]) == 201
-    assert len({item["item_id"] for item in catalog["items"]}) == 201
+    assert len(catalog["items"]) == 204
+    assert len(catalog["_template_paths"]) == 204
+    assert len({item["item_id"] for item in catalog["items"]}) == 204
     for item, template_path in zip(catalog["items"], catalog["_template_paths"], strict=True):
         assert item["quality"] in {"White", "Blue", "Purple", "Golden", "Orange"}
         assert item["visual_key"]

@@ -98,8 +98,8 @@ def test_equipment_shared_art_preserves_business_identities_and_order():
         assert by_id[canonical]["template"] == by_id[other]["template"] == expected
     # The historical name/art disagreement retains its original business record.
     assert by_id[11800101]["name"] == "宏观形而上材料"
-    assert len(entries) == 175
-    assert len(set(catalog["_template_paths"])) == 172
+    assert len(entries) == 177
+    assert len(set(catalog["_template_paths"])) == 174
     assert catalog["layout"]["template_size"] == (100, 60)
     assert catalog["layout"]["template_offset_from_card"] == (10, 35)
     assert catalog["layout"]["match_threshold"] == 0.82
@@ -118,7 +118,7 @@ def test_equipment_matching_retains_each_logical_candidate_and_native_profile():
         np.zeros((626, 680, 3), dtype=np.uint8), catalog, object(), Matcher()
     ) == []
     call = calls[0]
-    assert len(call["template_images"]) == 175
+    assert len(call["template_images"]) == 177
     assert call["threshold"] == 0.82
     assert call["use_grayscale"] is False
     assert call["match_method"] == cv2.TM_CCOEFF_NORMED
