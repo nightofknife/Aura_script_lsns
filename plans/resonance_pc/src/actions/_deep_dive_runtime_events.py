@@ -230,7 +230,8 @@ def advance_context(context, observation, now):
         action = pending['action']
         if action == 'battle_start' and 'native' in pending and scene in {
                 'battle_formation', 'native_choice_wait', 'unknown'}:
-            if now - pending['at'] >= 45:
+            # Active combat can remain unclassified until the result panel appears.
+            if now - pending['at'] >= 180:
                 return _step('blocked', reason='battle_start_transition_timeout')
             return _step()
         if action == 'battle_next':

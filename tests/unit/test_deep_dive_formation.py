@@ -8,7 +8,7 @@ import pytest
 from plans.resonance_pc.src.actions import consciousness_deep_dive_loop_pc_actions as loop
 from plans.resonance_pc.src.actions import consciousness_deep_dive_planned_run_pc_actions as runtime
 from plans.resonance_pc.src.actions._deep_dive_native_choices import observe_choice
-from plans.resonance_pc.src.actions._deep_dive_runtime_events import create_context
+from plans.resonance_pc.src.actions._deep_dive_runtime_events import advance_context, create_context
 
 
 def panel(kind, *, level=20102161, role=None, revision=1):
@@ -45,6 +45,24 @@ def test_fills_each_vacancy_before_starting_battle(monkeypatch):
     assert context['phase'] == 'battle_wait'
     assert context['pending']['action'] == 'battle_start'
     assert [row['action'] for row in context['trace']] == ['formation_fill', 'formation_fill', 'battle_start']
+
+
+def test_native_battle_waits_three_minutes_for_unclassified_combat():
+    context = create_context('boss_battle', 'enemy_move_encounter', 0)
+    formation = panel('formation_start')
+    advance_context(context, formation, 0)
+    assert advance_context(context, formation, 1)['action'] == 'battle_start'
+
+    combat = dict(scene='unknown', valid=True)
+    for now in (2, 46, 180):
+        assert advance_context(context, combat, now)['status'] == 'waiting'
+    assert context['pending']['tries'] == 1
+
+    continuing = deepcopy(context)
+    victory = panel('battle_victory', revision=2)
+    advance_context(continuing, victory, 180)
+    assert advance_context(continuing, victory, 181)['action'] == 'battle_next'
+    assert advance_context(context, combat, 181)['reason'] == 'battle_start_transition_timeout'
 
 
 def test_shortage_leaves_formation_and_submits_settlement_once(monkeypatch):
