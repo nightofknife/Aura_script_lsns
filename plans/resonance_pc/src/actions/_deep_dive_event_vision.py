@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 
 from ._deep_dive_match_cache import exact_roi_cache
+from ._deep_dive_option_priority import choose_event_option
 
 PLAN = Path(__file__).resolve().parents[2]
 ROOT = PLAN / 'templates/deep_dive/deep_dive_events'
@@ -96,10 +97,13 @@ def event_options(bgr):
             variants.append({'rows':rows,'score':sum(r['score'] for r in rows)/count})
     if not variants:
         return []
-    # Variants differing only by percentages have the same signature and do not compete.
+    # Numeric variants can share recognition evidence when they imply the same choice.
     grouped = {}
     for v in variants:
-        signature = tuple((r['group'],r['blocked'],r['priority'],r['state']) for r in v['rows'])
+        candidates = [(index, row) for index, row in enumerate(v['rows'])
+                      if not row['blocked'] and row['state'] != 'disabled']
+        preferred = choose_event_option(candidates)[0] if candidates else None
+        signature = (preferred, tuple((r['group'],r['blocked'],r['priority'],r['state']) for r in v['rows']))
         if signature not in grouped or v['score']>grouped[signature]['score']:
             grouped[signature]=v
     ranked=sorted(grouped.values(),key=lambda v:-v['score'])

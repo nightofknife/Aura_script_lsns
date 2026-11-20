@@ -26,6 +26,14 @@ def row(supported=True,blocked=False,priority=10,state='normal',title='奖励'):
             'unsupported_reasons':[] if supported else ['事件内战斗']}
 
 
+def native_options(event_id, *, selected=None, disabled=(), revision=1):
+    event = next(item for item in vision.catalog()['events'] if item['id'] == event_id)
+    rows = [dict(index=index, id=option, selected=option == selected, disabled=option in disabled)
+            for index, option in enumerate(event['options'], 1)]
+    return observe_choice({}, dict(status='ready', revision=revision, kind='options',
+                                   subject_id=event_id, rows=rows), 'vortex')
+
+
 def test_supported_workflow_blue_reward_ending_return():
     s=init();o={'scene':'event_options','event_options':[row()]}
     assert stable(s,o,1)[0]=='vortex_option_select'
@@ -66,26 +74,98 @@ def test_only_unsupported_choices_stop():
 @pytest.mark.parametrize('event_id,option_id,level_id', [
     (89800039, 86100250, 20101954),
     (89800042, 86100259, 20101959),
+    (89800040, 86100252, 20101955),
+    (89800085, 86100297, 20101977),
+    (89800078, 86100178, 20101997),
 ])
 def test_native_battle_option_waits_for_its_sub_battle(event_id, option_id, level_id):
     event = next(item for item in vision.catalog()['events'] if item['id'] == event_id)
-    # Keep the first event's alternate branches disabled to exercise its battle choice.
-    rows = [dict(index=index, id=item, selected=False, disabled=event_id == 89800039 and item != option_id)
-            for index, item in enumerate(event['options'], 1)]
-    target = next(row for row in rows if row['id'] == option_id)
-    snapshot = dict(status='ready', revision=1, kind='options', subject_id=event_id, rows=rows)
-    identity = dict(revision=1, kind='options', subject_id=event_id, index=target['index'], id=option_id)
+    disabled = set(event['options']) - {option_id}
+    index = event['options'].index(option_id) + 1
+    identity = dict(revision=1, kind='options', subject_id=event_id, index=index, id=option_id)
     state = init()
-    observation = observe_choice({}, snapshot, 'vortex')
+    observation = native_options(event_id, disabled=disabled)
     assert stable(state,observation,1)==('vortex_option_select',dict(identity,command='select'))
-    target['selected'] = True
-    observation = observe_choice({}, snapshot, 'vortex')
+    observation = native_options(event_id, selected=option_id, disabled=disabled)
     assert stable(state,observation,2)==('vortex_option_submit',dict(identity,command='confirm'))
     assert stable(state,{'scene':'board','event_board':True},6)==('wait',None)
     assert state['vortex_pending']['battle_level'] == level_id
 
 
-def test_all_no_effect_exits_are_preferred_even_in_recurring_events():
+@pytest.mark.parametrize('event_id,expected', [
+    (89800040, 86100253),  # 防御系统故障，躲避优于战斗
+    (89800027, 86100210),  # 地板塌陷，避开会增加行动次数的选项
+    (89800011, 86100120),  # 求真者，免费混合奖励
+    (89800085, 86100298),  # 原型机，非战斗分支
+    (89800086, 86100299),  # 原型机后续，选消耗最低的 HP 分支
+    (89800079, 86100176),  # 扭蛋机首段，免费尘埃
+    (89800076, 86100339),  # 骑士的承诺，免费尘埃
+    (89800042, 86100258),  # 狭路相逢，上交尘埃优于战斗
+])
+def test_native_catalog_uses_preferred_branch(event_id, expected):
+    action, target = stable(init(), native_options(event_id), 1)
+    assert action == 'vortex_option_select'
+    assert target['id'] == expected
+
+
+def test_free_reward_precedes_free_exit_and_paid_noncombat():
+    free = dict(row(title='免费奖励'), effects=[{'orderType':'Reward'}])
+    leave = dict(row(title='免费离开', priority=-10), effects=[])
+    paid = dict(row(title='付代价拿奖励'), effects=[{'orderType':'Recover','param':-.1}, {'orderType':'Reward'}])
+    state = init()
+    page = dict(scene='event_options', event_options=[leave, paid, free])
+    assert stable(state, page, 1)[0] == 'vortex_option_select'
+    assert state['vortex_pending']['index'] == 2
+
+    free['state'] = 'disabled'
+    state = init()
+    assert stable(state, page, 1)[0] == 'vortex_option_select'
+    assert state['vortex_pending']['index'] == 0
+
+
+def test_prototype_keeps_expected_followup_through_queued_rewards():
+    state = init()
+    assert stable(state, native_options(89800085), 1)[1]['id'] == 86100298
+    submit = native_options(89800085, selected=86100298)
+    assert stable(state, submit, 2)[0] == 'vortex_option_submit'
+
+    award = dict(scene='reward_obtained', click=[280, 630])
+    assert stable(state, award, 3)[0] == 'vortex_dismiss_result'
+    assert stable(state, submit, 4) == ('wait', None)
+    assert stable(state, dict(scene='board', event_board=True), 5) == ('wait', None)
+    followup = native_options(89800086, revision=2)
+    assert stable(state, followup, 6)[1]['id'] == 86100299
+    assert 'vortex_next_event_id' not in state
+
+
+def test_prototype_rejects_an_unexpected_followup():
+    state = init()
+    stable(state, native_options(89800085), 1)
+    stable(state, native_options(89800085, selected=86100298), 2)
+    assert stable(state, native_options(89800079, revision=2), 3) == ('vortex_blocked', None)
+
+
+def test_mixed_reward_dismisses_both_awards_before_returning_to_board():
+    state = init()
+    assert stable(state, native_options(89800011), 1)[1]['id'] == 86100120
+    assert stable(state, native_options(89800011, selected=86100120), 2)[0] == 'vortex_option_submit'
+    first = dict(scene='reward_obtained', click=[280, 630], result_visual=[0, 0, 0])
+    second = dict(first, result_visual=[25, 25, 25])
+
+    assert stable(state, first, 3)[0] == 'vortex_dismiss_result'
+    assert stable(state, second, 5)[0] == 'vortex_dismiss_result'
+    assert stable(state, dict(scene='board', event_board=True), 7)[0] == 'vortex_returned'
+    assert sum(row.get('action') == 'option_submit' for row in state['vortex_trace']) == 1
+
+
+def test_every_catalog_event_has_a_native_path_when_options_are_enabled():
+    for event in vision.catalog()['events']:
+        action, target = stable(init(), native_options(event['id']), 1)
+        assert action == 'vortex_option_select', (event['id'], event['name'])
+        assert target['id'] in event['options']
+
+
+def test_all_no_effect_exits_remain_supported_even_in_recurring_events():
     exits=[o for o in vision.catalog()['options'] if not o['effects']]
     assert len(exits)==29
     assert all(o['supported'] and not o['blocked'] and o['priority']==-10 for o in exits)

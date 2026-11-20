@@ -1163,6 +1163,10 @@ async def _events(state, app, image, observation):
     if (context['event_type'] == 'vortex' and pending.get('kind') == 'option_submit'
             and pending.get('battle_level') and observation.get('scene') == 'battle_formation'
             and _stable_scene(state, observation)):
+        formation = observation.get('native') or {}
+        if formation.get('subject_id') != pending['battle_level']:
+            _stop(state, 'vortex_battle_level_mismatch', image)
+            return
         flow.pop('vortex_pending')
         flow.update(vortex_submitted=True, vortex_progress_at=now)
         child = create_context('battle', 'vortex_sub_battle', now, source_action_id=context['source_action_id'])
