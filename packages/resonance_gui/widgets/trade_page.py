@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Mapping
 from decimal import Decimal
 from copy import deepcopy
@@ -163,7 +164,7 @@ class CityPrestigeDialog(QDialog):
 
         tax_page = QWidget(self.tabs)
         tax_layout = QVBoxLayout(tax_page)
-        self.tax_explanation = QLabel("未覆盖的城市按声望与规则计算税率。覆盖值为游戏显示的最终实际税率，不会再次扣除声望减税；例如 7.50% 保存为 750 bps。", tax_page)
+        self.tax_explanation = QLabel("未覆盖的城市按声望与规则计算税率。覆盖值请填写游戏显示的最终实际税率，例如 7.50%，程序会直接使用该税率。", tax_page)
         self.tax_explanation.setWordWrap(True)
         tax_layout.addWidget(self.tax_explanation)
         tax_scroll = QScrollArea(tax_page)
@@ -511,10 +512,10 @@ class TradePage(QWidget):
             "auto_trade_goods_investment": "到站交易前按目标等级投资交易品；实际等级不足 10 时停止，受阻后最多尝试下一商品一次。",
             "auto_rubbish_recycling": "到达符合条件的城市时尝试垃圾回收，不为回收额外改变线路。",
             "auto_black_moon_local_purchase": "到达黑月本地商店时采购已选商品；关闭保留商品选择，保存设置不会立即购买。",
-            "bargain_rates": "每次砍价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
-            "raise_rates": "每次抬价的成功率，以逗号分隔的 bps 数值填写；10000 表示 100%。",
-            "bargain_step": "每次砍价的降价幅度，100 个 bps 等于 1%。",
-            "raise_step": "每次抬价的涨价幅度，100 个 bps 等于 1%。",
+            "bargain_rates": "依次填写每次砍价的成功率，用逗号分隔，例如 50%, 37.5%。",
+            "raise_rates": "依次填写每次抬价的成功率，用逗号分隔，例如 50%, 37.5%。",
+            "bargain_step": "每次砍价成功后的降价幅度。",
+            "raise_step": "每次抬价成功后的涨价幅度。",
         }
         for name, description in descriptions.items():
             getattr(self, name).setToolTip(description)
@@ -817,14 +818,14 @@ class TradePage(QWidget):
         else:
             parameter_fields(layout, ("协商尝试上限", self.negotiation_max_attempts))
         self.bargain_rates = QLineEdit(content)
-        self.bargain_rates.setPlaceholderText("5000, 5000")
-        self.bargain_step = self._spin(1, 2000)
+        self.bargain_rates.setPlaceholderText("50%, 37.5%")
+        self.bargain_step = self._negotiation_step_field()
         self.raise_rates = QLineEdit(content)
-        self.raise_rates.setPlaceholderText("5000, 5000")
-        self.raise_step = self._spin(1, 2000)
+        self.raise_rates.setPlaceholderText("50%, 37.5%")
+        self.raise_step = self._negotiation_step_field()
         self.bargain_parameters = parameter_fields(
-            layout, ("砍价成功率 (bps)", self.bargain_rates), ("砍价幅度 (bps)", self.bargain_step),
-            ("抬价成功率 (bps)", self.raise_rates), ("抬价幅度 (bps)", self.raise_step),
+            layout, ("砍价成功率 (%)", self.bargain_rates), ("砍价幅度", self.bargain_step),
+            ("抬价成功率 (%)", self.raise_rates), ("抬价幅度", self.raise_step),
         )
 
         parameter_heading(layout, "声望与商品")
@@ -1467,6 +1468,15 @@ class TradePage(QWidget):
         widget.setGroupSeparatorShown(True)
         return widget
 
+    @staticmethod
+    def _negotiation_step_field() -> QDoubleSpinBox:
+        widget = QDoubleSpinBox()
+        widget.setDecimals(2)
+        widget.setRange(0.01, 20)
+        widget.setSingleStep(0.01)
+        widget.setSuffix(" %")
+        return widget
+
     def _toggle_debug(self, visible: bool) -> None:
         self.debug_view.setVisible(visible)
         self.debug_toggle.setArrowType(Qt.ArrowType.DownArrow if visible else Qt.ArrowType.RightArrow)
@@ -1716,10 +1726,10 @@ class TradePage(QWidget):
         self.reposition_to_route.setChecked(bool(values.get("reposition_to_route", False)))
         self.mode_buttons[saved_mode].setChecked(True)
         self.negotiation_max_attempts.setValue(self._input_integer(values, "negotiation_max_attempts", 5, minimum=1, maximum=6))
-        self.bargain_rates.setText(self._join_values(values.get("bargain_success_rates_bps", [5000])))
-        self.bargain_step.setValue(int(values.get("bargain_step_bps", 1000)))
-        self.raise_rates.setText(self._join_values(values.get("raise_success_rates_bps", [5000])))
-        self.raise_step.setValue(int(values.get("raise_step_bps", 1000)))
+        self.bargain_rates.setText(self._format_percent_list(values.get("bargain_success_rates_bps", [5000])))
+        self.bargain_step.setValue(int(values.get("bargain_step_bps", 1000)) / 100)
+        self.raise_rates.setText(self._format_percent_list(values.get("raise_success_rates_bps", [5000])))
+        self.raise_step.setValue(int(values.get("raise_step_bps", 1000)) / 100)
         raw_city_ids = values.get("available_city_ids")
         self._available_city_ids = set(DEFAULT_PC_TRADE_CITY_IDS) if raw_city_ids is None else {
             str(city) for city in raw_city_ids
@@ -1823,8 +1833,8 @@ class TradePage(QWidget):
 
     def collect_inputs(self, *, require_start_city: bool = False, _draft: bool = False,
                        _validate_recovery: bool = True) -> dict[str, Any]:
-        bargain_rates = self._parse_int_list(self.bargain_rates.text(), "砍价成功率", 0, 10000)
-        raise_rates = self._parse_int_list(self.raise_rates.text(), "抬价成功率", 0, 10000)
+        bargain_rates = self._parse_percent_list(self.bargain_rates.text(), "砍价成功率")
+        raise_rates = self._parse_percent_list(self.raise_rates.text(), "抬价成功率")
         selected_city_ids = self.selected_city_ids()
         mode = self.trade_mode()
         if not _draft and mode != "fixed" and len(selected_city_ids) < 2:
@@ -1855,9 +1865,9 @@ class TradePage(QWidget):
             "book_profit_threshold": self._amount_base_units(self.book_profit_threshold),
             "book_waste_limit": self.book_waste_limit.value(),
             "bargain_success_rates_bps": bargain_rates,
-            "bargain_step_bps": self.bargain_step.value(),
+            "bargain_step_bps": round(self.bargain_step.value() * 100),
             "raise_success_rates_bps": raise_rates,
-            "raise_step_bps": self.raise_step.value(),
+            "raise_step_bps": round(self.raise_step.value() * 100),
             "available_city_ids": selected_city_ids,
             "required_end_city_ids": required_end_city_ids,
             "city_prestige": self._city_prestige_payload(),
@@ -2761,21 +2771,28 @@ class TradePage(QWidget):
         return [item.strip() for item in normalized.split(",") if item.strip()]
 
     @classmethod
-    def _parse_int_list(cls, text: str, label: str, minimum: int, maximum: int) -> list[int]:
+    def _parse_percent_list(cls, text: str, label: str) -> list[int]:
         values = cls._parse_text_list(text)
         if not values:
             raise ValueError(f"{label}至少需要一个值。")
-        try:
-            parsed = [int(value) for value in values]
-        except ValueError as exc:
-            raise ValueError(f"{label}必须是用逗号分隔的整数。") from exc
-        if any(value < minimum or value > maximum for value in parsed):
-            raise ValueError(f"{label}必须在 {minimum} 到 {maximum} 之间。")
-        return parsed
+        rates_bps = []
+        for value in values:
+            match = re.fullmatch(r"([+-]?(?:[0-9]+(?:\.[0-9]{1,2})?|\.[0-9]{1,2}))(?:\s*[%％])?", value)
+            if not match:
+                raise ValueError(f"{label}请用逗号分隔百分比，最多保留两位小数，例如 50%, 37.5%。")
+            percent = Decimal(match[1])
+            if not 0 <= percent <= 100:
+                raise ValueError(f"{label}必须在 0% 到 100% 之间。")
+            rates_bps.append(int(percent * 100))
+        return rates_bps
 
     @staticmethod
-    def _join_values(values: Any) -> str:
-        return ", ".join(str(item) for item in (values or []))
+    def _format_percent_list(values: Any) -> str:
+        try:
+            rates_bps = [int(str(value)) for value in (values or [])]
+        except (TypeError, ValueError):
+            return ""
+        return ", ".join(f"{rate / 100:.2f}".rstrip("0").rstrip(".") + "%" for rate in rates_bps)
 
     @staticmethod
     def _short_cid(cid: str) -> str:
