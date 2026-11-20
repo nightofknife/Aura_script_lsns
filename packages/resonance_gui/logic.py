@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass, field
 from typing import Any, Mapping, Sequence
 from packages.resonance_shared.freight_parameters import effective_freight_inputs
+from packages.resonance_shared.market_proxy import normalize_market_proxy
 from packages.resonance_shared.passenger_parameters import normalize_passenger_options
 
 PC_GAME_NAME = "resonance_pc"
@@ -1220,7 +1221,7 @@ def trade_result_summary(payload: Mapping[str, Any] | None) -> dict[str, Any]:
         "market_fetched_at": str(result.get("market_fetched_at") or ""),
         **{key: copy.deepcopy(result.get(key)) for key in (
             "trade_mode", "request_kind", "input_snapshot", "planning_status", "success", "error", "passenger",
-            "book_budget", "book_policy", "negotiation_policy", "expected_profit_exact",
+            "book_budget", "book_limit_per_stop", "book_policy", "negotiation_policy", "expected_profit_exact",
             "expected_fatigue_used_exact", "remaining_expected_fatigue_exact", "city_visits",
             "reposition", "reposition_route", "reposition_expected_fatigue", "reposition_expected_fatigue_exact",
             "route_expected_fatigue", "route_expected_fatigue_exact", "actual_profit", "actual_profit_exact",
@@ -1307,6 +1308,11 @@ def normalize_trade_task_inputs(inputs: Mapping[str, Any] | None) -> dict[str, A
         normalized["passenger_options"] = normalize_passenger_options(normalized.get("passenger_options"), enabled=enabled)
     if "allow_stale_market" in normalized:
         normalized["allow_stale_market"] = validate_allow_stale_market(normalized["allow_stale_market"])
+    if "market_proxy_mode" in normalized or "market_proxy_port" in normalized:
+        normalized.update(normalize_market_proxy(
+            normalized.get("market_proxy_mode", "automatic"),
+            normalized.get("market_proxy_port"),
+        ))
     currency_error = freight_currency_error(normalized)
     if currency_error:
         raise ValueError(currency_error)
@@ -1359,6 +1365,21 @@ def expected_profit_per_fatigue(summary: Mapping[str, Any] | None) -> float | No
     if fatigue <= 0:
         return None
     return profit / fatigue
+
+
+def freight_book_stop_note(leg: Mapping[str, Any], book_limit_per_stop: int | None) -> str:
+    if leg.get("is_full_load") is not False or not leg.get("buy_products"):
+        return ""
+    reason = str(leg.get("book_stop_reason") or "")
+    if reason == "per_stop_book_limit":
+        if book_limit_per_stop is not None and leg.get("books_used") == book_limit_per_stop:
+            return "已达单站用书上限，本段未满仓。"
+        return ""
+    return {
+        "total_book_budget": "整趟用书额度不足，本段未满仓。",
+        "book_waste_limit": "再用一本会超过浪费上限，本段未满仓。",
+        "global_book_allocation": "用书按整趟总额度分配，本段未满仓。",
+    }.get(reason, "")
 
 
 def freight_settlement_lines(leg: Mapping[str, Any]) -> list[str]:

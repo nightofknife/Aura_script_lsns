@@ -45,9 +45,12 @@ from PySide6.QtWidgets import (
 
 from ..config_repository import (
     DEFAULT_PC_TRADE_CITY_IDS,
+    MAX_BOOK_LIMIT_PER_STOP,
     PC_TRADE_CITY_OPTIONS,
     TRADE_PREVIEW_INPUT_KEYS,
+    TRADE_PREVIEW_REQUEST_KEYS,
     ResonanceConfigRepository,
+    normalize_book_limit_preferences,
 )
 from ..logic import (
     validate_pickup_click_interval,
@@ -55,6 +58,7 @@ from ..logic import (
     validate_trade_goods_investment_level,
     validate_city_tax_rates_bps,
     FREIGHT_NET_PROFIT_NOTE,
+    freight_book_stop_note,
     freight_currency_error,
     freight_settlement_lines,
     freight_passenger_summary_text,
@@ -79,6 +83,7 @@ from packages.resonance_shared.freight_parameters import (
     DEFAULT_RECOVERY_THRESHOLDS,
     freight_control_state, validate_freight_recovery_thresholds,
 )
+from packages.resonance_shared.market_proxy import normalize_market_proxy
 from ..run_failure import present_run_failure
 from ..trade_catalog import TradeProductGroup, load_trade_product_groups, trade_product_ids
 from ..black_moon_catalog import BlackMoonCatalogError, load_black_moon_catalog, normalize_black_moon_settings
@@ -422,6 +427,7 @@ class TradePage(QWidget):
     cancelRequested = Signal()
     refreshTargetRequested = Signal()
     validationChanged = Signal(str)
+    marketProxyChanged = Signal()
 
     def __init__(
         self, settings: ResonanceConfigRepository, parent: QWidget | None = None,
@@ -475,6 +481,7 @@ class TradePage(QWidget):
         self._form_ready = True
         self._connect_parameter_dependencies()
         self._set_parameter_help()
+        self.reload_market_proxy()
         self.set_inputs(self._load_inputs())
         self.set_busy(False)
 
@@ -483,8 +490,10 @@ class TradePage(QWidget):
             "fatigue_budget": "本次货运的规划疲劳上限；固定线路的起点导航消耗也计入预算。",
             "cargo_capacity": "规划时使用的货舱总容量，请填写游戏中实际可用的容量。",
             "book_usage": "不用书、有限书数或不限书数；不用书仍购买基础库存中的盈利商品，有限书数是整趟任务的总额度。",
-            "book_budget": "本次完整货运最多使用的进货书数量，不是每座城市的额度。",
-            "book_policy": "优先满仓：忽略单本收益阈值，在整趟用书额度内补足盈利商品；首次满仓后停止加书，浪费不能超过上限，额度不足或超限时允许未满仓。收益优先仍受单本收益阈值限制。",
+            "book_budget": "本次完整货运最多使用的进货书总数。",
+            "book_limit_per_stop_enabled": "限制每次停靠进货使用的进货书总数。收益优先和优先满仓都受此限制。",
+            "book_limit_per_stop": "从起始站的第一次进货开始生效。再次到访同一城市时按新的停靠计算，所有用书仍计入整趟总额度。",
+            "book_policy": "优先满仓忽略单本收益阈值，在单站上限、整趟额度和浪费上限内尽量装满，首次满仓后停止加书。收益优先按单本收益阈值决定是否用书。",
             "book_waste_limit": "仅优先满仓生效。浪费指用书后符合交易条件商品的可购总量超过货舱容量、未装入的货物数量；0 表示不允许浪费货物。",
             "negotiation_policy": "程序决定、每次买卖都协商或不协商；与用书策略独立。",
             "target_profit": "填写预计净收益目标，已计入买入税与卖出利润税。以万为单位，最多四位小数；不可达时只显示原因，不执行路线。",
@@ -774,6 +783,9 @@ class TradePage(QWidget):
         for caption, value in (("不用书", "none"), ("限量用书", "finite"), ("无限用书", "unlimited")):
             self.book_usage.addItem(caption, value)
         self.book_budget = self._spin(0, 100000)
+        self.book_limit_per_stop_enabled = FreightSwitch("单站用书上限", content)
+        self.book_limit_per_stop = self._spin(1, MAX_BOOK_LIMIT_PER_STOP)
+        self.book_limit_per_stop.setSuffix(" 本")
         self.book_policy = QComboBox(content)
         self.book_policy.addItem("收益优先", "profit")
         self.book_policy.addItem("优先满仓", "fill")
@@ -785,7 +797,9 @@ class TradePage(QWidget):
         self.book_waste_limit = self._spin(0, 2_147_483_647)
         parameter_fields(layout, ("用书额度", self.book_usage))
         self.book_fields = parameter_fields(
-            layout, ("有限书数", self.book_budget), ("用书策略", self.book_policy),
+            layout, ("有限书数", self.book_budget),
+            ("单站用书上限", self.book_limit_per_stop_enabled), ("单站最多用书", self.book_limit_per_stop),
+            ("用书策略", self.book_policy),
             ("单本收益阈值", self.book_profit_threshold), ("浪费上限", self.book_waste_limit),
         )
 
@@ -825,6 +839,19 @@ class TradePage(QWidget):
         self.account_parameters = parameter_fields(
             layout, ("声望 / 税率", self.city_prestige_button), ("商品解锁", self.product_unlock_button),
         )
+
+        parameter_heading(layout, "行情连接")
+        self.market_proxy_mode = QComboBox(content)
+        self.market_proxy_mode.addItem("自动连接", "automatic")
+        self.market_proxy_mode.addItem("手动代理", "manual")
+        self.market_proxy_mode.setToolTip("此设置仅用于获取科伦巴行情，货运和试算共用。")
+        self.market_proxy_port = QLineEdit(content)
+        self.market_proxy_port.setPlaceholderText("1–65535")
+        self.market_proxy_port.setValidator(
+            QRegularExpressionValidator(QRegularExpression(r"[0-9]{0,5}"), self.market_proxy_port)
+        )
+        self.market_proxy_port.setToolTip("填写本机代理软件的 HTTP 或混合端口，地址为 127.0.0.1。")
+        parameter_fields(layout, ("连接方式", self.market_proxy_mode), ("本机代理端口", self.market_proxy_port))
         self.allow_stale_market = FreightSwitch("允许历史行情", content)
         self.allow_stale_market.setToolTip("默认关闭：价格刷新失败就停止货运。开启后允许使用本地历史快照继续规划和买卖；行情可能过期、实际收益可能偏离计划。没有可用快照时仍停止。仅影响正式货运，试算不受此开关影响。")
         if self.preview_mode:
@@ -1050,6 +1077,8 @@ class TradePage(QWidget):
         self.target_profit_fields.setVisible(state["target"])
         self.book_fields.setVisible(state["book_rules"])
         self.book_fields.set_field_visible(self.book_budget, state["book_count"])
+        book_stop_limit_active = state["book_rules"] and self.book_limit_per_stop_enabled.isChecked()
+        self.book_fields.set_field_visible(self.book_limit_per_stop, book_stop_limit_active)
         self.book_fields.set_field_visible(self.book_profit_threshold, state["book_threshold"])
         self.book_fields.set_field_visible(self.book_waste_limit, state["book_waste_limit"])
         self.water_threshold_fields.setVisible(state["water"])
@@ -1058,6 +1087,8 @@ class TradePage(QWidget):
         self.medicine_panel.setVisible(state["medicine"])
         for widget, enabled in (
             (self.book_budget, state["book_count"]), (self.book_policy, state["book_rules"]),
+            (self.book_limit_per_stop_enabled, state["book_rules"]),
+            (self.book_limit_per_stop, book_stop_limit_active),
             (self.book_profit_threshold, state["book_threshold"]),
             (self.book_waste_limit, state["book_waste_limit"]), (self.negotiation_policy, True),
             (self.target_profit_enabled, state["free"]), (self.target_profit, state["target"]),
@@ -1087,13 +1118,15 @@ class TradePage(QWidget):
         self.save_ui_state()
 
     def _connect_parameter_dependencies(self) -> None:
-        planning = (self.fatigue_budget, self.cargo_capacity, self.book_budget, self.book_profit_threshold, self.book_waste_limit,
+        planning = (self.fatigue_budget, self.cargo_capacity, self.book_budget, self.book_limit_per_stop,
+                    self.book_profit_threshold, self.book_waste_limit,
                     self.target_profit, self.bargain_step, self.raise_step)
         for widget in planning:
             widget.valueChanged.connect(self._on_planning_inputs_changed)
         for widget in (self.book_usage, self.book_policy, self.negotiation_policy, self.start_city):
             widget.currentIndexChanged.connect(self._on_planning_inputs_changed)
-        for widget in (*self.mode_buttons.values(), self.reposition_to_route, self.target_profit_enabled):
+        for widget in (*self.mode_buttons.values(), self.reposition_to_route, self.target_profit_enabled,
+                       self.book_limit_per_stop_enabled):
             widget.toggled.connect(self._on_planning_inputs_changed)
         for widget in (self.bargain_rates, self.raise_rates):
             widget.textChanged.connect(self._on_planning_inputs_changed)
@@ -1104,6 +1137,44 @@ class TradePage(QWidget):
             getattr(self, key).valueChanged.connect(self._on_recovery_threshold_changed)
         for widget in (self.auto_sparkling_water, self.auto_bento, self.use_fatigue_medicine):
             widget.toggled.connect(self._sync_parameter_controls)
+        self.market_proxy_mode.currentIndexChanged.connect(self._save_market_proxy)
+        self.market_proxy_port.textChanged.connect(self._save_market_proxy)
+
+    def reload_market_proxy(self) -> None:
+        values = self._settings.load_market_proxy()
+        mode = values["market_proxy_mode"]
+        port = values["market_proxy_port"]
+        with QSignalBlocker(self.market_proxy_mode), QSignalBlocker(self.market_proxy_port):
+            self.market_proxy_mode.setCurrentIndex(self.market_proxy_mode.findData(mode))
+            self.market_proxy_port.setText(str(port) if port is not None else "")
+        self._sync_market_proxy_controls()
+        self._sync_actions()
+
+    def _sync_market_proxy_controls(self) -> None:
+        self.market_proxy_mode.setEnabled(not self._busy)
+        self.market_proxy_port.setEnabled(not self._busy and self.market_proxy_mode.currentData() == "manual")
+
+    def _save_market_proxy(self, *_args: object) -> None:
+        text = self.market_proxy_port.text()
+        port = int(text) if text.isdecimal() else 0
+        values = {
+            "market_proxy_mode": self.market_proxy_mode.currentData(),
+            "market_proxy_port": port if 1 <= port <= 65535 else None,
+        }
+        if values != self._settings.load_market_proxy():
+            try:
+                self._settings.save_market_proxy(values)
+            except (ValueError, OSError) as exc:
+                self.reload_market_proxy()
+                QMessageBox.warning(self.parameter_panel, "行情连接设置保存失败", str(exc))
+                return
+            self.marketProxyChanged.emit()
+        self._sync_market_proxy_controls()
+        self._sync_actions()
+
+    def _market_proxy_request(self) -> dict[str, Any]:
+        values = self._settings.load_market_proxy()
+        return normalize_market_proxy(values["market_proxy_mode"], values["market_proxy_port"])
 
     def _on_recovery_threshold_changed(self, *_args: object) -> None:
         if self._restoring or not self._form_ready:
@@ -1633,6 +1704,9 @@ class TradePage(QWidget):
         enabled = bool(values.get("books_enabled", budget is None or bool(budget)))
         unlimited = bool(values.get("books_unlimited", budget is None))
         self.book_usage.setCurrentIndex(self.book_usage.findData("unlimited" if enabled and unlimited else "finite" if enabled else "none"))
+        book_limit_per_stop, book_limit_per_stop_draft = normalize_book_limit_preferences(values)
+        self.book_limit_per_stop.setValue(book_limit_per_stop_draft)
+        self.book_limit_per_stop_enabled.setChecked(book_limit_per_stop is not None)
         arrival_timeout_seconds = self._input_integer(values, "arrival_timeout_seconds", 3600, minimum=1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
         self.book_profit_threshold.setValue(float(Decimal(str(values.get("book_profit_threshold", 500000))) / Decimal(10000)))
@@ -1782,6 +1856,7 @@ class TradePage(QWidget):
             "cargo_capacity": self.cargo_capacity.value(),
             "trade_mode": mode,
             "book_budget": None if self.book_usage.currentData() == "unlimited" else self.book_budget.value() if self.book_usage.currentData() == "finite" else 0,
+            "book_limit_per_stop": self.book_limit_per_stop.value() if self.book_limit_per_stop_enabled.isChecked() else None,
             "book_policy": str(self.book_policy.currentData()),
             "negotiation_policy": str(self.negotiation_policy.currentData()),
             "book_profit_threshold": self._amount_base_units(self.book_profit_threshold),
@@ -1841,6 +1916,8 @@ class TradePage(QWidget):
                           trailer_daily_first_n=count, trailer_payment=self.trailer_payment.currentData())
         if not _draft and not self.preview_mode and _validate_recovery:
             validate_freight_recovery_thresholds(inputs)
+        if not _draft:
+            inputs.update(self._market_proxy_request())
         return inputs if _draft else normalize_trade_task_inputs(inputs)
 
     def _recovery_threshold_values(self) -> dict[str, int | None]:
@@ -1855,7 +1932,7 @@ class TradePage(QWidget):
     def collect_task_inputs(self, *, preview: bool = False) -> dict[str, Any]:
         inputs = self.collect_inputs(require_start_city=preview, _validate_recovery=not preview)
         if preview:
-            return {key: value for key, value in inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS}
+            return {key: value for key, value in inputs.items() if key in TRADE_PREVIEW_REQUEST_KEYS}
         if not preview:
             inputs.pop("start_city_id", None)
         return inputs
@@ -1867,6 +1944,7 @@ class TradePage(QWidget):
         state.update(books_enabled=self.book_usage.currentData() != "none",
                      books_unlimited=self.book_usage.currentData() == "unlimited",
                      finite_book_budget=self.book_budget.value(),
+                     book_limit_per_stop_draft=self.book_limit_per_stop.value(),
                      available_city_ids=self.selected_city_ids(),
                      required_end_city_ids=self._required_end_cities(),
                      fixed_route_city_ids=[str(self.fixed_route.item(index).data(Qt.ItemDataRole.UserRole)) for index in range(self.fixed_route.count())],
@@ -1906,7 +1984,7 @@ class TradePage(QWidget):
         if self.preview_mode:
             self._last_inputs = {
                 key: value for key, value in self._last_inputs.items()
-                if key in TRADE_PREVIEW_INPUT_KEYS
+                if key in TRADE_PREVIEW_REQUEST_KEYS
             }
         signal.emit(deepcopy(self._last_inputs), 0.0)
 
@@ -2135,7 +2213,9 @@ class TradePage(QWidget):
                 self._route_statuses = {
                     index: "pending" for index in range(len(self._progress.route))
                 }
-            self._render_route(self._progress.route)
+            self._render_route(
+                self._progress.route, book_limit_per_stop=self._progress.summary.get("book_limit_per_stop"),
+            )
         if self._progress.leg_index is not None:
             status = self._progress.state
             if self._progress.stage not in {"leg", "arrival"} and status == "completed":
@@ -2187,7 +2267,7 @@ class TradePage(QWidget):
         if summary.get("final_city"):
             self.city_value.setText(str(summary["final_city"]))
         if summary.get("route"):
-            self._render_route(summary["route"])
+            self._render_route(summary["route"], book_limit_per_stop=summary.get("book_limit_per_stop"))
         if business_status in {"success", "completed", "ok"}:
             for index in range(len(summary.get("route") or [])):
                 self._route_statuses[index] = "completed"
@@ -2251,7 +2331,7 @@ class TradePage(QWidget):
             self.snapshot_value.setText(str(summary["snapshot_id"]))
         if summary.get("initial_city"):
             self.city_value.setText(str(summary["initial_city"]))
-        self._render_route(summary.get("route") or [])
+        self._render_route(summary.get("route") or [], book_limit_per_stop=summary.get("book_limit_per_stop"))
         self._route_statuses = {
             index: "pending" for index in range(len(summary.get("route") or []))
         }
@@ -2277,7 +2357,7 @@ class TradePage(QWidget):
         self.city_value.setText(str(summary.get("final_city") or summary.get("initial_city") or "--"))
         self.stage_title.setText("历史方案")
         self.stage_detail.setText("历史结果，只读")
-        self._render_route(summary.get("route") or [])
+        self._render_route(summary.get("route") or [], book_limit_per_stop=summary.get("book_limit_per_stop"))
         self._route_statuses = {index: "completed" for index in range(len(summary.get("route") or []))}
         self._apply_route_statuses()
         self._render_result(summary)
@@ -2342,6 +2422,7 @@ class TradePage(QWidget):
         self._sync_black_moon_controls()
         self._sync_pickup_controls()
         self._sync_trailer_controls()
+        self._sync_market_proxy_controls()
         self._sync_parameter_controls()
         self._sync_actions()
 
@@ -2357,6 +2438,10 @@ class TradePage(QWidget):
     def _form_error(self) -> str:
         if not self._form_ready:
             return ""
+        try:
+            self._market_proxy_request()
+        except ValueError as exc:
+            return str(exc)
         currency_error = freight_currency_error({
             "trade_mode": self.trade_mode(),
             "available_city_ids": self.selected_city_ids(),
@@ -2429,7 +2514,7 @@ class TradePage(QWidget):
                 self._busy and (not self.preview_mode or self._active_mode == "preview")
             )
 
-    def _render_route(self, route: list[dict[str, Any]]) -> None:
+    def _render_route(self, route: list[dict[str, Any]], *, book_limit_per_stop: int | None = None) -> None:
         self.route_tree.clear()
         for index, leg in enumerate(route):
             products = ", ".join(route_product_lines(leg)) or (
@@ -2438,6 +2523,8 @@ class TradePage(QWidget):
             )
             fatigue = self._display(leg.get("expected_fatigue_cost"))
             resources = f"疲劳 {fatigue} / 书 {int(leg.get('books_used') or 0)}"
+            if book_limit_per_stop is not None:
+                resources += f" / 单站上限 {book_limit_per_stop}"
             negotiations = []
             if leg.get("bargain_to_cap"):
                 negotiations.append("买入砍价")
@@ -2455,6 +2542,9 @@ class TradePage(QWidget):
             )
             item.setData(0, Qt.ItemDataRole.UserRole, index)
             notes = self._route_planning_notes(leg)
+            stop_note = freight_book_stop_note(leg, book_limit_per_stop)
+            if stop_note:
+                notes.append(stop_note)
             detail = "\n".join(notes)
             item.setToolTip(0, "\n".join(
                 [f"{leg.get('from_city', '--')} -> {leg.get('to_city', '--')}", *notes]
@@ -2464,6 +2554,8 @@ class TradePage(QWidget):
             item.setToolTip(4, detail)
             self.route_tree.addTopLevelItem(item)
             settlement_lines = freight_settlement_lines(leg)
+            if stop_note:
+                settlement_lines.append(stop_note)
             if settlement_lines:
                 details = "\n".join(settlement_lines)
                 item.setToolTip(4, details)
@@ -2495,9 +2587,6 @@ class TradePage(QWidget):
             before, after = leg["remaining_book_budget_before"], leg["remaining_book_budget_after"]
             notes.append("整趟用书额度：无限。" if before is None
                          else f"整趟剩余用书额度：本段前 {before} 本 → 本段后 {after} 本。")
-            if before is not None and leg.get("is_full_load") is False and leg.get("buy_products"):
-                notes.append("整趟用书额度不足，本段未满仓。" if leg.get("book_stop_reason") == "total_book_budget"
-                             else "用书按整趟总额度分配，本段未满仓。")
         return notes
 
     def _apply_route_statuses(self) -> None:

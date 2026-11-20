@@ -31,7 +31,7 @@ from packages.aura_core.observability.logging.core_logger import logger
 
 from .bridge import RunnerBridge
 from .hotkeys import GlobalHotkeyManager
-from .config_repository import GuiPreferences, ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS
+from .config_repository import GuiPreferences, ResonanceConfigRepository, TRADE_PREVIEW_REQUEST_KEYS
 from .logic import (
     PC_AFFIX_REFRESH_TASK_REF,
     PC_AFFIX_REFRESH_READ_TASK_REF,
@@ -301,6 +301,8 @@ class ResonanceMainWindow(QMainWindow):
         self.tutorial_page = TutorialPage(root)
         self.tutorial_page.destinationRequested.connect(self._open_tutorial_destination)
         self.trade_preview_page = self.small_tasks_page.trade_preview_panel
+        self.trade_page.marketProxyChanged.connect(self.trade_preview_page.reload_market_proxy)
+        self.trade_preview_page.marketProxyChanged.connect(self.trade_page.reload_market_proxy)
         self._pages = {
             "workflow": self.workflow_page,
             "tools": self.small_tasks_page,
@@ -588,11 +590,11 @@ class ResonanceMainWindow(QMainWindow):
             return
         preview_inputs = dict(inputs) if isinstance(inputs, dict) else {}
         preview_inputs = {
-            key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS
+            key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_REQUEST_KEYS
         }
         preview_inputs = {
             key: value for key, value in normalize_trade_task_inputs(preview_inputs).items()
-            if key in TRADE_PREVIEW_INPUT_KEYS
+            if key in TRADE_PREVIEW_REQUEST_KEYS
         }
         self.requestPreviewPcTrade.emit(
             preview_inputs, float(self._preferences.timeout_sec)

@@ -21,6 +21,8 @@ from fractions import Fraction
 import heapq
 from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
+from packages.resonance_shared.freight_parameters import validate_book_limit_per_stop
+
 from .resonance_pc_trade_arrivals import normalize_required_arrivals, prepare_arrivals
 from .resonance_pc_trade_candidate_model import EdgeBookCurve, TradeEdgeOption
 from .resonance_pc_trade_settlement import PRICING_MODEL, TradeCandidate, game_round, optimal_load
@@ -177,6 +179,7 @@ class ResonancePcExactTradeSolver:
         fatigue_budget: int,
         cargo_capacity: int,
         book_budget: Optional[int] = 0,
+        book_limit_per_stop: Optional[int] = None,
         book_profit_threshold: Any = 500000,
         trade_mode: str = "free",
         book_policy: str = "profit",
@@ -232,6 +235,7 @@ class ResonancePcExactTradeSolver:
         fatigue_limit = _as_non_negative_int("fatigue_budget", fatigue_budget)
         capacity = _as_bounded_int("cargo_capacity", cargo_capacity, minimum=1)
         books_limit = None if book_budget is None else _as_non_negative_int("book_budget", book_budget)
+        per_stop_limit = None if books_limit == 0 else validate_book_limit_per_stop(book_limit_per_stop)
         negotiation_limit = (0 if negotiation_budget is None else
                              _as_non_negative_int("negotiation_budget", negotiation_budget))
         plan_mode = int(negotiation_budget is None)
@@ -329,6 +333,7 @@ class ResonancePcExactTradeSolver:
         curves = [] if counts and arrivals is None else self._build_edge_curves(
                      city_ids=planning_cities, cargo_capacity=capacity,
                     book_policy=policy, threshold=threshold, book_waste_limit=waste_limit, negotiation_policy=negotiation,
+                     book_limit_per_stop=per_stop_limit,
                     bargain_profile=bargain, raise_profile=raising, prestige_by_city=prestige,
                     unlocked_products=unlocked, requested_pairs=requested_pairs,
                     allow_profitable_navigation=mode != "fixed")
@@ -427,7 +432,8 @@ class ResonancePcExactTradeSolver:
                                "bargain_to_cap": following["bargain_to_cap"]}})
         request = {"trade_mode": mode, "fatigue_budget": fatigue_limit, "cargo_capacity": capacity,
                    "start_city_id": actual_start, "route_start_city_id": start,
-                   "book_budget": books_limit, "book_profit_threshold_exact": self._fraction_text(threshold),
+                   "book_budget": books_limit, "book_limit_per_stop": per_stop_limit,
+                   "book_profit_threshold_exact": self._fraction_text(threshold),
                    "book_policy": policy, "book_waste_limit": waste_limit, "negotiation_policy": negotiation,
                    "negotiation_budget": negotiation_cap,
                    "available_city_ids": planning_cities, "required_end_city_ids": list(end_ids or []),
@@ -459,6 +465,7 @@ class ResonancePcExactTradeSolver:
             "remaining_expected_fatigue": float(remaining),
             "remaining_expected_fatigue_exact": self._fraction_text(remaining),
             "book_budget": books_limit, "books_budget": books_limit, "books_used": books_used,
+            "book_limit_per_stop": per_stop_limit,
             "remaining_books": None if books_limit is None else books_limit - books_used,
             "book_profit_threshold": self._fraction_number(threshold),
             "book_incremental_profit": self._fraction_number(increment),
@@ -566,7 +573,7 @@ class ResonancePcExactTradeSolver:
     def _build_edge_curves(
         self, *, city_ids, cargo_capacity, book_policy, threshold, negotiation_policy, book_waste_limit=0,
         bargain_profile, raise_profile, prestige_by_city, unlocked_products, requested_pairs=None,
-        allow_profitable_navigation=True,
+        allow_profitable_navigation=True, book_limit_per_stop=None,
     ):
         profiles = {"disabled": ((False, False),), "required": ((True, True),),
                     "auto": ((False, False), (False, True), (True, False), (True, True))}[negotiation_policy]
@@ -606,7 +613,7 @@ class ResonancePcExactTradeSolver:
                                        loaded_quantity=sum(row[2] for row in baseline.buys))
                     curves.append(EdgeBookCurve.create(baseline=baseline, candidates=candidates,
                                   capacity=cargo_capacity, policy=book_policy, threshold=threshold,
-                                  waste_limit=book_waste_limit))
+                                  waste_limit=book_waste_limit, book_limit_per_stop=book_limit_per_stop))
                 if has_trade_candidates:
                     if allow_profitable_navigation:
                         curves[navigation_index] = replace(curves[navigation_index], limit_reason="navigation_only")

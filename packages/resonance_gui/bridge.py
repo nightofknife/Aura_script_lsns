@@ -16,7 +16,7 @@ from packages.aura_game import SubprocessGameRunner
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.observability.logging.coordinator import get_session_descriptor, subscribe
 
-from .config_repository import TRADE_PREVIEW_INPUT_KEYS
+from .config_repository import TRADE_PREVIEW_REQUEST_KEYS
 from .logic import (
     AFFIX_REFRESH_PROGRESS_EVENT,
     AFFIX_REFRESH_PROGRESS_SCHEMA,
@@ -249,7 +249,7 @@ class RunnerBridge(QObject):
             return
         preview_inputs = dict(inputs or {}) if isinstance(inputs, dict) else {}
         preview_inputs = {
-            key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_INPUT_KEYS
+            key: value for key, value in preview_inputs.items() if key in TRADE_PREVIEW_REQUEST_KEYS
         }
         item = self._make_item(
             PC_GAME_NAME,

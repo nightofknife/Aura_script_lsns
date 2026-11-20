@@ -10,7 +10,7 @@ import json
 import logging
 from contextlib import contextmanager
 import os
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 import re
 import shutil
 import stat
@@ -47,6 +47,7 @@ MAX_INDEX_BYTES = 4096
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
 MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024
+WINDOWS_DIRECTORY_PATH_LIMIT = 248
 LOG = logging.getLogger("AuraUpdater")
 
 MANAGED_PATHS = (
@@ -109,9 +110,40 @@ def parse_version(value: Any) -> tuple[int, int, int] | None:
     return key[:3] if key is not None else None
 
 
+def _filesystem_path(path: Path, *, recursive: bool = False) -> Path:
+    if os.name != "nt":
+        return path
+    path = Path(os.path.abspath(path))
+    value = str(path)
+    if value.startswith(("\\\\?\\", "\\\\.\\")):
+        return path
+    # Directory creation has a lower limit than file I/O. For tree operations,
+    # use the extended form even if only the descendants need it.
+    path_units = len(value.encode("utf-16-le", errors="surrogatepass")) // 2
+    if not recursive and path_units < WINDOWS_DIRECTORY_PATH_LIMIT:
+        return path
+    if value.startswith("\\\\"):
+        return Path("\\\\?\\UNC\\" + value[2:])
+    return Path("\\\\?\\" + value)
+
+
+def _plain_path(path: Path) -> Path:
+    value = str(path)
+    if value[:8].upper() == "\\\\?\\UNC\\":
+        return Path("\\\\" + value[8:])
+    if value.startswith("\\\\?\\") and value[5:7] == ":\\":
+        return Path(value[4:])
+    return path
+
+
+def _resolve_path(path: Path) -> Path:
+    # Keep process paths and the install_root recorded by older updaters comparable.
+    return _plain_path(_filesystem_path(path, recursive=True).resolve())
+
+
 def application_root() -> Path:
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).resolve().parent
+        return _resolve_path(Path(sys.executable)).parent
     return Path(__file__).resolve().parents[1]
 
 
@@ -237,9 +269,9 @@ def download_asset(
     max_bytes: int | None = None,
     progress: Callable[[int], None] | None = None,
 ) -> str:
-    destination = destination.resolve()
+    destination = _filesystem_path(_resolve_path(destination))
     destination.parent.mkdir(parents=True, exist_ok=True)
-    partial = destination.with_name(destination.name + ".part")
+    partial = _filesystem_path(destination.with_name(destination.name + ".part"))
     if partial.exists():
         partial.unlink()
 
@@ -279,8 +311,18 @@ def _safe_zip_parts(filename: str) -> tuple[str, ...]:
     if not normalized or normalized.startswith(("/", "//")) or re.match(r"^[A-Za-z]:", normalized):
         raise UpdateError(f"Unsafe ZIP entry: {filename!r}")
     pure = PurePosixPath(normalized)
-    if any(part in {"", ".", ".."} or ":" in part for part in pure.parts):
+    if not pure.parts:
         raise UpdateError(f"Unsafe ZIP entry: {filename!r}")
+    for part in pure.parts:
+        # Extended paths bypass Win32 name normalization. Require ordinary
+        # Windows names so extraction and later use agree on each filename.
+        if (
+            part in {"", ".", ".."}
+            or part.endswith((".", " "))
+            or re.search(r'[<>:"|?*\x00-\x1f]', part)
+            or PureWindowsPath(part).is_reserved()
+        ):
+            raise UpdateError(f"Unsafe ZIP entry: {filename!r}")
     return tuple(pure.parts)
 
 
@@ -299,11 +341,10 @@ def extract_release_archive(
     *,
     expected_top_level: str | None = None,
 ) -> Path:
-    archive_path = archive_path.resolve()
-    destination = destination.resolve()
-    if destination.exists():
-        shutil.rmtree(destination)
-    destination.mkdir(parents=True)
+    """Extract the validated wrapper's contents directly into destination."""
+    archive_path = _filesystem_path(_resolve_path(archive_path))
+    destination = _resolve_path(destination)
+    staging = _filesystem_path(destination, recursive=True)
 
     seen: set[str] = set()
     members: list[tuple[zipfile.ZipInfo, tuple[str, ...]]] = []
@@ -330,9 +371,17 @@ def extract_release_archive(
         top_level = next(iter(top_levels))
         if expected_top_level is not None and top_level.casefold() != expected_top_level.casefold():
             raise UpdateError("Release ZIP top-level directory does not match its asset name")
+        if any(len(parts) == 1 and not info.is_dir() for info, parts in members):
+            raise UpdateError("Release ZIP top-level entry is not a directory")
 
+        if staging.exists():
+            shutil.rmtree(staging)
+        staging.mkdir(parents=True)
         for info, parts in members:
-            target = destination.joinpath(*parts)
+            # The archive wrapper is validated above. Stage its contents directly.
+            if len(parts) == 1:
+                continue
+            target = staging.joinpath(*parts[1:])
             if info.is_dir():
                 target.mkdir(parents=True, exist_ok=True)
                 continue
@@ -340,15 +389,12 @@ def extract_release_archive(
             with archive.open(info, "r") as source, target.open("wb") as output:
                 shutil.copyfileobj(source, output, length=1024 * 1024)
 
-    extracted_root = destination / top_level
-    if not extracted_root.is_dir():
-        raise UpdateError("Release ZIP top-level entry is not a directory")
-    return extracted_root
+    return destination
 
 
 def _load_json(path: Path) -> dict[str, Any]:
     try:
-        payload = json.loads(path.read_text(encoding="utf-8-sig"))
+        payload = json.loads(_filesystem_path(path).read_text(encoding="utf-8-sig"))
     except (OSError, UnicodeError, json.JSONDecodeError) as exc:
         raise UpdateError(f"Invalid JSON file: {path.name}") from exc
     if not isinstance(payload, dict):
@@ -373,25 +419,26 @@ def validate_staged_release(root: Path, *, tag: str, profile: str) -> None:
     ):
         raise UpdateError("Downloaded release does not match the selected tag and profile")
     for relative in REQUIRED_RELEASE_PATHS:
-        path = root.joinpath(*PurePosixPath(relative).parts)
+        path = _filesystem_path(root.joinpath(*PurePosixPath(relative).parts))
         valid = path.is_dir() if relative in {"plans", "models"} else path.is_file()
         if not valid:
             raise UpdateError(f"Downloaded release is missing {relative}")
 
 
 def _normalize_windows_path(path: Path | str) -> str:
-    return os.path.normcase(os.path.normpath(str(Path(path).resolve())))
+    return os.path.normcase(str(_resolve_path(Path(path))))
 
 
 def _confined_child(root: Path, *parts: str) -> Path:
-    resolved_root = root.resolve()
+    resolved_root = _resolve_path(root)
     candidate = resolved_root.joinpath(*parts)
     for parent in (candidate, *candidate.parents):
         if parent == resolved_root:
             break
-        if parent.is_symlink() or parent.is_junction():
+        filesystem_parent = _filesystem_path(parent)
+        if filesystem_parent.is_symlink() or filesystem_parent.is_junction():
             raise UpdateError(f"更新路径不能穿过链接：{parent}")
-    candidate = candidate.resolve()
+    candidate = _resolve_path(candidate)
     try:
         candidate.relative_to(resolved_root)
     except ValueError as exc:
@@ -541,6 +588,7 @@ def terminate_installed_processes(
 
 
 def _remove_managed_target(path: Path) -> None:
+    path = _filesystem_path(path, recursive=True)
     if path.is_symlink() or path.is_file():
         path.unlink()
     elif path.is_dir():
@@ -548,6 +596,7 @@ def _remove_managed_target(path: Path) -> None:
 
 
 def _journal_write(path: Path, state: dict) -> None:
+    path = _filesystem_path(path)
     temporary = path.with_suffix(".tmp")
     with temporary.open("w", encoding="utf-8") as stream:
         json.dump(state, stream, ensure_ascii=False, indent=2)
@@ -566,6 +615,7 @@ def _journal_write(path: Path, state: dict) -> None:
 
 
 def _tree_hash(path: Path) -> dict[str, str]:
+    path = _filesystem_path(path, recursive=True)
     if not path.exists():
         raise UpdateError(f"更新文件缺失：{path}")
     if path.is_symlink() or path.is_junction():
@@ -589,8 +639,8 @@ def _rollback(install_root: Path, journal: Path, state: dict) -> None:
         if entry["state"] in {"pending", "restored"}:
             continue
         name = entry["name"]
-        target = _confined_child(install_root, name)
-        backup = _confined_child(journal.parent, "backup", name)
+        target = _filesystem_path(_confined_child(install_root, name))
+        backup = _filesystem_path(_confined_child(journal.parent, "backup", name))
         try:
             if backup.exists():
                 entry["state"] = "restoring"
@@ -620,10 +670,16 @@ def _rollback(install_root: Path, journal: Path, state: dict) -> None:
 
 def recover_pending_updates(root: Path) -> bool:
     recovered = False
-    transactions = _confined_child(root, ".update-work", "transactions")
+    root = _resolve_path(root)
+    transactions = _filesystem_path(_confined_child(root, ".update-work", "transactions"), recursive=True)
     for journal in sorted(transactions.glob("*/transaction.json")):
         state = _load_json(journal)
-        if state.get("schema") != 1 or state.get("install_root") != str(root.resolve()):
+        recorded_root = state.get("install_root")
+        if (
+            state.get("schema") != 1
+            or not isinstance(recorded_root, str)
+            or _plain_path(Path(recorded_root)) != root
+        ):
             raise UpdateError(f"无法识别更新记录：{journal}")
         entries = state.get("entries", [])
         if [entry.get("name") for entry in entries] != list(MANAGED_PATHS):
@@ -636,26 +692,26 @@ def recover_pending_updates(root: Path) -> bool:
 
 
 def install_staged_release(staged_root: Path, install_root: Path) -> None:
-    staged_root, install_root = staged_root.resolve(), install_root.resolve()
+    staged_root, install_root = _resolve_path(staged_root), _resolve_path(install_root)
     hashes = {}
     entries = []
     for name in MANAGED_PATHS:
-        source = _confined_child(staged_root, name)
-        target = _confined_child(install_root, name)
+        source = _filesystem_path(_confined_child(staged_root, name))
+        target = _filesystem_path(_confined_child(install_root, name))
         if not source.exists():
             raise UpdateError(f"Downloaded release is missing managed path {name}")
         hashes[name] = _tree_hash(source)
         entries.append({"name": name, "had_old": target.exists(), "state": "pending"})
     transaction = _confined_child(install_root, ".update-work", "transactions", uuid.uuid4().hex)
-    (transaction / "backup").mkdir(parents=True)
+    _filesystem_path(transaction / "backup").mkdir(parents=True)
     journal = transaction / "transaction.json"
     state = {"schema": 1, "install_root": str(install_root), "status": "installing", "entries": entries}
     _journal_write(journal, state)
     try:
         for entry in entries:
             name = entry["name"]
-            target = _confined_child(install_root, name)
-            backup = _confined_child(transaction, "backup", name)
+            target = _filesystem_path(_confined_child(install_root, name))
+            backup = _filesystem_path(_confined_child(transaction, "backup", name))
             entry["state"] = "backing_up"
             _journal_write(journal, state)
             if entry["had_old"]:
@@ -672,7 +728,8 @@ def install_staged_release(staged_root: Path, install_root: Path) -> None:
                     os.replace(target, backup)
             entry["state"] = "installing"
             _journal_write(journal, state)
-            os.replace(_confined_child(staged_root, name), target)
+            source = _filesystem_path(_confined_child(staged_root, name))
+            os.replace(source, target)
             entry["state"] = "installed"
             _journal_write(journal, state)
             LOG.info("phase=installed path=%s", name)
@@ -693,13 +750,13 @@ def install_staged_release(staged_root: Path, install_root: Path) -> None:
             raise
         raise UpdateError(f"安装失败，已恢复旧版本：{exc}") from exc
     # Retain this successful backup; older successful versions can now go.
-    for old_journal in transaction.parent.glob("*/transaction.json"):
-        if old_journal == journal:
+    for old_journal in _filesystem_path(transaction.parent, recursive=True).glob("*/transaction.json"):
+        if old_journal.parent.name == transaction.name:
             continue
         try:
             if _load_json(old_journal).get("status") == "completed":
                 old_root = _confined_child(transaction.parent, old_journal.parent.name)
-                shutil.rmtree(old_root)
+                shutil.rmtree(_filesystem_path(old_root, recursive=True))
         except Exception:
             LOG.warning("phase=old_backup_cleanup_deferred path=%s", old_journal.parent)
 
@@ -716,7 +773,7 @@ def _download_and_verify(
     LOG.info("phase=download asset=%s", asset.name)
     actual = download_asset(asset, destination, opener=opener, max_bytes=max_bytes, progress=progress)
     if actual.lower() != expected_checksum(checksums, asset):
-        destination.unlink(missing_ok=True)
+        _filesystem_path(destination).unlink(missing_ok=True)
         raise AssetVerificationError(f"SHA-256 verification failed for {asset.name}")
     return destination
 
@@ -789,7 +846,7 @@ def _configured_mirror_ca() -> Path | None:
 def update_lock(root: Path):
     """An OS-owned lock survives stale files but is released on process exit."""
     import msvcrt
-    lock_path = _confined_child(root, ".update-work", "update.lock")
+    lock_path = _filesystem_path(_confined_child(root, ".update-work", "update.lock"))
     lock_path.parent.mkdir(parents=True, exist_ok=True)
     with lock_path.open("a+b") as stream:
         stream.seek(0, 2)
@@ -814,10 +871,10 @@ def perform_update(
     channel: UpdateChannel = "stable",
     opener: Callable[..., Any] | None = None,
 ) -> bool:
-    root = root.resolve()
+    root = _resolve_path(root)
     with update_lock(root):
         _cleanup_idle_helpers(root)
-        transactions = _confined_child(root, ".update-work", "transactions")
+        transactions = _filesystem_path(_confined_child(root, ".update-work", "transactions"), recursive=True)
         pending = any(_load_json(p).get("status") in {"installing", "rolling_back", "rollback_failed"}
                       for p in transactions.glob("*/transaction.json"))
         if pending:
@@ -879,7 +936,7 @@ def _perform_update_locked(
     LOG.info("phase=staged tag=%s", selected_tag)
     terminate_installed_processes(root)
     install_staged_release(staged_root, root)
-    shutil.rmtree(work_root, ignore_errors=True)
+    shutil.rmtree(_filesystem_path(work_root, recursive=True), ignore_errors=True)
     return True
 
 
@@ -897,9 +954,9 @@ def _launch_helper(root: Path, *, channel: UpdateChannel = "stable") -> None:
     # Start a standalone copy before downloading or modifying anything. Only
     # the helper acquires the install lock, so there is no lock handoff gap.
     directory = _confined_child(root, ".update-work", "helpers", uuid.uuid4().hex)
-    directory.mkdir(parents=True)
+    _filesystem_path(directory).mkdir(parents=True)
     helper = directory / "AuraUpdateHelper.exe"
-    shutil.copy2(sys.executable, helper)
+    shutil.copy2(_filesystem_path(Path(sys.executable)), _filesystem_path(helper))
     env = os.environ.copy()
     env["PYINSTALLER_RESET_ENVIRONMENT"] = "1"
     env["TEMP"] = env["TMP"] = env["TMPDIR"] = str(directory)
@@ -927,9 +984,9 @@ def _cleanup_idle_helpers(root: Path) -> None:
     helpers = _confined_child(root, ".update-work", "helpers")
     active = {_normalize_windows_path(path) for _, path in _iter_windows_process_paths()}
     active.add(_normalize_windows_path(sys.executable))
-    for directory in helpers.glob("*"):
+    for directory in _filesystem_path(helpers, recursive=True).glob("*"):
         try:
-            directory = _confined_child(helpers, directory.name)
+            directory = _filesystem_path(_confined_child(helpers, directory.name), recursive=True)
             if not directory.is_dir():
                 continue
             # A newly launched starter may still be copying its helper before
@@ -1090,7 +1147,7 @@ def main(
                 uninstall_capture()
                 close_session()
 
-    root = args.apply_root.resolve() if args.apply_root else application_root()
+    root = _resolve_path(args.apply_root) if args.apply_root else application_root()
     log_path = None
     try:
         channel = args.channel or "stable"

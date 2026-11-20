@@ -52,7 +52,7 @@ from ._operation_progress import (
 from ._depart_button_vision import DepartButtonError, probe_depart_button, wait_depart_button
 from ._city_panel_vision import CityPanelVisionError, open_city_panel, wait_city
 from ._city_shop_entry import CityShopEntryError, enter_city_shop, probe_menu_template, valid_probe
-from .market_data_pc_actions import resonance_pc_market_refresh
+from .market_data_pc_actions import _market_proxy_request_options, resonance_pc_market_refresh
 from .purchase_book_pc_actions import resonance_pc_use_purchase_books
 from .rubbish_recycling_pc_actions import (
     is_rubbish_recycling_arrival,
@@ -152,6 +152,7 @@ def _log_freight_plan(plan: dict, request: dict, *, kind: str) -> None:
     summary = {key: plan.get(key) for key in (
         "planning_status", "snapshot_id", "expected_profit_exact", "expected_fatigue_used_exact",
         "remaining_expected_fatigue_exact", "books_used", "remaining_books", "stop_reason",
+        "book_limit_per_stop",
         "assumptions", "diagnostics", "solver_stats", "arrival_requirements",
     )}
     logger.info("[FreightPlan] phase=completed kind=%s summary=%s", kind,
@@ -3221,6 +3222,7 @@ async def _preview_trade_plan_from_start_city(
     fatigue_budget: int = 700,
     cargo_capacity: int = 750,
     book_budget: Optional[int] = 0,
+    book_limit_per_stop: Optional[int] = None,
     trade_mode: str = "free",
     book_policy: str = "profit",
     book_waste_limit: int = 0,
@@ -3245,6 +3247,8 @@ async def _preview_trade_plan_from_start_city(
     reporter: _TradeProgressReporter | None = None,
     auto_passenger: bool = False,
     passenger_options: Optional[Dict[str, Any]] = None,
+    *,
+    market_proxy_options: dict[str, Any] | None = None,
 ) -> Dict[str, Any]:
     passenger_options = _attached_passenger_options(auto_passenger, passenger_options, trade_mode)
     request = normalize_planning_inputs(locals())
@@ -3281,6 +3285,7 @@ async def _preview_trade_plan_from_start_city(
         resonance_pc_market_refresh,
         force=True,
         resonance_pc_market_data=resonance_pc_market_data,
+        **(market_proxy_options or {}),
     )
     snapshot_id = str(market.get("snapshot_id") or "")
     stale = bool(market.get("stale"))
@@ -3406,13 +3411,18 @@ async def resonance_pc_preview_trade_plan_flow(
     city_tax_rates_bps: Optional[Dict[str, Any]] = None,
     auto_passenger: bool = False,
     passenger_options: Optional[Dict[str, Any]] = None,
+    book_limit_per_stop: Optional[int] = None,
+    market_proxy_mode: str = "automatic",
+    market_proxy_port: int | None = None,
 ) -> Dict[str, Any]:
     del event_bus, context
+    proxy_options = _market_proxy_request_options(market_proxy_mode, market_proxy_port)
     return await _preview_trade_plan_from_start_city(
         start_city_id=start_city_id,
         fatigue_budget=fatigue_budget,
         cargo_capacity=cargo_capacity,
         book_budget=book_budget,
+        book_limit_per_stop=book_limit_per_stop,
         trade_mode=trade_mode,
         book_policy=book_policy,
         book_waste_limit=book_waste_limit,
@@ -3436,6 +3446,7 @@ async def resonance_pc_preview_trade_plan_flow(
         resonance_pc_trade_planner=resonance_pc_trade_planner,
         reporter=_ACTIVE_PROGRESS_REPORTER.get(),
         auto_passenger=auto_passenger, passenger_options=passenger_options,
+        market_proxy_options=proxy_options,
     )
 
 
@@ -3561,8 +3572,12 @@ async def resonance_pc_auto_cycle_trade_flow(
     auto_passenger: bool = False,
     passenger_options: Optional[Dict[str, Any]] = None,
     auto_escort: bool = False,
+    book_limit_per_stop: Optional[int] = None,
+    market_proxy_mode: str = "automatic",
+    market_proxy_port: int | None = None,
 ) -> Dict[str, Any]:
     del event_bus
+    proxy_options = _market_proxy_request_options(market_proxy_mode, market_proxy_port)
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     passenger_options = _attached_passenger_options(auto_passenger, passenger_options, trade_mode)
     request = normalize_planning_inputs(locals())
@@ -3679,6 +3694,7 @@ async def resonance_pc_auto_cycle_trade_flow(
         resonance_pc_market_refresh,
         force=True,
         resonance_pc_market_data=resonance_pc_market_data,
+        **proxy_options,
     )
     stale = bool(refresh.get("stale"))
     blocked_market = stale and not allow_stale_market
@@ -3753,6 +3769,17 @@ async def resonance_pc_auto_cycle_trade_flow(
     _log_freight_plan(plan, request, kind="run")
     current.setdefault("city_id", plan.get("start_city_id"))
     route = plan["route"]
+    station_book_limit = request.get("book_limit_per_stop")
+    if plan.get("status") == "ok" and station_book_limit is not None:
+        for leg in route:
+            planned_books = leg.get("books_used")
+            if type(planned_books) is not int or not 0 <= planned_books <= station_book_limit:
+                _raise_error(
+                    "planned_books_outside_stop_limit",
+                    f"{leg.get('from_city') or leg.get('from_city_id')}计划用书 {planned_books} 本，单站上限为 {station_book_limit} 本。",
+                    {"city": leg.get("from_city"), "city_id": leg.get("from_city_id"),
+                     "books_used": planned_books, "book_limit_per_stop": station_book_limit},
+                )
     water_plan = {
         "mode": "thresholds", "enabled": auto_sparkling_water,
         "planned": auto_sparkling_water,

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Optional
 
 from packages.aura_core.api import action_info, requires_services
+from packages.resonance_shared.market_proxy import normalize_market_proxy
 
 from ..services.resonance_pc_market_data_service import ResonancePcMarketDataService
 
@@ -15,13 +16,21 @@ def _require_service(service: Optional[ResonancePcMarketDataService]) -> Resonan
     return service
 
 
+def _market_proxy_request_options(mode: str, port: int | None) -> dict[str, Any]:
+    settings = normalize_market_proxy(mode, port)
+    return settings if settings["market_proxy_mode"] == "manual" else {}
+
+
 @action_info(name="resonance_pc.market_refresh", public=True, read_only=False, description="Refresh ResonancePc market snapshot.")
 @requires_services(resonance_pc_market_data="resonance_pc_market_data")
 def resonance_pc_market_refresh(
     force: bool = False,
     resonance_pc_market_data: ResonancePcMarketDataService | None = None,
+    market_proxy_mode: str = "automatic",
+    market_proxy_port: int | None = None,
 ) -> Dict[str, Any]:
-    return _require_service(resonance_pc_market_data).refresh(force=force)
+    proxy_options = _market_proxy_request_options(market_proxy_mode, market_proxy_port)
+    return _require_service(resonance_pc_market_data).refresh(force=force, **proxy_options)
 
 
 @action_info(

@@ -4,6 +4,9 @@ from __future__ import annotations
 import asyncio
 from copy import deepcopy
 from pathlib import Path
+import ssl
+from types import SimpleNamespace
+from urllib.error import HTTPError, URLError
 
 import pytest
 import yaml
@@ -13,6 +16,7 @@ from jinja2.nativetypes import NativeEnvironment
 from packages.aura_core.context.execution import ExecutionContext
 from packages.aura_core.scheduler.validation import InputValidator
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
+from plans.resonance_pc.src.services import resonance_pc_market_data_service as market
 from plans.resonance_pc.src.services.resonance_pc_freight_parameters import FREIGHT_PLANNING_KEYS
 from tests.unit.test_resonance_pc_sparkling_water_trade import harness, routes, run_full
 
@@ -143,6 +147,89 @@ def test_preview_still_allows_cache(monkeypatch):
     assert result["success"] is True and result["market_source"] == "fallback_cache"
     market = next(e for e in bus.events if e["stage"] == "market" and e["state"] == "completed")
     assert market["data"]["fetched_at"] == CACHE["fetched_at"]
+
+
+@pytest.mark.parametrize("preview", [False, True])
+def test_manual_market_proxy_is_forwarded_to_refresh_only(harness, monkeypatch, preview):
+    refresh_calls = []
+    planner_calls = []
+
+    def refresh(**kwargs):
+        refresh_calls.append(kwargs)
+        return {"snapshot_id": "new-market"}
+
+    def plan(**kwargs):
+        planner_calls.append(kwargs)
+        return {"status": "ok", "route": routes()}
+
+    monkeypatch.setattr(trade, "resonance_pc_market_refresh", refresh)
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route", plan)
+    settings = {"market_proxy_mode": "manual", "market_proxy_port": 7890}
+    if preview:
+        result = asyncio.run(trade.resonance_pc_preview_trade_plan_flow(
+            start_city_id="15", resonance_pc_market_data=object(), resonance_pc_trade_planner=object(),
+            **settings,
+        ))
+    else:
+        result = run_full(auto_sparkling_water=False, **settings)
+
+    assert result["success"] is True
+    assert len(refresh_calls) == len(planner_calls) == 1
+    assert {key: refresh_calls[0][key] for key in settings} == settings
+    assert not (settings.keys() & planner_calls[0].keys())
+
+
+def test_manual_market_proxy_overrides_windows_bypass_without_automatic_retry(tmp_path, monkeypatch):
+    service = market.ResonancePcMarketDataService(plan_root=tmp_path)
+    monkeypatch.setattr(market, "sys", SimpleNamespace(platform="win32"))
+    monkeypatch.setattr(market.urllib.request, "proxy_bypass", lambda _host: True)
+    monkeypatch.setattr(market, "get_market_url", lambda *a, **k: pytest.fail("manual mode auto-retried"))
+    proxy_hosts = []
+
+    def build_opener(proxy_handler, _redirect_handler):
+        def open_request(request, *, timeout):
+            proxy_handler.https_open(request)
+            proxy_hosts.append(request.host)
+            raise URLError(TimeoutError("offline test"))
+        return SimpleNamespace(open=open_request)
+
+    monkeypatch.setattr(market.urllib.request, "build_opener", build_opener)
+    with pytest.raises(market.ResonancePcMarketDataError, match="127.0.0.1:7890") as caught:
+        service.fetch_raw(proxy_port=7890)
+    assert caught.value.code == "market_fetch_failed"
+    assert proxy_hosts == ["127.0.0.1:7890"]
+
+
+@pytest.mark.parametrize("failure,expected_error", [
+    (URLError(TimeoutError("offline test")), None),
+    (URLError(ssl.SSLCertVerificationError("offline test")), "market_fetch_failed"),
+    (HTTPError("https://example.invalid/market", 503, "Unavailable", {}, None), "market_fetch_http_failed"),
+])
+def test_windows_market_proxy_retries_only_transient_transport_failure(tmp_path, monkeypatch, failure, expected_error):
+    service = market.ResonancePcMarketDataService(plan_root=tmp_path, timeout_seconds=20)
+    monkeypatch.setattr(market, "sys", SimpleNamespace(platform="win32"))
+    monkeypatch.setattr(market.urllib.request, "getproxies", lambda: {})
+    fallback_calls = []
+
+    def open_request(request, *, timeout):
+        assert request.full_url == service.api_url and timeout == 10
+        raise failure
+
+    def windows_proxy(url, *, user_agent, timeout_seconds):
+        fallback_calls.append(url)
+        assert 0 < timeout_seconds <= service.timeout_seconds
+        return b'{"data": {}}'
+
+    monkeypatch.setattr(market.urllib.request, "build_opener", lambda *a: SimpleNamespace(open=open_request))
+    monkeypatch.setattr(market, "get_market_url", windows_proxy)
+    if expected_error is None:
+        assert service.fetch_raw() == {"data": {}}
+        assert fallback_calls == [service.api_url]
+    else:
+        with pytest.raises(market.ResonancePcMarketDataError) as caught:
+            service.fetch_raw()
+        assert caught.value.code == expected_error
+        assert fallback_calls == []
 
 
 def test_flag_schema_default_forwarding_and_execution_only_contract():

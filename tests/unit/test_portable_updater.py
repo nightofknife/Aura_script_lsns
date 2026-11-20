@@ -54,7 +54,7 @@ def snapshot(root: Path) -> dict[str, bytes]:
     }
 
 
-def release_server(staged: Path, *, bad_hash=False, traversal=False):
+def release_server(staged: Path, *, bad_hash=False, traversal=False, extra_files=None):
     tag = json.loads((staged / "BUILD-INFO.json").read_text())["release_label"]
     stem = f"AuraResonance-{tag}-win-x64-cpu"
     buffer = io.BytesIO()
@@ -62,6 +62,8 @@ def release_server(staged: Path, *, bad_hash=False, traversal=False):
         for path in staged.rglob("*"):
             if path.is_file():
                 archive.writestr(f"{stem}/{path.relative_to(staged).as_posix()}", path.read_bytes())
+        for name, content in (extra_files or {}).items():
+            archive.writestr(f"{stem}/{name}", content)
         if traversal:
             archive.writestr(f"{stem}/../../escaped.txt", b"escape")
     payload = buffer.getvalue()
@@ -118,6 +120,20 @@ def test_cpu_update_replaces_updater_and_preserves_user_files(tmp_path):
     assert (root / "更新.exe").read_text(encoding="utf-8") == "v1.9.10:更新.exe"
     for name in retained:
         assert (root / name).read_bytes() == b"user-content"
+
+
+@pytest.mark.skipif(os.name != "nt", reason="requires Windows extended path handling")
+def test_update_installs_packaged_file_under_long_nested_path(tmp_path):
+    root = make_release(tmp_path / "installed", "v1.9.9")
+    staged = make_release(tmp_path / "source", "v1.9.10")
+    relative = Path("plans", *(["package-" + "x" * 75] * 4), "payload.txt")
+    installed_file = root / relative
+    assert len(str(root)) < 248 and len(str(installed_file)) > 260
+    opener, _ = release_server(staged, extra_files={relative.as_posix(): b"nested release data"})
+
+    assert updater.perform_update(root, opener=opener) is True
+    assert updater.load_installed_release(root) == ("v1.9.10", "cpu")
+    assert Path("\\\\?\\" + str(installed_file)).read_bytes() == b"nested release data"
 
 
 @pytest.mark.parametrize("condition", ["waiting", "offline", "corrupt", "cancelled", "current"])

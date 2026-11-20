@@ -6,6 +6,21 @@ auto_cycle_trade_pc:
     description: Plan one exact full-budget route from a frozen market snapshot and execute it once.
     entry_point: true
     inputs:
+      - name: market_proxy_mode
+        type: string
+        required: false
+        default: automatic
+        enum: [automatic, manual]
+        description: 科伦巴行情连接方式。
+      - name: market_proxy_port
+        type: number
+        required: false
+        nullable: true
+        default: null
+        strict_integer: true
+        min: 1
+        max: 65535
+        description: 手动模式使用的本机 HTTP 或混合代理端口。
       - name: allow_stale_market
         type: boolean
         required: false
@@ -63,6 +78,13 @@ auto_cycle_trade_pc:
         required: false
         default: 0
         min: 0
+      - name: book_limit_per_stop
+        type: number
+        strict_integer: true
+        nullable: true
+        required: false
+        default: null
+        min: 1
       - name: book_profit_threshold
         type: number
         strict_integer: true
@@ -1488,6 +1510,8 @@ auto_cycle_trade_pc:
       action: resonance_pc.auto_cycle_trade_flow
       depends_on: preflight
       params:
+        market_proxy_mode: "{{ inputs.market_proxy_mode | default('automatic') }}"
+        market_proxy_port: "{{ inputs.market_proxy_port | default(none) }}"
         auto_passenger: "{{ inputs.auto_passenger | default(false) }}"
         passenger_options: "{{ inputs.passenger_options | default({}) }}"
         allow_stale_market: "{{ inputs.allow_stale_market | default(false) }}"
@@ -1500,6 +1524,7 @@ auto_cycle_trade_pc:
         fatigue_budget: "{{ inputs.fatigue_budget | default(700) }}"
         cargo_capacity: "{{ inputs.cargo_capacity | default(750) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
+        book_limit_per_stop: "{{ inputs.book_limit_per_stop | default(none) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(500000) }}"
         negotiation_max_attempts: "{{ inputs.negotiation_max_attempts | default(5) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
@@ -1561,6 +1586,7 @@ auto_cycle_trade_pc:
     planning_status: "{{ nodes.finish.output.planning_status | default(none) }}"
     book_budget: "{{ nodes.finish.output.book_budget | default(none) }}"
     book_budget_unlimited: "{{ nodes.finish.output.book_budget_unlimited | default(none) }}"
+    book_limit_per_stop: "{{ nodes.finish.output.book_limit_per_stop | default(none) }}"
     book_policy: "{{ nodes.finish.output.book_policy | default(none) }}"
     negotiation_policy: "{{ nodes.finish.output.negotiation_policy | default(none) }}"
     city_visits: "{{ nodes.finish.output.city_visits | default(none) }}"

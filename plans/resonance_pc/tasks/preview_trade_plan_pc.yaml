@@ -6,6 +6,21 @@ preview_trade_plan_pc:
     description: Refresh market data and calculate one exact route from a user-selected start city.
     entry_point: true
     inputs:
+      - name: market_proxy_mode
+        type: string
+        required: false
+        default: automatic
+        enum: [automatic, manual]
+        description: 科伦巴行情连接方式。
+      - name: market_proxy_port
+        type: number
+        required: false
+        nullable: true
+        default: null
+        strict_integer: true
+        min: 1
+        max: 65535
+        description: 手动模式使用的本机 HTTP 或混合代理端口。
       - name: trade_mode
         type: string
         required: false
@@ -62,6 +77,13 @@ preview_trade_plan_pc:
         required: false
         default: 0
         min: 0
+      - name: book_limit_per_stop
+        type: number
+        strict_integer: true
+        nullable: true
+        required: false
+        default: null
+        min: 1
       - name: book_profit_threshold
         type: number
         strict_integer: true
@@ -366,6 +388,8 @@ preview_trade_plan_pc:
     run:
       action: resonance_pc.preview_trade_plan_flow
       params:
+        market_proxy_mode: "{{ inputs.market_proxy_mode | default('automatic') }}"
+        market_proxy_port: "{{ inputs.market_proxy_port | default(none) }}"
         auto_passenger: "{{ inputs.auto_passenger | default(false) }}"
         passenger_options: "{{ inputs.passenger_options | default({}) }}"
         trade_mode: "{{ inputs.trade_mode }}"
@@ -378,6 +402,7 @@ preview_trade_plan_pc:
         fatigue_budget: "{{ inputs.fatigue_budget | default(700) }}"
         cargo_capacity: "{{ inputs.cargo_capacity | default(750) }}"
         book_budget: "{{ inputs.book_budget | default(0) }}"
+        book_limit_per_stop: "{{ inputs.book_limit_per_stop | default(none) }}"
         book_profit_threshold: "{{ inputs.book_profit_threshold | default(500000) }}"
         bargain_success_rates_bps: "{{ inputs.bargain_success_rates_bps | default([5000]) }}"
         bargain_step_bps: "{{ inputs.bargain_step_bps | default(1000) }}"
@@ -403,6 +428,7 @@ preview_trade_plan_pc:
     planning_status: "{{ nodes.run.output.planning_status | default(none) }}"
     book_budget: "{{ nodes.run.output.book_budget | default(none) }}"
     book_budget_unlimited: "{{ nodes.run.output.book_budget_unlimited | default(none) }}"
+    book_limit_per_stop: "{{ nodes.run.output.book_limit_per_stop | default(none) }}"
     book_policy: "{{ nodes.run.output.book_policy | default(none) }}"
     negotiation_policy: "{{ nodes.run.output.negotiation_policy | default(none) }}"
     city_visits: "{{ nodes.run.output.city_visits | default(none) }}"

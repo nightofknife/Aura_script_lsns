@@ -46,6 +46,69 @@ def test_multi_book_fill_keeps_partial_load_without_exceeding_waste_or_budget(li
     assert result["route"][0]["book_waste_quantity"] <= limit
 
 
+@pytest.mark.parametrize("mode,target", [("free", None), ("fixed", None), ("free", 4000)])
+def test_single_stop_limit_caps_fill_for_all_route_objectives(mode, target):
+    result = solve(solver(lots={"A": {"p": 400}}), cargo_capacity=1000,
+                   trade_mode=mode, fixed_route_city_ids=["A", "B"], target_profit=target,
+                   book_policy="fill", book_budget=None, book_waste_limit=200,
+                   book_limit_per_stop=1)
+    assert result["status"] == "ok"
+    assert result["book_limit_per_stop"] == result["request"]["book_limit_per_stop"] == 1
+    assert result["expected_profit"] == 8000
+    leg = result["route"][0]
+    assert leg["books_used"] == leg["legal_book_limit"] == 1
+    assert leg["loaded_quantity"] == 800
+    assert leg["book_stop_reason"] == "per_stop_book_limit"
+
+
+def test_single_stop_limit_changes_maximum_reachable_profit_for_target():
+    result = solve(solver(lots={"A": {"p": 400}}), cargo_capacity=1000,
+                   book_policy="fill", book_budget=None, book_waste_limit=200,
+                   book_limit_per_stop=1, target_profit=9000)
+    assert result["status"] == "target_unreachable"
+    assert result["maximum_reachable_profit"] == 8000
+
+
+@pytest.mark.parametrize("waste_limit,book_budget,stop_limit,books,quantity,reason", [
+    (199, None, 1, 1, 800, "book_waste_limit"),
+    (200, None, 2, 2, 1000, "capacity_reached"),
+    (200, 1, 2, 1, 800, "total_book_budget"),
+    (200, 0, 1, 0, 400, None),
+])
+def test_single_stop_limit_keeps_existing_fill_constraints(
+        waste_limit, book_budget, stop_limit, books, quantity, reason):
+    result = solve(solver(lots={"A": {"p": 400}}), cargo_capacity=1000,
+                   book_policy="fill", book_budget=book_budget, book_waste_limit=waste_limit,
+                   book_limit_per_stop=stop_limit)
+    assert result["book_limit_per_stop"] == (stop_limit if book_budget != 0 else None)
+    leg = result["route"][0]
+    assert leg["books_used"] == books
+    assert leg["loaded_quantity"] == quantity
+    if reason is not None:
+        assert leg["book_stop_reason"] == reason
+
+
+@pytest.mark.parametrize("threshold,reason", [(2000, "per_stop_book_limit"), (2001, "profit_threshold")])
+def test_single_stop_limit_distinguishes_an_inclusive_profit_threshold(threshold, reason):
+    result = solve(solver(lots={"A": {"p": 400}}), cargo_capacity=1000,
+                   book_policy="profit", book_budget=None, book_limit_per_stop=1,
+                   book_profit_threshold=threshold)
+    leg = result["route"][0]
+    assert leg["books_used"] == 1
+    assert leg["book_stop_reason"] == reason
+
+
+def test_single_stop_limit_resets_when_fixed_route_revisits_a_city():
+    model = solver(costs={"A": {"B": 1}, "B": {"A": 1}},
+                   products={"p": product("p", {"A": 1, "B": 1}, {"A": 11, "B": 11})},
+                   lots={"A": {"p": 1}, "B": {"p": 1}})
+    result = solve(model, cargo_capacity=4, fatigue_budget=3,
+                   trade_mode="fixed", fixed_route_city_ids=["A", "B", "A"],
+                   book_policy="fill", book_budget=None, book_limit_per_stop=1)
+    assert result["city_path_ids"] == ["A", "B", "A", "B"]
+    assert [leg["books_used"] for leg in result["route"]] == [1, 1, 1]
+
+
 def test_waste_counts_all_eligible_goods_and_ignores_unprofitable_goods():
     model = solver(products={"p": product("p", {"A": 1}, {"B": 11}),
                              "q": product("q", {"A": 1}, {"B": 2}),
@@ -130,6 +193,22 @@ def test_waste_allowance_participates_in_cache_but_fill_profit_threshold_does_no
     cached = plan(api, book_budget=1, book_policy="fill", book_waste_limit=1, book_profit_threshold=10**12)
     assert len(calls) == 2
     assert first["book_waste_limit"] == 0 and second == cached
+
+
+def test_single_stop_cap_is_cached_only_when_books_are_enabled(service):
+    api, calls = service
+    for cap in (None, 1, 2, 1):
+        result = plan(api, book_budget=None, book_limit_per_stop=cap)
+        assert result["book_limit_per_stop"] == cap
+    assert [call["book_limit_per_stop"] for call in calls] == [None, 1, 2]
+    assert plan(api, book_budget=0, book_limit_per_stop=1) == plan(api, book_budget=0)
+    assert len(calls) == 4
+
+
+@pytest.mark.parametrize("cap", [0, -1, True, 1.0, "1"])
+def test_single_stop_cap_requires_positive_integer_when_books_are_enabled(cap):
+    with pytest.raises(ValueError, match="book_limit_per_stop"):
+        solve(solver(), book_budget=None, book_limit_per_stop=cap)
 
 
 def test_execution_request_preserves_fill_waste_limit(harness, monkeypatch):

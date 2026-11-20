@@ -70,6 +70,7 @@ from ..logic import (
     reduce_workflow_freight_progress,
     route_product_lines,
     FREIGHT_NET_PROFIT_NOTE,
+    freight_book_stop_note,
     freight_settlement_lines,
     freight_passenger_summary_text,
     freight_passenger_attention,
@@ -1646,6 +1647,7 @@ class WorkflowPage(QWidget):
     def _render_runtime_trade_plan(self) -> None:
         route = list(self._freight_progress.route)
         summary = dict(self._freight_progress.summary)
+        book_limit_per_stop = summary.get("book_limit_per_stop")
         mode = {"free": "不定线路", "fixed": "固定线路"}.get(str(summary.get("trade_mode")), "货运")
         passenger_text = freight_passenger_summary_text(summary.get("passenger"))
         self.runtime_passenger_summary.setText(passenger_text)
@@ -1771,15 +1773,19 @@ class WorkflowPage(QWidget):
             products_label.setToolTip(products)
             card_layout.addWidget(products_label)
 
-            meta = QLabel(
-                f"疲劳 {fatigue}  ·  进货书 {self._plan_int(leg.get('books_used'))}"
-                f"  ·  {' / '.join(negotiations) or '无需协商'}",
-                card,
-            )
+            books = f"进货书 {self._plan_int(leg.get('books_used'))}"
+            if book_limit_per_stop is not None:
+                books += f" / 单站上限 {book_limit_per_stop}"
+            meta = QLabel(f"疲劳 {fatigue}  ·  {books}  ·  {' / '.join(negotiations) or '无需协商'}", card)
             meta.setObjectName("runtimePlanLegMeta")
+            meta.setWordWrap(book_limit_per_stop is not None)
             card_layout.addWidget(meta)
 
-            settlement_label = QLabel("\n".join(freight_settlement_lines(leg)), card)
+            settlement_lines = freight_settlement_lines(leg)
+            stop_note = freight_book_stop_note(leg, book_limit_per_stop)
+            if stop_note:
+                settlement_lines.append(stop_note)
+            settlement_label = QLabel("\n".join(settlement_lines), card)
             settlement_label.setObjectName("runtimePlanLegSettlement")
             settlement_label.setWordWrap(True)
             settlement_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)

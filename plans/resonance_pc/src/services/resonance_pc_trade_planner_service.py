@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from packages.aura_core.api import service_info
+from packages.resonance_shared.freight_parameters import validate_book_limit_per_stop
 
 from ._buy_lot_normalization import normalize_city_product_buy_lot
 from .resonance_pc_market_data_service import (
@@ -129,6 +130,7 @@ class ResonancePcTradePlannerService:
         fatigue_budget: int = 700,
         cargo_capacity: int = 750,
         book_budget: Optional[int] = 0,
+        book_limit_per_stop: Optional[int] = None,
         trade_mode: str = "free",
         book_policy: str = "profit",
         book_waste_limit: int = 0,
@@ -168,6 +170,7 @@ class ResonancePcTradePlannerService:
                 message="city_tax_rates_bps must map city IDs to integer basis points from 0 to 10000")
         if type(book_budget) is int and book_budget == 0:
             book_policy, book_profit_threshold = "profit", DEFAULT_BOOK_PROFIT_THRESHOLD
+            book_limit_per_stop = None
         if book_policy != "fill":
             book_waste_limit = 0
         if mode == "fixed":
@@ -183,6 +186,7 @@ class ResonancePcTradePlannerService:
         if mode == "fixed":
             target_profit = None
         try:
+            book_limit_per_stop = validate_book_limit_per_stop(book_limit_per_stop)
             counts = normalize_required_arrivals(required_arrivals) if mode == "free" else {}
             if counts and type(ignore_unmet_arrivals) is not bool:
                 raise ValueError("ignore_unmet_arrivals must be a boolean")
@@ -322,6 +326,7 @@ class ResonancePcTradePlannerService:
         planning_inputs = {
             "start_city_id": resolved_city_id, "required_end_city_ids": normalized_end_city_ids,
             "fatigue_budget": fatigue_budget, "cargo_capacity": cargo_capacity, "book_budget": book_budget,
+            "book_limit_per_stop": book_limit_per_stop,
             "trade_mode": mode, "book_policy": book_policy, "book_waste_limit": book_waste_limit,
             "negotiation_policy": negotiation_policy,
             "fixed_route_city_ids": fixed_route_city_ids,

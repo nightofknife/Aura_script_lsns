@@ -66,7 +66,8 @@ class EdgeBookCurve:
 
     @classmethod
     def create(cls, *, baseline: TradeEdgeOption, candidates: tuple,
-               capacity: int, policy: str, threshold: Fraction, waste_limit: int = 0) -> "EdgeBookCurve":
+               capacity: int, policy: str, threshold: Fraction, waste_limit: int = 0,
+               book_limit_per_stop: Optional[int] = None) -> "EdgeBookCurve":
         positive = tuple(row for row in candidates if row.unit_profit > 0)
         if not positive:
             return cls(baseline, (), capacity, policy, threshold, 0, 0,
@@ -88,20 +89,28 @@ class EdgeBookCurve:
         saturation = max((capacity + limiting_lot - 1) // limiting_lot - 1, 0)
         curve = cls(baseline, candidates, capacity, policy, threshold, saturation,
                     saturation, "capacity_reached" if policy == "fill" else "profit_saturated")
+        limit, reason = saturation, curve.limit_reason
         if policy == "fill":
             # Fill only up to the first full load, independent of book profit.
             # Earlier partial loads remain available for the route-wide budget.
             if saturation == 0:
-                return replace(curve, limit_reason="already_full_without_books")
-            waste = limiting_lot * (saturation + 1) - capacity
-            if waste > waste_limit:
-                return replace(curve, legal_limit=saturation - 1, limit_reason="book_waste_limit")
-            return curve
-        last = curve._threshold_prefix(saturation)
-        reason = curve.limit_reason if last == saturation else "profit_threshold"
-        if saturation == 0 and baseline.loaded_quantity == capacity:
-            reason = "already_full_without_books"
-        return replace(curve, legal_limit=last, limit_reason=reason)
+                reason = "already_full_without_books"
+            elif limiting_lot * (saturation + 1) - capacity > waste_limit:
+                limit, reason = saturation - 1, "book_waste_limit"
+        else:
+            # One extra marginal distinguishes a binding single-stop cap from
+            # a profit threshold that already stops at the same book count.
+            if book_limit_per_stop is not None:
+                limit = min(limit, book_limit_per_stop + 1)
+            legal_prefix = curve._threshold_prefix(limit)
+            if legal_prefix < limit:
+                reason = "profit_threshold"
+            elif saturation == 0 and baseline.loaded_quantity == capacity:
+                reason = "already_full_without_books"
+            limit = legal_prefix
+        if book_limit_per_stop is not None and book_limit_per_stop < limit:
+            limit, reason = book_limit_per_stop, "per_stop_book_limit"
+        return replace(curve, legal_limit=limit, limit_reason=reason)
 
     def profit_at(self, books: int) -> int:
         return self._load(books)[1].net_profit
