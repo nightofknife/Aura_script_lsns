@@ -1,0 +1,187 @@
+{
+  "documentation": [
+    "docs/*.md"
+  ],
+  "groups": {
+    "deep-dive": {
+      "paths": [
+        "packages/resonance_gui/widgets/consciousness_deep_dive_panel.py",
+        "plans/resonance_pc/src/actions/_deep_dive_*.py",
+        "plans/resonance_pc/src/actions/consciousness_deep_dive*_pc_actions.py",
+        "plans/resonance_pc/src/services/_deep_dive_entity_*.py",
+        "plans/resonance_pc/src/services/deep_dive_entity_detector_service.py",
+        "plans/resonance_pc/tasks/consciousness_deep_dive*_pc.yaml",
+        "plans/resonance_pc/templates/deep_dive/*",
+        "plans/resonance_pc/data/deep_dive_events/*",
+        "plans/resonance_pc/data/deep_dive_vortex/*",
+        "plans/resonance_pc/data/four_views_geometry.json",
+        "plans/resonance_pc/data/models/deep_dive_entities.json",
+        "plans/resonance_pc/data/models/deep_dive_entities.onnx"
+      ],
+      "tests": [
+        "tests/unit/test_deep_dive_*.py",
+        "tests/unit/test_bridge_frame_stream.py",
+        "tests/unit/test_business_unified_logging.py",
+        "tests/unit/test_gui_task_hierarchy.py",
+        "tests/unit/test_release_plan_assembly.py",
+        "tests/unit/test_rubbish_recycling_vision.py",
+        "tests/unit/test_small_tasks_flat_gui.py"
+      ]
+    },
+    "freight-trade": {
+      "paths": [
+        "packages/resonance_gui/widgets/freight_city_dialog.py",
+        "packages/resonance_gui/widgets/freight_parameter_widgets.py",
+        "packages/resonance_gui/widgets/freight_passenger_panel.py",
+        "packages/resonance_gui/widgets/trade_page.py",
+        "packages/resonance_shared/freight_parameters.py",
+        "plans/resonance_pc/src/actions/_freight_*.py",
+        "plans/resonance_pc/src/actions/_trade_buy_selection.py",
+        "plans/resonance_pc/src/actions/_trade_fatigue_observation.py",
+        "plans/resonance_pc/src/actions/_trade_page_entry.py",
+        "plans/resonance_pc/src/actions/_trade_sell_state.py",
+        "plans/resonance_pc/src/actions/_trailer_service_vision.py",
+        "plans/resonance_pc/src/actions/city_trade_flow_pc_actions.py",
+        "plans/resonance_pc/src/actions/trade_negotiation_pc_actions.py",
+        "plans/resonance_pc/src/actions/trade_planner_pc_actions.py",
+        "plans/resonance_pc/src/actions/trailer_service_pc_actions.py",
+        "plans/resonance_pc/src/services/_buy_lot_normalization.py",
+        "plans/resonance_pc/src/services/resonance_pc_freight_parameters.py",
+        "plans/resonance_pc/src/services/resonance_pc_trade_*.py",
+        "plans/resonance_pc/tasks/auto_cycle_trade_pc.yaml",
+        "plans/resonance_pc/tasks/preview_trade_plan_pc.yaml",
+        "plans/resonance_pc/tasks/trade_start_preflight_pc.yaml",
+        "plans/resonance_pc/tasks/use_trailer_service_pc.yaml",
+        "plans/resonance_pc/data/meta/buy_lot.json",
+        "plans/resonance_pc/data/meta/trade_product_templates.json",
+        "plans/resonance_pc/data/meta/trailer_route_distances.json",
+        "plans/resonance_pc/templates/navigation/trailer/*",
+        "tests/fixtures/fatigue_observation/*",
+        "tests/fixtures/trade_product_templates/*",
+        "tests/fixtures/trailer_service/*"
+      ],
+      "tests": [
+        "tests/contracts/test_bento_consumption_contract.py",
+        "tests/contracts/test_freight_recovery_contract.py",
+        "tests/contracts/test_passenger_retirement.py",
+        "tests/contracts/test_resonance_gui_external_plan_boundary.py",
+        "tests/contracts/test_resonance_pc_book_budget_contract.py",
+        "tests/contracts/test_resonance_pc_framework_action_reuse.py",
+        "tests/unit/test_batch_pricing_gui.py",
+        "tests/unit/test_bento_threshold_recovery.py",
+        "tests/unit/test_buy_lot_normalization.py",
+        "tests/unit/test_city_panel_vision.py",
+        "tests/unit/test_city_shop_entry.py",
+        "tests/unit/test_commerce_functional_templates.py",
+        "tests/unit/test_commerce_parameter_sync.py",
+        "tests/unit/test_depart_button_navigation.py",
+        "tests/unit/test_freight_*.py",
+        "tests/unit/test_gui_progress_display_reduction.py",
+        "tests/unit/test_layout_restore_gui.py",
+        "tests/unit/test_layout_v2_config.py",
+        "tests/unit/test_market_fallback_gui.py",
+        "tests/unit/test_negotiation_observation_boundaries.py",
+        "tests/unit/test_operation_progress_events.py",
+        "tests/unit/test_passenger_trade_observation_boundaries.py",
+        "tests/unit/test_pickup_interval.py",
+        "tests/unit/test_purchase_book_template_controls.py",
+        "tests/unit/test_recovery_priority_gui.py",
+        "tests/unit/test_resonance_pc_book_budget_flows.py",
+        "tests/unit/test_resonance_pc_freight_*.py",
+        "tests/unit/test_rubbish_recycling_transitions.py",
+        "tests/unit/test_settlement_confirmation_boundaries.py",
+        "tests/unit/test_trade_*.py",
+        "tests/unit/test_trailer_*.py",
+        "tests/unit/test_travel_trade_template_controls.py",
+        "tests/unit/test_two_mode_freight_gui_dependencies.py",
+        "tests/unit/test_workflow_progress_contract_gui.py",
+        "tests/unit/test_workflow_recovery_refresh.py",
+        "tests/unit/test_workflow_workspace_gui.py"
+      ]
+    },
+    "black-moon": {
+      "paths": [
+        "packages/resonance_gui/black_moon_catalog.py",
+        "packages/resonance_gui/widgets/black_moon_purchase_dialog.py",
+        "plans/resonance_pc/src/actions/_black_moon_local_*.py",
+        "plans/resonance_pc/src/actions/black_moon_local_*_pc_actions.py",
+        "plans/resonance_pc/tasks/black_moon_local_*_pc.yaml",
+        "plans/resonance_pc/data/meta/black_moon_local_shop_catalog.json",
+        "plans/resonance_pc/templates/commerce/shop/black_moon/*",
+        "tests/fixtures/black_moon_*/*"
+      ],
+      "tests": [
+        "tests/contracts/test_black_moon_*.py",
+        "tests/contracts/test_resonance_pc_legacy_entry_retirement.py",
+        "tests/unit/test_black_moon_*.py",
+        "tests/unit/test_commerce_functional_templates.py",
+        "tests/unit/test_frame_digit_functional_templates.py",
+        "tests/unit/test_freight_modes_gui.py"
+      ]
+    },
+    "trade-goods-investment": {
+      "paths": [
+        "plans/resonance_pc/src/actions/_trade_goods_investment_*.py",
+        "plans/resonance_pc/src/actions/trade_goods_investment_pc_actions.py",
+        "plans/resonance_pc/tasks/trade_goods_investment_pc.yaml",
+        "plans/resonance_pc/data/meta/trade_goods_investment_cities.json",
+        "tests/fixtures/trade_goods_investment/*"
+      ],
+      "tests": [
+        "tests/unit/test_trade_goods_investment_*.py",
+        "tests/unit/test_freight_modes_gui.py",
+        "tests/unit/test_freight_modes_runtime.py"
+      ]
+    },
+    "freight-handoffs": {
+      "paths": [
+        "packages/resonance_shared/freight_parameters.py",
+        "plans/resonance_pc/src/actions/_freight_*.py",
+        "plans/resonance_pc/src/actions/city_trade_flow_pc_actions.py",
+        "plans/resonance_pc/src/services/resonance_pc_freight_parameters.py",
+        "plans/resonance_pc/tasks/auto_cycle_trade_pc.yaml"
+      ],
+      "tests": [
+        "tests/contracts/test_black_moon_freight_schema.py",
+        "tests/contracts/test_collect_and_withdraw_products_task.py",
+        "tests/unit/test_black_moon_freight_integration.py",
+        "tests/unit/test_product_collection_*.py",
+        "tests/unit/test_product_workflow_pc_actions.py",
+        "tests/unit/test_resonance_pc_sparkling_water_*.py",
+        "tests/unit/test_sparkling_water_frame_reuse.py"
+      ]
+    },
+    "product-collection": {
+      "paths": [
+        "plans/resonance_pc/src/actions/_product_collection_*.py",
+        "plans/resonance_pc/src/actions/product_collection_pc_actions.py",
+        "plans/resonance_pc/tasks/collect_product_workshops_pc.yaml",
+        "plans/resonance_pc/tasks/collect_and_withdraw_products_pc.yaml",
+        "plans/resonance_pc/data/meta/product_collection_templates_pc.json"
+      ],
+      "tests": [
+        "tests/contracts/test_collect_and_withdraw_products_task.py",
+        "tests/unit/test_product_collection_*.py",
+        "tests/unit/test_product_workflow_pc_actions.py",
+        "tests/unit/test_gui_task_hierarchy.py"
+      ]
+    },
+    "sparkling-water": {
+      "paths": [
+        "plans/resonance_pc/src/actions/_sparkling_water_policy.py",
+        "plans/resonance_pc/src/actions/sparkling_water_pc_actions.py",
+        "plans/resonance_pc/tasks/sparkling_water_pc.yaml",
+        "plans/resonance_pc/data/meta/sparkling_water.json",
+        "tests/fixtures/resonance_pc_sparkling_water/*"
+      ],
+      "tests": [
+        "tests/contracts/test_freight_recovery_contract.py",
+        "tests/unit/test_black_moon_freight_integration.py",
+        "tests/unit/test_freight_recovery_integration.py",
+        "tests/unit/test_recovery_asset_validation.py",
+        "tests/unit/test_resonance_pc_sparkling_water_*.py",
+        "tests/unit/test_sparkling_water_frame_reuse.py"
+      ]
+    }
+  }
+}
