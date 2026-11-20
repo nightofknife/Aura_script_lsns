@@ -1260,6 +1260,18 @@ exports:
       type: Any
       required: false
       default: null
+    - name: book_limit_per_stop
+      type: Any
+      required: false
+      default: null
+    - name: market_proxy_mode
+      type: Any
+      required: false
+      default: automatic
+    - name: market_proxy_port
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.auto_cycle_trade_flow
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_auto_cycle_trade_flow
@@ -1475,6 +1487,18 @@ exports:
       type: Any
       required: false
       default: false
+    - name: book_limit_per_stop
+      type: Any
+      required: false
+      default: null
+    - name: market_proxy_mode
+      type: Any
+      required: false
+      default: automatic
+    - name: market_proxy_port
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.finish_auto_cycle_trade
     module: plans.resonance_pc.src.actions.city_trade_flow_pc_actions
     function: resonance_pc_finish_auto_cycle_trade
@@ -2309,6 +2333,14 @@ exports:
       type: Any
       required: false
       default: false
+    - name: market_proxy_mode
+      type: Any
+      required: false
+      default: automatic
+    - name: market_proxy_port
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.market_sync_web_constants
     module: plans.resonance_pc.src.actions.market_data_pc_actions
     function: resonance_pc_market_sync_web_constants
@@ -3219,6 +3251,10 @@ exports:
       type: Any
       required: false
       default: null
+    - name: book_limit_per_stop
+      type: Any
+      required: false
+      default: null
   - name: resonance_pc.trade_route_execution_init
     module: plans.resonance_pc.src.actions.trade_planner_pc_actions
     function: resonance_pc_trade_route_execution_init
@@ -3724,4 +3760,4 @@ exports:
     domain: 整顿中心
 metadata:
   generated_by: ManifestGenerator
-  generated_at: '2026-11-19T14:20:05Z'
+  generated_at: '2026-11-20T04:07:05Z'

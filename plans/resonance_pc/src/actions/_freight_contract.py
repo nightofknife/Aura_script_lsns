@@ -46,6 +46,8 @@ def normalize_planning_inputs(source: dict[str, Any]) -> dict[str, Any]:
         result[key] = integer(key, result.get(key, default), minimum=minimum)
     books = result.get("book_budget", 0)
     result["book_budget"] = None if books is None else integer("book_budget", books)
+    if result["book_budget"] == 0:
+        result.pop("book_limit_per_stop", None)
     policy = result.get("book_policy", "profit")
     negotiation = result.get("negotiation_policy", "auto")
     if policy not in {"profit", "fill"} or negotiation not in {"auto", "required", "disabled"}:
@@ -144,6 +146,7 @@ def plan_view(plan: dict[str, Any], request: dict[str, Any], *, kind: str,
                   input_snapshot=deepcopy(request), planning_status=planning_status,
                   book_budget=request["book_budget"],
                   book_budget_unlimited=request["book_budget"] is None,
+                   book_limit_per_stop=request.get("book_limit_per_stop"),
                   book_policy=request["book_policy"], book_waste_limit=request["book_waste_limit"],
                   negotiation_policy=request["negotiation_policy"])
     if planning_status == "no_plan":

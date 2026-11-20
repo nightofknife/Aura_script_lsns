@@ -40,7 +40,7 @@ def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
     for name, action in (("auto_cycle_trade_pc", trade.resonance_pc_auto_cycle_trade_flow),
                          ("preview_trade_plan_pc", trade.resonance_pc_preview_trade_plan_flow)):
         spec = yaml.safe_load((ROOT / "plans/resonance_pc/tasks" / f"{name}.yaml").read_text("utf-8"))[name]
-        provided = {"trade_mode": mode, "book_budget": books,
+        provided = {"trade_mode": mode, "book_budget": books, "book_limit_per_stop": 5,
                     "fixed_route_city_ids": ["15", "11", "15"], "target_profit": 1000000,
                     "required_arrivals": {"15": 2, "9": 1}, "ignore_unmet_arrivals": True}
         if name == "preview_trade_plan_pc":
@@ -51,9 +51,11 @@ def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
                     for key, value in spec["steps"]["run"]["params"].items()}
         inspect.signature(action).bind(**rendered)
         assert rendered["book_budget"] == books
+        assert rendered["book_limit_per_stop"] == 5
         assert rendered["fatigue_budget"] == 700 and rendered["cargo_capacity"] == 750
         assert rendered["book_profit_threshold"] == 500000
         canonical = normalize_planning_inputs(rendered)
+        assert canonical.get("book_limit_per_stop") == (None if books == 0 else 5)
         if mode == "free":
             assert canonical["required_arrivals"] == {"15": 2, "9": 1}
             assert canonical["ignore_unmet_arrivals"] is True
@@ -89,6 +91,7 @@ def test_integer_task_fields_are_not_silently_coerced(value):
 
 @pytest.mark.parametrize("field,value", [("fatigue_budget", True), ("cargo_capacity", 1.5),
                                         ("book_budget", -1), ("book_profit_threshold", float("nan")),
+                                        ("book_limit_per_stop", True), ("book_limit_per_stop", 0),
                                         ("target_profit", 0), ("bargain_success_rates_bps", [False])])
 def test_invalid_planning_inputs_are_rejected_before_game(harness, field, value):
     operations, _ = harness
@@ -226,6 +229,24 @@ def test_preview_is_planned_and_matches_execution_request(monkeypatch):
     assert result["request_kind"] == "preview"
 
 
+def test_over_limit_route_is_rejected_before_reposition_or_trade(harness, monkeypatch):
+    operations, _ = harness
+    route = routes()
+    route[0]["books_used"] = 0
+    route[1]["books_used"] = 3
+    monkeypatch.setattr(
+        trade, "resonance_pc_trade_plan_optimal_route",
+        lambda **kwargs: {"status": "ok", "route": route, "reposition_route": [route[0]]},
+    )
+    with pytest.raises(trade.CityTradeFlowError) as error:
+        run_full(book_budget=None, book_limit_per_stop=2, trade_mode="fixed",
+                 fixed_route_city_ids=["11", "15", "11"], reposition_to_route=True)
+    assert error.value.code == "planned_books_outside_stop_limit"
+    assert error.value.detail["books_used"] == 3
+    assert error.value.detail["book_limit_per_stop"] == 2
+    assert operations == ["open_panel"]
+
+
 def test_repeated_city_indices_and_terminal_phases_are_explicit():
     request = normalize_planning_inputs({"trade_mode": "fixed", "fixed_route_city_ids": ["15", "11", "15"]})
     result = plan_view({"status": "ok", "route": routes()}, request, kind="run", auto_bento=True)
@@ -284,9 +305,10 @@ def test_real_service_is_wired_to_preview_and_execution(service, harness, monkey
     assert preview["book_budget"] is None and actual["resources"]["actual_profit"] is None
 
 
-@pytest.mark.parametrize("books", [0, 1, 3, None])
+@pytest.mark.parametrize("books,stop_limit", [(0, None), (1, None), (3, None), (None, None),
+                                             (None, 1), (3, 1)])
 def test_fill_rules_reach_real_fixed_preview_execution_and_plan_logs(
-        service, harness, monkeypatch, books):
+        service, harness, monkeypatch, books, stop_limit):
     api, _ = service
     _, state = harness
     state["city"] = {"success": True, "city_name": "A", "city_key": "A"}
@@ -296,7 +318,8 @@ def test_fill_rules_reach_real_fixed_preview_execution_and_plan_logs(
     logs = []
     monkeypatch.setattr(trade.logger, "info", lambda message, *args, **kwargs: logs.append(message % args))
     request = dict(trade_mode="fixed", fatigue_budget=5, cargo_capacity=3,
-                   book_budget=books, book_policy="fill", book_profit_threshold=10**12,
+                   book_budget=books, book_limit_per_stop=stop_limit,
+                   book_policy="fill", book_profit_threshold=10**12,
                    negotiation_policy="disabled", fixed_route_city_ids=["A", "B", "A"],
                    resonance_pc_market_data=api.market_data, resonance_pc_trade_planner=api)
     preview = asyncio.run(trade.resonance_pc_preview_trade_plan_flow(start_city_id="A", **request))
@@ -309,9 +332,14 @@ def test_fill_rules_reach_real_fixed_preview_execution_and_plan_logs(
     assert all(leg["buy_products"] == ["p"] and leg["loaded_quantity"] > 0 for leg in traded)
     used = sum(leg["books_used"] for leg in preview["route"])
     assert used == preview["books_used"]
-    if books is None:
+    assert preview["book_limit_per_stop"] == actual["book_limit_per_stop"] == stop_limit
+    if stop_limit is not None:
+        assert all(leg["books_used"] <= stop_limit for leg in preview["route"])
+        assert traded[0]["book_stop_reason"] == "per_stop_book_limit"
+        assert not traded[0]["is_full_load"]
+    if books is None and stop_limit is None:
         assert all(leg["is_full_load"] for leg in traded)
-    else:
+    if books is not None:
         assert used <= books
         assert all(leg["remaining_book_budget_after"] >= 0 for leg in preview["route"])
     if books == 0:

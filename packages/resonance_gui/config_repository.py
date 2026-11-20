@@ -16,8 +16,9 @@ from .affix_catalog import normalize_affix_inputs
 from .battle_plan import normalize_battle_editor_inputs
 from packages.resonance_shared.passenger_parameters import DEFAULT_PASSENGER_OPTIONS, normalize_passenger_options
 from packages.resonance_shared.freight_parameters import (
-    DEFAULT_RECOVERY_THRESHOLDS,
+    DEFAULT_RECOVERY_THRESHOLDS, validate_book_limit_per_stop,
 )
+from packages.resonance_shared.market_proxy import normalize_market_proxy
 
 
 PC_TRADE_CITY_OPTIONS: tuple[tuple[str, str], ...] = (
@@ -60,6 +61,8 @@ _CITY_DEFAULTS_VERSION = 2
 PORTABLE_SETTINGS_FILENAME = "gui-settings-layout-v2.ini"
 TRADE_INPUTS_KEY = "trade/two_mode_inputs_json"
 TRADE_PREVIEW_INPUTS_KEY = "trade_preview/two_mode_inputs_json"
+MARKET_PROXY_KEY = "trade/market_proxy_json"
+MAX_BOOK_LIMIT_PER_STOP = 2_147_483_647
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,8 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 700,
     "cargo_capacity": 750,
     "book_budget": 0,
+    "book_limit_per_stop": None,
+    "book_limit_per_stop_draft": 1,
     "trade_mode": "free",
     "book_policy": "profit",
     "negotiation_policy": "auto",
@@ -132,6 +137,8 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "fatigue_budget",
     "cargo_capacity",
     "book_budget",
+    "book_limit_per_stop",
+    "book_limit_per_stop_draft",
     "trade_mode",
     "book_policy",
     "negotiation_policy",
@@ -155,6 +162,10 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "city_prestige",
     "city_tax_rates_bps",
     "product_unlocks",
+)
+TRADE_PREVIEW_REQUEST_KEYS = (
+    *(key for key in TRADE_PREVIEW_INPUT_KEYS if key != "book_limit_per_stop_draft"),
+    "market_proxy_mode", "market_proxy_port",
 )
 
 
@@ -321,6 +332,29 @@ class ResonanceConfigRepository:
             self.settings.sync()
             raise
 
+    def load_market_proxy(self) -> dict[str, Any]:
+        raw = self.settings.value(MARKET_PROXY_KEY, "")
+        if raw:
+            try:
+                values = json.loads(raw)
+                if isinstance(values, dict):
+                    return normalize_market_proxy(
+                        values.get("market_proxy_mode", "automatic"),
+                        values.get("market_proxy_port"),
+                        allow_incomplete=True,
+                    )
+            except (TypeError, ValueError):
+                pass
+        return normalize_market_proxy("automatic", None)
+
+    def save_market_proxy(self, values: Mapping[str, Any]) -> None:
+        normalized = normalize_market_proxy(
+            values.get("market_proxy_mode", "automatic"),
+            values.get("market_proxy_port"),
+            allow_incomplete=True,
+        )
+        self._save_freight_inputs_json(MARKET_PROXY_KEY, normalized)
+
     def load_trade_preview_inputs(self) -> dict[str, Any]:
         """Load independent planning inputs, seeding normal trade inputs once."""
         key = TRADE_PREVIEW_INPUTS_KEY
@@ -453,6 +487,14 @@ class ResonanceConfigRepository:
         self.settings.sync()
 
 
+def normalize_book_limit_preferences(values: Mapping[str, Any]) -> tuple[int | None, int]:
+    limit = validate_book_limit_per_stop(values.get("book_limit_per_stop"))
+    draft = validate_book_limit_per_stop(values.get("book_limit_per_stop_draft", limit or 1))
+    if draft is None or max(limit or 0, draft) > MAX_BOOK_LIMIT_PER_STOP:
+        raise ValueError(f"单站用书上限必须为 1 到 {MAX_BOOK_LIMIT_PER_STOP} 之间的整数。")
+    return limit, limit or draft
+
+
 def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
     merged = json.loads(json.dumps(DEFAULT_TRADE_INPUTS, ensure_ascii=False))
     for key in merged:
@@ -513,6 +555,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("有限进货书数量必须为非负整数。")
     merged["finite_book_budget"] = finite
     merged["book_budget"] = (None if merged["books_unlimited"] else finite) if merged["books_enabled"] else 0
+    merged["book_limit_per_stop"], merged["book_limit_per_stop_draft"] = normalize_book_limit_preferences(values)
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_trade_goods_investment"] = bool(merged["auto_trade_goods_investment"])
     merged["trade_goods_investment_mode"] = validate_trade_goods_investment_level(merged["trade_goods_investment_mode"])

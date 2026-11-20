@@ -192,6 +192,15 @@ def present_run_failure(
         if isinstance(source.get("recognition"), Mapping):
             errors.append(source)
 
+    for error in errors:
+        if error.get("code") == "market_refresh_failed_no_cache":
+            return RunFailure(
+                task,
+                "刷新行情",
+                _label(error.get("message")) or "科伦巴行情更新失败，且没有可用的历史行情。",
+                "请检查「交易 → 行情连接」后重试。",
+            )
+
     # Prefer the failing operation over the wrapper node. Old runs may only
     # have an error code in the evidence attached to that operation.
     root_error = _mapping(envelopes[-1].get("error"))

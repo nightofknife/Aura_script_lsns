@@ -7,7 +7,8 @@ import copy
 import hashlib
 import json
 import re
-import socket
+import ssl
+import sys
 import threading
 import time
 import urllib.error
@@ -19,8 +20,31 @@ from typing import Any, Dict, List, Optional
 
 from packages.aura_core.api import service_info
 from packages.aura_core.observability.logging.core_logger import logger
+from packages.resonance_shared.market_proxy import normalize_market_proxy
 
 from ._buy_lot_normalization import normalize_city_product_buy_lot
+from .market_winhttp import get_market_url
+
+
+_MARKET_USER_AGENT = "Aura-ResonancePc/1.0 (+https://www.resonance-columba.com)"
+
+
+class _LocalMarketProxyHandler(urllib.request.ProxyHandler):
+    def __init__(self, port: int):
+        proxy = f"127.0.0.1:{port}"
+        super().__init__({"http": proxy, "https": proxy})
+
+    def proxy_open(self, request, proxy, scheme):
+        # Explicit selection takes precedence over the automatic proxy bypass list.
+        request.set_proxy(proxy, "http")
+        return None
+
+
+class _MarketRedirectHandler(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if urllib.parse.urlsplit(newurl).scheme not in ("http", "https"):
+            raise urllib.error.HTTPError(req.full_url, code, "Unsupported market redirect", headers, fp)
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 
 
 class ResonancePcMarketDataError(RuntimeError):
@@ -113,7 +137,14 @@ class ResonancePcMarketDataService:
     def get_all_travel_fatigue(self) -> Dict[str, Any]:
         return copy.deepcopy(self._load_travel_fatigue_data())
 
-    def refresh(self, force: bool = False) -> Dict[str, Any]:
+    def refresh(
+        self,
+        force: bool = False,
+        *,
+        market_proxy_mode: str = "automatic",
+        market_proxy_port: int | None = None,
+    ) -> Dict[str, Any]:
+        normalize_market_proxy(market_proxy_mode, market_proxy_port)
         started = time.monotonic()
         logger.info(
             "[MarketRefresh] start force=%s api_url=%s timeout_seconds=%s "
@@ -125,7 +156,11 @@ class ResonancePcMarketDataService:
             self.latest_file,
         )
         try:
-            raw = self.fetch_raw()
+            raw = (
+                self.fetch_raw(proxy_port=market_proxy_port)
+                if market_proxy_mode == "manual"
+                else self.fetch_raw()
+            )
             logger.info(
                 "[MarketRefresh] remote_payload_ready product_count=%s elapsed_ms=%s",
                 len(raw.get("data") or {}) if isinstance(raw.get("data"), dict) else 0,
@@ -168,9 +203,15 @@ class ResonancePcMarketDataService:
                     fallback_error.code,
                     fallback_error,
                 )
+                message = "行情更新失败，且没有可用的历史行情。"
+                if isinstance(exc, ResonancePcMarketDataError) and exc.code in {
+                    "market_fetch_failed", "market_fetch_http_failed", "market_payload_invalid_json",
+                    "market_payload_invalid_type", "market_payload_missing_data",
+                }:
+                    message = f"{message}{exc.message}"
                 raise ResonancePcMarketDataError(
                     code="market_refresh_failed_no_cache",
-                    message="Failed to refresh market data and no cached snapshot is available.",
+                    message=message,
                     detail={
                         "cause_type": type(exc).__name__,
                         "cause": str(exc),
@@ -328,130 +369,50 @@ class ResonancePcMarketDataService:
             rows.append(row)
         return rows
 
-    def fetch_raw(self) -> Dict[str, Any]:
-        parsed_url = urllib.parse.urlsplit(self.api_url)
-        host = str(parsed_url.hostname or "")
-        port = int(parsed_url.port or (443 if parsed_url.scheme == "https" else 80))
-        proxy_summary = self._proxy_summary()
-        logger.info(
-            "[MarketNetwork] request_start url=%s scheme=%s host=%s port=%s "
-            "timeout_seconds=%s proxies=%s",
-            self.api_url,
-            parsed_url.scheme,
-            host,
-            port,
-            self.timeout_seconds,
-            json.dumps(proxy_summary, ensure_ascii=False, sort_keys=True),
-        )
-        dns_started = time.monotonic()
+    def fetch_raw(self, *, proxy_port: int | None = None) -> Dict[str, Any]:
         try:
-            address_rows = socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-            addresses = sorted(
-                {
-                    str(row[4][0])
-                    for row in address_rows
-                    if len(row) > 4 and isinstance(row[4], tuple) and row[4]
-                }
-            )
-            logger.info(
-                "[MarketNetwork] dns_success host=%s addresses=%s elapsed_ms=%s",
-                host,
-                addresses,
-                round((time.monotonic() - dns_started) * 1000, 1),
-            )
-        except Exception as exc:  # noqa: BLE001 - diagnostic probe must not replace urlopen
-            logger.warning(
-                "[MarketNetwork] dns_failed host=%s error_type=%s errno=%s error=%s "
-                "elapsed_ms=%s",
-                host,
-                type(exc).__name__,
-                getattr(exc, "errno", None),
-                exc,
-                round((time.monotonic() - dns_started) * 1000, 1),
-            )
-
-        req = urllib.request.Request(
-            self.api_url,
-            headers={"User-Agent": "Aura-ResonancePc/1.0 (+https://www.resonance-columba.com)"},
-            method="GET",
-        )
-        request_started = time.monotonic()
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout_seconds) as response:
-                raw_bytes = response.read()
-                raw_text = raw_bytes.decode("utf-8")
-                logger.info(
-                    "[MarketNetwork] response_success status=%s final_url=%s content_type=%s "
-                    "declared_length=%s received_bytes=%s server=%s elapsed_ms=%s",
-                    getattr(response, "status", None),
-                    response.geturl(),
-                    response.headers.get("Content-Type"),
-                    response.headers.get("Content-Length"),
-                    len(raw_bytes),
-                    response.headers.get("Server"),
-                    round((time.monotonic() - request_started) * 1000, 1),
-                )
+            raw_text = self._fetch_price_bytes(proxy_port).decode("utf-8")
         except urllib.error.HTTPError as exc:
-            logger.error(
-                "[MarketNetwork] http_failed status=%s reason=%s url=%s retry_after=%s "
-                "server=%s elapsed_ms=%s",
-                exc.code,
-                exc.reason,
-                exc.geturl(),
-                exc.headers.get("Retry-After") if exc.headers else None,
-                exc.headers.get("Server") if exc.headers else None,
-                round((time.monotonic() - request_started) * 1000, 1),
-            )
+            try:
+                logger.warning(
+                    "[MarketNetwork] http_failed status=%s retry_after=%s url=%s",
+                    exc.code,
+                    exc.headers.get("Retry-After") if exc.headers else None,
+                    exc.geturl(),
+                )
+                raise ResonancePcMarketDataError(
+                    code="market_fetch_http_failed",
+                    message=f"科伦巴行情接口返回 HTTP {exc.code}。",
+                    detail={"status": exc.code, "reason": str(exc.reason), "url": exc.geturl()},
+                ) from exc
+            finally:
+                exc.close()
+        except UnicodeDecodeError as exc:
             raise ResonancePcMarketDataError(
-                code="market_fetch_http_failed",
-                message="Market price API returned an HTTP error.",
-                detail={
-                    "status": exc.code,
-                    "reason": str(exc.reason),
-                    "url": exc.geturl(),
-                },
+                code="market_payload_invalid_json",
+                message="科伦巴行情接口返回了无法读取的数据。",
             ) from exc
-        except urllib.error.URLError as exc:
-            reason = getattr(exc, "reason", None)
-            logger.error(
-                "[MarketNetwork] request_failed error_type=%s reason_type=%s errno=%s "
-                "reason=%s url=%s elapsed_ms=%s",
-                type(exc).__name__,
-                type(reason).__name__ if reason is not None else None,
-                getattr(reason, "errno", None),
-                reason,
-                self.api_url,
-                round((time.monotonic() - request_started) * 1000, 1),
+        except (OSError, ValueError) as exc:
+            reason = getattr(exc, "reason", exc)
+            if isinstance(reason, ssl.SSLCertVerificationError) or getattr(reason, "winerror", None) == 12175:
+                message = "科伦巴行情接口的 HTTPS 证书校验失败，请检查代理软件的 HTTPS 设置。"
+            elif proxy_port is not None:
+                message = f"无法通过 127.0.0.1:{proxy_port} 获取科伦巴行情，请检查代理软件的 HTTP 或混合端口。"
+            else:
+                message = "无法连接科伦巴行情接口。请检查网络，或在「行情连接」中填写代理软件的 HTTP 或混合端口。"
+            logger.warning(
+                "[MarketNetwork] request_failed error_type=%s reason_type=%s errno=%s winerror=%s url=%s",
+                type(exc).__name__, type(reason).__name__, getattr(reason, "errno", None),
+                getattr(reason, "winerror", None), self.api_url,
             )
             raise ResonancePcMarketDataError(
                 code="market_fetch_failed",
-                message="Failed to fetch market prices from remote API.",
+                message=message,
                 detail={
                     "exception_type": type(exc).__name__,
-                    "reason_type": type(reason).__name__ if reason is not None else None,
+                    "reason_type": type(reason).__name__,
                     "errno": getattr(reason, "errno", None),
-                    "cause": str(exc),
-                    "url": self.api_url,
-                },
-            ) from exc
-        except Exception as exc:  # noqa: BLE001 - retain diagnostics for TLS/socket failures
-            logger.error(
-                "[MarketNetwork] request_failed_unexpected error_type=%s errno=%s error=%s "
-                "url=%s elapsed_ms=%s",
-                type(exc).__name__,
-                getattr(exc, "errno", None),
-                exc,
-                self.api_url,
-                round((time.monotonic() - request_started) * 1000, 1),
-                exc_info=True,
-            )
-            raise ResonancePcMarketDataError(
-                code="market_fetch_failed",
-                message="Failed to fetch market prices from remote API.",
-                detail={
-                    "exception_type": type(exc).__name__,
-                    "errno": getattr(exc, "errno", None),
-                    "cause": str(exc),
+                    "winerror": getattr(reason, "winerror", None),
                     "url": self.api_url,
                 },
             ) from exc
@@ -470,7 +431,7 @@ class ResonancePcMarketDataService:
             )
             raise ResonancePcMarketDataError(
                 code="market_payload_invalid_json",
-                message="API response is not valid JSON.",
+                message="科伦巴行情接口返回的数据不是有效的 JSON。",
                 detail={
                     "cause": str(exc),
                     "line": exc.lineno,
@@ -487,7 +448,7 @@ class ResonancePcMarketDataService:
             )
             raise ResonancePcMarketDataError(
                 code="market_payload_invalid_type",
-                message="API response root must be an object.",
+                message="科伦巴行情接口返回的数据格式不正确。",
             )
         data = payload.get("data")
         if not isinstance(data, dict):
@@ -498,7 +459,7 @@ class ResonancePcMarketDataService:
             )
             raise ResonancePcMarketDataError(
                 code="market_payload_missing_data",
-                message="API response is missing 'data' object.",
+                message="科伦巴行情接口返回的数据缺少商品信息。",
             )
         logger.info(
             "[MarketNetwork] payload_valid product_count=%s",
@@ -506,23 +467,71 @@ class ResonancePcMarketDataService:
         )
         return payload
 
+    def _fetch_price_bytes(self, proxy_port: int | None) -> bytes:
+        deadline = time.monotonic() + self.timeout_seconds
+        use_windows_fallback = sys.platform == "win32" and proxy_port is None
+        if proxy_port is not None:
+            handler = _LocalMarketProxyHandler(proxy_port)
+            route = "manual_proxy"
+        else:
+            proxies = urllib.request.getproxies()
+            target = urllib.parse.urlsplit(self.api_url)
+            handler = urllib.request.ProxyHandler(proxies)
+            route = (
+                "configured_proxy"
+                if proxies.get(target.scheme) and not urllib.request.proxy_bypass(target.netloc)
+                else "direct"
+            )
+        logger.info(
+            "[MarketNetwork] request_start route=%s proxies=%s url=%s",
+            route, self._proxy_summary(handler.proxies), self.api_url,
+        )
+        req = urllib.request.Request(self.api_url, headers={"User-Agent": _MARKET_USER_AGENT})
+        opener = urllib.request.build_opener(handler, _MarketRedirectHandler())
+        timeout = self.timeout_seconds * 0.5 if use_windows_fallback else self.timeout_seconds
+        try:
+            with opener.open(req, timeout=timeout) as response:
+                body = response.read()
+                logger.info(
+                    "[MarketNetwork] response_success route=%s status=%s final_url=%s "
+                    "content_type=%s received_bytes=%s",
+                    route, response.status, response.geturl(), response.headers.get("Content-Type"), len(body),
+                )
+                return body
+        except OSError as exc:
+            reason = getattr(exc, "reason", exc)
+            retryable = isinstance(reason, OSError) and (
+                not isinstance(reason, ssl.SSLError) or isinstance(reason, ssl.SSLEOFError)
+            )
+            remaining = deadline - time.monotonic()
+            if not use_windows_fallback or not retryable or remaining <= 0:
+                raise
+            logger.info(
+                "[MarketNetwork] trying_windows_proxy first_route=%s error_type=%s errno=%s remaining_seconds=%.2f",
+                route, type(reason).__name__, getattr(reason, "errno", None), remaining,
+            )
+
+        body = get_market_url(self.api_url, user_agent=_MARKET_USER_AGENT, timeout_seconds=remaining)
+        logger.info("[MarketNetwork] response_success route=windows_auto_proxy received_bytes=%s", len(body))
+        return body
+
     @staticmethod
-    def _proxy_summary() -> Dict[str, str]:
+    def _proxy_summary(proxies: Dict[str, str]) -> Dict[str, str]:
         summary: Dict[str, str] = {}
-        for scheme, raw_value in urllib.request.getproxies().items():
+        for scheme, raw_value in proxies.items():
+            if scheme not in {"http", "https"}:
+                continue
             value = str(raw_value or "").strip()
             if not value:
                 continue
-            parsed = urllib.parse.urlsplit(value if "://" in value else f"//{value}")
-            host = str(parsed.hostname or "")
-            if not host:
-                summary[str(scheme)] = "configured"
-                continue
             try:
+                parsed = urllib.parse.urlsplit(value if "://" in value else f"//{value}")
+                host = parsed.hostname
                 port = parsed.port
             except ValueError:
-                port = None
-            summary[str(scheme)] = f"{host}:{port}" if port else host
+                summary[str(scheme)] = "configured"
+                continue
+            summary[str(scheme)] = f"{host}:{port}" if host and port else host or "configured"
         return summary
 
     def normalize(self, raw: Dict[str, Any], buy_lot_payload: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
@@ -1140,11 +1149,11 @@ class ResonancePcMarketDataService:
     def _http_get_text(self, url: str) -> str:
         req = urllib.request.Request(
             url,
-            headers={"User-Agent": "Aura-ResonancePc/1.0 (+https://www.resonance-columba.com)"},
+            headers={"User-Agent": _MARKET_USER_AGENT},
             method="GET",
         )
         try:
-            with urllib.request.urlopen(req, timeout=self.timeout_seconds) as response:
+            with urllib.request.build_opener().open(req, timeout=self.timeout_seconds) as response:
                 return response.read().decode("utf-8")
         except urllib.error.URLError as exc:
             raise ResonancePcMarketDataError(

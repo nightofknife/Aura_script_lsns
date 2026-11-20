@@ -426,6 +426,59 @@ def test_only_active_book_strategy_inputs_invalidate_preview(page):
     assert page._plan_stale
 
 
+@pytest.mark.parametrize("preview", [False, True])
+def test_single_stop_book_limit_round_trips_and_applies_to_fill(page, preview):
+    widget = TradePage(page._settings, preview_mode=True) if preview else page
+    try:
+        choose(widget.book_usage, "unlimited")
+        choose(widget.book_policy, "fill")
+        choose(widget.start_city, "1")
+        assert not widget.book_limit_per_stop_enabled.isChecked()
+        assert not widget.book_limit_per_stop.isVisibleTo(widget.parameter_panel)
+        prime_preview(widget)
+        widget.book_limit_per_stop.setValue(5)
+        assert not widget._plan_stale
+        widget.book_limit_per_stop_enabled.setChecked(True)
+        assert widget._plan_stale
+        inputs = widget.collect_task_inputs(preview=preview)
+        assert inputs["book_limit_per_stop"] == 5
+        assert inputs["book_policy"] == "fill"
+        assert "book_limit_per_stop_draft" not in inputs
+
+        choose(widget.book_usage, "none")
+        assert not widget.book_limit_per_stop_enabled.isVisibleTo(widget.parameter_panel)
+        assert "book_limit_per_stop" not in widget.collect_task_inputs(preview=preview)
+        widget.save_ui_state()
+        repository = widget._settings
+        load = repository.load_trade_preview_inputs if preview else repository.load_trade_inputs
+        widget.restore_inputs(load())
+        assert widget.book_limit_per_stop_enabled.isChecked()
+        assert widget.book_limit_per_stop.value() == 5
+
+        choose(widget.book_usage, "finite")
+        widget.book_budget.setValue(3)
+        assert widget.collect_task_inputs(preview=preview)["book_limit_per_stop"] == 5
+        widget.book_limit_per_stop_enabled.setChecked(False)
+        widget.save_ui_state()
+        assert load()["book_limit_per_stop"] is None
+        assert load()["book_limit_per_stop_draft"] == 5
+    finally:
+        if preview:
+            widget.close()
+            widget.deleteLater()
+            QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+def test_route_detail_displays_single_stop_limit_only_when_binding(page):
+    leg = {"books_used": 5, "buy_products": ["示例商品"], "is_full_load": False,
+           "book_stop_reason": "per_stop_book_limit"}
+    page._render_route([leg, {**leg, "is_full_load": True}], book_limit_per_stop=5)
+    first, second = (page.route_tree.topLevelItem(index) for index in range(2))
+    assert "书 5 / 单站上限 5" in first.text(2)
+    assert "已达单站用书上限，本段未满仓。" in first.toolTip(2)
+    assert "本段未满仓" not in second.toolTip(2)
+
+
 
 @pytest.mark.parametrize("value", [-1, True, 1.5])
 def test_repository_rejects_invalid_waste_limit_without_overwriting_saved_state(page, value):

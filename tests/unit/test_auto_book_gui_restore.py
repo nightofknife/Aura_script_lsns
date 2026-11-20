@@ -11,7 +11,9 @@ from PySide6.QtCore import QSettings, QCoreApplication, QEvent
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from packages.resonance_gui.bridge import RunnerBridge
-from packages.resonance_gui.config_repository import ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS, TRADE_INPUTS_KEY
+from packages.resonance_gui.config_repository import (
+    ResonanceConfigRepository, TRADE_PREVIEW_INPUT_KEYS, TRADE_PREVIEW_REQUEST_KEYS, TRADE_INPUTS_KEY,
+)
 from packages.resonance_gui.logic import (
     PC_TRADE_PREVIEW_TASK_REF, PC_TRADE_TASK_REF, average_book_profit_text,
     normalize_trade_task_inputs, trade_result_summary, TRADE_PROGRESS_EVENT, TRADE_PROGRESS_SCHEMA,
@@ -136,7 +138,7 @@ def test_actual_bridge_dispatch_covers_two_modes_and_book_limits(window, monkeyp
         preview_runner, preview_bridge = recording_bridge(monkeypatch)
         preview_bridge.preview_pc_trade(preview)
         assert preview_runner.calls[0]["task_ref"] == PC_TRADE_PREVIEW_TASK_REF, (mode, budget)
-        expected = normalize_trade_task_inputs({key: value for key, value in preview.items() if key in TRADE_PREVIEW_INPUT_KEYS})
+        expected = normalize_trade_task_inputs({key: value for key, value in preview.items() if key in TRADE_PREVIEW_REQUEST_KEYS})
         assert preview_runner.calls[0]["inputs"] == expected, (mode, budget)
         assert expected["book_budget"] == budget, (mode, budget)
 

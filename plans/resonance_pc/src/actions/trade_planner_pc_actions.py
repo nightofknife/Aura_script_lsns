@@ -55,6 +55,7 @@ def resonance_pc_trade_plan_optimal_route(
     current_city: Optional[str] = None,
     snapshot_id: Optional[str] = None,
     resonance_pc_trade_planner: ResonancePcTradePlannerService | None = None,
+    book_limit_per_stop: Optional[int] = None,
 ) -> Dict[str, Any]:
     request = normalize_planning_inputs(locals())
     return _require_service(resonance_pc_trade_planner).plan_optimal_route(

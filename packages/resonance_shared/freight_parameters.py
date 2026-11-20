@@ -30,8 +30,14 @@ def validate_freight_recovery_thresholds(source: Mapping[str, Any]) -> None:
         if type(start) is not int or type(stop) is not int or not start > stop >= 0:
             raise ValueError(f"{label}启动阈值和停止下限必须为整数，且启动阈值大于停止下限、停止下限不小于0。")
 
+def validate_book_limit_per_stop(value: Any) -> int | None:
+    if value is not None and (type(value) is not int or value <= 0):
+        raise ValueError("单站用书上限（book_limit_per_stop）必须为正整数。")
+    return value
+
+
 FREIGHT_PLANNING_KEYS = (
-    "trade_mode", "fatigue_budget", "cargo_capacity", "book_budget",
+    "trade_mode", "fatigue_budget", "cargo_capacity", "book_budget", "book_limit_per_stop",
     "book_profit_threshold", "book_waste_limit", "book_policy", "negotiation_policy",
     "fixed_route_city_ids", "reposition_to_route", "target_profit",
     "available_city_ids", "required_end_city_ids", "city_prestige", "city_tax_rates_bps",
@@ -61,14 +67,20 @@ def effective_freight_inputs(source: Mapping[str, Any]) -> dict[str, Any]:
             result.pop("required_arrivals", None)
             result.pop("ignore_unmet_arrivals", None)
     result.pop("target_profit_enabled", None)
+    result.pop("book_limit_per_stop_draft", None)
     if type(result.get("book_budget")) is int and result["book_budget"] == 0:
         result.pop("book_policy", None)
         result.pop("book_profit_threshold", None)
         result.pop("book_waste_limit", None)
+        result.pop("book_limit_per_stop", None)
     elif result.get("book_policy", "profit") == "fill":
         result.pop("book_profit_threshold", None)
     else:
         result.pop("book_waste_limit", None)
+    if result.get("book_limit_per_stop") is None:
+        result.pop("book_limit_per_stop", None)
+    else:
+        validate_book_limit_per_stop(result["book_limit_per_stop"])
     if result.get("negotiation_policy") == "disabled":
         result.pop("negotiation_max_attempts", None)
     if result.get("auto_bento") is False:
