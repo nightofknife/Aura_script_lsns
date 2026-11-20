@@ -1081,6 +1081,18 @@
       "source_record_id": 11800318,
       "name": "玄铁朱契",
       "template": "templates/inventory/equipment/art/11800318/grid_100x60.png"
+    },
+    {
+      "equipment_id": "equipment_11800319",
+      "source_record_id": 11800319,
+      "name": "绯霆之律",
+      "template": "templates/inventory/equipment/art/11800319/grid_100x60.png"
+    },
+    {
+      "equipment_id": "equipment_11800320",
+      "source_record_id": 11800320,
+      "name": "漆黑之刃",
+      "template": "templates/inventory/equipment/art/11800320/grid_100x60.png"
     }
   ]
 }
