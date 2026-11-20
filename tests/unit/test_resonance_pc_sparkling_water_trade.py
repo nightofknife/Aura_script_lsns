@@ -10,6 +10,7 @@ import pytest
 
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.services.city_shop_data_pc_service import ResonancePcCityShopDataService
+from plans.resonance_pc.src.services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
 
 
 _ACTIVE_HARNESS = None
@@ -173,9 +174,10 @@ def harness(monkeypatch):
 
 
 def run_full(**overrides):
+    market = Market()
     args = dict(app=object(), ocr=object(), vision=object(), state_store=object(),
                 resonance_pc_city_shop_data=ResonancePcCityShopDataService(),
-                resonance_pc_market_data=Market(), resonance_pc_trade_planner=object(),
+                resonance_pc_market_data=market, resonance_pc_trade_planner=ResonancePcTradePlannerService(market),
                 persistent_data=object(), auto_sparkling_water=True, recovery_snapshot=snapshot(),
                 sparkling_water_start_threshold=300, sparkling_water_stop_threshold=200,
                 bento_start_threshold=700, bento_stop_threshold=200,

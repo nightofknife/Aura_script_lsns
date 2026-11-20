@@ -501,6 +501,21 @@ class ResonancePcTradePlannerService:
         }
 
 
+    def resolve_current_city_id(
+        self,
+        *,
+        current_city_key: Optional[str],
+        current_city: Optional[str],
+    ) -> Optional[str]:
+        """Resolve a recognized city against the same graph and aliases as the planner."""
+        return self._resolve_current_city_id(
+            current_city_id=None,
+            current_city_key=current_city_key,
+            current_city=current_city,
+            fatigue_payload=self.market_data.get_all_travel_fatigue(),
+            city_key_to_id=self._load_trade_constraints_payload()["key_to_city_id"],
+        )
+
     def _resolve_current_city_id(
         self,
         *,

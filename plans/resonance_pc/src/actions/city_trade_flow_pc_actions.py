@@ -41,7 +41,10 @@ from ..services.resonance_pc_trade_exact_solver import (
     expected_fatigue_to_cap,
     trade_solver_progress,
 )
-from ..services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
+from ..services.resonance_pc_trade_planner_service import (
+    ResonancePcTradePlannerError,
+    ResonancePcTradePlannerService,
+)
 from .cape_island_investment_pc_actions import (
     resonance_pc_execute_cape_island_investment_from_city_panel,
 )
@@ -3794,9 +3797,16 @@ async def resonance_pc_auto_cycle_trade_flow(
     )
     mismatch = False
     if request["trade_mode"] == "fixed":
-        cities = resonance_pc_market_data.get_all_travel_fatigue()["cities"]
-        actual_city_id = next((str(key) for key, value in cities.items()
-                               if value == current.get("city_name")), None)
+        try:
+            actual_city_id = await tracked_to_thread(
+                resonance_pc_trade_planner.resolve_current_city_id,
+                current_city_key=current.get("city_key"),
+                current_city=current.get("city_name"),
+            )
+        except ResonancePcTradePlannerError as exc:
+            if exc.code != "current_city_not_resolved":
+                raise
+            actual_city_id = None
         if actual_city_id is None:
             _raise_error("unsupported_city", "Current city could not be mapped to the travel graph", current)
         current["city_id"] = actual_city_id

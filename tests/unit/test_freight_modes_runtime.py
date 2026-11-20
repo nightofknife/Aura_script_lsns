@@ -7,6 +7,7 @@ import inspect
 import json
 from copy import deepcopy
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -16,6 +17,8 @@ from packages.aura_core.scheduler.validation import InputValidator
 from plans.resonance_pc.src.actions import city_trade_flow_pc_actions as trade
 from plans.resonance_pc.src.actions import trade_planner_pc_actions as planner_action
 from plans.resonance_pc.src.actions._freight_contract import normalize_planning_inputs, plan_view
+from plans.resonance_pc.src.services.resonance_pc_trade_planner_service import ResonancePcTradePlannerService
+from tests.unit.test_resonance_pc_freight_mode_solver import product
 from tests.unit.test_resonance_pc_sparkling_water_trade import harness, routes, run_full
 from tests.unit.test_resonance_pc_freight_planner_service import service
 
@@ -185,6 +188,31 @@ def test_fixed_wrong_start_stops_without_planner_or_departure(harness, monkeypat
     result = run_full(trade_mode="fixed", fixed_route_city_ids=["11", "15", "11"])
     assert result["reason"] == "fixed_start_mismatch" and result["success"] is False
     assert operations == ["open_panel"]
+
+
+def test_fixed_route_plans_from_freeport_with_recognized_city_name(harness, monkeypatch):
+    _, state = harness
+    state["city"] = {"success": True, "city_name": "7号自由港", "city_key": "freeport"}
+    fatigue_file = ROOT / "plans/resonance_pc/data/meta/city_travel_fatigue.json"
+    fatigue = json.loads(fatigue_file.read_text(encoding="utf-8"))
+    snapshot = {
+        "snapshot_id": "market",
+        "products": {"21": product("测试货物", {"3": 100}, {"8": 300})},
+    }
+    market = SimpleNamespace(get_all_travel_fatigue=lambda: fatigue, get_snapshot=lambda **kw: snapshot)
+    planner = ResonancePcTradePlannerService(market)
+    monkeypatch.setattr(trade, "resonance_pc_trade_plan_optimal_route",
+                        planner_action.resonance_pc_trade_plan_optimal_route)
+
+    result = run_full(
+        trade_mode="fixed", fixed_route_city_ids=["3", "8"], fatigue_budget=35,
+        cargo_capacity=7, negotiation_policy="disabled", auto_sparkling_water=False,
+        resonance_pc_market_data=market, resonance_pc_trade_planner=planner,
+    )
+
+    assert result["planning_status"] == "ok"
+    assert result["initial_city"]["city_id"] == "3"
+    assert result["city_path_ids"] == ["3", "8"]
 
 
 @pytest.mark.parametrize("blocked", [False, True])
