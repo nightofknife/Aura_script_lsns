@@ -4,6 +4,7 @@ from ._deep_dive_choice_target import (
     option_set, ordered_cards, pending_target, result_progress, same_choice, target_fields,
 )
 from ._deep_dive_node_rewards import ITEM_REPLACEMENT, RESULT
+from ._deep_dive_option_priority import choose_event_option
 
 
 def reset_observation(state):
@@ -108,9 +109,9 @@ def step(state,o,now):
         return 'event_returned',None
     if option_page:
         rows=o['event_options']
-        allowed=[(r['priority'],i,r) for i,r in enumerate(rows) if not r['blocked'] and r['state']!='disabled']
+        allowed=[(i,r) for i,r in enumerate(rows) if not r['blocked'] and r['state']!='disabled']
         if not allowed:return _fail(state,'没有允许且可选的事件选项')
-        _,i,target=min(allowed,key=lambda r:(r[0],r[1]))
+        i,target=choose_event_option(allowed)
         selected=target['state']=='selected'
         extra={'option_set':option_set(rows)} if 'native' in target else {}
         return _issue(state,'option_submit' if selected else 'option_select',

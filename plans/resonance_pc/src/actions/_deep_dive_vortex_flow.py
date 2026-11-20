@@ -4,6 +4,7 @@ from ._deep_dive_choice_target import (
     option_set, ordered_cards, pending_target, result_progress, same_choice, target_fields,
 )
 from ._deep_dive_node_rewards import ITEM_REPLACEMENT, RESULT
+from ._deep_dive_option_priority import choose_event_option
 
 
 def reset_observation(state):
@@ -34,11 +35,12 @@ def _fail(state,reason):
 
 
 def _battle_level(option):
-    return option.get('battle_level') if 'native' in option else None
+    return option.get('battle_level') if option.get('native') else None
 
 
 def _supported(option):
-    return option.get('supported', False) or _battle_level(option) is not None
+    return (_battle_level(option) is not None or
+            option.get('supported', False) and (not option.get('native_only') or bool(option.get('native'))))
 
 
 def step(state,o,now):
@@ -57,6 +59,18 @@ def step(state,o,now):
         if now - state['vortex_progress_at'] >= 30:
             return _fail(state, '子战斗后仍在漩涡选项页')
         return 'wait', None
+    expected_event = state.get('vortex_next_event_id')
+    if pending and pending['kind'] == 'option_submit':
+        expected_event = pending.get('next_event_id')
+    rows = o.get('event_options', []) if option_page else []
+    subjects = {(row.get('native') or {}).get('subject_id') for row in rows}
+    next_options = expected_event is not None and subjects == {expected_event}
+    if option_page and state.get('vortex_submitted') and not next_options:
+        if expected_event is not None and subjects == {state.get('vortex_submitted_event_id')}:
+            if now - state['vortex_progress_at'] >= 30:
+                return _fail(state, f'未出现预期的漩涡后续选项：{expected_event}')
+            return 'wait', None
+        return _fail(state, '漩涡出现未配置的后续选项')
     selection=scene in ('event_card_selection','battle_reward_selection')
     result=scene in RESULT
     board=scene in ('board','choose_move','choose_rotate') and o.get('event_board')
@@ -71,8 +85,9 @@ def step(state,o,now):
             event_type=state.get('context_event_type') or state.get('pending_move',{}).get('event')
             retry=scene=='event_entry' and o.get('event_type')==event_type and not pending.get('native_submitted')
         elif kind in ('option_select','option_submit'):
-            rows=o.get('event_options',[]);i=pending['index']
-            if option_page and option_set(rows) != pending['option_set']:
+            i=pending['index']
+            changed = option_page and option_set(rows) != pending['option_set']
+            if changed and not (kind == 'option_submit' and next_options):
                 return _fail(state,'漩涡选项组合发生变化：后续选项分支暂未支持')
             target=rows[i] if i<len(rows) else None
             same=target is not None and target['group']==pending['group'] and same_choice(target,pending)
@@ -80,9 +95,13 @@ def step(state,o,now):
                 accepted=option_page and same and target['state']=='selected'
                 retry=option_page and same and target['state']=='normal'
             elif not pending.get('battle_level'):
-                accepted=selection or result or scene=='event_ending' or board
+                accepted=selection or result or scene=='event_ending' or board or next_options
                 retry=option_page and same and target['state']=='selected'
-                if accepted:state['vortex_submitted']=True
+                if accepted:
+                    state['vortex_submitted'] = True
+                    if expected_event is not None:
+                        state['vortex_next_event_id'] = expected_event
+                        state['vortex_submitted_event_id'] = pending['native']['subject_id']
         elif kind in ('card_select','card_confirm'):
             cards=o.get('cards',[])
             target=matching_card(cards,pending)
@@ -93,11 +112,12 @@ def step(state,o,now):
                 accepted=selection and target is not None and target['selected']
                 retry=selection and target is not None and not target['selected']
             else:
-                accepted=result or scene=='event_ending' or board or selection and new_card_panel(cards,pending)
+                accepted=(result or scene=='event_ending' or board or next_options or
+                          selection and new_card_panel(cards,pending))
                 retry=selection and target is not None and target['selected']
         elif kind in ('dismiss_result', 'discard_new_item'):
             if scene=='unknown':pending['saw_transition']=True
-            accepted=(selection or scene=='event_ending' or board or
+            accepted=(selection or scene=='event_ending' or board or next_options or
                       result and now-pending['at']>=1. and
                       (('native' not in pending and pending.get('saw_transition')) or
                        result_progress(pending,o)))
@@ -116,23 +136,31 @@ def step(state,o,now):
                 return 'vortex_retry_'+kind,pending_target(pending)
             if now-state['vortex_progress_at']>=30:return _fail(state,kind+' 后未进入可识别页面')
             return 'wait',None
+    if board and expected_event is not None:
+        if now - state['vortex_progress_at'] >= 30:
+            return _fail(state, f'未出现预期的漩涡后续选项：{expected_event}')
+        return 'wait', None
     if board and state['vortex_seen'] and now-state['vortex_started']>=5:
         return 'vortex_returned',None
     if option_page:
-        rows=o['event_options']
-        allowed=[(r['priority'],i,r) for i,r in enumerate(rows) if not r['blocked'] and r['state']!='disabled']
+        if next_options:
+            state.pop('vortex_next_event_id', None)
+            state.pop('vortex_submitted_event_id', None)
+            state['vortex_submitted'] = False
+            state['vortex_progress_at'] = now
+            state['vortex_trace'].append({'followup_event_id': expected_event, 'at': now})
+        allowed = [(i, row) for i, row in enumerate(rows) if not row['blocked'] and row['state'] != 'disabled']
         if not allowed:return _fail(state,'没有允许且可选的事件选项')
-        supported=[item for item in allowed if _supported(item[2])]
-        if supported:
-            allowed=supported
-        _,i,target=min(allowed,key=lambda r:(r[0],r[1]))
+        supported = [item for item in allowed if _supported(item[1])]
+        i, target = choose_event_option(supported or allowed)
         if not _supported(target):
-            return _fail(state, '未支持的漩涡选项：'+target.get('title','')+'；'+', '.join(target.get('unsupported_reasons',[])))
+            reasons = target.get('unsupported_reasons') or ['该选项需要桥接读取']
+            return _fail(state, '未支持的漩涡选项：'+target.get('title','')+'；'+', '.join(reasons))
         selected=target['state']=='selected'
         return _issue(state,'option_submit' if selected else 'option_select',
                       choice_target(target,'confirm' if selected else 'select',target.get('point')),
                       now,index=i,group=target['group'],option_set=option_set(rows),
-                      battle_level=_battle_level(target))
+                      battle_level=_battle_level(target),next_event_id=target.get('next_event_id'))
     if selection:
         cards=ordered_cards(o['cards'])
         if len(cards) not in (1,2,3):return _fail(state,'不支持的候选卡数量')

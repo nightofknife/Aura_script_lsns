@@ -13,6 +13,30 @@ from plans.resonance_pc.src.actions import _deep_dive_planned_run_vision as visi
 from plans.aura_base.src.platform.contracts import TargetRuntimeError
 
 
+@pytest.mark.parametrize('formation_level', [20101955, 20101977])
+def test_vortex_battle_handoff_checks_the_native_formation_level(monkeypatch, formation_level):
+    expected_level = 20101955
+    pending = dict(kind='option_submit', battle_level=expected_level, native={'id': 86100252})
+    context = dict(event_type='vortex', source_action_id='move', flow={'vortex_pending': pending})
+    state = {'event_stack': [context]}
+    scene = dict(scene='battle_formation', native={'subject_id': formation_level})
+    stops = []
+    monkeypatch.setattr(flow, '_stable_scene', lambda *_: True)
+    monkeypatch.setattr(flow, '_stop', lambda state, reason, image: stops.append(reason))
+    monkeypatch.setattr(flow, '_log', lambda *args, **kwargs: None)
+
+    asyncio.run(flow._events(state, None, None, scene))
+
+    if formation_level == expected_level:
+        assert state['event_stack'][1]['owner'] == 'vortex_sub_battle'
+        assert 'vortex_pending' not in context['flow']
+        assert not stops
+    else:
+        assert len(state['event_stack']) == 1
+        assert context['flow']['vortex_pending'] is pending
+        assert stops == ['vortex_battle_level_mismatch']
+
+
 def test_native_rotation_uses_projected_control_and_cancels_mismatched_preview():
     layout = dict(coordinate_frame='native_board', success=True, layout_complete=True,
                   player_cell=coord_dict(4))

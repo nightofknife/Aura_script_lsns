@@ -2194,12 +2194,10 @@
       "text_key": "text_087",
       "group": "Discard:Reward.Buff.Random",
       "blocked": false,
-      "supported": false,
-      "unsupported_reasons": [
-        "多件或特殊奖励包",
-        "尘埃扣除"
-      ],
-      "priority": 10
+      "supported": true,
+      "unsupported_reasons": [],
+      "priority": 10,
+      "native_only": true
     },
     {
       "id": 86100260,
@@ -2691,7 +2689,8 @@
       "unsupported_reasons": [
         "事件内战斗"
       ],
-      "priority": 10
+      "priority": 10,
+      "battle_level": 20101955
     },
     {
       "id": 86100253,
@@ -2732,11 +2731,10 @@
       "text_key": "text_081",
       "group": "Recover-:Reward.Currency",
       "blocked": false,
-      "supported": false,
-      "unsupported_reasons": [
-        "尘埃组合效果"
-      ],
-      "priority": 10
+      "supported": true,
+      "unsupported_reasons": [],
+      "priority": 10,
+      "native_only": true
     },
     {
       "id": 86100250,
@@ -9338,11 +9336,10 @@
       "text_key": "text_039",
       "group": "Recover-:Reward.Currency",
       "blocked": false,
-      "supported": false,
-      "unsupported_reasons": [
-        "尘埃组合效果"
-      ],
-      "priority": 10
+      "supported": true,
+      "unsupported_reasons": [],
+      "priority": 10,
+      "native_only": true
     },
     {
       "id": 86100211,
@@ -13287,11 +13284,10 @@
       "text_key": "text_008",
       "group": "Reward.Equip.Random:Reward.Buff.Random",
       "blocked": false,
-      "supported": false,
-      "unsupported_reasons": [
-        "多件或混合奖励"
-      ],
-      "priority": 10
+      "supported": true,
+      "unsupported_reasons": [],
+      "priority": 10,
+      "native_only": true
     },
     {
       "id": 86100121,
@@ -14813,7 +14809,8 @@
       "unsupported_reasons": [
         "事件内战斗"
       ],
-      "priority": 10
+      "priority": 10,
+      "battle_level": 20101977
     },
     {
       "id": 86100298,
@@ -15081,11 +15078,11 @@
       "text_key": "text_147",
       "group": "Reward.Equip.Random:Event",
       "blocked": false,
-      "supported": false,
-      "unsupported_reasons": [
-        "下一组选项"
-      ],
-      "priority": 10
+      "supported": true,
+      "unsupported_reasons": [],
+      "priority": 10,
+      "native_only": true,
+      "next_event_id": 89800086
     },
     {
       "id": 86100299,
@@ -17226,7 +17223,8 @@
         "事件内战斗",
         "单选项事件布局"
       ],
-      "priority": 10
+      "priority": 10,
+      "battle_level": 20101997
     },
     {
       "id": 86100336,
@@ -17324,11 +17322,10 @@
       "text_key": "text_125",
       "group": "Reward.Currency",
       "blocked": false,
-      "supported": false,
-      "unsupported_reasons": [
-        "跨次遭遇事件"
-      ],
-      "priority": 10
+      "supported": true,
+      "unsupported_reasons": [],
+      "priority": 10,
+      "native_only": true
     },
     {
       "id": 86100340,
