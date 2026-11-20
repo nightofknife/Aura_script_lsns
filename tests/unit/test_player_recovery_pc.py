@@ -90,8 +90,9 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
 
     monkeypatch.setattr(data, "_read_region_text", read_region)
 
-    def read_fatigue(app, ocr):
+    def read_fatigue(app, ocr, *, on_window):
         captured.append("fatigue")
+        on_window("123:456")
         return {"current": 12, "max": 100}
 
     monkeypatch.setattr(data, "_read_profile_fatigue", read_fatigue)
@@ -129,7 +130,9 @@ def test_all_profile_combinations_read_only_selected_fields(tmp_path, monkeypatc
         key for key in data._PROFILE_SECTION_ORDER if key not in sections
     ]
     assert result["metadata"]["persisted"] is True
+    assert result["metadata"].get("fatigue_window") == ("123:456" if "fatigue" in sections else None)
     saved = service.read(data.USER_INFO_FILE)
+    assert "fatigue_window" not in saved["metadata"]
     assert set(saved.get("status", {})) | set(saved.get("recovery", {})) == set(sections)
     expected_recovery = {key: value for key, value in recovery_values.items() if key in sections}
     assert result.get("recovery", {}) == saved.get("recovery", {}) == expected_recovery
