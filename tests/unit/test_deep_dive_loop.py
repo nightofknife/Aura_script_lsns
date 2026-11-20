@@ -10,6 +10,7 @@ from packages.aura_core.engine.execution_engine import ExecutionEngine
 from packages.aura_core.config.template import TemplateRenderer
 from plans.resonance_pc.src.actions import consciousness_deep_dive_loop_pc_actions as loop
 from plans.resonance_pc.src.actions import consciousness_deep_dive_pc_actions as entry
+from plans.resonance_pc.src.actions._deep_dive_opening_vision import OpeningChoice
 from plans.resonance_pc.src.actions._deep_dive_runtime_events import advance_context, create_context
 
 
@@ -82,8 +83,9 @@ def test_entry_reveals_and_selects_depth_one_from_depth_seven(monkeypatch):
     distance_to_depth_one = 440
     gestures = []
     clicks = []
-    decisions = []
+    selected_reads = 0
     center = (208, 215)
+    start_button = (1065, 640)
 
     def drag(*, start_x, start_y, end_x, end_y, **_):
         nonlocal distance_to_depth_one
@@ -93,34 +95,89 @@ def test_entry_reveals_and_selects_depth_one_from_depth_seven(monkeypatch):
 
     def click(*, x, y, **_):
         nonlocal depth_selected
-        assert distance_to_depth_one <= 0 and (x, y) == center
         clicks.append((x, y))
-        depth_selected = 1
-
-    async def wait_for_image(*, template, stable_scans, **_):
-        if template == entry._DIFFICULTY_1_SELECTED.template:
-            found = depth_selected == 1
-            if found:
-                decisions.append(stable_scans)
+        if (x, y) == center:
+            assert distance_to_depth_one <= 0
+            depth_selected = 1
         else:
-            assert template == entry._DIFFICULTY_1_UNSELECTED.template
-            found = distance_to_depth_one <= 0 and depth_selected != 1
-        return SimpleNamespace(found=found, center_point=center if found else None)
+            assert (x, y) == start_button and selected_reads == 2
+
+    async def opening_frame(_):
+        nonlocal selected_reads
+        if depth_selected == 1:
+            selected_reads += 1
+        visible = ({1: OpeningChoice(center, 'selected' if depth_selected == 1 else 'available')}
+                   if distance_to_depth_one <= 0 else {})
+        return SimpleNamespace(depth_page=lambda: True, depths=lambda: visible, start_game=lambda: start_button)
 
     async def pause(_):
         pass
 
     monkeypatch.setattr(entry, 'aura_drag', drag)
     monkeypatch.setattr(entry, 'aura_click', click)
-    monkeypatch.setattr(entry, 'aura_wait_for_image', wait_for_image)
+    monkeypatch.setattr(entry, '_opening_frame', opening_frame)
     monkeypatch.setattr(entry, 'aura_sleep', pause)
 
-    result = asyncio.run(entry._ensure_difficulty_one(app=None, vision=None, engine=None))
+    result = asyncio.run(entry._start_at_depth(app=None, depth=1))
 
-    assert result['status'] == 'selected' and result['selected_state']['found']
+    assert result['dive_depth'] == 1 and result['selected_center'] == center
     assert result['drag_attempts'] == len(gestures) == 2
-    assert clicks == [center]
-    assert decisions[-1] == 2
+    assert clicks == [center, start_button]
+
+
+def test_entry_switches_strategy_even_if_confirm_is_already_visible(monkeypatch):
+    target = (164, 386)
+    confirm = (1056, 633)
+    clicks = []
+    reads = []
+
+    async def opening_frame(_):
+        state = 'selected' if clicks else 'available'
+        reads.append(state)
+
+        def strategy(key):
+            assert key == 'revival'
+            return OpeningChoice(target, state)
+
+        return SimpleNamespace(strategy_page=lambda: True, strategy=strategy, confirm_strategy=lambda: confirm)
+
+    async def pause(_):
+        pass
+
+    monkeypatch.setattr(entry, '_opening_frame', opening_frame)
+    monkeypatch.setattr(entry, 'aura_click', lambda *, x, y, **_: clicks.append((x, y)))
+    monkeypatch.setattr(entry, 'aura_sleep', pause)
+    result = asyncio.run(entry._confirm_opening_strategy(None, 'revival'))
+
+    assert result['opening_strategy'] == 'revival'
+    assert clicks == [target, confirm]
+    assert reads == ['available', 'available', 'selected', 'selected']
+
+
+def test_entry_returns_to_depth_selector_if_start_reopens_formation(monkeypatch):
+    scenes = iter(['formation', 'formation', 'depth', 'depth'])
+    clicks = []
+
+    async def wait_for_start(*_, **__):
+        return SimpleNamespace(center_point=(640, 568))
+
+    async def opening_frame(_):
+        scene = next(scenes)
+        return SimpleNamespace(depth_page=lambda: scene == 'depth', strategy_page=lambda: False,
+                               formation_page=lambda: scene == 'formation', back=lambda: (87, 35))
+
+    async def pause(_):
+        pass
+
+    monkeypatch.setattr(entry, '_wait_for_target', wait_for_start)
+    monkeypatch.setattr(entry, '_opening_frame', opening_frame)
+    monkeypatch.setattr(entry, 'aura_click', lambda *, x, y, **_: clicks.append((x, y)))
+    monkeypatch.setattr(entry, 'aura_sleep', pause)
+
+    result = asyncio.run(entry._open_depth_page(None, None, None))
+
+    assert result['returned_from_draft'] == ['formation']
+    assert clicks == [(640, 568), (87, 35)]
 
 
 @pytest.mark.parametrize('key,stable_scans',[('board_ready',3),('reward_marker',2)])
@@ -268,7 +325,7 @@ def test_full_outer_dag_runs_exactly_two_complete_cycles():
     root=Path(__file__).resolve().parents[2]
     tasks=yaml.safe_load((root/'plans/resonance_pc/tasks/consciousness_deep_dive_loop_pc.yaml').read_text(encoding='utf8'))
     async def run():
-        store=Store();calls=[]
+        store=Store();calls=[];entry_inputs=[]
         async def run_task(key,inputs):
             engine=ExecutionEngine(SimpleNamespace(services={'state_store':store},debug_mode=False),None)
             async def execute(node,ctx):
@@ -276,23 +333,28 @@ def test_full_outer_dag_runs_exactly_two_complete_cycles():
                 name=node['action']
                 if name in {'resonance_pc.require_deep_dive_bridge', 'resonance_pc.require_client_resolution'}:return True
                 if name.endswith('loop_initialize'):
-                    await store.set('test',seed(params['loop_count']))
+                    await store.set('test',dict(seed(params['loop_count']),
+                        dive_depth=params['dive_depth'], opening_strategy=params['opening_strategy']))
                     return {'session_key':'test','status':'running'}
                 if name=='aura.run_task':
                     ref=params['task_ref']
                     if ref.endswith(':deep_dive_cycle_pc'):
                         return (await run_task('deep_dive_cycle_pc',params['inputs'])).data
                     stage='cleanup' if 'cleanup' in ref else 'single' if 'planned_run' in ref else 'entry'
+                    if stage == 'entry':
+                        entry_inputs.append(params['inputs'])
                     calls.append(stage);return child(stage)
                 if name.endswith('loop_begin'):return await loop.begin_loop_run(**params,state_store=store)
                 if name.endswith('loop_checkpoint'):return await loop.checkpoint_loop(**params,state_store=store)
                 return await loop.loop_result(**params,state_store=store)
             engine.node_executor.execute_single_action=execute
             return await engine.run(tasks[key],key,ExecutionContext(inputs=inputs))
-        context=await run_task('consciousness_deep_dive_loop_pc',{'loop_count':2})
+        context=await run_task('consciousness_deep_dive_loop_pc',
+                               {'loop_count':2,'dive_depth':2,'opening_strategy':'revival'})
         result=context.data['nodes']['finish']['output']
         assert result['success'] and result['completed_runs']==2
         assert calls==['entry','single','cleanup']*2
+        assert entry_inputs==[{'dive_depth':2,'opening_strategy':'revival'}]*2
         assert len(context.data['nodes']['cycles']['output'])==1
         assert await store.get('test') is None
     asyncio.run(run())
