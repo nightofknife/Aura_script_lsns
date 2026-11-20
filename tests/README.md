@@ -10,10 +10,11 @@ The repository separates tests by the kind of guarantee they provide:
   compatibility checks. These answer whether the source runtime can operate.
 
 Packaged executable smoke checks remain in `scripts/release/validate_release.py`
-and run after PyInstaller assembly. A release is allowed only when all four
-layers pass, but GitHub Actions reports contracts, unit behavior, and source
-smoke separately so a stale expectation is distinguishable from a runtime
-failure.
+and run after PyInstaller assembly. GitHub Actions uses
+`.github/ci-test-groups.json` to select the affected contract and behavior tests
+plus basic source smoke for mapped changes. Formal releases run every source
+suite. Experimental releases can reuse successful source CI from the same
+`main` commit. Each release also requires the packaged checks to pass.
 
 Test doubles for framework services should implement the public interface they
 stand in for. Avoid assertions on raw workflow source or private implementation

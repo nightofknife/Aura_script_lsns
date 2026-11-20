@@ -28,7 +28,7 @@ CORE_FILES = {
 
 
 def normalize_path(value: str) -> str:
-    return str(value or "").strip().replace("\\", "/").lstrip("./")
+    return str(value or "").replace("\\", "/").removeprefix("./")
 
 
 def classify_paths(paths: Iterable[str], forced_scope: str = "auto") -> dict[str, object]:
@@ -57,18 +57,16 @@ def git_changed_files(repo_root: Path, base_sha: str, head_sha: str) -> list[str
     base = str(base_sha or "").strip()
     head = str(head_sha or "HEAD").strip() or "HEAD"
     if not base or set(base) == {"0"}:
-        command = ["git", "show", "--pretty=", "--name-only", head]
+        command = ["git", "show", "--pretty=", "--no-renames", "--name-only", "-z", head, "--"]
     else:
-        command = ["git", "diff", "--name-only", "--diff-filter=ACDMRTUXB", base, head]
+        command = ["git", "diff", "--no-renames", "--name-only", "-z", base, head, "--"]
     completed = subprocess.run(
         command,
         cwd=repo_root,
         check=True,
         capture_output=True,
-        text=True,
-        encoding="utf-8",
     )
-    return [line for line in completed.stdout.splitlines() if line.strip()]
+    return [path for path in completed.stdout.decode("utf-8").split("\0") if path]
 
 
 def write_github_outputs(path: Path, result: dict[str, object]) -> None:

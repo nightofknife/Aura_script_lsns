@@ -18,8 +18,8 @@ python tools\plan_doctor.py --plan resonance_pc
 缓存、截图、日志和其他产物也必须保存在当前仓库内。禁止把系统临时目录、桌面、
 其他 checkout 或外部项目目录作为测试工作目录。
 
-`pytest.ini` 已将 pytest 的默认临时目录固定为 `.pytest_tmp`，并只收集
-`tests/smoke`。测试覆盖项目导入、计划发现、Runner、GUI 构造，以及选定的
+`pytest.ini` 将默认临时目录设为 `.pytest_tmp`。显式指定 `tests/smoke`
+可以单独运行源码冒烟，覆盖项目导入、计划发现、Runner、GUI 构造，以及选定的
 Aura base action、PC 角色识别和任务复用契约。它不执行依赖真实游戏画面的完整
 自动化流程；这部分仍需发布自检和实机验证。需要隔离运行时，可以显式使用
 `.pytest_tmp/<scope>`，但不得把 `--basetemp` 指向仓库外：
@@ -61,11 +61,21 @@ $env:TMPDIR = $testTemp
 
 ## Release Smoke
 
-仓库 PR 和普通 `main` 推送只运行现有源码 CI，不再重复构建完整发行包。
-版本标签和手动 `full` 构建运行正式 CPU 打包；构建与源码 CI 并行，生成的包仍执行
-原有冻结运行时、GUI、更新器及干净 ZIP 检查。发布同时等待源码 CI、构建和包校验
-全部成功，任一失败均不会发布。需要在合并前检查冻结包时，可手动运行
-`Package and release Aura Resonance`，选择 `scope=full`、`publish_release=false`。
+PR 和普通 `main` 推送运行源码 CI。深潜、货运和贸易及其下游功能按
+`.github/ci-test-groups.json` 选择测试，并运行基础冒烟。白名单内的纯文档改动
+跳过测试。共享组件、未映射路径或缺少可靠基准的变更执行全量。新增映射时应同时
+考虑源码、任务、模板、fixtures 以及使用共享功能的测试。路径使用正斜杠，
+通配符 `*` 可以跨目录匹配。
+
+编号实验版优先复用同一提交已通过的 `main` 源码 CI。同提交的 CI 正在运行时最多
+等 3 分钟，随后从最近通过 CI 的 `main` 祖先补跑增量，缺少基准时执行全量。
+正式版本标签和带正式版本号的手动构建执行全量源码 CI。
+
+版本标签和手动 `scope=full` 的 CPU 打包与源码 CI 并行。发布要求源码 CI、
+CPU 构建和产物校验成功。每份 CPU 包都执行冻结运行时、GUI、更新器、ZIP 和校验和
+检查。只跑全量源码 CI 时手动选择 `scope=ci` 和 `test_scope=full`。预演打包
+时选择 `scope=full` 和 `publish_release=false`，并通过 `test_scope` 指定
+源码测试范围。每次作业的摘要列出比较提交、选组原因和实际测试耗时。
 
 启用 VPS 下载源时，将 HTTPS 站点地址保存在仓库的 Actions secret
 `AURA_UPDATE_VPS_URL` 中。允许发布的构建会将地址编码到 `更新.exe` 的资源里。
