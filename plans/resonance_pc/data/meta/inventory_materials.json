@@ -196,7 +196,13 @@
         11700311,
         11700312,
         11700313,
-        11700314
+        11700314,
+        11700319,
+        11700320,
+        11700321,
+        11700322,
+        11700323,
+        11700324
       ],
       "template": "templates/inventory/materials/resume_supplement_golden.png"
     },
@@ -2157,6 +2163,36 @@
         11700315
       ],
       "template": "templates/inventory/materials/material_11700315.png"
+    },
+    {
+      "material_id": "material_11700316",
+      "name": "扭曲织物",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/nqzb180",
+      "source_record_ids": [
+        11700316
+      ],
+      "template": "templates/inventory/materials/material_11700316.png"
+    },
+    {
+      "material_id": "material_11700317",
+      "name": "扭曲样本",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/nqyb180",
+      "source_record_ids": [
+        11700317
+      ],
+      "template": "templates/inventory/materials/material_11700317.png"
+    },
+    {
+      "material_id": "material_11700318",
+      "name": "克拉肯的腕足",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/klk180",
+      "source_record_ids": [
+        11700318
+      ],
+      "template": "templates/inventory/materials/material_11700318.png"
     }
   ]
 }

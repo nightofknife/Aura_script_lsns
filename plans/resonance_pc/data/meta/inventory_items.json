@@ -844,7 +844,10 @@
         11401139,
         11401142,
         11401159,
-        11401271
+        11401271,
+        11401285,
+        11401286,
+        11401305
       ],
       "template": "templates/inventory/items/item_11400078.png"
     },
@@ -1259,7 +1262,8 @@
         11401114,
         11401116,
         11401118,
-        11401120
+        11401120,
+        11401325
       ],
       "template": "templates/inventory/items/self_exploration_film_roll.png"
     },
@@ -1634,7 +1638,8 @@
         11401115,
         11401117,
         11401119,
-        11401121
+        11401121,
+        11401326
       ],
       "template": "templates/inventory/items/item_11400152.png"
     },
@@ -2506,12 +2511,11 @@
     },
     {
       "item_id": "item_11400410",
-      "name": "不可读典籍",
+      "name": "至臻快速通",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/fastpass",
       "source_record_ids": [
-        11400410,
-        11401260
+        11400410
       ],
       "template": "templates/inventory/items/item_11400410.png"
     },
@@ -2527,12 +2531,11 @@
     },
     {
       "item_id": "item_11400415",
-      "name": "提灯",
+      "name": "飞天扫帚",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/feitiansaozhou",
       "source_record_ids": [
-        11400415,
-        11401258
+        11400415
       ],
       "template": "templates/inventory/items/item_11400415.png"
     },
@@ -2982,23 +2985,21 @@
     },
     {
       "item_id": "item_11400556",
-      "name": "指引烙印",
+      "name": "誓言烙印",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/shiyanlaoyin",
       "source_record_ids": [
-        11400556,
-        11401269
+        11400556
       ],
       "template": "templates/inventory/items/item_11400556.png"
     },
     {
       "item_id": "item_11400557",
-      "name": "才思烙印",
+      "name": "启示烙印",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/qishilaoyin",
       "source_record_ids": [
-        11400557,
-        11401251
+        11400557
       ],
       "template": "templates/inventory/items/item_11400557.png"
     },
@@ -3016,12 +3017,11 @@
     },
     {
       "item_id": "item_11400559",
-      "name": "凝神烙印",
+      "name": "澄净烙印",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/chengjinglaoyin",
       "source_record_ids": [
-        11400559,
-        11401261
+        11400559
       ],
       "template": "templates/inventory/items/item_11400559.png"
     },
@@ -3039,45 +3039,41 @@
     },
     {
       "item_id": "item_11400561",
-      "name": "求知烙印",
+      "name": "深渊烙印",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/shenyuanlaoyin",
       "source_record_ids": [
-        11400561,
-        11401259
+        11400561
       ],
       "template": "templates/inventory/items/item_11400561.png"
     },
     {
       "item_id": "item_11400562",
-      "name": "失落之匣",
+      "name": "美梦之匣",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/meimengzhixia",
       "source_record_ids": [
-        11400562,
-        11401257
+        11400562
       ],
       "template": "templates/inventory/items/item_11400562.png"
     },
     {
       "item_id": "item_11400564",
-      "name": "克瓦基之血（小）",
+      "name": "魔女蜜酿（小）",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/monvminiangxiao",
       "source_record_ids": [
-        11400564,
-        11401265
+        11400564
       ],
       "template": "templates/inventory/items/item_11400564.png"
     },
     {
       "item_id": "item_11400565",
-      "name": "克瓦基之血（大）",
+      "name": "魔女蜜酿（大）",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/monvminiangda",
       "source_record_ids": [
-        11400565,
-        11401263
+        11400565
       ],
       "template": "templates/inventory/items/item_11400565.png"
     },
@@ -3118,9 +3114,7 @@
       "visual_key": "golden::item/item/small/yaoqinghan",
       "source_record_ids": [
         11400571,
-        11400649,
-        11401237,
-        11401262
+        11400649
       ],
       "template": "templates/inventory/items/item_11400571.png"
     },
@@ -3165,7 +3159,8 @@
         11400915,
         11400924,
         11400972,
-        11401056
+        11401056,
+        11401283
       ],
       "template": "templates/inventory/items/item_11400585.png"
     },
@@ -3426,7 +3421,10 @@
         11401151,
         11401160,
         11401166,
-        11401233
+        11401233,
+        11401301,
+        11401304,
+        11401324
       ],
       "template": "templates/inventory/items/item_11400619.png"
     },
@@ -3629,8 +3627,7 @@
       "quality": "Golden",
       "visual_key": "golden::item/item/small/yaoqinghan_bing",
       "source_record_ids": [
-        11400650,
-        11401236
+        11400650
       ],
       "template": "templates/inventory/items/item_11400650.png"
     },
@@ -3640,8 +3637,7 @@
       "quality": "Golden",
       "visual_key": "golden::item/item/small/yaoqinghan_huo",
       "source_record_ids": [
-        11400651,
-        11401244
+        11400651
       ],
       "template": "templates/inventory/items/item_11400651.png"
     },
@@ -3651,8 +3647,7 @@
       "quality": "Golden",
       "visual_key": "golden::item/item/small/yaoqinghan_dian",
       "source_record_ids": [
-        11400652,
-        11401239
+        11400652
       ],
       "template": "templates/inventory/items/item_11400652.png"
     },
@@ -3719,12 +3714,11 @@
     },
     {
       "item_id": "item_11400659",
-      "name": "梦境拼图",
+      "name": "梦的一角",
       "quality": "Golden",
       "visual_key": "golden::item/item/small/dream",
       "source_record_ids": [
-        11400659,
-        11401256
+        11400659
       ],
       "template": "templates/inventory/items/item_11400659.png"
     },
@@ -3769,8 +3763,7 @@
         11400664,
         11400919,
         11401014,
-        11401231,
-        11401272
+        11401231
       ],
       "template": "templates/inventory/items/item_11400664.png"
     },
@@ -4088,12 +4081,11 @@
     },
     {
       "item_id": "item_11400716",
-      "name": "不可读典籍·禁忌",
+      "name": "至臻快速通·常驻",
       "quality": "Golden",
       "visual_key": "golden::ui/witches/item/small/fastpass2",
       "source_record_ids": [
-        11400716,
-        11401243
+        11400716
       ],
       "template": "templates/inventory/items/item_11400716.png"
     },
@@ -4238,7 +4230,10 @@
         11400937,
         11401057,
         11401073,
-        11401164
+        11401164,
+        11401275,
+        11401287,
+        11401312
       ],
       "template": "templates/inventory/items/item_11400937.png"
     },
@@ -4648,6 +4643,397 @@
         11401235
       ],
       "template": "templates/inventory/items/item_11401235.png"
+    },
+    {
+      "item_id": "item_11401051",
+      "name": "染发剂",
+      "quality": "Purple",
+      "visual_key": "purple::item/item/small/ranfaji",
+      "source_record_ids": [
+        11401051,
+        11401053,
+        11401172,
+        11401173,
+        11401174,
+        11401175,
+        11401176,
+        11401177,
+        11401178,
+        11401179,
+        11401180,
+        11401181,
+        11401182,
+        11401183,
+        11401184,
+        11401185,
+        11401186,
+        11401187,
+        11401188,
+        11401189,
+        11401190,
+        11401191,
+        11401192,
+        11401193,
+        11401194,
+        11401195,
+        11401196,
+        11401197,
+        11401198,
+        11401199,
+        11401200
+      ],
+      "template": "templates/inventory/items/item_11401051.png"
+    },
+    {
+      "item_id": "item_11401236",
+      "name": "蓝标许可",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan_bing2",
+      "source_record_ids": [
+        11401236
+      ],
+      "template": "templates/inventory/items/item_11401236.png"
+    },
+    {
+      "item_id": "item_11401237",
+      "name": "许可",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan2",
+      "source_record_ids": [
+        11401237,
+        11401262
+      ],
+      "template": "templates/inventory/items/item_11401237.png"
+    },
+    {
+      "item_id": "item_11401239",
+      "name": "黄标许可",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan_dian2",
+      "source_record_ids": [
+        11401239
+      ],
+      "template": "templates/inventory/items/item_11401239.png"
+    },
+    {
+      "item_id": "item_11401241",
+      "name": "渊藏之火",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/main/seal/bluebig",
+      "source_record_ids": [
+        11401241
+      ],
+      "template": "templates/inventory/items/item_11401241.png"
+    },
+    {
+      "item_id": "item_11401242",
+      "name": "赤页之火",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/main/seal/redbig",
+      "source_record_ids": [
+        11401242
+      ],
+      "template": "templates/inventory/items/item_11401242.png"
+    },
+    {
+      "item_id": "item_11401243",
+      "name": "不可读典籍·禁忌",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/bukedudianjijinji",
+      "source_record_ids": [
+        11401243
+      ],
+      "template": "templates/inventory/items/item_11401243.png"
+    },
+    {
+      "item_id": "item_11401244",
+      "name": "红标许可",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/small/yaoqinghan_huo2",
+      "source_record_ids": [
+        11401244
+      ],
+      "template": "templates/inventory/items/item_11401244.png"
+    },
+    {
+      "item_id": "item_11401249",
+      "name": "迷津之火",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/main/seal/purplebig",
+      "source_record_ids": [
+        11401249
+      ],
+      "template": "templates/inventory/items/item_11401249.png"
+    },
+    {
+      "item_id": "item_11401250",
+      "name": "书语之火",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/main/seal/yellowbig",
+      "source_record_ids": [
+        11401250
+      ],
+      "template": "templates/inventory/items/item_11401250.png"
+    },
+    {
+      "item_id": "item_11401251",
+      "name": "才思烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/caisilaoyin",
+      "source_record_ids": [
+        11401251
+      ],
+      "template": "templates/inventory/items/item_11401251.png"
+    },
+    {
+      "item_id": "item_11401256",
+      "name": "书的一页",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/shudeyiye",
+      "source_record_ids": [
+        11401256
+      ],
+      "template": "templates/inventory/items/item_11401256.png"
+    },
+    {
+      "item_id": "item_11401257",
+      "name": "失落之匣",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/shiluozhixia",
+      "source_record_ids": [
+        11401257
+      ],
+      "template": "templates/inventory/items/item_11401257.png"
+    },
+    {
+      "item_id": "item_11401258",
+      "name": "提灯",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/tideng",
+      "source_record_ids": [
+        11401258
+      ],
+      "template": "templates/inventory/items/item_11401258.png"
+    },
+    {
+      "item_id": "item_11401259",
+      "name": "求知烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/qiuzhilaoyin",
+      "source_record_ids": [
+        11401259
+      ],
+      "template": "templates/inventory/items/item_11401259.png"
+    },
+    {
+      "item_id": "item_11401260",
+      "name": "不可读典籍",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/bukedudianji",
+      "source_record_ids": [
+        11401260
+      ],
+      "template": "templates/inventory/items/item_11401260.png"
+    },
+    {
+      "item_id": "item_11401261",
+      "name": "凝神烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/ningshenlaoyin",
+      "source_record_ids": [
+        11401261
+      ],
+      "template": "templates/inventory/items/item_11401261.png"
+    },
+    {
+      "item_id": "item_11401263",
+      "name": "克瓦基之血（大）",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/kewajizhixueda",
+      "source_record_ids": [
+        11401263
+      ],
+      "template": "templates/inventory/items/item_11401263.png"
+    },
+    {
+      "item_id": "item_11401265",
+      "name": "克瓦基之血（小）",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/kewajizhixuexiao",
+      "source_record_ids": [
+        11401265
+      ],
+      "template": "templates/inventory/items/item_11401265.png"
+    },
+    {
+      "item_id": "item_11401269",
+      "name": "指引烙印",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/zhiyinlaoyin",
+      "source_record_ids": [
+        11401269
+      ],
+      "template": "templates/inventory/items/item_11401269.png"
+    },
+    {
+      "item_id": "item_11401272",
+      "name": "妙妙扭蛋币",
+      "quality": "Golden",
+      "visual_key": "golden::ui/witches/witches2/item/small/miaomiaoniudanbi",
+      "source_record_ids": [
+        11401272
+      ],
+      "template": "templates/inventory/items/item_11401272.png"
+    },
+    {
+      "item_id": "item_11401278",
+      "name": "土豆面包",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/tdmb180",
+      "source_record_ids": [
+        11401278
+      ],
+      "template": "templates/inventory/items/item_11401278.png"
+    },
+    {
+      "item_id": "item_11401284",
+      "name": "司书的饼干",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/bg180",
+      "source_record_ids": [
+        11401284
+      ],
+      "template": "templates/inventory/items/item_11401284.png"
+    },
+    {
+      "item_id": "item_11401288",
+      "name": "菲妮娅·烁梦主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_feniadream",
+      "source_record_ids": [
+        11401288
+      ],
+      "template": "templates/inventory/items/item_11401288.png"
+    },
+    {
+      "item_id": "item_11401299",
+      "name": "亚莉奈·危情主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_sparina",
+      "source_record_ids": [
+        11401299
+      ],
+      "template": "templates/inventory/items/item_11401299.png"
+    },
+    {
+      "item_id": "item_11401302",
+      "name": "缘钱",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/yq180",
+      "source_record_ids": [
+        11401302
+      ],
+      "template": "templates/inventory/items/item_11401302.png"
+    },
+    {
+      "item_id": "item_11401311",
+      "name": "朱月主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_akatsuki",
+      "source_record_ids": [
+        11401311
+      ],
+      "template": "templates/inventory/items/item_11401311.png"
+    },
+    {
+      "item_id": "item_11401315",
+      "name": "草本凉茶",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/cblc180",
+      "source_record_ids": [
+        11401315
+      ],
+      "template": "templates/inventory/items/item_11401315.png"
+    },
+    {
+      "item_id": "item_11401316",
+      "name": "荒原爆珠糖",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/hybzt180",
+      "source_record_ids": [
+        11401316
+      ],
+      "template": "templates/inventory/items/item_11401316.png"
+    },
+    {
+      "item_id": "item_11401317",
+      "name": "沃德山浓缩红茶",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/wdsnshc180",
+      "source_record_ids": [
+        11401317
+      ],
+      "template": "templates/inventory/items/item_11401317.png"
+    },
+    {
+      "item_id": "item_11401318",
+      "name": "仙人掌汁",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/xrzz180",
+      "source_record_ids": [
+        11401318
+      ],
+      "template": "templates/inventory/items/item_11401318.png"
+    },
+    {
+      "item_id": "item_11401319",
+      "name": "形态锚定栓",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/xtmdx180",
+      "source_record_ids": [
+        11401319
+      ],
+      "template": "templates/inventory/items/item_11401319.png"
+    },
+    {
+      "item_id": "item_11401320",
+      "name": "学会转运通知单",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/zytzd180",
+      "source_record_ids": [
+        11401320
+      ],
+      "template": "templates/inventory/items/item_11401320.png"
+    },
+    {
+      "item_id": "item_11401321",
+      "name": "夜巡醒脑胶",
+      "quality": "Blue",
+      "visual_key": "blue::item/item/2026/yxxnj180",
+      "source_record_ids": [
+        11401321
+      ],
+      "template": "templates/inventory/items/item_11401321.png"
+    },
+    {
+      "item_id": "item_11401327",
+      "name": "借阅证",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/2026/jyz180",
+      "source_record_ids": [
+        11401327
+      ],
+      "template": "templates/inventory/items/item_11401327.png"
+    },
+    {
+      "item_id": "item_11401328",
+      "name": "小红帽主题痛车方案",
+      "quality": "Golden",
+      "visual_key": "golden::item/item/trainkey/small/topic_redhood",
+      "source_record_ids": [
+        11401328
+      ],
+      "template": "templates/inventory/items/item_11401328.png"
     }
   ],
   "category": "items"

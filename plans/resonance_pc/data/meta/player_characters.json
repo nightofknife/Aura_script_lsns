@@ -113,7 +113,9 @@
       "templates": [
         "templates/characters/portraits/伊卡菈/01.png",
         "templates/characters/portraits/伊卡菈/02.png",
-        "templates/characters/portraits/伊卡菈/03.png"
+        "templates/characters/portraits/伊卡菈/03.png",
+        "templates/characters/portraits/伊卡菈/04.png",
+        "templates/characters/portraits/伊卡菈/05.png"
       ]
     },
     {
@@ -389,7 +391,8 @@
         "templates/characters/portraits/妮蔻拉/03.png",
         "templates/characters/portraits/妮蔻拉/04.png",
         "templates/characters/portraits/妮蔻拉/05.png",
-        "templates/characters/portraits/妮蔻拉/06.png"
+        "templates/characters/portraits/妮蔻拉/06.png",
+        "templates/characters/portraits/妮蔻拉/07.png"
       ]
     },
     {
@@ -397,7 +400,9 @@
       "name": "婕丝&西蒙",
       "templates": [
         "templates/characters/portraits/婕丝&西蒙/01.png",
-        "templates/characters/portraits/婕丝&西蒙/02.png"
+        "templates/characters/portraits/婕丝&西蒙/02.png",
+        "templates/characters/portraits/婕丝&西蒙/03.png",
+        "templates/characters/portraits/婕丝&西蒙/04.png"
       ]
     },
     {
@@ -457,7 +462,8 @@
       "name": "拉妲",
       "templates": [
         "templates/characters/portraits/拉妲/01.png",
-        "templates/characters/portraits/拉妲/02.png"
+        "templates/characters/portraits/拉妲/02.png",
+        "templates/characters/portraits/拉妲/03.png"
       ]
     },
     {
@@ -466,7 +472,9 @@
       "templates": [
         "templates/characters/portraits/斯洛卡伊/01.png",
         "templates/characters/portraits/斯洛卡伊/02.png",
-        "templates/characters/portraits/斯洛卡伊/03.png"
+        "templates/characters/portraits/斯洛卡伊/03.png",
+        "templates/characters/portraits/斯洛卡伊/04.png",
+        "templates/characters/portraits/斯洛卡伊/05.png"
       ]
     },
     {
@@ -914,7 +922,8 @@
       "templates": [
         "templates/characters/portraits/隼/01.png",
         "templates/characters/portraits/隼/02.png",
-        "templates/characters/portraits/隼/03.png"
+        "templates/characters/portraits/隼/03.png",
+        "templates/characters/portraits/隼/04.png"
       ]
     },
     {
@@ -1003,6 +1012,41 @@
       "templates": [
         "templates/characters/portraits/黛丝莉/01.png",
         "templates/characters/portraits/黛丝莉/02.png"
+      ]
+    },
+    {
+      "character_id": "菲妮娅·烁梦",
+      "name": "菲妮娅·烁梦",
+      "templates": [
+        "templates/characters/portraits/菲妮娅·烁梦/01.png",
+        "templates/characters/portraits/菲妮娅·烁梦/02.png",
+        "templates/characters/portraits/菲妮娅·烁梦/03.png",
+        "templates/characters/portraits/菲妮娅·烁梦/04.png"
+      ]
+    },
+    {
+      "character_id": "亚莉奈·危情",
+      "name": "亚莉奈·危情",
+      "templates": [
+        "templates/characters/portraits/亚莉奈·危情/01.png",
+        "templates/characters/portraits/亚莉奈·危情/02.png"
+      ]
+    },
+    {
+      "character_id": "朱月",
+      "name": "朱月",
+      "templates": [
+        "templates/characters/portraits/朱月/01.png",
+        "templates/characters/portraits/朱月/02.png"
+      ]
+    },
+    {
+      "character_id": "小红帽",
+      "name": "小红帽",
+      "templates": [
+        "templates/characters/portraits/小红帽/01.png",
+        "templates/characters/portraits/小红帽/02.png",
+        "templates/characters/portraits/小红帽/03.png"
       ]
     }
   ]
