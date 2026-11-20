@@ -30,10 +30,12 @@ def validate_freight_recovery_thresholds(source: Mapping[str, Any]) -> None:
         if type(start) is not int or type(stop) is not int or not start > stop >= 0:
             raise ValueError(f"{label}启动阈值和停止下限必须为整数，且启动阈值大于停止下限、停止下限不小于0。")
 
+
 def validate_book_limit_per_stop(value: Any) -> int | None:
-    if value is not None and (type(value) is not int or value <= 0):
-        raise ValueError("单站用书上限（book_limit_per_stop）必须为正整数。")
-    return value
+    """Accept zero or a legacy null as an unlimited single stop."""
+    if value is not None and (type(value) is not int or value < 0):
+        raise ValueError("单站用书上限（book_limit_per_stop）必须为非负整数。")
+    return value or None
 
 
 FREIGHT_PLANNING_KEYS = (
@@ -77,10 +79,8 @@ def effective_freight_inputs(source: Mapping[str, Any]) -> dict[str, Any]:
         result.pop("book_profit_threshold", None)
     else:
         result.pop("book_waste_limit", None)
-    if result.get("book_limit_per_stop") is None:
+    if validate_book_limit_per_stop(result.get("book_limit_per_stop")) is None:
         result.pop("book_limit_per_stop", None)
-    else:
-        validate_book_limit_per_stop(result["book_limit_per_stop"])
     if result.get("negotiation_policy") == "disabled":
         result.pop("negotiation_max_attempts", None)
     if result.get("auto_bento") is False:

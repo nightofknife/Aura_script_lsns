@@ -36,11 +36,12 @@ def test_freight_tasks_load_with_nullable_and_strict_integer_schema():
 
 @pytest.mark.parametrize("mode", ["free", "fixed"])
 @pytest.mark.parametrize("books", [0, 2, None])
-def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
+@pytest.mark.parametrize("stop_limit", [0, 5])
+def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books, stop_limit):
     for name, action in (("auto_cycle_trade_pc", trade.resonance_pc_auto_cycle_trade_flow),
                          ("preview_trade_plan_pc", trade.resonance_pc_preview_trade_plan_flow)):
         spec = yaml.safe_load((ROOT / "plans/resonance_pc/tasks" / f"{name}.yaml").read_text("utf-8"))[name]
-        provided = {"trade_mode": mode, "book_budget": books, "book_limit_per_stop": 5,
+        provided = {"trade_mode": mode, "book_budget": books, "book_limit_per_stop": stop_limit,
                     "fixed_route_city_ids": ["15", "11", "15"], "target_profit": 1000000,
                     "required_arrivals": {"15": 2, "9": 1}, "ignore_unmet_arrivals": True}
         if name == "preview_trade_plan_pc":
@@ -51,11 +52,12 @@ def test_task_schema_to_action_preserves_modes_and_nullable_books(mode, books):
                     for key, value in spec["steps"]["run"]["params"].items()}
         inspect.signature(action).bind(**rendered)
         assert rendered["book_budget"] == books
-        assert rendered["book_limit_per_stop"] == 5
+        assert rendered["book_limit_per_stop"] == stop_limit
         assert rendered["fatigue_budget"] == 700 and rendered["cargo_capacity"] == 750
         assert rendered["book_profit_threshold"] == 500000
         canonical = normalize_planning_inputs(rendered)
-        assert canonical.get("book_limit_per_stop") == (None if books == 0 else 5)
+        expected_limit = stop_limit if books != 0 and stop_limit > 0 else None
+        assert canonical.get("book_limit_per_stop") == expected_limit
         if mode == "free":
             assert canonical["required_arrivals"] == {"15": 2, "9": 1}
             assert canonical["ignore_unmet_arrivals"] is True
@@ -91,7 +93,7 @@ def test_integer_task_fields_are_not_silently_coerced(value):
 
 @pytest.mark.parametrize("field,value", [("fatigue_budget", True), ("cargo_capacity", 1.5),
                                         ("book_budget", -1), ("book_profit_threshold", float("nan")),
-                                        ("book_limit_per_stop", True), ("book_limit_per_stop", 0),
+                                        ("book_limit_per_stop", True), ("book_limit_per_stop", -1),
                                         ("target_profit", 0), ("bargain_success_rates_bps", [False])])
 def test_invalid_planning_inputs_are_rejected_before_game(harness, field, value):
     operations, _ = harness
@@ -306,7 +308,7 @@ def test_real_service_is_wired_to_preview_and_execution(service, harness, monkey
 
 
 @pytest.mark.parametrize("books,stop_limit", [(0, None), (1, None), (3, None), (None, None),
-                                             (None, 1), (3, 1)])
+                                             (None, 0), (None, 1), (3, 1)])
 def test_fill_rules_reach_real_fixed_preview_execution_and_plan_logs(
         service, harness, monkeypatch, books, stop_limit):
     api, _ = service
@@ -332,12 +334,12 @@ def test_fill_rules_reach_real_fixed_preview_execution_and_plan_logs(
     assert all(leg["buy_products"] == ["p"] and leg["loaded_quantity"] > 0 for leg in traded)
     used = sum(leg["books_used"] for leg in preview["route"])
     assert used == preview["books_used"]
-    assert preview["book_limit_per_stop"] == actual["book_limit_per_stop"] == stop_limit
-    if stop_limit is not None:
+    assert preview["book_limit_per_stop"] == actual["book_limit_per_stop"] == (stop_limit or None)
+    if stop_limit:
         assert all(leg["books_used"] <= stop_limit for leg in preview["route"])
         assert traded[0]["book_stop_reason"] == "per_stop_book_limit"
         assert not traded[0]["is_full_load"]
-    if books is None and stop_limit is None:
+    if books is None and not stop_limit:
         assert all(leg["is_full_load"] for leg in traded)
     if books is not None:
         assert used <= books

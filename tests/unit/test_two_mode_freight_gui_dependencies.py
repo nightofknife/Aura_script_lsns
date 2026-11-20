@@ -8,7 +8,9 @@ import pytest
 from PySide6.QtCore import QSettings, QCoreApplication, QEvent, QTimer
 from PySide6.QtWidgets import QApplication, QDialog
 
-from packages.resonance_gui.config_repository import ResonanceConfigRepository
+from packages.resonance_gui.config_repository import (
+    ResonanceConfigRepository, TRADE_INPUTS_KEY, TRADE_PREVIEW_INPUTS_KEY,
+)
 from packages.resonance_gui.widgets import trade_page
 from packages.resonance_gui.widgets.trade_page import TradePage
 
@@ -430,43 +432,64 @@ def test_only_active_book_strategy_inputs_invalidate_preview(page):
 def test_single_stop_book_limit_round_trips_and_applies_to_fill(page, preview):
     widget = TradePage(page._settings, preview_mode=True) if preview else page
     try:
+        widget.parameter_tabs.setCurrentIndex(1)
         choose(widget.book_usage, "unlimited")
         choose(widget.book_policy, "fill")
         choose(widget.start_city, "1")
-        assert not widget.book_limit_per_stop_enabled.isChecked()
-        assert not widget.book_limit_per_stop.isVisibleTo(widget.parameter_panel)
+        assert widget.book_limit_per_stop.isVisibleTo(widget.parameter_panel)
+        assert widget.book_limit_per_stop.value() == 0
+        assert widget.book_limit_per_stop.text() == "0（不限）"
+        assert "book_limit_per_stop" not in widget.collect_task_inputs(preview=preview)
         prime_preview(widget)
         widget.book_limit_per_stop.setValue(5)
-        assert not widget._plan_stale
-        widget.book_limit_per_stop_enabled.setChecked(True)
         assert widget._plan_stale
         inputs = widget.collect_task_inputs(preview=preview)
         assert inputs["book_limit_per_stop"] == 5
         assert inputs["book_policy"] == "fill"
-        assert "book_limit_per_stop_draft" not in inputs
 
         choose(widget.book_usage, "none")
-        assert not widget.book_limit_per_stop_enabled.isVisibleTo(widget.parameter_panel)
+        assert not widget.book_limit_per_stop.isVisibleTo(widget.parameter_panel)
         assert "book_limit_per_stop" not in widget.collect_task_inputs(preview=preview)
         widget.save_ui_state()
         repository = widget._settings
         load = repository.load_trade_preview_inputs if preview else repository.load_trade_inputs
         widget.restore_inputs(load())
-        assert widget.book_limit_per_stop_enabled.isChecked()
         assert widget.book_limit_per_stop.value() == 5
 
         choose(widget.book_usage, "finite")
         widget.book_budget.setValue(3)
         assert widget.collect_task_inputs(preview=preview)["book_limit_per_stop"] == 5
-        widget.book_limit_per_stop_enabled.setChecked(False)
+        prime_preview(widget)
+        widget.book_limit_per_stop.setValue(0)
+        assert widget._plan_stale
+        assert "book_limit_per_stop" not in widget.collect_task_inputs(preview=preview)
         widget.save_ui_state()
-        assert load()["book_limit_per_stop"] is None
-        assert load()["book_limit_per_stop_draft"] == 5
+        assert load()["book_limit_per_stop"] == 0
     finally:
         if preview:
             widget.close()
             widget.deleteLater()
             QCoreApplication.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+
+
+@pytest.mark.parametrize("key", [TRADE_INPUTS_KEY, TRADE_PREVIEW_INPUTS_KEY])
+@pytest.mark.parametrize("saved,expected", [
+    ({}, 0),
+    ({"book_limit_per_stop": None, "book_limit_per_stop_draft": 5}, 0),
+    ({"book_limit_per_stop": 7, "book_limit_per_stop_draft": 3}, 7),
+])
+def test_repository_loads_legacy_single_stop_book_limit(page, key, saved, expected):
+    repository = page._settings
+    repository.settings.setValue(key, json.dumps(saved))
+    if key == TRADE_PREVIEW_INPUTS_KEY:
+        values = repository.load_trade_preview_inputs()
+        repository.save_trade_preview_inputs(values)
+    else:
+        values = repository.load_trade_inputs()
+        repository.save_trade_inputs(values)
+    persisted = json.loads(repository.settings.value(key))
+    assert values["book_limit_per_stop"] == persisted["book_limit_per_stop"] == expected
+    assert "book_limit_per_stop_draft" not in persisted
 
 
 def test_route_detail_displays_single_stop_limit_only_when_binding(page):
