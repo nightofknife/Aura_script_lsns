@@ -5,17 +5,21 @@ from __future__ import annotations
 from dataclasses import dataclass
 import time
 from typing import Any, Dict, Optional, Tuple
+from uuid import uuid4
 
 from packages.aura_core.api import action_info, requires_services
 from packages.aura_core.engine import ExecutionEngine
 from packages.aura_core.observability.logging.core_logger import logger
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
+from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
 
 from ....aura_base.src.actions.input_actions import click as aura_click
 from ....aura_base.src.actions.input_actions import drag as aura_drag
 from ....aura_base.src.actions.wait_actions import sleep as aura_sleep
 from ....aura_base.src.actions.wait_actions import wait_for_image as aura_wait_for_image
+from ._deep_dive_opening_options import DIVE_DEPTHS, OPENING_STRATEGIES, validate_opening_options
+from ._deep_dive_opening_vision import OpeningChoice, OpeningFrame
 
 
 Region = Tuple[int, int, int, int]
@@ -52,36 +56,6 @@ _START_DIVE = _TemplateTarget(
     "start_dive",
     "templates/deep_dive/consciousness_deep_dive/start_dive.png",
     (530, 500, 235, 115),
-    0.86,
-)
-_START_GAME = _TemplateTarget(
-    "start_game",
-    "templates/deep_dive/consciousness_deep_dive/start_game.png",
-    (950, 585, 270, 100),
-    0.86,
-)
-_DIFFICULTY_1_SELECTED = _TemplateTarget(
-    "difficulty_1_selected",
-    "templates/deep_dive/consciousness_deep_dive/difficulty_1_selected.png",
-    (120, 90, 340, 330),
-    0.88,
-)
-_DIFFICULTY_1_UNSELECTED = _TemplateTarget(
-    "difficulty_1_unselected",
-    "templates/deep_dive/consciousness_deep_dive/difficulty_1_unselected.png",
-    (80, 90, 570, 350),
-    0.95,
-)
-_STRATEGY_SOURCE = _TemplateTarget(
-    "strategy_source_unselected",
-    "templates/deep_dive/consciousness_deep_dive/strategy_source_unselected.png",
-    (675, 505, 170, 170),
-    0.88,
-)
-_STRATEGY_CONFIRM = _TemplateTarget(
-    "strategy_confirm",
-    "templates/deep_dive/consciousness_deep_dive/strategy_confirm.png",
-    (950, 580, 235, 100),
     0.86,
 )
 _FORMATION_CONFIRM = _TemplateTarget(
@@ -295,129 +269,140 @@ async def _click_until_original_absent(
         current = recheck
 
 
-async def _ensure_difficulty_one(
-    *,
-    app: Any,
-    vision: Any,
-    engine: ExecutionEngine,
-) -> Dict[str, Any]:
-    started_at = time.monotonic()
-    drag_attempts = 0
+async def _opening_frame(app: Any) -> OpeningFrame | None:
+    capture = await app.capture_async()
+    if not capture.success or capture.image is None or capture.image.shape != (720, 1280, 3):
+        return None
+    return OpeningFrame(capture.image)
 
-    while True:
+
+def _same_choice(previous: OpeningChoice | None, current: OpeningChoice) -> bool:
+    return (previous is not None and previous.state == current.state
+            and all(abs(a - b) <= _STABLE_CENTER_TOLERANCE_PX
+                    for a, b in zip(previous.center, current.center)))
+
+
+async def _open_depth_page(app: Any, vision: Any, engine: ExecutionEngine) -> dict[str, Any]:
+    match = await _wait_for_target(_START_DIVE, app=app, vision=vision, engine=engine,
+                                   timeout_sec=_CONTROL_WAIT_TIMEOUT_SEC, stable_scans=2,
+                                   error_code="deep_dive_start_dive_not_found")
+    _check_cancelled()
+    aura_click(app=app, x=match.center_point[0], y=match.center_point[1])
+    deadline = time.monotonic() + _NEXT_STATE_TIMEOUT_SEC
+    previous = None
+    returned_from = []
+    while time.monotonic() < deadline:
         _check_cancelled()
-        selected = await _find_target(
-            _DIFFICULTY_1_SELECTED,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-        if bool(getattr(selected, "found", False)):
-            selected = await _wait_for_target(
-                _DIFFICULTY_1_SELECTED,
-                app=app,
-                vision=vision,
-                engine=engine,
-                timeout_sec=_DIFFICULTY_SELECTION_TIMEOUT_SEC,
-                stable_scans=2,
-                error_code="deep_dive_difficulty_1_selection_not_confirmed",
-            )
-            result = {
-                "step": "ensure_difficulty_1",
-                "status": "already_selected" if drag_attempts == 0 else "selected",
-                "drag_attempts": drag_attempts,
-                "click_attempts": 0,
-                "selection_click": None,
-                "selected_state": _match_payload(selected, _DIFFICULTY_1_SELECTED),
-                "elapsed_ms": int((time.monotonic() - started_at) * 1000),
-            }
-            logger.info(
-                "[DeepDiveEntry] difficulty=1 status=%s drag_attempts=%s elapsed_ms=%s",
-                result["status"],
-                drag_attempts,
-                result["elapsed_ms"],
-            )
-            return result
+        frame = await _opening_frame(app)
+        scene = None
+        if frame is not None:
+            if frame.depth_page():
+                scene = "depth"
+            elif frame.strategy_page():
+                scene = "strategy"
+            elif frame.formation_page():
+                scene = "formation"
+        if scene is not None and scene == previous:
+            if scene == "depth":
+                logger.info("[DeepDiveEntry] depth page ready returned_from=%s", returned_from)
+                return {"step": "start_dive", "returned_from_draft": returned_from}
+            # Start may reopen a saved pre-dive draft. Back out to apply both requested settings.
+            back = frame.back() if scene not in returned_from else None
+            if back is not None:
+                aura_click(app=app, x=back[0], y=back[1])
+                returned_from.append(scene)
+        previous = scene
+        await aura_sleep(_POLL_INTERVAL_SEC)
+    raise ConsciousnessDeepDiveError("deep_dive_depth_page_unconfirmed", "未能进入选择下潜深度页面。",
+                                     {"returned_from_draft": returned_from})
 
-        unselected = await _find_target(
-            _DIFFICULTY_1_UNSELECTED,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-        if bool(getattr(unselected, "found", False)):
-            selection_click = await _click_until_original_absent(
-                _DIFFICULTY_1_UNSELECTED,
-                app=app,
-                vision=vision,
-                engine=engine,
-            )
-            selected = await _wait_for_target(
-                _DIFFICULTY_1_SELECTED,
-                app=app,
-                vision=vision,
-                engine=engine,
-                timeout_sec=_DIFFICULTY_SELECTION_TIMEOUT_SEC,
-                stable_scans=2,
-                error_code="deep_dive_difficulty_1_selection_not_confirmed",
-            )
-            result = {
-                "step": "ensure_difficulty_1",
-                "status": "selected",
-                "drag_attempts": drag_attempts,
-                "click_attempts": selection_click["click_attempts"],
-                "selection_click": selection_click,
-                "selected_state": _match_payload(selected, _DIFFICULTY_1_SELECTED),
-                "elapsed_ms": int((time.monotonic() - started_at) * 1000),
-            }
-            logger.info(
-                "[DeepDiveEntry] difficulty=1 status=selected drag_attempts=%s "
-                "click_attempts=%s elapsed_ms=%s",
-                drag_attempts,
-                selection_click["click_attempts"],
-                result["elapsed_ms"],
-            )
-            return result
 
-        elapsed_sec = time.monotonic() - started_at
-        if (
-            elapsed_sec >= _DIFFICULTY_SEARCH_TIMEOUT_SEC
-            or drag_attempts >= _DIFFICULTY_MAX_DRAGS
-        ):
-            raise ConsciousnessDeepDiveError(
-                "deep_dive_difficulty_1_not_found",
-                "向右拖动后仍未找到难度Ⅰ。",
-                {
-                    "drag_attempts": drag_attempts,
-                    "elapsed_ms": int(elapsed_sec * 1000),
-                    "selected": _match_payload(selected, _DIFFICULTY_1_SELECTED),
-                    "unselected": _match_payload(
-                        unselected,
-                        _DIFFICULTY_1_UNSELECTED,
-                    ),
-                },
-            )
+async def _start_at_depth(app: Any, depth: int) -> dict[str, Any]:
+    label = DIVE_DEPTHS[depth - 1]
+    deadline = time.monotonic() + _DIFFICULTY_SEARCH_TIMEOUT_SEC
+    previous = None
+    drags = 0
+    clicked = False
+    while time.monotonic() < deadline:
+        _check_cancelled()
+        frame = await _opening_frame(app)
+        if frame is None or not frame.depth_page():
+            previous = None
+            await aura_sleep(_POLL_INTERVAL_SEC)
+            continue
+        depths = frame.depths()
+        target = depths.get(depth)
+        if target is None and not clicked and drags < _DIFFICULTY_MAX_DRAGS:
+            start, end = _DIFFICULTY_DRAG_START, _DIFFICULTY_DRAG_END
+            if depths and depth > max(depths):
+                start, end = end, start
+            aura_drag(app=app, start_x=start[0], start_y=start[1], end_x=end[0], end_y=end[1],
+                      duration=_DIFFICULTY_DRAG_DURATION_SEC, hold_before_release_sec=_DIFFICULTY_DRAG_HOLD_SEC)
+            drags += 1
+            previous = None
+            await aura_sleep(_DIFFICULTY_DRAG_SETTLE_SEC)
+            continue
+        if target is not None and _same_choice(previous, target):
+            if target.state == "locked":
+                raise ConsciousnessDeepDiveError("deep_dive_depth_locked", f"深度{label}尚未解锁。")
+            if target.state == "selected":
+                start_button = frame.start_game()
+                if start_button is not None:
+                    aura_click(app=app, x=start_button[0], y=start_button[1])
+                    logger.info("[DeepDiveEntry] depth=%s confirmed center=%s drags=%s", depth, target.center, drags)
+                    return {"step": "start_game", "dive_depth": depth, "selected_center": target.center,
+                            "drag_attempts": drags, "click_attempts": int(clicked)}
+            if target.state == "available" and not clicked:
+                aura_click(app=app, x=target.center[0], y=target.center[1])
+                clicked = True
+                deadline = time.monotonic() + _DIFFICULTY_SELECTION_TIMEOUT_SEC
+        previous = target
+        await aura_sleep(_POLL_INTERVAL_SEC)
+    raise ConsciousnessDeepDiveError(
+        "deep_dive_depth_not_confirmed", f"未能确认已选中深度{label}，无法开始游戏。",
+        {"drag_attempts": drags, "selection_clicked": clicked},
+    )
 
-        aura_drag(
-            app=app,
-            start_x=_DIFFICULTY_DRAG_START[0],
-            start_y=_DIFFICULTY_DRAG_START[1],
-            end_x=_DIFFICULTY_DRAG_END[0],
-            end_y=_DIFFICULTY_DRAG_END[1],
-            duration=_DIFFICULTY_DRAG_DURATION_SEC,
-            hold_before_release_sec=_DIFFICULTY_DRAG_HOLD_SEC,
-        )
-        drag_attempts += 1
-        logger.info(
-            "[DeepDiveEntry] difficulty=1 drag_attempt=%s start=%s end=%s "
-            "duration_sec=%.1f hold_before_release_sec=%.1f",
-            drag_attempts,
-            _DIFFICULTY_DRAG_START,
-            _DIFFICULTY_DRAG_END,
-            _DIFFICULTY_DRAG_DURATION_SEC,
-            _DIFFICULTY_DRAG_HOLD_SEC,
-        )
-        await aura_sleep(_DIFFICULTY_DRAG_SETTLE_SEC)
+
+async def _confirm_opening_strategy(app: Any, strategy: str) -> dict[str, Any]:
+    label = OPENING_STRATEGIES[strategy]
+    deadline = time.monotonic() + _NEXT_STATE_TIMEOUT_SEC
+    previous = None
+    clicked = False
+    while time.monotonic() < deadline:
+        _check_cancelled()
+        frame = await _opening_frame(app)
+        target = frame.strategy(strategy) if frame is not None and frame.strategy_page() else None
+        if target is not None and _same_choice(previous, target):
+            if target.state == "selected":
+                confirm = frame.confirm_strategy()
+                if confirm is not None:
+                    aura_click(app=app, x=confirm[0], y=confirm[1])
+                    logger.info("[DeepDiveEntry] opening_strategy=%s confirmed center=%s", strategy, target.center)
+                    return {"step": "confirm_strategy", "opening_strategy": strategy,
+                            "selected_center": target.center, "click_attempts": int(clicked)}
+            if target.state == "available" and not clicked:
+                aura_click(app=app, x=target.center[0], y=target.center[1])
+                clicked = True
+                deadline = time.monotonic() + _DIFFICULTY_SELECTION_TIMEOUT_SEC
+        previous = target
+        await aura_sleep(_POLL_INTERVAL_SEC)
+    reason = f"未能确认已选中{label}。" if clicked else f"未找到可选的{label}。"
+    raise ConsciousnessDeepDiveError("deep_dive_opening_strategy_not_confirmed", reason)
+
+
+async def _save_opening_failure(app: Any) -> str:
+    try:
+        capture = await app.capture_async()
+        if capture.success and capture.image is not None:
+            path = resolve_base_path() / "logs" / "deep_dive_loop" / uuid4().hex / "entry_blocked.png"
+            path.parent.mkdir(parents=True, exist_ok=True)
+            capture.save(str(path))
+            if path.is_file():
+                return str(path)
+    except Exception as exc:
+        logger.warning("[DeepDiveEntry] Could not save blocked entry frame: %s", exc)
+    return ""
 
 
 async def _run_transition(
@@ -513,7 +498,7 @@ async def _wait_for_boon_destination(*, app: Any, vision: Any, engine: Execution
     public=True,
     read_only=False,
     timeout=300,
-    description="Enter the Consciousness Deep Dive board using fixed strategy and middle boon selection.",
+    description="Enter Deep Dive with the requested depth and opening strategy, then select the middle boon.",
 )
 @requires_services(
     app="plans/aura_base/app",
@@ -523,59 +508,41 @@ async def resonance_pc_consciousness_deep_dive_enter_stage(
     app: Any = None,
     vision: Any = None,
     engine: ExecutionEngine | None = None,
+    dive_depth: int = 1,
+    opening_strategy: str = "source",
 ) -> Dict[str, Any]:
     if app is None or vision is None or engine is None:
         raise RuntimeError("app/vision services and engine are required")
 
+    try:
+        dive_depth, opening_strategy = validate_opening_options(dive_depth, opening_strategy)
+    except ValueError as exc:
+        return {"success": False, "status": "blocked", "reason": str(exc),
+                "reason_code": "deep_dive_opening_options_invalid"}
+
+    try:
+        return await _enter_stage(app, vision, engine, dive_depth, opening_strategy)
+    except ConsciousnessDeepDiveError as exc:
+        logger.warning("[DeepDiveEntry] depth=%s opening_strategy=%s blocked: %s", dive_depth, opening_strategy, exc)
+        return {
+            "success": False,
+            "status": "blocked",
+            "reason": exc.message,
+            "reason_code": exc.code,
+            "detail": exc.detail,
+            "last_frame": await _save_opening_failure(app),
+            "dive_depth": dive_depth,
+            "opening_strategy": opening_strategy,
+        }
+
+
+async def _enter_stage(app: Any, vision: Any, engine: ExecutionEngine, dive_depth: int,
+                       opening_strategy: str) -> Dict[str, Any]:
     started_at = time.monotonic()
     transitions: list[Dict[str, Any]] = []
-    transitions.append(
-        await _run_transition(
-            "start_dive",
-            _START_DIVE,
-            _START_GAME,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-    )
-    transitions.append(
-        await _ensure_difficulty_one(
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-    )
-    transitions.append(
-        await _run_transition(
-            "start_game",
-            _START_GAME,
-            _STRATEGY_SOURCE,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-    )
-    transitions.append(
-        await _run_transition(
-            "select_strategy",
-            _STRATEGY_SOURCE,
-            _STRATEGY_CONFIRM,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-    )
-    transitions.append(
-        await _run_transition(
-            "confirm_strategy",
-            _STRATEGY_CONFIRM,
-            _FORMATION_CONFIRM,
-            app=app,
-            vision=vision,
-            engine=engine,
-        )
-    )
+    transitions.append(await _open_depth_page(app, vision, engine))
+    transitions.append(await _start_at_depth(app, dive_depth))
+    transitions.append(await _confirm_opening_strategy(app, opening_strategy))
     transitions.append(
         await _run_transition(
             "confirm_formation",
@@ -626,7 +593,9 @@ async def resonance_pc_consciousness_deep_dive_enter_stage(
         "status": "completed",
         "stage": "enter_stage",
         "page_state": "deep_dive_board",
-        "strategy": "source",
+        "dive_depth": dive_depth,
+        "opening_strategy": opening_strategy,
+        "strategy": opening_strategy,
         "boon_slot": 2,
         "transitions": transitions,
         "elapsed_ms": int((time.monotonic() - started_at) * 1000),

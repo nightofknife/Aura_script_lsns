@@ -11,6 +11,7 @@ from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
     QComboBox,
     QFileDialog,
+    QFormLayout,
     QFrame,
     QHBoxLayout,
     QLabel,
@@ -22,6 +23,22 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+
+_DIVE_DEPTH_LABELS = {1: "Ⅰ", 2: "Ⅱ", 3: "Ⅲ", 4: "Ⅳ", 5: "Ⅴ"}
+_OPENING_STRATEGY_LABELS = {
+    "source": "源流之策",
+    "waxing_waning": "盈缺之策",
+    "revival": "回生之策",
+    "defense": "捍卫之策",
+}
+_LOOP_STAGE_LABELS = {
+    "ready": "检查首页",
+    "entry": "进入活动",
+    "single": "单局运行",
+    "cleanup": "结算收尾",
+    "activity_home": "已回首页",
+}
 
 
 class ConsciousnessDeepDivePanel(QWidget):
@@ -40,6 +57,8 @@ class ConsciousnessDeepDivePanel(QWidget):
         self._scan_report_path = ""
         self._plan_report_path = ""
         self._planned_run_snapshot: dict[str, Any] = {}
+        self._loop_inputs: dict[str, Any] = {}
+        self._loop_completed = 0
         self._build_ui()
 
     def _build_ui(self) -> None:
@@ -76,17 +95,27 @@ class ConsciousnessDeepDivePanel(QWidget):
         layout.addWidget(self.summary_label)
 
         if not self._developer_mode:
-            loop_row = QHBoxLayout()
-            loop_row.addWidget(QLabel('循环次数（-1 持续循环）', self))
+            loop_note = QLabel("完整循环从活动首页开始，回到首页后才计为完成一局。", self)
+            loop_note.setWordWrap(True)
+            layout.addWidget(loop_note)
+
+            loop_form = QFormLayout()
+            self.dive_depth_combo = QComboBox(self)
+            for depth, label in _DIVE_DEPTH_LABELS.items():
+                self.dive_depth_combo.addItem(label, depth)
+            loop_form.addRow("下潜深度", self.dive_depth_combo)
+
+            self.opening_strategy_combo = QComboBox(self)
+            for strategy, label in _OPENING_STRATEGY_LABELS.items():
+                self.opening_strategy_combo.addItem(label, strategy)
+            loop_form.addRow("开局策略", self.opening_strategy_combo)
+
             self.loop_count_spin = QSpinBox(self)
             self.loop_count_spin.setRange(-1, 2147483647)
             self.loop_count_spin.setValue(1)
-            loop_row.addWidget(self.loop_count_spin)
-            loop_row.addStretch(1)
-            layout.addLayout(loop_row)
-            loop_note = QLabel('完整循环从活动首页开始，回到首页后才计为完成一局。',self)
-            loop_note.setWordWrap(True)
-            layout.addWidget(loop_note)
+            loop_form.addRow("循环次数（-1 持续循环）", self.loop_count_spin)
+            layout.addLayout(loop_form)
+
             planned_run_note = QLabel(
                 "从玩家棋盘或位面间隙开始，每回合读取最新棋盘。优先提高期限内遇到奇点的概率，概率相同时尽量多拿灵感。"
                 "队员不足五人时暂停；到达结算后保存结果并保留画面。", self
@@ -443,43 +472,83 @@ class ConsciousnessDeepDivePanel(QWidget):
                 self._set_result_status("扫描报告文件不存在，请查看输出目录。", "error")
 
 
-    def _request_loop(self):
-        value=self.loop_count_spin.value()
-        if value==0:
-            self._set_result_status('循环次数必须为正整数，或 -1（持续循环）','error')
+    def _collect_loop_inputs(self) -> dict[str, Any]:
+        return {
+            "loop_count": self.loop_count_spin.value(),
+            "dive_depth": self.dive_depth_combo.currentData(),
+            "opening_strategy": self.opening_strategy_combo.currentData(),
+        }
+
+    def _request_loop(self) -> None:
+        if self._runner_busy or self._task_running:
             return
-        self.runLoopRequested.emit({'loop_count':value})
+        inputs = self._collect_loop_inputs()
+        if inputs["loop_count"] == 0:
+            self._set_result_status("循环次数必须为正整数，或 -1（持续循环）", "error")
+            return
+        self.runLoopRequested.emit(inputs)
 
-    def begin_loop(self):
-        self._mode='loop';self._task_running=True;self._loop_completed=0
-        self.summary_label.clear()
-        self._set_result_status('正在检查活动首页……','running')
-        self._set_run_status('循环运行中','running');self._sync_controls()
-
-    def apply_loop_progress(self,event):
-        if self._mode!='loop' or not self._task_running:return
-        p=event.get('payload',event)
-        self._loop_completed=int(p.get('completed_runs') or 0)
-        stages={'ready':'检查首页','entry':'进入活动','single':'单局运行','cleanup':'结算收尾','activity_home':'已回首页'}
-        count=p.get('loop_count');target='持续循环' if count==-1 else f'目标 {count} 局'
-        self.summary_label.setText(f'已完成 {self._loop_completed} 局 · {target}')
-        self._set_result_status(f"第 {p.get('run_index',0)} 局 · {stages.get(p.get('stage'),p.get('stage',''))}",'running')
-
-    def apply_loop_result(self,payload):
-        self._task_running=False
-        count=int(payload.get('completed_runs',getattr(self,'_loop_completed',0)))
-        summary = f'已完成 {count} 局'
-        outcome = (payload.get('last_result') or {}).get('outcome')
-        result_label = {'victory': '探索完成', 'failure': '探索中断', 'unknown': '胜负未确认'}.get(outcome)
-        self.summary_label.setText(f'{summary} · 最近一局 {result_label}' if result_label else summary)
-        ok=payload.get('success') is True
-        message='循环完成，已停在活动首页' if ok else '循环停止：'+str(payload.get('reason') or '任务已停止')
-        self._set_result_status(message,'success' if ok else 'error')
-        self._set_run_status('完成' if ok else '已停止','success' if ok else 'error')
+    def begin_loop(self) -> None:
+        self._mode = "loop"
+        self._task_running = True
+        self._loop_completed = 0
+        self._loop_inputs = self._collect_loop_inputs()
+        self.summary_label.setText(" · ".join(self._loop_summary({})))
+        self._set_result_status("正在检查活动首页……", "running")
+        self._set_run_status("循环运行中", "running")
         self._sync_controls()
 
-    def show_loop_error(self,message):
-        self.apply_loop_result({'reason':message,'success':False})
+    def _loop_summary(self, payload: Mapping[str, Any]) -> list[str]:
+        completed = int(payload.get("completed_runs", self._loop_completed))
+        count = payload.get("loop_count", self._loop_inputs.get("loop_count"))
+        depth = payload.get("dive_depth", self._loop_inputs.get("dive_depth"))
+        strategy = payload.get("opening_strategy", self._loop_inputs.get("opening_strategy"))
+        summary = [f"已完成 {completed} 局"]
+        if count is not None:
+            summary.append("持续循环" if count == -1 else f"目标 {count} 局")
+        if depth in _DIVE_DEPTH_LABELS:
+            summary.append(f"深度{_DIVE_DEPTH_LABELS[depth]}")
+        if strategy in _OPENING_STRATEGY_LABELS:
+            summary.append(_OPENING_STRATEGY_LABELS[strategy])
+        return summary
+
+    def apply_loop_progress(self, event: Mapping[str, Any]) -> None:
+        if self._mode != "loop" or not self._task_running:
+            return
+        payload = event.get("payload", event)
+        if not isinstance(payload, Mapping):
+            return
+        self._loop_completed = int(payload.get("completed_runs", self._loop_completed))
+        self.summary_label.setText(" · ".join(self._loop_summary(payload)))
+        stage = str(payload.get("stage") or "")
+        stage_label = _LOOP_STAGE_LABELS.get(stage, stage)
+        run_index = payload.get("run_index", 0)
+        message = f"第 {run_index} 局 · {stage_label}" if run_index else stage_label
+        self._set_result_status(message, "running")
+
+    def apply_loop_result(self, payload: Mapping[str, Any]) -> None:
+        summary = self._loop_summary(payload)
+        last_result = payload.get("last_result") or {}
+        result_label = {"victory": "探索完成", "failure": "探索中断", "unknown": "胜负未确认"}.get(
+            last_result.get("outcome")
+        )
+        if result_label:
+            summary.append(f"最近一局 {result_label}")
+        summary_text = " · ".join(summary)
+        if payload.get("last_frame"):
+            summary_text += f"\n最后截图：{payload['last_frame']}"
+        self.summary_label.setText(summary_text)
+        self._task_running = False
+        self._loop_inputs = {}
+        self._loop_completed = 0
+        ok = payload.get("success") is True
+        message = "循环完成，已停在活动首页" if ok else f"循环停止：{payload.get('reason') or '任务已停止'}"
+        self._set_result_status(message, "success" if ok else "error")
+        self._set_run_status("完成" if ok else "已停止", "success" if ok else "error")
+        self._sync_controls()
+
+    def show_loop_error(self, message: str) -> None:
+        self.apply_loop_result({"reason": message, "success": False})
 
 
     def set_runner_busy(self, busy: bool) -> None:
@@ -488,7 +557,8 @@ class ConsciousnessDeepDivePanel(QWidget):
 
     def _sync_controls(self) -> None:
         idle = not self._runner_busy and not self._task_running
-        for name in ("loop_button", "loop_count_spin", "planned_run_button",
+        for name in ("loop_button", "loop_count_spin", "dive_depth_combo", "opening_strategy_combo",
+                     "planned_run_button",
                      "planned_run_safety_limit_spin",
                      "scan_button", "plan_button", "plan_strategy_combo", "plan_turn_budget_spin",
                      "plan_layout_button", "plan_latest_button", "plan_layout_edit"):

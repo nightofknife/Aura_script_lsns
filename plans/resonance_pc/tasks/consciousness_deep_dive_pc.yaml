@@ -3,9 +3,11 @@ consciousness_deep_dive_pc:
     role: internal
     domain: 活动玩法
     title: Consciousness Deep Dive (PC)
-    description: Enter the Consciousness Deep Dive board with the fixed entry sequence.
+    description: Enter the Consciousness Deep Dive board at the requested depth and opening strategy.
     entry_point: false
-    inputs: []
+    inputs:
+      - {name: dive_depth, type: number, default: 1, strict_integer: true, min: 1, max: 5}
+      - {name: opening_strategy, type: enum, default: source, enum: [source, waxing_waning, revival, defense]}
 
   steps:
     require_bridge:
@@ -17,6 +19,9 @@ consciousness_deep_dive_pc:
     enter_stage:
       action: resonance_pc.consciousness_deep_dive_enter_stage
       depends_on: require_resolution
+      params:
+        dive_depth: "{{ inputs.dive_depth | default(1) }}"
+        opening_strategy: "{{ inputs.opening_strategy | default('source') }}"
 
   returns:
     deep_dive: "{{ nodes.enter_stage.output }}"

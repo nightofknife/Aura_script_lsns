@@ -10,6 +10,7 @@ from packages.aura_core.scheduler.cancellation import is_current_task_cancel_req
 from packages.aura_core.scheduler.utils import resolve_base_path
 from packages.aura_core.utils.exceptions import StopTaskException
 from ._deep_dive_cleanup_vision import observe
+from ._deep_dive_opening_options import DEFAULT_DIVE_DEPTH, DEFAULT_OPENING_STRATEGY, validate_opening_options
 
 SCHEMA='resonance_pc.deep_dive_loop.v1'
 PROGRESS='task.resonance_pc_deep_dive_loop_progress'
@@ -41,7 +42,10 @@ async def save(state,store,bus):
     state['sequence']+=1
     await store.set(state['session_key'],dict(state))
     if bus:
-        payload={k:state[k] for k in ('cid','sequence','loop_count','completed_runs','run_index','stage','status','reason','last_frame')}
+        payload = {key: state[key] for key in (
+            'cid', 'sequence', 'loop_count', 'dive_depth', 'opening_strategy',
+            'completed_runs', 'run_index', 'stage', 'status', 'reason', 'reason_code', 'last_frame',
+        )}
         payload['schema']=SCHEMA
         try:await bus.publish(Event(name=PROGRESS,payload=payload))
         except Exception as exc:logger.warning('Deep Dive loop progress delivery failed: %s',exc)
@@ -50,18 +54,29 @@ async def save(state,store,bus):
 async def load(key,store):
     s=await store.get(key)
     if not isinstance(s,dict) or s.get('schema')!=SCHEMA or s.get('session_key')!=key:raise RuntimeError('循环会话不存在')
+    s.setdefault('dive_depth', DEFAULT_DIVE_DEPTH)
+    s.setdefault('opening_strategy', DEFAULT_OPENING_STRATEGY)
+    s.setdefault('reason_code', '')
     return s
 
 
 @action_info(name='resonance_pc.deep_dive_loop_initialize',public=True,read_only=False,
-             description='Validate loop count and activity-home start without clicking.')
+             description='Validate loop options and activity-home start without clicking.')
 @requires_services(app='plans/aura_base/app',state_store='core/state_store',event_bus='core/event_bus')
-async def initialize_loop(loop_count:int=1,app=None,state_store=None,event_bus=None):
-    count=validate_count(loop_count);cancel_check()
-    key='deep_dive_loop:'+uuid4().hex
-    s={'schema':SCHEMA,'session_key':key,'cid':str(current_cid() or ''),'sequence':0,
-       'loop_count':count,'completed_runs':0,'run_index':0,'stage':'ready','status':'running',
-       'reason':'','last_frame':'','last_result':{}}
+async def initialize_loop(
+    loop_count: int = 1, app=None, state_store=None, event_bus=None,
+    dive_depth: int = 1, opening_strategy: str = 'source',
+):
+    count = validate_count(loop_count)
+    depth, strategy = validate_opening_options(dive_depth, opening_strategy)
+    cancel_check()
+    key = 'deep_dive_loop:' + uuid4().hex
+    s = {
+        'schema': SCHEMA, 'session_key': key, 'cid': str(current_cid() or ''), 'sequence': 0,
+        'loop_count': count, 'dive_depth': depth, 'opening_strategy': strategy,
+        'completed_runs': 0, 'run_index': 0, 'stage': 'ready', 'status': 'running',
+        'reason': '', 'reason_code': '', 'last_frame': '', 'last_result': {},
+    }
     image=None
     for _ in range(2):
         cancel_check();capture=await tracked_to_thread(app.capture)
@@ -86,7 +101,10 @@ async def begin_loop_run(session_key:str,state_store=None,event_bus=None):
     if s['status']!='running':return {'ok':False}
     s.update(run_index=s['completed_runs']+1,stage='entry',last_result={})
     await save(s,state_store,event_bus)
-    return {'ok':True,'run_index':s['run_index']}
+    return {
+        'ok': True, 'run_index': s['run_index'],
+        'opening_options': {'dive_depth': s['dive_depth'], 'opening_strategy': s['opening_strategy']},
+    }
 
 
 @action_info(name='resonance_pc.deep_dive_loop_checkpoint',public=True,read_only=False,
@@ -94,19 +112,25 @@ async def begin_loop_run(session_key:str,state_store=None,event_bus=None):
 @requires_services(state_store='core/state_store',event_bus='core/event_bus')
 async def checkpoint_loop(session_key:str,stage:str,child_result:dict,state_store=None,event_bus=None):
     cancel_check();s=await load(session_key,state_store)
-    expected={'entry':'entry','single':'single','cleanup':'cleanup'}
-    if stage not in expected or s['status']!='running' or s['stage']!=stage:raise RuntimeError('循环阶段顺序不符')
+    phase_titles = {'entry': '开局', 'single': '关卡内运行', 'cleanup': '结算收尾'}
+    if stage not in phase_titles or s['status']!='running' or s['stage']!=stage:raise RuntimeError('循环阶段顺序不符')
     result=child_output(stage,child_result)
     if not successful(stage,result):
-        result=result if isinstance(result,dict) else {}
-        s.update(status='blocked',reason=f"第{s['run_index']}局 {stage}："+str(result.get('reason') or '子任务未返回已确认的完成结果'),
-                 last_frame=str(result.get('last_frame') or ''))
+        result = result if isinstance(result, dict) else {}
+        reason = result.get('reason') or '子任务未返回已确认的完成结果'
+        s.update(
+            status='blocked', reason=f"第{s['run_index']}局{phase_titles[stage]}：{reason}",
+            reason_code=str(result.get('reason_code') or ''), last_frame=str(result.get('last_frame') or ''),
+        )
     else:
-        if stage=='entry':s['stage']='single'
-        elif stage=='single':
-            s['stage']='cleanup'
-            s['last_result']={k:result.get(k) for k in ('outcome','game_success','turns_completed','reason',
-                                                       'last_frame','final_frame','report_path')}
+        if stage == 'entry':
+            s['stage'] = 'single'
+            s['last_result'] = {key: result[key] for key in ('dive_depth', 'opening_strategy') if key in result}
+        elif stage == 'single':
+            s['stage'] = 'cleanup'
+            s['last_result'] = {**s['last_result'], **{key: result.get(key) for key in (
+                'outcome', 'game_success', 'turns_completed', 'reason', 'last_frame', 'final_frame', 'report_path',
+            )}}
         else:
             if s['last_result'].get('reason') != 'formation_shortage_settled':
                 s['completed_runs']+=1
@@ -128,7 +152,10 @@ async def checkpoint_loop(session_key:str,stage:str,child_result:dict,state_stor
 @requires_services(state_store='core/state_store')
 async def loop_result(session_key:str,release:bool=False,state_store=None):
     s=await load(session_key,state_store)
-    out={k:s[k] for k in ('status','stage','loop_count','completed_runs','run_index','reason','last_frame','last_result')}
+    out = {key: s[key] for key in (
+        'status', 'stage', 'loop_count', 'dive_depth', 'opening_strategy',
+        'completed_runs', 'run_index', 'reason', 'reason_code', 'last_frame', 'last_result',
+    )}
     out['success']=s['status']=='completed'
     if release:await state_store.delete(session_key)
     return out
