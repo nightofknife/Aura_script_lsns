@@ -41,3 +41,4 @@ trade_goods_investment_pc:
     product_count: "{{ nodes.invest.output.product_count }}"
     scroll_count: "{{ nodes.invest.output.scroll_count }}"
     page_state: "{{ nodes.invest.output.page_state }}"
+    shop_menu_ready: "{{ nodes.invest.output.shop_menu_ready | default(none) }}"

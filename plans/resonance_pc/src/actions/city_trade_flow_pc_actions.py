@@ -9,6 +9,7 @@ import functools
 import json
 import math
 import threading
+from datetime import datetime, timezone
 from fractions import Fraction
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
@@ -26,6 +27,8 @@ from packages.aura_core.observability.failure_evidence import (
 from packages.aura_core.observability.runtime_trace import tracked_to_thread
 from packages.aura_core.scheduler.cancellation import is_current_task_cancel_requested
 from packages.aura_core.utils.task_errors import recognition_failure
+from ....aura_base.src.platform.contracts import TargetRuntimeError
+from ....aura_base.src.services._target_identity import read_target_identity
 from ._bounded_observation import ObservationBudget, wait_for_observation
 from ._recognition_failure import with_template_failure
 from ._template_observation import observe_template
@@ -64,6 +67,7 @@ from ._freight_recovery_policy import (
     plan_water_use, validate_bento_priority, validate_recovery_thresholds,
 )
 from ._freight_threshold_recovery import FreightRecoverySession
+from ._fatigue_observation import fatigue_window_key
 from ._trade_fatigue_observation import read_trade_fatigue
 from ._player_data_persistence import load_pc_user_info
 from ._trade_buy_selection import (
@@ -1598,8 +1602,10 @@ def _execute_city_trade_inside_current_city_scoped(
         if shop_entry.get("success") is not True or shop_entry.get("page_state") != "shop_page":
             _raise_error("trade_shop_entry_unconfirmed", "Cannot reuse an unconfirmed exchange entry", shop_entry)
         enter_shop = shop_entry
-        # Investment returns from an inner page; never retry a city coordinate here.
-        shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
+        shop_menu_ready = enter_shop.get("investment_return_menu_ready")
+        if shop_menu_ready is None:
+            # Investment returns from an inner page; never retry a city coordinate here.
+            shop_menu_ready = _wait_for_shop_menu_ready(app, vision)
     sell_node = _open_trade_page(kind="sell", app=app, vision=vision)
     sell = resonance_pc_sell_goods_on_sell_page(
         raise_to_cap=bool(sell_raise_to_cap),
@@ -1782,6 +1788,15 @@ async def _execute_freight_city_trade(*, auto_trade_goods_investment: bool = Fal
         mode=mode, city_name=trade_inputs["current_city"], progress_context=progress_context,
         context=context, engine=engine,
     )
+    menu_ready = investment.get("shop_menu_ready")
+    if (investment.get("city_name") == trade_inputs["current_city"]
+            and isinstance(menu_ready, dict)
+            and menu_ready.get("source") == "investment_return"
+            and menu_ready.get("success") is True
+            and menu_ready.get("page_state") == "shop_page"
+            and type(menu_ready.get("stable_matches")) is int
+            and menu_ready["stable_matches"] >= _SHOP_MENU_READY_STABLE_MATCHES):
+        entry = {**entry, "investment_return_menu_ready": menu_ready}
     _check_trade_cancelled()
     reporter = _ACTIVE_PROGRESS_REPORTER.get()
     if (reporter is not None and progress_context.get("leg_count", 0) > 0
@@ -1854,6 +1869,42 @@ async def _refresh_recovery_fatigue(*, page_state: str, context, engine) -> int:
             or metadata.get("executed_profile_sections") != ["fatigue"]):
         _raise_error("recovery_fatigue_invalid", "Current fatigue refresh was not confirmed", snapshot)
     return current
+
+
+_START_FATIGUE_MAX_AGE_SEC = 120
+
+
+def _read_start_fatigue_snapshot(snapshot: Any, app: Any) -> tuple[int, int] | None:
+    if not isinstance(snapshot, dict):
+        return None
+    metadata, status = snapshot.get("metadata"), snapshot.get("status")
+    if not isinstance(metadata, dict) or metadata.get("persisted") is not True or not isinstance(status, dict):
+        return None
+    fatigue = status.get("fatigue")
+    if not isinstance(fatigue, dict):
+        return None
+    current, maximum = fatigue.get("current"), fatigue.get("max")
+    if type(current) is not int or current < 0 or type(maximum) is not int or maximum <= 0:
+        return None
+    observed_at, window = metadata.get("fatigue_observed_at"), metadata.get("fatigue_window")
+    if not isinstance(observed_at, str) or not isinstance(window, str) or not window:
+        return None
+    try:
+        observed = datetime.fromisoformat(observed_at)
+    except ValueError:
+        return None
+    if observed.tzinfo is None:
+        return None
+    age = (datetime.now(timezone.utc) - observed).total_seconds()
+    if not 0 <= age <= _START_FATIGUE_MAX_AGE_SEC:
+        return None
+    try:
+        current_window = fatigue_window_key(read_target_identity(getattr(app, "target_runtime", None)))
+    except TargetRuntimeError:
+        return None
+    if window == current_window:
+        return current, maximum
+    return None
 
 
 async def _plan_water_arrival(
@@ -3796,6 +3847,13 @@ async def resonance_pc_auto_cycle_trade_flow(
         city_shop_data=resonance_pc_city_shop_data, persistent_data=persistent_data,
         market_data=resonance_pc_market_data,
     ) if auto_sparkling_water or auto_bento else None)
+    if recovery_session is not None and plan.get("status") == "ok" and route:
+        start_fatigue = _read_start_fatigue_snapshot(recovery_snapshot, app)
+        if start_fatigue is not None:
+            initial_fatigue, maximum_fatigue = start_fatigue
+            recovery_session.ledger.set_observed(initial_fatigue, "profile", maximum_fatigue)
+            logger.info("[FreightRecovery] reused start fatigue city=%s fatigue=%s/%s",
+                        current.get("city_name"), initial_fatigue, maximum_fatigue)
     plan["sparkling_water_plan"] = water_plan
     plan = plan_view(plan, request, kind="run", auto_bento=auto_bento, water_plan=water_plan,
                      investment=auto_cape_island_investment, rubbish=auto_rubbish_recycling,

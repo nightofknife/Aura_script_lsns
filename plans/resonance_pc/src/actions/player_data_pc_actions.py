@@ -6,6 +6,7 @@ import copy
 import math
 import re
 import time
+from collections.abc import Callable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Tuple
@@ -21,7 +22,7 @@ from packages.aura_core.utils.task_errors import recognition_failure
 from ....aura_base.src.platform.contracts import TargetRuntimeError
 from ....aura_base.src.services.observation_service import CaptureError, ObservationService
 
-from ._fatigue_observation import FatigueConfirmation, read_fatigue_pair
+from ._fatigue_observation import FatigueConfirmation, fatigue_window_key, read_fatigue_pair
 from ._bounded_observation import ObservationBudget
 
 from .character_pc_actions import (
@@ -583,23 +584,25 @@ def _read_ratio_region(app: Any, ocr: Any, region: Region) -> Dict[str, int]:
     return _extract_ratio(_read_region_text(app, ocr, region))
 
 
-def _read_profile_fatigue(app: Any, ocr: Any) -> Dict[str, int]:
+def _read_profile_fatigue(app: Any, ocr: Any, *, on_window: Callable[[str], None] | None = None) -> Dict[str, int]:
     """Confirm independently read digits in two consecutive fresh frames."""
     region = _PROFILE_FIELD_REGIONS["fatigue"]
     observation = ObservationService(app=app)
     confirmation = FatigueConfirmation()
     deadline = time.monotonic() + 3.0
     reason = "fatigue_unrecognized"
+    previous_window = None
     while True:
         check_cancelled()
         if time.monotonic() >= deadline:
             break
-        value, frame_id = None, None
+        value, frame_id, window_key = None, None, None
         try:
             frame = observation.capture_regions((region,))
             check_cancelled()
             value, reason = read_fatigue_pair(frame, region, ocr, guard=check_cancelled)
             frame_id = frame.id
+            window_key = fatigue_window_key(frame.target_identity)
         except (OperationTimeout, TaskControlException):
             raise
         except CaptureError:
@@ -613,7 +616,12 @@ def _read_profile_fatigue(app: Any, ocr: Any) -> Dict[str, int]:
         if time.monotonic() >= deadline:
             reason = "observation_timeout"
             break
+        if window_key != previous_window:
+            confirmation.feed(None, None)
+            previous_window = window_key
         if confirmation.feed(value, frame_id):
+            if window_key is not None and on_window is not None:
+                on_window(window_key)
             return {"current": value[0], "max": value[1]}
         time.sleep(min(0.2, max(0.0, deadline - time.monotonic())))
     check_cancelled()
@@ -645,14 +653,15 @@ def _parse_city_name(items: List[Dict[str, Any]]) -> str:
 
 
 def _read_profile_stage(app: Any, ocr: Any, sections: Sequence[str] = _DEFAULT_PROFILE_SECTIONS,
-                        *, on_updated: Any = None) -> Dict[str, Any]:
+                        *, on_updated: Any = None,
+                        on_fatigue_window: Callable[[str], None] | None = None) -> Dict[str, Any]:
     result = {}
     for section in _DEFAULT_PROFILE_SECTIONS:
         if section not in sections:
             continue
         check_cancelled()
         if section == "fatigue":
-            result[section] = _read_profile_fatigue(app, ocr)
+            result[section] = _read_profile_fatigue(app, ocr, on_window=on_fatigue_window)
             if on_updated is not None:
                 on_updated(section)
             continue
@@ -991,10 +1000,15 @@ def resonance_pc_player_data_refresh(
     section_updated_at: Dict[str, str] = {}
     profile_section_updated_at: Dict[str, str] = {}
     inventory_category_updated_at: Dict[str, str] = {}
+    profile_fatigue_window = None
     result: Dict[str, Any] = {}
 
     def mark_profile_updated(section: str) -> None:
         profile_section_updated_at[section] = _utc_now_iso()
+
+    def record_fatigue_window(window_key: str) -> None:
+        nonlocal profile_fatigue_window
+        profile_fatigue_window = window_key
 
     def save_recovery_section(section: str, value: dict) -> None:
         check_cancelled()
@@ -1049,7 +1063,8 @@ def resonance_pc_player_data_refresh(
 
             if "profile" in selected:
                 profile_data = _read_profile_stage(app, ocr, selected_profile_sections,
-                                                  on_updated=mark_profile_updated)
+                                                  on_updated=mark_profile_updated,
+                                                  on_fatigue_window=record_fatigue_window)
                 if profile_data:
                     result["status"] = profile_data
                 if recovery_layout is not None:
@@ -1165,6 +1180,8 @@ def resonance_pc_player_data_refresh(
             "skipped_profile_sections": [s for s in _PROFILE_SECTION_ORDER if s not in selected_profile_sections],
             "profile_section_updated_at": copy.deepcopy(profile_section_updated_at),
         })
+    if profile_fatigue_window is not None:
+        result["metadata"]["fatigue_window"] = profile_fatigue_window
     if inventory_category_updated_at:
         result["metadata"]["inventory_category_updated_at"] = copy.deepcopy(
             inventory_category_updated_at

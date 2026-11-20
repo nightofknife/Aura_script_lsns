@@ -472,7 +472,7 @@ def _observe_shop_return(app: Any, vision: Any, reader: InvestmentVision) -> dic
 
 
 
-def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
+def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> dict:
     started = time.monotonic()
     deadline = started + _RETURN_TIMEOUT
     last_click = None
@@ -502,7 +502,8 @@ def _return_shop(app: Any, vision: Any, reader: InvestmentVision) -> None:
             break
         if shop_streak >= 2:
             logger.info("[TradeGoodsInvestmentReturn] state=completed detail=%s", details())
-            return
+            return {"success": True, "page_state": "shop_page", "stable_matches": shop_streak,
+                    "source": "investment_return", **details()}
         if (not shop_seen and investment_streak >= 2 and clicks < _RETURN_MAX_CLICKS
                 and (last_click is None or time.monotonic() - last_click >= _RETURN_RETRY_INTERVAL)):
             # Recognition takes time. Refresh both page and button immediately
@@ -533,6 +534,7 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
     product_limit = reader.city_product_count
     started_at, transactions, product_index, scroll_count = time.monotonic(), [], 0, 0
     reason = "all_products_at_target"
+    shop_menu_ready = None
     records = (InvestmentLevelRecords(persistent_data, reader.city_id, product_limit,
                                      catalog_signature=getattr(reader, "city_catalog_signature", None))
                if getattr(reader, "city_id", None) and type(product_limit) is int and product_limit > 0 else None)
@@ -661,7 +663,7 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
             if product_limit is not None and product_index >= product_limit:
                 break
         if product_limit != 0:
-            _return_shop(app, vision, reader)
+            shop_menu_ready = _return_shop(app, vision, reader)
     except Exception as exc:
         if isinstance(exc, TradeGoodsInvestmentError):
             exc.detail.update(transaction_count=len(transactions), transactions=list(transactions))
@@ -674,7 +676,7 @@ def execute_trade_goods_investment_from_shop(*, mode: int, city_name: str, app: 
               "transaction_count": len(transactions), "transactions": transactions,
               "upgraded_levels": sum(row["to_level"] - row["from_level"] for row in transactions),
               "product_count": product_index, "scroll_count": scroll_count,
-              "page_state": "shop_page", "entry_state": entry,
+              "page_state": "shop_page", "entry_state": entry, "shop_menu_ready": shop_menu_ready,
               "elapsed_ms": round((time.monotonic() - started_at) * 1000)}
     report("completed" if transactions else "skipped", **{key: value for key, value in result.items() if key not in {"city_name", "mode", "target_level"}})
     return result
