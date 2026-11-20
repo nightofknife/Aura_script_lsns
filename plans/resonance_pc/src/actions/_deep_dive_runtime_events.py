@@ -9,6 +9,7 @@ from ._deep_dive_choice_target import (
     can_retry, choice_target, matching_card, native_key, new_card_panel, ordered_cards,
     pending_target, result_progress, target_fields,
 )
+from ._deep_dive_native_choices import is_formation_page
 from ._deep_dive_node_rewards import ITEM_REPLACEMENT, RESULT
 
 BOARD = {'board', 'choose_move', 'choose_rotate'}
@@ -39,7 +40,8 @@ def create_context(event_type, owner, now, *, source_action_id=None, resume='sca
 
 def _signature(o):
     return repr((o.get('scene'), [(r.get('point'), r.get('selected'), native_key(r.get('native')))
-                                  for r in o.get('cards', [])], native_key(o.get('native'))))
+                                  for r in o.get('cards', [])], native_key(o.get('native')),
+                 o.get('formation_level_id')))
 
 
 def _stable(context, o, now):
@@ -95,6 +97,10 @@ def _reward_step(context, o, now, resume_scenes):
     scene = o.get('scene')
     if now - reward['progress_at'] > 30:
         return _step('blocked', reason='reward_chain_no_progress')
+    if 'battle_formation' in resume_scenes and is_formation_page(o):
+        # A recognized team page can close front rewards before its native
+        # controls are ready. The caller still receives no input here.
+        scene = 'battle_formation'
     if scene == 'native_choice_wait':
         reward.update(signature=None, stable=0)
         return _step()
@@ -276,18 +282,28 @@ def advance_context(context, observation, now):
         if now - context['progress_at'] >= 30:
             return _step('blocked', reason='shop_no_progress')
         return _step()
-    if context['phase'] == 'entry_wait' and scene == 'battle_formation':
-        native_kind = (o.get('native') or {}).get('kind')
-        if native_kind == 'formation_leave':
-            return _step()
-        if native_kind == 'formation_fill':
-            if now - context['progress_at'] >= 45:
-                return _step('blocked', reason='formation_fill_no_progress')
-            context['progress_at'] = now
-            context['trace'].append(dict(action='formation_fill', at=now))
-            return _step('input_requested', target=choice_target(o, 'confirm', None), action='formation_fill')
-        context.update(phase='battle_wait', seen_content=True, progress_at=now)
-        return _issue(context, 'battle_start', choice_target(o, 'confirm', o.get('click')), now)
+    if context['phase'] == 'entry_wait' and is_formation_page(o):
+        if not context.get('formation_seen'):
+            context.update(formation_seen=True, progress_at=now)
+        if o.get('native_wait_reason'):
+            context['formation_wait_reason'] = o['native_wait_reason']
+        native = o.get('native') or {}
+        expected_level = context.get('battle_level')
+        level_matches = expected_level is None or expected_level == native.get('subject_id')
+        if scene == 'battle_formation' and level_matches:
+            native_kind = native.get('kind')
+            if native_kind == 'formation_leave':
+                return _step()
+            if native_kind == 'formation_fill':
+                if now - context['progress_at'] >= 45:
+                    return _step('blocked', reason='formation_fill_no_progress')
+                context['progress_at'] = now
+                context['trace'].append(dict(action='formation_fill', at=now))
+                return _step('input_requested', target=choice_target(o, 'confirm', None), action='formation_fill')
+            target = choice_target(o, 'confirm', o.get('click'))
+            if target is not None:
+                context.update(phase='battle_wait', seen_content=True, progress_at=now)
+                return _issue(context, 'battle_start', target, now)
     if context['phase'] in {'entry_wait', 'battle_wait'} and scene == 'battle_victory':
         context.update(victory=True, phase='battle_rewards', progress_at=now)
         return _issue(context, 'battle_next', choice_target(o, 'confirm', o.get('click')), now)
@@ -299,5 +315,8 @@ def advance_context(context, observation, now):
             return _step('completed', evidence='battle_victory_and_return')
     phase_limit = 600 if context['phase'] == 'battle_wait' else 45
     if now - context['progress_at'] >= phase_limit:
+        if context['phase'] == 'entry_wait' and context.get('formation_seen'):
+            reason = context.get('formation_wait_reason')
+            return _step('blocked', reason='formation_not_ready' + (':' + reason if reason else ''))
         return _step('blocked', reason='battle_no_progress:' + context['phase'])
     return _step()

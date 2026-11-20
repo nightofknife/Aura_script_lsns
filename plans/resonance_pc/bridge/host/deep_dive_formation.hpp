@@ -7,6 +7,7 @@ local formation_url = 'UI/CubeRogue/Team_Cube/Team_Battle'
 local main_url = 'UI/CubeRogue/Main/CubeRogueMain'
 local quit_url = 'UI/CubeRogue/Quit/CubeRogueQuit'
 local main_controller = 'UICubeRogueMain/UICubeRoguewMainController'
+local formation_size = 5
 
 local function formation_board()
     local model = package.loaded['UICubeRogueMain/UICubeRogueMainDataModel']
@@ -38,51 +39,79 @@ local function formation_control(panel, kind, identity, subject, target)
     return panel
 end
 
+local function formation_wait(panel, reason)
+    panel.wait_reason = reason
+    return panel
+end
+
 local function read_formation(url)
     if url ~= formation_url then return nil end
     local prefix = 'UITeam_Battle/UITeam_Battle'
-    local model = package.loaded[prefix .. 'DataModel']
-    if not model or model.mode ~= 'CubeSquad' then return nil end
     local panel = {kind='formation_start', ready=false, rows={}}
-    local view = package.loaded[prefix .. 'View']
-    local buttons = package.loaded[prefix .. 'ViewFunction']
+    local model = package.loaded[prefix .. 'DataModel']
+    if not model or not model.mode then return formation_wait(panel, 'formation_model_unavailable') end
+    if model.mode ~= 'CubeSquad' then return nil end
     local owner = UIManager:GetPanel(url)
+    if not owner then return formation_wait(panel, 'formation_owner_unavailable') end
+    local view = package.loaded[prefix .. 'View']
+    if not visible(view) then return formation_wait(panel, 'formation_view_hidden') end
     local level = reward_choice_id(model.levelId)
+    if not level then return formation_wait(panel, 'formation_level_unavailable') end
+    panel.subject_id, panel.required_count = level, formation_size
+    if owner.IsPlayAnimator then return formation_wait(panel, 'formation_animating') end
+    if model.curLevelIndex ~= 1 then return formation_wait(panel, 'formation_level_tab_inactive') end
+    if model.isDrag then return formation_wait(panel, 'formation_drag_active') end
     local slots = model.levelRoleList
-    if not owner or owner.IsPlayAnimator or not visible(view) or not buttons or not level
-        or model.curLevelIndex ~= 1 or model.isDrag or type(slots) ~= 'table' or #slots < 1 then return panel end
+    if type(slots) ~= 'table' or #slots ~= formation_size then
+        return formation_wait(panel, 'formation_slots_invalid')
+    end
 
-    local run, roster, available = formation_roster()
-    if not run then return panel end
     local selected, count = {}, 0
-    for slot=1,#slots do
+    for slot=1,formation_size do
         if slots[slot] ~= -1 then
             local id = reward_choice_id(slots[slot])
-            if not id or not roster[id] or selected[id] then return panel end
+            if not id or selected[id] then return formation_wait(panel, 'formation_slots_invalid') end
             selected[id] = true
             count = count + 1
         end
     end
-    panel.selected_count, panel.available_count, panel.required_count = count, available, #slots
-    if count == #slots and visible(view.Btn_Battle) and type(buttons.Team_Battle_Btn_Battle_Click) == 'function' then
-        panel.confirm = buttons.Team_Battle_Btn_Battle_Click
+    panel.selected_count = count
+    local buttons = package.loaded[prefix .. 'ViewFunction']
+    -- The native start callback validates occupied slots and saves any deck changes.
+    -- Roster data is only needed to choose how to handle open slots.
+    if count == formation_size then
+        local confirm = buttons and buttons.Team_Battle_Btn_Battle_Click
+        if type(confirm) ~= 'function' then return formation_wait(panel, 'formation_start_callback_missing') end
+        if not visible(view.Btn_Battle) then return formation_wait(panel, 'formation_start_button_hidden') end
+        panel.confirm = confirm
         return formation_control(panel, 'formation_start', view.self, level, level)
     end
-    if available < #slots then
+
+    local run, roster, available = formation_roster()
+    if not run then return formation_wait(panel, 'formation_roster_unavailable') end
+    panel.available_count = available
+    for id in pairs(selected) do
+        if not roster[id] then return formation_wait(panel, 'formation_selected_role_unavailable') end
+    end
+    if available < formation_size then
         local board = formation_board()
-        local back = buttons.Team_Battle_Btn_Back_Click
-        if not board or not visible(view.Btn_Back) or type(back) ~= 'function' then return panel end
+        local back = buttons and buttons.Team_Battle_Btn_Back_Click
+        if not board or not visible(view.Btn_Back) or type(back) ~= 'function' then
+            return formation_wait(panel, 'formation_back_unavailable')
+        end
         panel.confirm = function()
             back(nil, nil)
             -- Saving the deck can replace CubeRogueData while the current board persists.
-            tracking.formation_exit = {board=board, level=level, required=#slots}
+            tracking.formation_exit = {board=board, level=level, required=formation_size}
         end
         return formation_control(panel, 'formation_leave', view.self, level, level)
     end
 
-    local click = buttons.Team_Battle_ScrollGrid_RoleList_Group_RoleFace_Btn_Click_Click
+    local click = buttons and buttons.Team_Battle_ScrollGrid_RoleList_Group_RoleFace_Btn_Click_Click
     if not visible(view.ScrollGrid_RoleList) or type(click) ~= 'function'
-        or type(model.Roles) ~= 'table' or type(model.roleCheckMap) ~= 'table' then return panel end
+        or type(model.Roles) ~= 'table' or type(model.roleCheckMap) ~= 'table' then
+        return formation_wait(panel, 'formation_recruit_controls_unavailable')
+    end
     local function eligible(id)
         return id and roster[id] and not selected[id] and not model.roleCheckMap[tostring(id)]
     end
@@ -97,7 +126,7 @@ local function read_formation(url)
             if eligible(id) and (not candidate or id < candidate) then candidate = id end
         end
     end
-    if not candidate then return panel end
+    if not candidate then return formation_wait(panel, 'formation_recruit_unavailable') end
     panel.fill = function()
         click(nil, tostring(candidate))
         for _, role in ipairs(model.levelRoleList) do
@@ -113,17 +142,20 @@ local function read_formation_exit(url)
     if not exit or (url ~= main_url and url ~= quit_url) then return nil end
     local panel = {kind=url == main_url and 'formation_quit' or 'formation_finish', ready=false, rows={}}
     local run, _, available = formation_roster()
-    if not run then return panel end
+    if not run then return formation_wait(panel, 'formation_roster_unavailable') end
     if formation_board() ~= exit.board or available >= exit.required then
         tracking.formation_exit = nil
         return nil
     end
     local owner = UIManager:GetPanel(url)
-    if not owner or owner.IsPlayAnimator then return panel end
+    if not owner then return formation_wait(panel, 'formation_owner_unavailable') end
+    if owner.IsPlayAnimator then return formation_wait(panel, 'formation_animating') end
     if url == main_url then
         local view = package.loaded['UICubeRogueMain/UICubeRogueMainView']
         local controller = package.loaded[main_controller]
-        if not visible(view) or not controller or not controller.CanDealRotStuff() then return panel end
+        if not visible(view) or not controller or not controller.CanDealRotStuff() then
+            return formation_wait(panel, 'formation_quit_unavailable')
+        end
         -- Open the same quit panel as the main return button, including when an event owns the board.
         panel.confirm = function() UIManager:Open(quit_url) end
         return formation_control(panel, 'formation_quit', view.self, exit.level, exit.level)
@@ -133,7 +165,7 @@ local function read_formation_exit(url)
     local buttons = package.loaded[prefix .. 'ViewFunction']
     local finish = buttons and buttons.CubeRogueQuit_Group_Btn_Btn_Finish_Click
     if not view or not view.Group_Btn or not visible(view.Group_Btn.Btn_Finish)
-        or type(finish) ~= 'function' then return panel end
+        or type(finish) ~= 'function' then return formation_wait(panel, 'formation_finish_unavailable') end
     panel.confirm = function()
         finish(nil, nil)
         tracking.formation_exit = nil
