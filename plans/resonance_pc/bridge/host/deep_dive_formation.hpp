@@ -44,6 +44,15 @@ local function formation_wait(panel, reason)
     return panel
 end
 
+local function formation_entry_finished(owner)
+    local animator = owner:GetComponent(typeof(CS.UnityEngine.Animator))
+    if not animator or animator:IsNull() or not animator.isActiveAndEnabled
+        or animator.layerCount ~= 1 or animator:IsInTransition(0) then return false end
+    local state = animator:GetCurrentAnimatorStateInfo(0)
+    -- The page requests Animation_SelectOpen, but its controller only has Team_Battle.
+    return state:IsName('Base Layer.Team_Battle') and not state.loop and state.normalizedTime >= 1
+end
+
 local function read_formation(url)
     if url ~= formation_url then return nil end
     local prefix = 'UITeam_Battle/UITeam_Battle'
@@ -58,7 +67,6 @@ local function read_formation(url)
     local level = reward_choice_id(model.levelId)
     if not level then return formation_wait(panel, 'formation_level_unavailable') end
     panel.subject_id, panel.required_count = level, formation_size
-    if owner.IsPlayAnimator then return formation_wait(panel, 'formation_animating') end
     if model.curLevelIndex ~= 1 then return formation_wait(panel, 'formation_level_tab_inactive') end
     if model.isDrag then return formation_wait(panel, 'formation_drag_active') end
     local slots = model.levelRoleList
@@ -76,6 +84,9 @@ local function read_formation(url)
         end
     end
     panel.selected_count = count
+    if owner.IsPlayAnimator and not formation_entry_finished(owner) then
+        return formation_wait(panel, 'formation_animating')
+    end
     local buttons = package.loaded[prefix .. 'ViewFunction']
     -- The native start callback validates occupied slots and saves any deck changes.
     -- Roster data is only needed to choose how to handle open slots.
@@ -83,6 +94,12 @@ local function read_formation(url)
         local confirm = buttons and buttons.Team_Battle_Btn_Battle_Click
         if type(confirm) ~= 'function' then return formation_wait(panel, 'formation_start_callback_missing') end
         if not visible(view.Btn_Battle) then return formation_wait(panel, 'formation_start_button_hidden') end
+        local widget = view.Btn_Battle
+        if type(widget) == 'table' then widget = widget.self end
+        local button = widget.Btn
+        if not button or button:IsNull() or not button.isActiveAndEnabled or not button:IsInteractable() then
+            return formation_wait(panel, 'formation_start_button_disabled')
+        end
         panel.confirm = confirm
         return formation_control(panel, 'formation_start', view.self, level, level)
     end
