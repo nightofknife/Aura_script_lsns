@@ -23,6 +23,7 @@ from packages.aura_core.observability.logging.stream_capture import install_capt
 from packages.resonance_gui.config_repository import ResonanceConfigRepository
 from packages.resonance_gui.main_window import ResonanceMainWindow
 from packages.resonance_gui.paths import resolve_application_root
+from packages.resonance_gui.style import ResonanceStyle
 from packages.resonance_gui.widgets.workflow_page import WORKFLOW_TASKS
 
 
@@ -84,7 +85,7 @@ def _light_application_palette() -> QPalette:
 def _configure_application(app: QApplication) -> QIcon:
     app.setApplicationName("Aura Resonance GUI")
     app.setOrganizationName("Aura")
-    app.setStyle("Fusion")
+    app.setStyle(ResonanceStyle())
     app.setPalette(_light_application_palette())
     icon = _load_application_icon()
     app.setWindowIcon(icon)
