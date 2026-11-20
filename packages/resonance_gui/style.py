@@ -1,5 +1,74 @@
 """Application styling for the Resonance operator console."""
 
+from PySide6.QtCore import QLineF, QRectF, Qt
+from PySide6.QtGui import QColor, QPainter, QPainterPath, QPen
+from PySide6.QtWidgets import QCheckBox, QProxyStyle, QStyle, QStyleOption, QWidget
+
+
+class ResonanceStyle(QProxyStyle):
+    def __init__(self) -> None:
+        super().__init__("Fusion")
+
+    def drawPrimitive(
+        self,
+        element: QStyle.PrimitiveElement,
+        option: QStyleOption,
+        painter: QPainter,
+        widget: QWidget | None = None,
+    ) -> None:
+        if element != QStyle.PrimitiveElement.PE_IndicatorCheckBox or not isinstance(widget, QCheckBox):
+            super().drawPrimitive(element, option, painter, widget)
+            return
+
+        flags = QStyle.StateFlag
+        state = option.state
+        enabled = bool(state & flags.State_Enabled)
+        partial = bool(state & flags.State_NoChange)
+        checked = bool(state & flags.State_On)
+        marked = checked or partial
+        focused = enabled and bool(state & flags.State_HasFocus)
+
+        if enabled:
+            border = "#465e40" if marked else "#6d6458"
+            fill = "#4d6847" if marked else "#fffaf0"
+            mark = "#ffffff"
+            if state & flags.State_Sunken:
+                fill = "#394e35" if marked else "#e8decc"
+        else:
+            border = "#b6ad9e"
+            fill = "#c8cbbf" if marked else "#eee9df"
+            mark = "#53594c"
+
+        box = QRectF(option.rect).adjusted(1, 1, -1, -1)
+        left, top = box.left(), box.top()
+        width, height = box.width(), box.height()
+
+        painter.save()
+        try:
+            painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+            painter.setPen(QPen(QColor("#31566d" if focused else border), 2 if focused else 1.4))
+            painter.setBrush(QColor(fill))
+            painter.drawRoundedRect(box, 2, 2)
+
+            if marked:
+                pen = QPen(QColor(mark), 1.8)
+                pen.setCapStyle(Qt.PenCapStyle.RoundCap)
+                pen.setJoinStyle(Qt.PenJoinStyle.RoundJoin)
+                painter.setPen(pen)
+                painter.setBrush(Qt.BrushStyle.NoBrush)
+                if partial:
+                    middle = box.center().y()
+                    painter.drawLine(QLineF(left + width * 0.25, middle, left + width * 0.75, middle))
+                else:
+                    check = QPainterPath()
+                    check.moveTo(left + width * 0.22, top + height * 0.52)
+                    check.lineTo(left + width * 0.43, top + height * 0.72)
+                    check.lineTo(left + width * 0.78, top + height * 0.30)
+                    painter.drawPath(check)
+        finally:
+            painter.restore()
+
+
 APP_STYLE = """
 QMainWindow, QWidget#appRoot {
     background: #f2ebdd;
@@ -9,6 +78,7 @@ QMainWindow, QWidget#appRoot {
 }
 QWidget { color: #38342e; }
 QLabel, QCheckBox, QRadioButton, QGroupBox { color: #38342e; }
+QCheckBox:disabled { color: #756d61; }
 QFrame#navigation {
     background: #e8decc;
     border: 0;
