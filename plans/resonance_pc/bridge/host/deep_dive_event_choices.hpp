@@ -138,7 +138,8 @@ end
 
 if network_busy() then
     if command ~= 'read' then return {status='waiting'} end
-    return {status='waiting', kind=tracking.identity and tracking.kind or 'none'}
+    return {status='waiting', kind=tracking.identity and tracking.kind or 'none',
+            wait_reason='network_busy'}
 end
 
 local url = UIManager and UIManager:GetCurrentPanelURL()
@@ -163,7 +164,12 @@ if panel.identity and (tracking.identity ~= panel.identity or tracking.kind ~= p
 end
 
 if command == 'read' then
-    if not panel.ready then return {status='waiting', kind=panel.kind, reason=panel.reason} end
+    if not panel.ready then
+        return {status='waiting', kind=panel.kind, reason=panel.reason, wait_reason=panel.wait_reason,
+                subject_id=panel.kind == 'formation_start' and panel.subject_id or nil,
+                selected_count=panel.selected_count, available_count=panel.available_count,
+                required_count=panel.required_count}
+    end
     local status = tracking.submitted and 'submitted' or 'ready'
     return {status=status, kind=panel.kind, revision=tracking.revision,
             subject_id=panel.subject_id, rows=panel.rows, selected_count=panel.selected_count,

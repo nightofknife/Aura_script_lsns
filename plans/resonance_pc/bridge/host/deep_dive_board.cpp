@@ -564,19 +564,22 @@ Json perform_choice(LuaState *state, const Json &args) {
     return {{"status", status}};
   Json snapshot = {{"schema", "resonance_pc.deep_dive_choice.v1"}, {"status", status},
                    {"kind", lua.text(result, "kind")}};
-  const auto reason = lua.text(result, "reason");
-  if (!reason.empty())
-    snapshot["reason"] = reason;
+  for (const auto field : {"reason", "wait_reason"})
+    if (auto value = lua.text(result, field); !value.empty())
+      snapshot[field] = std::move(value);
   for (const auto field : {"selected_count", "available_count", "required_count"})
     if (const auto value = lua.number(result, field))
       snapshot[field] = *value;
   const auto trace_mode = args.value("event_trace", std::string{});
   if (trace_mode == "sample" || trace_mode == "stop")
     snapshot["event_trace"] = read_event_trace(state, trace_mode);
-  if (status != "ready" && status != "submitted")
-    return snapshot;
-  const auto observed_revision = lua.number(result, "revision").value_or(0);
   const auto observed_subject = lua.number(result, "subject_id").value_or(0);
+  if (status != "ready" && status != "submitted") {
+    if (status == "waiting" && observed_subject > 0)
+      snapshot["subject_id"] = observed_subject;
+    return snapshot;
+  }
+  const auto observed_revision = lua.number(result, "revision").value_or(0);
   const int rows = lua.field(result, "rows");
   const auto count = lua.type(rows) == lua_table ? lua.api.raw_length(state, rows) : 0;
   if (!observed_revision || !observed_subject || count == 0 || count > 4)

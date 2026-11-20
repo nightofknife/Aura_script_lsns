@@ -6,6 +6,15 @@ from ._deep_dive_node_rewards import ITEM_REPLACEMENT
 from ._deep_dive_vortex_vision import catalog as vortex_catalog
 
 
+FORMATION_KINDS = {'formation_fill', 'formation_start', 'formation_leave'}
+
+
+def is_formation_page(observation):
+    scene = observation.get('scene')
+    return scene == 'battle_formation' or (
+        scene == 'native_choice_wait' and observation.get('formation_seen') is True)
+
+
 @lru_cache(maxsize=2)
 def _policy(event_type):
     catalog = {'healing': healing_catalog, 'vortex': vortex_catalog}.get(event_type)
@@ -22,13 +31,25 @@ def observe_choice(observation, snapshot, event_type):
     if status == 'absent':
         return observation
     current = dict(observation, valid=True, scene='native_choice_wait', native_choice_kind=kind,
-                   native_choice_reason=snapshot.get('reason'))
+                   native_choice_reason=snapshot.get('reason'), native_choice_status=status)
     current.pop('click', None)
+    current.pop('native', None)
+    subject_id = snapshot['subject_id'] if status == 'ready' else snapshot.get('subject_id')
+    if kind in FORMATION_KINDS and type(subject_id) is int and subject_id > 0:
+        current['formation_level_id'] = subject_id
+    wait_reason = snapshot.get('wait_reason')
+    visual_formation = observation.get('scene') == 'battle_formation' and (
+        kind == 'none' or kind in FORMATION_KINDS or wait_reason == 'network_busy')
+    counts = {key: snapshot[key] for key in ('selected_count', 'available_count', 'required_count')
+              if key in snapshot}
+    if status == 'waiting':
+        current['native_wait_reason'] = wait_reason
+        if 'formation_level_id' in current or visual_formation:
+            current.update(formation_seen=True, formation=counts)
     if status != 'ready':
         return current
 
     revision = snapshot['revision']
-    subject_id = snapshot['subject_id']
     rows = snapshot['rows']
     controls = [dict(kind=kind, revision=revision, subject_id=subject_id,
                      index=row['index'], id=row['id']) for row in rows]
@@ -36,9 +57,7 @@ def observe_choice(observation, snapshot, event_type):
         return dict(current, scene=ITEM_REPLACEMENT, native=controls[0])
     if kind in {'battle_defeat', 'battle_victory'}:
         return dict(current, scene=kind, native=controls[0])
-    if kind in {'formation_fill', 'formation_start', 'formation_leave'}:
-        counts = {key: snapshot[key] for key in ('selected_count', 'available_count', 'required_count')
-                  if key in snapshot}
+    if kind in FORMATION_KINDS:
         return dict(current, scene='battle_formation', native=controls[0], formation=counts)
     if kind in {'formation_quit', 'formation_finish'}:
         return dict(current, scene=kind, native=controls[0])

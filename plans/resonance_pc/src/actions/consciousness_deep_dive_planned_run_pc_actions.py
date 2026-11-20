@@ -30,7 +30,7 @@ from ._deep_dive_planned_run_vision import (
 )
 from .consciousness_deep_dive_scan_pc_actions import reset_layout_view
 from ._deep_dive_native_layout import layout_from_board, native_cell_for_slot
-from ._deep_dive_native_choices import observe_choice
+from ._deep_dive_native_choices import is_formation_page, observe_choice
 from ._deep_dive_scan_budget import normalize_scan_route, resolve_scan_budget, post_scan_recognition_budget
 from ._deep_dive_movement_planner import ENCOUNTER_THEN_INSPIRATION, STRATEGIES, plan_current_state
 from ._deep_dive_target_readiness import targets_readiness, check_required_cells
@@ -290,7 +290,8 @@ def _stop(state, reason, image=None, *, status='blocked'):
 
 
 def _stable_scene(state, observation):
-    signature = (observation.get('scene'), observation.get('event_type'), observation.get('outcome'))
+    signature = (observation.get('scene'), observation.get('event_type'), observation.get('outcome'),
+                 observation.get('formation_level_id'))
     if list(signature) == state.get('scene_signature'):
         state['scene_stable'] += 1
     else:
@@ -1073,7 +1074,7 @@ def _action_outcome(state, image, observation, hud):
 
 
 async def _direct_boss_formation_cell(state, app, observation):
-    if observation.get('scene') != 'battle_formation' or not _stable_scene(state, observation):
+    if not is_formation_page(observation) or not _stable_scene(state, observation):
         return None
     try:
         board = await _owned(asyncio.to_thread(app.controller.bridge.read_deep_dive_board))
@@ -1160,19 +1161,27 @@ async def _events(state, app, image, observation):
     now = time.monotonic()
     flow = context['flow']
     pending = flow.get('vortex_pending') or {}
+    formation = observation.get('native') or {}
+    formation_level = observation.get('formation_level_id', formation.get('subject_id'))
+    formation_seen = is_formation_page(observation)
     if (context['event_type'] == 'vortex' and pending.get('kind') == 'option_submit'
-            and pending.get('battle_level') and observation.get('scene') == 'battle_formation'
+            and pending.get('battle_level') and formation_seen and formation_level is not None
             and _stable_scene(state, observation)):
-        formation = observation.get('native') or {}
-        if formation.get('subject_id') != pending['battle_level']:
+        if formation_level != pending['battle_level']:
             _stop(state, 'vortex_battle_level_mismatch', image)
             return
         flow.pop('vortex_pending')
         flow.update(vortex_submitted=True, vortex_progress_at=now)
         child = create_context('battle', 'vortex_sub_battle', now, source_action_id=context['source_action_id'])
+        child['battle_level'] = pending['battle_level']
         state['event_stack'].append(child)
         _log(state, 'vortex_battle_started', level_id=pending['battle_level'],
              choice_id=pending['native']['id'])
+        return
+    if (context.get('battle_level') and context['phase'] == 'entry_wait' and formation_seen
+            and formation_level is not None and formation_level != context['battle_level']):
+        if _stable_scene(state, observation):
+            _stop(state, 'vortex_battle_level_mismatch', image)
         return
     if (context['event_type'] in {'battle', 'elite_battle', 'boss_battle'}
             and context['phase'] == 'entry_wait'
@@ -1379,7 +1388,7 @@ async def _advance_state(state, app, state_store, event_bus, image, observation,
             await _rest(state, app, image, observation)
         return
     if state['phase'] in {'operation_outcome', 'verify_move'}:
-        if scene == 'battle_formation':
+        if is_formation_page(observation):
             action = state.get('pending_action') or {}
             if (action.get('kind') == 'rotate' and action.get('submitted')
                     and action['before_hud']['moves_used'] == 1
@@ -1676,6 +1685,15 @@ async def advance_deep_dive_planned_run(session_key: str, app: Any = None, ocr: 
             _RUN_ANCHOR_READ.set(await anchor_task)
         state['last_scene'] = observation.get('scene', 'unknown')
         state['last_hud_read'] = _jsonable(raw_hud)
+        formation_wait = None
+        if observation.get('native_choice_status') == 'waiting' and is_formation_page(observation):
+            formation_wait = dict(reason=observation.get('native_wait_reason'),
+                                  level_id=observation.get('formation_level_id'),
+                                  **observation.get('formation', {}))
+        if formation_wait != state.get('last_formation_wait'):
+            state['last_formation_wait'] = formation_wait
+            if formation_wait:
+                _log(state, 'native_formation_wait', **formation_wait)
         await _advance_state(state, app, state_store, event_bus, image, observation, raw_hud)
         if state['status'] == 'running':
             limit = PHASE_LIMITS.get(state['phase'], 45)
@@ -1686,6 +1704,7 @@ async def advance_deep_dive_planned_run(session_key: str, app: Any = None, ocr: 
             if time.monotonic() - state['phase_started'] >= limit:
                 details = (state.get('last_hud_unknown') or state.get('last_mapping_reason')
                            or (state.get('pending_action') or {}).get('last_mapping_reason')
+                           or (state.get('last_formation_wait') or {}).get('reason')
                            or state.get('last_scene'))
                 _stop(state, 'phase_timeout:' + state['phase'] + ':' + str(details), image)
         if state['status'] == 'running':
