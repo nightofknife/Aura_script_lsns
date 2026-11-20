@@ -76,8 +76,7 @@ DEFAULT_TRADE_INPUTS: dict[str, Any] = {
     "fatigue_budget": 700,
     "cargo_capacity": 750,
     "book_budget": 0,
-    "book_limit_per_stop": None,
-    "book_limit_per_stop_draft": 1,
+    "book_limit_per_stop": 0,
     "trade_mode": "free",
     "book_policy": "profit",
     "negotiation_policy": "auto",
@@ -138,7 +137,6 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "cargo_capacity",
     "book_budget",
     "book_limit_per_stop",
-    "book_limit_per_stop_draft",
     "trade_mode",
     "book_policy",
     "negotiation_policy",
@@ -164,7 +162,7 @@ TRADE_PREVIEW_INPUT_KEYS: tuple[str, ...] = (
     "product_unlocks",
 )
 TRADE_PREVIEW_REQUEST_KEYS = (
-    *(key for key in TRADE_PREVIEW_INPUT_KEYS if key != "book_limit_per_stop_draft"),
+    *TRADE_PREVIEW_INPUT_KEYS,
     "market_proxy_mode", "market_proxy_port",
 )
 
@@ -487,12 +485,11 @@ class ResonanceConfigRepository:
         self.settings.sync()
 
 
-def normalize_book_limit_preferences(values: Mapping[str, Any]) -> tuple[int | None, int]:
-    limit = validate_book_limit_per_stop(values.get("book_limit_per_stop"))
-    draft = validate_book_limit_per_stop(values.get("book_limit_per_stop_draft", limit or 1))
-    if draft is None or max(limit or 0, draft) > MAX_BOOK_LIMIT_PER_STOP:
-        raise ValueError(f"单站用书上限必须为 1 到 {MAX_BOOK_LIMIT_PER_STOP} 之间的整数。")
-    return limit, limit or draft
+def normalize_book_limit_preference(value: Any) -> int:
+    limit = validate_book_limit_per_stop(value) or 0
+    if limit > MAX_BOOK_LIMIT_PER_STOP:
+        raise ValueError(f"单站用书上限必须为 0 到 {MAX_BOOK_LIMIT_PER_STOP} 之间的整数。")
+    return limit
 
 
 def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
@@ -555,7 +552,7 @@ def _merge_trade_inputs(values: dict[str, Any]) -> dict[str, Any]:
         raise ValueError("有限进货书数量必须为非负整数。")
     merged["finite_book_budget"] = finite
     merged["book_budget"] = (None if merged["books_unlimited"] else finite) if merged["books_enabled"] else 0
-    merged["book_limit_per_stop"], merged["book_limit_per_stop_draft"] = normalize_book_limit_preferences(values)
+    merged["book_limit_per_stop"] = normalize_book_limit_preference(merged["book_limit_per_stop"])
     merged["auto_cape_island_investment"] = bool(merged["auto_cape_island_investment"])
     merged["auto_trade_goods_investment"] = bool(merged["auto_trade_goods_investment"])
     merged["trade_goods_investment_mode"] = validate_trade_goods_investment_level(merged["trade_goods_investment_mode"])

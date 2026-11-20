@@ -83,7 +83,7 @@ preview_trade_plan_pc:
         nullable: true
         required: false
         default: null
-        min: 1
+        min: 0
       - name: book_profit_threshold
         type: number
         strict_integer: true

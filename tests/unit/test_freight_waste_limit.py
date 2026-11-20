@@ -197,16 +197,16 @@ def test_waste_allowance_participates_in_cache_but_fill_profit_threshold_does_no
 
 def test_single_stop_cap_is_cached_only_when_books_are_enabled(service):
     api, calls = service
-    for cap in (None, 1, 2, 1):
+    for cap in (None, 0, 1, 2, 1):
         result = plan(api, book_budget=None, book_limit_per_stop=cap)
-        assert result["book_limit_per_stop"] == cap
+        assert result["book_limit_per_stop"] == (cap or None)
     assert [call["book_limit_per_stop"] for call in calls] == [None, 1, 2]
     assert plan(api, book_budget=0, book_limit_per_stop=1) == plan(api, book_budget=0)
     assert len(calls) == 4
 
 
-@pytest.mark.parametrize("cap", [0, -1, True, 1.0, "1"])
-def test_single_stop_cap_requires_positive_integer_when_books_are_enabled(cap):
+@pytest.mark.parametrize("cap", [-1, True, False, 1.0, "1"])
+def test_single_stop_cap_requires_nonnegative_integer_when_books_are_enabled(cap):
     with pytest.raises(ValueError, match="book_limit_per_stop"):
         solve(solver(), book_budget=None, book_limit_per_stop=cap)
 

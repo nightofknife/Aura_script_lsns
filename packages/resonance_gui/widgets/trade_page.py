@@ -50,7 +50,7 @@ from ..config_repository import (
     TRADE_PREVIEW_INPUT_KEYS,
     TRADE_PREVIEW_REQUEST_KEYS,
     ResonanceConfigRepository,
-    normalize_book_limit_preferences,
+    normalize_book_limit_preference,
 )
 from ..logic import (
     validate_pickup_click_interval,
@@ -491,8 +491,7 @@ class TradePage(QWidget):
             "cargo_capacity": "规划时使用的货舱总容量，请填写游戏中实际可用的容量。",
             "book_usage": "不用书、有限书数或不限书数；不用书仍购买基础库存中的盈利商品，有限书数是整趟任务的总额度。",
             "book_budget": "本次完整货运最多使用的进货书总数。",
-            "book_limit_per_stop_enabled": "限制每次停靠进货使用的进货书总数。收益优先和优先满仓都受此限制。",
-            "book_limit_per_stop": "从起始站的第一次进货开始生效。再次到访同一城市时按新的停靠计算，所有用书仍计入整趟总额度。",
+            "book_limit_per_stop": "0 表示单站不限。正数限制每次停靠进货使用的总本数，收益优先和优先满仓均受限。起始站也计入，重访同一城市按新的停靠计算。",
             "book_policy": "优先满仓忽略单本收益阈值，在单站上限、整趟额度和浪费上限内尽量装满，首次满仓后停止加书。收益优先按单本收益阈值决定是否用书。",
             "book_waste_limit": "仅优先满仓生效。浪费指用书后符合交易条件商品的可购总量超过货舱容量、未装入的货物数量；0 表示不允许浪费货物。",
             "negotiation_policy": "程序决定、每次买卖都协商或不协商；与用书策略独立。",
@@ -783,9 +782,9 @@ class TradePage(QWidget):
         for caption, value in (("不用书", "none"), ("限量用书", "finite"), ("无限用书", "unlimited")):
             self.book_usage.addItem(caption, value)
         self.book_budget = self._spin(0, 100000)
-        self.book_limit_per_stop_enabled = FreightSwitch("单站用书上限", content)
-        self.book_limit_per_stop = self._spin(1, MAX_BOOK_LIMIT_PER_STOP)
+        self.book_limit_per_stop = self._spin(0, MAX_BOOK_LIMIT_PER_STOP)
         self.book_limit_per_stop.setSuffix(" 本")
+        self.book_limit_per_stop.setSpecialValueText("0（不限）")
         self.book_policy = QComboBox(content)
         self.book_policy.addItem("收益优先", "profit")
         self.book_policy.addItem("优先满仓", "fill")
@@ -798,7 +797,7 @@ class TradePage(QWidget):
         parameter_fields(layout, ("用书额度", self.book_usage))
         self.book_fields = parameter_fields(
             layout, ("有限书数", self.book_budget),
-            ("单站用书上限", self.book_limit_per_stop_enabled), ("单站最多用书", self.book_limit_per_stop),
+            ("单站用书上限", self.book_limit_per_stop),
             ("用书策略", self.book_policy),
             ("单本收益阈值", self.book_profit_threshold), ("浪费上限", self.book_waste_limit),
         )
@@ -1077,8 +1076,6 @@ class TradePage(QWidget):
         self.target_profit_fields.setVisible(state["target"])
         self.book_fields.setVisible(state["book_rules"])
         self.book_fields.set_field_visible(self.book_budget, state["book_count"])
-        book_stop_limit_active = state["book_rules"] and self.book_limit_per_stop_enabled.isChecked()
-        self.book_fields.set_field_visible(self.book_limit_per_stop, book_stop_limit_active)
         self.book_fields.set_field_visible(self.book_profit_threshold, state["book_threshold"])
         self.book_fields.set_field_visible(self.book_waste_limit, state["book_waste_limit"])
         self.water_threshold_fields.setVisible(state["water"])
@@ -1087,8 +1084,7 @@ class TradePage(QWidget):
         self.medicine_panel.setVisible(state["medicine"])
         for widget, enabled in (
             (self.book_budget, state["book_count"]), (self.book_policy, state["book_rules"]),
-            (self.book_limit_per_stop_enabled, state["book_rules"]),
-            (self.book_limit_per_stop, book_stop_limit_active),
+            (self.book_limit_per_stop, state["book_rules"]),
             (self.book_profit_threshold, state["book_threshold"]),
             (self.book_waste_limit, state["book_waste_limit"]), (self.negotiation_policy, True),
             (self.target_profit_enabled, state["free"]), (self.target_profit, state["target"]),
@@ -1125,8 +1121,7 @@ class TradePage(QWidget):
             widget.valueChanged.connect(self._on_planning_inputs_changed)
         for widget in (self.book_usage, self.book_policy, self.negotiation_policy, self.start_city):
             widget.currentIndexChanged.connect(self._on_planning_inputs_changed)
-        for widget in (*self.mode_buttons.values(), self.reposition_to_route, self.target_profit_enabled,
-                       self.book_limit_per_stop_enabled):
+        for widget in (*self.mode_buttons.values(), self.reposition_to_route, self.target_profit_enabled):
             widget.toggled.connect(self._on_planning_inputs_changed)
         for widget in (self.bargain_rates, self.raise_rates):
             widget.textChanged.connect(self._on_planning_inputs_changed)
@@ -1704,9 +1699,7 @@ class TradePage(QWidget):
         enabled = bool(values.get("books_enabled", budget is None or bool(budget)))
         unlimited = bool(values.get("books_unlimited", budget is None))
         self.book_usage.setCurrentIndex(self.book_usage.findData("unlimited" if enabled and unlimited else "finite" if enabled else "none"))
-        book_limit_per_stop, book_limit_per_stop_draft = normalize_book_limit_preferences(values)
-        self.book_limit_per_stop.setValue(book_limit_per_stop_draft)
-        self.book_limit_per_stop_enabled.setChecked(book_limit_per_stop is not None)
+        self.book_limit_per_stop.setValue(normalize_book_limit_preference(values.get("book_limit_per_stop")))
         arrival_timeout_seconds = self._input_integer(values, "arrival_timeout_seconds", 3600, minimum=1)
         self.arrival_timeout_minutes.setValue(max((arrival_timeout_seconds + 59) // 60, 1))
         self.book_profit_threshold.setValue(float(Decimal(str(values.get("book_profit_threshold", 500000))) / Decimal(10000)))
@@ -1856,7 +1849,7 @@ class TradePage(QWidget):
             "cargo_capacity": self.cargo_capacity.value(),
             "trade_mode": mode,
             "book_budget": None if self.book_usage.currentData() == "unlimited" else self.book_budget.value() if self.book_usage.currentData() == "finite" else 0,
-            "book_limit_per_stop": self.book_limit_per_stop.value() if self.book_limit_per_stop_enabled.isChecked() else None,
+            "book_limit_per_stop": self.book_limit_per_stop.value(),
             "book_policy": str(self.book_policy.currentData()),
             "negotiation_policy": str(self.negotiation_policy.currentData()),
             "book_profit_threshold": self._amount_base_units(self.book_profit_threshold),
@@ -1944,7 +1937,6 @@ class TradePage(QWidget):
         state.update(books_enabled=self.book_usage.currentData() != "none",
                      books_unlimited=self.book_usage.currentData() == "unlimited",
                      finite_book_budget=self.book_budget.value(),
-                     book_limit_per_stop_draft=self.book_limit_per_stop.value(),
                      available_city_ids=self.selected_city_ids(),
                      required_end_city_ids=self._required_end_cities(),
                      fixed_route_city_ids=[str(self.fixed_route.item(index).data(Qt.ItemDataRole.UserRole)) for index in range(self.fixed_route.count())],
