@@ -18,6 +18,20 @@ from packages.aura_core.scheduler.operation_scope import OperationTimeout
 from packages.aura_core.utils.exceptions import TaskControlException
 
 
+def fatigue_window_key(target_identity: object) -> str | None:
+    """Identify the bound PC window across two task invocations."""
+    if not isinstance(target_identity, tuple):
+        return None
+    try:
+        fields = dict(target_identity)
+    except (TypeError, ValueError):
+        return None
+    pid, hwnd = fields.get("pid"), fields.get("hwnd")
+    if type(pid) is int and pid > 0 and type(hwnd) is int and hwnd > 0:
+        return f"{pid}:{hwnd}"
+    return None
+
+
 class FatigueConfirmation:
     """Require a complete identical pair on two consecutive distinct frames."""
 

@@ -1145,11 +1145,17 @@ def recovery_snapshot_task_input(player: Mapping[str, Any]) -> dict[str, Any]:
     """Project snapshot fields without weakening the runner's value validation."""
     fatigue = player["status"]["fatigue"]
     recovery = player.get("recovery") or {}
+    metadata = player["metadata"]
     projected = {
         "status": {"fatigue": {"current": fatigue["current"], "max": fatigue["max"]}},
         "recovery": {},
-        "metadata": {"persisted": player["metadata"]["persisted"]},
+        "metadata": {"persisted": metadata["persisted"]},
     }
+    profile_times = metadata.get("profile_section_updated_at") or {}
+    window = metadata.get("fatigue_window")
+    observed_at = profile_times.get("fatigue") if isinstance(profile_times, Mapping) else None
+    if isinstance(window, str) and window and isinstance(observed_at, str) and observed_at:
+        projected["metadata"].update(fatigue_window=window, fatigue_observed_at=observed_at)
     if "sparkling_water" in recovery:
         water = recovery["sparkling_water"]
         projected["recovery"]["sparkling_water"] = {

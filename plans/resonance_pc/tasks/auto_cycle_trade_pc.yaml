@@ -1368,6 +1368,14 @@ auto_cycle_trade_pc:
                 required: true
                 enum:
                 - true
+              fatigue_window:
+                name: fatigue_window
+                type: string
+                required: false
+              fatigue_observed_at:
+                name: fatigue_observed_at
+                type: string
+                required: false
       - name: book_waste_limit
         type: number
         strict_integer: true
