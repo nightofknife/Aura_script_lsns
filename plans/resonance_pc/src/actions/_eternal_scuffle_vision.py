@@ -7,7 +7,9 @@ captures; a detected foreground title anchors the cards on each observation.
 """
 from __future__ import annotations
 
+from collections import OrderedDict
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 import cv2
@@ -42,6 +44,7 @@ _CONTROLS = {
 }
 _SLOTS = ("attack", "defense", "support")
 _TEAM_CARDS = ((229, 35), (494, 35), (758, 35), (229, 297), (494, 297))
+_NAME_CACHE_SIZE = 256
 
 
 class ScuffleVision:
@@ -60,6 +63,8 @@ class ScuffleVision:
         self.catalog, self.plan_root = catalog, Path(plan_root)
         self._images: dict[str, np.ndarray] = {}
         self._variants: dict[tuple, tuple[list, list, list]] = {}
+        self._name_rankings: OrderedDict[tuple, tuple[tuple[int, float], ...]] = OrderedDict()
+        self._name_rankings_lock = Lock()
 
     def _image(self, relative: str) -> np.ndarray:
         if relative not in self._images:
@@ -237,6 +242,27 @@ class ScuffleVision:
                 scores[identifier] = max(scores.get(identifier, -1.), score)
         return [{"id": k, "score": v} for k, v in sorted(scores.items(), key=lambda item: (-item[1], item[0]))]
 
+    def _rank_name(self, image: np.ndarray, kind: str, *, template_shape=None) -> list[dict]:
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY) if image.ndim == 3 else image
+        # The matcher uses grayscale. Identical input pixels give the same scores,
+        # even if the card moved or the artwork outside the name region changed.
+        key = (kind, template_shape, gray.shape, gray.dtype.str, gray.tobytes())
+        with self._name_rankings_lock:
+            scores = self._name_rankings.get(key)
+            if scores is not None:
+                self._name_rankings.move_to_end(key)
+        if scores is None:
+            options = {} if template_shape is None else {"template_shape": template_shape}
+            ranked = self._rank(gray, kind, "name_template", **options)
+            # Three scores per size suffice for acceptance and global top-three diagnostics.
+            scores = tuple((row["id"], row["score"]) for row in ranked[:3])
+            with self._name_rankings_lock:
+                self._name_rankings[key] = scores
+                self._name_rankings.move_to_end(key)
+                if len(self._name_rankings) > _NAME_CACHE_SIZE:
+                    self._name_rankings.popitem(last=False)
+        return [{"id": identifier, "score": score} for identifier, score in scores]
+
     @staticmethod
     def _accepted(ranked: list, threshold: float, margin: float) -> bool:
         return len(ranked) >= 2 and ranked[0]["score"] >= threshold and ranked[0]["score"]-ranked[1]["score"] >= margin
@@ -245,15 +271,14 @@ class ScuffleVision:
         source, _ = self._crop(image, name_box)
         # Keep the whole name field (including blank margins) when comparing.
         source = np.pad(source, ((4, 4), (5, 5), (0, 0)))
-        ranked = self._rank(source, "role", "name_template")
+        ranked = self._rank_name(source, "role")
         if ranked and ranked[0]["score"] >= .80:
             margin = ranked[0]["score"]-ranked[1]["score"] if len(ranked) > 1 else None
-            return dict(ranked[0], margin=margin, method="name"), ranked[:3]
-        return None, ranked[:3]
+            return dict(ranked[0], margin=margin, method="name"), ranked
+        return None, ranked
 
     def _equipment_name(self, image: np.ndarray, name_box: list, scale_x: float = 1.) -> tuple[dict | None, list]:
-        # All equipment IDs compete using full centered rendered names, just
-        # like role identity. No OCR and no artwork fallback on candidate cards.
+        # All equipment IDs compete using full centered rendered names on cache misses.
         templates, _, _ = self._identity_variants("equipment", profile="name_template")
         center_x = name_box[0] + name_box[2]/2
         names = []
@@ -265,7 +290,7 @@ class ScuffleVision:
             source_width = round(width*scale_x)
             source, _ = self._crop(image, [round(center_x-source_width/2), name_box[1], source_width, height])
             source = np.pad(source, ((4, 4), (5, 5), (0, 0)))
-            names.extend(self._rank(source, "equipment", "name_template", template_shape=(height, width)))
+            names.extend(self._rank_name(source, "equipment", template_shape=(height, width)))
         names.sort(key=lambda row: (-row["score"], row["id"]))
         if self._accepted(names, .80, .05):
             return dict(names[0], margin=names[0]["score"]-names[1]["score"], method="equipment_name"), names
@@ -281,23 +306,25 @@ class ScuffleVision:
         sx = observation.get("_scale_x", 1.)
         left = 309 if scene == "loot_select" else 369
         image, output, diagnostics = observation["_image"], [], []
+        select_template = self._image(self._control_spec("D04")["template"])
         for index in range(3):
             x, y = round((left+242*index)*sx)+dx, 191+dy
             rect = [x, y, round(155*sx), 227]
+            # A card without a verified button cannot be selected on this frame.
+            button, offset = self._crop(image, [x-25, 452+dy, 205, 65])
+            match = self.vision.find_template(button, select_template, threshold=.90)
+            point = self._match_dict(match, offset)
+            detail = {"index": index, "top": [], "select_score": float(match.confidence)}
+            diagnostics.append(detail)
+            if point is None:
+                continue
             if kind == "role":
                 identity, ranked = self._role(image, [x+round(7*sx), y+145, round(138*sx), 23])
             else:
                 identity, ranked = self._equipment_name(image, [x-round(6*sx), y+168, round(164*sx), 23], sx)
-            detail = {"index": index, "top": ranked[:3]}
-            diagnostics.append(detail)
+            detail["top"] = ranked[:3]
             if identity:
-                # SELECT's hit box is checked on this same frame, not inferred only from the page.
-                button, _ = self._crop(image, [x-25, 452+dy, 205, 65])
-                spec = self._control_spec("D04")
-                match = self.vision.find_template(button, self._image(spec["template"]), threshold=.90)
-                point = self._match_dict(match, (x-25, 452+dy))
-                if point:
-                    output.append(dict(identity, index=index, rect=rect, center=[x+77, y+113], select_point=point["center"]))
+                output.append(dict(identity, index=index, rect=rect, center=[x+77, y+113], select_point=point["center"]))
         observation["diagnostics"]["candidates"] = diagnostics
         return output
 

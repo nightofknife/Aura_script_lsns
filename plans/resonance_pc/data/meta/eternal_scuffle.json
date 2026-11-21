@@ -8,6 +8,72 @@
   ],
   "characters": [
     {
+      "id": 10001531,
+      "name": "朱月",
+      "rarity": "SSR",
+      "source_quality": "FiveStar",
+      "release_date": null,
+      "release_date_source_url": null,
+      "name_template": "templates/characters/nameplates/scuffle/10001531.png",
+      "name_template_size": [
+        138,
+        23
+      ],
+      "source": {
+        "factory": "UnitFactory",
+        "factory_sha256": "588b7e73b9bafdfd1eac71eda5c49b8aa33d570532bbbbb064ca0e43b4f6c890",
+        "view_id": 11000832,
+        "candidate_pool_ids": [
+          80307502
+        ]
+      },
+      "rank": 1
+    },
+    {
+      "id": 10001491,
+      "name": "亚莉奈·危情",
+      "rarity": "SSR",
+      "source_quality": "FiveStar",
+      "release_date": null,
+      "release_date_source_url": null,
+      "name_template": "templates/characters/nameplates/scuffle/10001491.png",
+      "name_template_size": [
+        138,
+        23
+      ],
+      "source": {
+        "factory": "UnitFactory",
+        "factory_sha256": "588b7e73b9bafdfd1eac71eda5c49b8aa33d570532bbbbb064ca0e43b4f6c890",
+        "view_id": 11000827,
+        "candidate_pool_ids": [
+          80307502
+        ]
+      },
+      "rank": 2
+    },
+    {
+      "id": 10001478,
+      "name": "菲妮娅·烁梦",
+      "rarity": "SSR",
+      "source_quality": "FiveStar",
+      "release_date": null,
+      "release_date_source_url": null,
+      "name_template": "templates/characters/nameplates/scuffle/10001478.png",
+      "name_template_size": [
+        138,
+        23
+      ],
+      "source": {
+        "factory": "UnitFactory",
+        "factory_sha256": "588b7e73b9bafdfd1eac71eda5c49b8aa33d570532bbbbb064ca0e43b4f6c890",
+        "view_id": 11000818,
+        "candidate_pool_ids": [
+          80307502
+        ]
+      },
+      "rank": 3
+    },
+    {
       "id": 10001393,
       "name": "美琪",
       "rarity": "SSR",
@@ -26,7 +92,7 @@
         "bundle_sha256": "fa1808ecf014b6da809aea49eefc0ba586b88a6e2eeab29d70f2070bb38cebef",
         "animation": "stand"
       },
-      "rank": 1
+      "rank": 4
     },
     {
       "id": 10001383,
@@ -47,7 +113,7 @@
         "bundle_sha256": "399f47b60095dd458009cbd9a28bc1121e5dd977bf361cb0245d2fefffdc7f94",
         "animation": "stand"
       },
-      "rank": 2
+      "rank": 5
     },
     {
       "id": 10001377,
@@ -68,7 +134,7 @@
         "bundle_sha256": "78e94792b35e1bd945454f8db35aecc76a3de949f0218644912e241ec990967f",
         "animation": "stand"
       },
-      "rank": 3
+      "rank": 6
     },
     {
       "id": 10001357,
@@ -89,7 +155,7 @@
         "bundle_sha256": "a2e34af0849ac2c7edbd48234513acb5c0c4c64755efd7305b83635bb6a09d79",
         "animation": "stand"
       },
-      "rank": 4
+      "rank": 7
     },
     {
       "id": 10001356,
@@ -110,7 +176,7 @@
         "bundle_sha256": "ad94f817b68ce7d52e25d4dcd8a65410c1cceb8611342f7b5f2c0a4e16ecfd13",
         "animation": "stand"
       },
-      "rank": 5
+      "rank": 8
     },
     {
       "id": 10001327,
@@ -131,7 +197,7 @@
         "bundle_sha256": "b82442c43b8a18e226927be9b73b0ee71a9f64fb5fbc5eafc172425c51792f91",
         "animation": "stand"
       },
-      "rank": 6
+      "rank": 9
     },
     {
       "id": 10001314,
@@ -152,7 +218,7 @@
         "bundle_sha256": "15d564a05ea09bbdc89a7da1ecf735162ceec15b8ed61ddc72c68ca48c4da1d9",
         "animation": "stand"
       },
-      "rank": 7
+      "rank": 10
     },
     {
       "id": 10001271,
@@ -173,7 +239,7 @@
         "bundle_sha256": "3f80ae49fc6434efc209f4d9fd3469239e7efb353d3916795b34ab8dc6162796",
         "animation": "stand"
       },
-      "rank": 8
+      "rank": 11
     },
     {
       "id": 10001266,
@@ -194,7 +260,7 @@
         "bundle_sha256": "b38b0f588de462162b2e08e659e3266045999bb10e7a2b020eb6f8659c5aecdb",
         "animation": "stand"
       },
-      "rank": 9
+      "rank": 12
     },
     {
       "id": 10001246,
@@ -215,7 +281,7 @@
         "bundle_sha256": "63f55581d9bafa86fb6878c65d218d586a68d78876aae7fbb4fed173be351214",
         "animation": "stand"
       },
-      "rank": 10
+      "rank": 13
     },
     {
       "id": 10001222,
@@ -236,7 +302,7 @@
         "bundle_sha256": "7077e3d3fef9910ab5fd8d9944bfc3ce7a7ec8fe21c4d87246f59873bbbf5118",
         "animation": "stand"
       },
-      "rank": 11
+      "rank": 14
     },
     {
       "id": 10001220,
@@ -257,7 +323,7 @@
         "bundle_sha256": "c61f0128fcc0def4cb1a68187c7323ec38b93e4ba8b612a5f852c118a25a83cc",
         "animation": "stand"
       },
-      "rank": 12
+      "rank": 15
     },
     {
       "id": 10001203,
@@ -278,7 +344,7 @@
         "bundle_sha256": "6c014b83b97006b5faf85f5648d2915e7fa03f68d9660e69a17a3456e635aff8",
         "animation": "stand"
       },
-      "rank": 13
+      "rank": 16
     },
     {
       "id": 10001157,
@@ -299,7 +365,7 @@
         "bundle_sha256": "c1348223c47fcece4fb32a0c8ac0cf80d409a31a3b0c4ee4b2632eb19563b757",
         "animation": "stand"
       },
-      "rank": 14
+      "rank": 17
     },
     {
       "id": 10001092,
@@ -320,7 +386,7 @@
         "bundle_sha256": "b1d6a11fb8fb02dc3f2d6206fc938c560ced511e86b628cf4db696c6d1808316",
         "animation": "stand"
       },
-      "rank": 15
+      "rank": 18
     },
     {
       "id": 10001089,
@@ -341,7 +407,7 @@
         "bundle_sha256": "b9e4262c8678cface6c0e4c7771972ede6f16cfb10e11ef37649c2c50dedef4e",
         "animation": "stand"
       },
-      "rank": 16
+      "rank": 19
     },
     {
       "id": 10001052,
@@ -362,7 +428,7 @@
         "bundle_sha256": "176226f5c9f9d665d17a15f7182e554c2f9b1ce84f7376995aaf621fabc06360",
         "animation": "stand"
       },
-      "rank": 17
+      "rank": 20
     },
     {
       "id": 10001019,
@@ -383,7 +449,7 @@
         "bundle_sha256": "8dcc85e3313ca5d7d3d24833edfc6ad62c980c125f7960a01e054074e801cb6a",
         "animation": "stand"
       },
-      "rank": 18
+      "rank": 21
     },
     {
       "id": 10001003,
@@ -404,7 +470,7 @@
         "bundle_sha256": "f87a79fad948352bc388f6767a18e50cec44cf9d140717dda7201f1a6fabc8ad",
         "animation": "stand"
       },
-      "rank": 19
+      "rank": 22
     },
     {
       "id": 10000979,
@@ -425,7 +491,7 @@
         "bundle_sha256": "4e2c6727332956d825f240ed274ee5e3ce2c6ef48e947a44c35444a7aafbcb1f",
         "animation": "stand"
       },
-      "rank": 20
+      "rank": 23
     },
     {
       "id": 10000969,
@@ -446,7 +512,7 @@
         "bundle_sha256": "766153bf3fdf0d8d925611a790bfffbdea8d61cf6dc187a655c6583eb382bd81",
         "animation": "stand"
       },
-      "rank": 21
+      "rank": 24
     },
     {
       "id": 10000942,
@@ -467,7 +533,7 @@
         "bundle_sha256": "ee0aa7abb01c4db1273f9d93c1b83ca2d0d0af890248e8edd7d434437f8037ad",
         "animation": "stand"
       },
-      "rank": 22
+      "rank": 25
     },
     {
       "id": 10000941,
@@ -488,7 +554,7 @@
         "bundle_sha256": "d7635fe852b5b76a457c44cab980d250ec99fff869542a36195e054aec00c2a5",
         "animation": "stand"
       },
-      "rank": 23
+      "rank": 26
     },
     {
       "id": 10000920,
@@ -509,7 +575,7 @@
         "bundle_sha256": "bb95c6ff1e56c32e9cda86278413b7e9f5b13fd7642c00217de433e883bbeecb",
         "animation": "stand"
       },
-      "rank": 24
+      "rank": 27
     },
     {
       "id": 10000890,
@@ -530,7 +596,7 @@
         "bundle_sha256": "5d248e7b9256dc6960d9dfb1defc81b2647e4751feba4b26d92d459fd9df6aa3",
         "animation": "stand"
       },
-      "rank": 25
+      "rank": 28
     },
     {
       "id": 10000855,
@@ -551,7 +617,7 @@
         "bundle_sha256": "a26fcde53e6fc1858c12175958cbeecd5d751ef15d602de8acc0b7a5e4b0a615",
         "animation": "stand"
       },
-      "rank": 26
+      "rank": 29
     },
     {
       "id": 10000854,
@@ -572,7 +638,7 @@
         "bundle_sha256": "37196888d9e7b14b17d8788a79df96b77d51fc0d3933e7815c9fadaebaec5403",
         "animation": "stand"
       },
-      "rank": 27
+      "rank": 30
     },
     {
       "id": 10000843,
@@ -593,7 +659,7 @@
         "bundle_sha256": "0096ab18da20ec659533c4978b0db44bb2adabe1f089405d5a83ce587b4878b8",
         "animation": "stand"
       },
-      "rank": 28
+      "rank": 31
     },
     {
       "id": 10000796,
@@ -614,7 +680,7 @@
         "bundle_sha256": "ef3d0371db28a03a7b9aa43b23fe7207767eefdcb45e5f07f1666c3e9fe17f1e",
         "animation": "stand"
       },
-      "rank": 29
+      "rank": 32
     },
     {
       "id": 10000749,
@@ -635,7 +701,7 @@
         "bundle_sha256": "5c9333c78b0adcb60e8dae489992d2b7d652b79919ce690d4c8aad93277f99c3",
         "animation": "stand"
       },
-      "rank": 30
+      "rank": 33
     },
     {
       "id": 10000748,
@@ -656,7 +722,7 @@
         "bundle_sha256": "7afecb7c074ec2a11d08c1891522f484cf539bbadac5294c04b2474b5ce47f8d",
         "animation": "stand"
       },
-      "rank": 31
+      "rank": 34
     },
     {
       "id": 10000739,
@@ -677,7 +743,7 @@
         "bundle_sha256": "72b373750fba35d9bbc8cafa83ad70cb1320a4ca7d0055411f7cf256b932a79f",
         "animation": "stand"
       },
-      "rank": 32
+      "rank": 35
     },
     {
       "id": 10000632,
@@ -698,7 +764,7 @@
         "bundle_sha256": "a97725492e9f279f102a2e01a216f5f7578b32242784de0c95cf471b0a7b0a5c",
         "animation": "stand"
       },
-      "rank": 33
+      "rank": 36
     },
     {
       "id": 10000624,
@@ -719,7 +785,7 @@
         "bundle_sha256": "401bdd244b0c5382ac8a2b690f090181e69206b9771068300a6df4eccbec233c",
         "animation": "stand"
       },
-      "rank": 34
+      "rank": 37
     },
     {
       "id": 10000615,
@@ -740,7 +806,7 @@
         "bundle_sha256": "0e4f2ac95c6bdc3ac01abfca0b1f427462f993e92e67faee393a695df354df3e",
         "animation": "stand"
       },
-      "rank": 35
+      "rank": 38
     },
     {
       "id": 10000607,
@@ -761,7 +827,7 @@
         "bundle_sha256": "622e933c318e60366a4357d1a7b6bc7251145b41c02853140b2939da4addc133",
         "animation": "stand"
       },
-      "rank": 36
+      "rank": 39
     },
     {
       "id": 10000573,
@@ -782,7 +848,7 @@
         "bundle_sha256": "feeb4ea564c4de755ffbd640ebc009f79627a56a4c8af7ab33e5553ca2458e85",
         "animation": "stand"
       },
-      "rank": 37
+      "rank": 40
     },
     {
       "id": 10000572,
@@ -803,7 +869,7 @@
         "bundle_sha256": "c9ecef51449b71923bde3e46d30beed748cd683f4eead73d49b938e241d0277b",
         "animation": "stand"
       },
-      "rank": 38
+      "rank": 41
     },
     {
       "id": 10000546,
@@ -824,7 +890,7 @@
         "bundle_sha256": "57a1c207aad15931ad000c673b84d019397c15e7b80a15f7ac18b05b9a2899a6",
         "animation": "stand"
       },
-      "rank": 39
+      "rank": 42
     },
     {
       "id": 10000503,
@@ -845,7 +911,7 @@
         "bundle_sha256": "ce528f77e1f890d96cc0bb733e33d6f09ca36a717d700365d7754d10ec32a9d1",
         "animation": "stand"
       },
-      "rank": 40
+      "rank": 43
     },
     {
       "id": 10000499,
@@ -866,7 +932,7 @@
         "bundle_sha256": "47cffb7981e5810cdb72414fe65b0e6d485c7fed2f40b3309b53db280383cb15",
         "animation": "stand"
       },
-      "rank": 41
+      "rank": 44
     },
     {
       "id": 10000468,
@@ -887,7 +953,7 @@
         "bundle_sha256": "e6fbeefa4ee7c5c29b27c4806e6df764e8465c661fd0f77f771bd8e9a35ebd53",
         "animation": "stand"
       },
-      "rank": 42
+      "rank": 45
     },
     {
       "id": 10000388,
@@ -908,7 +974,7 @@
         "bundle_sha256": "cf9bc9796821722789ee61c3383b25f9bbe04b447ba8c13e786594c4c6c05167",
         "animation": "stand"
       },
-      "rank": 43
+      "rank": 46
     },
     {
       "id": 10000372,
@@ -929,7 +995,7 @@
         "bundle_sha256": "13478aea6017ef3d7e0150294b734c711b3601924adfcf2bc36612f5c519983a",
         "animation": "stand"
       },
-      "rank": 44
+      "rank": 47
     },
     {
       "id": 10000352,
@@ -950,7 +1016,7 @@
         "bundle_sha256": "54c465d56cd504adc8d1a3d3a50360ddbc6f749fa2b3f18acffffc26538b777c",
         "animation": "stand"
       },
-      "rank": 45
+      "rank": 48
     },
     {
       "id": 10000298,
@@ -971,7 +1037,7 @@
         "bundle_sha256": "cd15d26e20ae1c4cad8b59456472ea30c91ad118990f836ffff828f199c20cda",
         "animation": "stand"
       },
-      "rank": 46
+      "rank": 49
     },
     {
       "id": 10000297,
@@ -992,7 +1058,7 @@
         "bundle_sha256": "cde9c1dad2c1e4d57273f0f3f77cb98cfe5de9020529d740be00d2d1e8ca92aa",
         "animation": "stand"
       },
-      "rank": 47
+      "rank": 50
     },
     {
       "id": 10000276,
@@ -1013,7 +1079,7 @@
         "bundle_sha256": "f3d340d82caf7db2ed2e8fdea45004715b1adf0369f6d5007196fe076361e5ab",
         "animation": "stand"
       },
-      "rank": 48
+      "rank": 51
     },
     {
       "id": 10000254,
@@ -1034,7 +1100,7 @@
         "bundle_sha256": "db8e9ceb756521bcd9a26c646f2f88fb9d7fec44ea3b03003a4ab39fc7cd0fb7",
         "animation": "stand"
       },
-      "rank": 49
+      "rank": 52
     },
     {
       "id": 10000154,
@@ -1055,7 +1121,7 @@
         "bundle_sha256": "7db1fd85482b5fa17ddfa6a9fe7356eaf078afef32da4e490c66609983b4b819",
         "animation": "stand"
       },
-      "rank": 50
+      "rank": 53
     },
     {
       "id": 10000145,
@@ -1076,7 +1142,7 @@
         "bundle_sha256": "81117090f78708013f8c7a795486dc13c7da68fcc1f246a10b370ffde50eba73",
         "animation": "stand"
       },
-      "rank": 51
+      "rank": 54
     },
     {
       "id": 10000139,
@@ -1097,7 +1163,7 @@
         "bundle_sha256": "6d034d3a69993716313cd0d8b64875828e9ed4b65e30838c14772b7c2ec68693",
         "animation": "stand"
       },
-      "rank": 52
+      "rank": 55
     },
     {
       "id": 10000095,
@@ -1118,7 +1184,7 @@
         "bundle_sha256": "83ce5d551ff81e6f5f278a40aeb77620de2b496b4c8339853a1c522f096242dc",
         "animation": "stand"
       },
-      "rank": 53
+      "rank": 56
     },
     {
       "id": 10000094,
@@ -1139,7 +1205,7 @@
         "bundle_sha256": "7a243831c14d3a1708c0f9f7e2984cfa7fcca15223b64845d127a158b69d2e39",
         "animation": "stand"
       },
-      "rank": 54
+      "rank": 57
     },
     {
       "id": 10000072,
@@ -1160,7 +1226,7 @@
         "bundle_sha256": "8fcc775194c93a167ec54998b5d13d55b75dc19818d3ad8513f42d8a56dc464f",
         "animation": "stand"
       },
-      "rank": 55
+      "rank": 58
     },
     {
       "id": 10000069,
@@ -1181,7 +1247,7 @@
         "bundle_sha256": "f766d080810bcc69508d24ba3f01cdfbaf37ce1397a1cd0d39c5b5d3e873e5ec",
         "animation": "stand"
       },
-      "rank": 56
+      "rank": 59
     },
     {
       "id": 10000059,
@@ -1202,7 +1268,7 @@
         "bundle_sha256": "e1570f887220ba78de6329b169b861b800e1aa6fec041563547c6341ff08ae0b",
         "animation": "stand"
       },
-      "rank": 57
+      "rank": 60
     },
     {
       "id": 10000054,
@@ -1223,7 +1289,7 @@
         "bundle_sha256": "24cc1da228bec1e016abadc3cca3daf688d4364fa50595699d51e6243070afe9",
         "animation": "stand"
       },
-      "rank": 58
+      "rank": 61
     },
     {
       "id": 10000051,
@@ -1244,7 +1310,7 @@
         "bundle_sha256": "bfe3054eb809f5413dfce1967da401d0b4725c3a3f3f38449bfc9f3636a1537b",
         "animation": "stand"
       },
-      "rank": 59
+      "rank": 62
     },
     {
       "id": 10000035,
@@ -1265,7 +1331,7 @@
         "bundle_sha256": "c3e5557ddf8380f62fc4fd24c6ff0519b3ed41a1dd0ef241b1324a7a8b849efd",
         "animation": "stand"
       },
-      "rank": 60
+      "rank": 63
     },
     {
       "id": 10000034,
@@ -1286,7 +1352,7 @@
         "bundle_sha256": "81e9570f1d8e4bfcbcd7487b23bfbe2fe9c1e135f53722ff4a4bea33fce38b11",
         "animation": "stand"
       },
-      "rank": 61
+      "rank": 64
     },
     {
       "id": 10000032,
@@ -1307,7 +1373,7 @@
         "bundle_sha256": "50c04b6c16a08c3900a9096b86a65979233ca94d5f8379c56d9ba91c7c7ec925",
         "animation": "stand"
       },
-      "rank": 62
+      "rank": 65
     },
     {
       "id": 10000031,
@@ -1328,7 +1394,7 @@
         "bundle_sha256": "ecdc1b24dd3e925f5263863227aed0d1ddce182c20b1895faafadddce6cb2391",
         "animation": "stand"
       },
-      "rank": 63
+      "rank": 66
     },
     {
       "id": 10000004,
@@ -1349,7 +1415,7 @@
         "bundle_sha256": "396ade89cddeced1840fdc8d523bd0c6adb43faaa9b470d20de47328918789b5",
         "animation": "stand"
       },
-      "rank": 64
+      "rank": 67
     },
     {
       "id": 10000389,
@@ -1370,7 +1436,7 @@
         "bundle_sha256": "5204944b932c410834a9f4b7238ec5487a92f54523b44dc2eff6bc8054ad23c4",
         "animation": "stand"
       },
-      "rank": 65
+      "rank": 68
     },
     {
       "id": 10000387,
@@ -1391,7 +1457,7 @@
         "bundle_sha256": "dccae881f74d51a2836f244ecbc07348f8543e5b3211f5f968f8f83f00faf562",
         "animation": "stand"
       },
-      "rank": 66
+      "rank": 69
     },
     {
       "id": 10000335,
@@ -1412,7 +1478,7 @@
         "bundle_sha256": "0c38f8ed56234582ff1e249737f9f8f043cc935c0d88bb0449b42c89a4b16a76",
         "animation": "stand"
       },
-      "rank": 67
+      "rank": 70
     },
     {
       "id": 10000300,
@@ -1433,7 +1499,7 @@
         "bundle_sha256": "d1111000e3d97d41349fd15de6ffa00f13a5fa3659f8ca78f5e5e0113c078dd4",
         "animation": "stand"
       },
-      "rank": 68
+      "rank": 71
     },
     {
       "id": 10000270,
@@ -1454,7 +1520,7 @@
         "bundle_sha256": "551f4329565d6dd0fa46d06c92e15a2f45fe7e2c87603a3a445d312fb1502e65",
         "animation": "stand"
       },
-      "rank": 69
+      "rank": 72
     },
     {
       "id": 10000153,
@@ -1475,7 +1541,7 @@
         "bundle_sha256": "bd80e1f7e6a924f6f65aa69ce25d07e697028d8826dacfea1aadcfabc0acd273",
         "animation": "stand"
       },
-      "rank": 70
+      "rank": 73
     },
     {
       "id": 10000124,
@@ -1496,7 +1562,7 @@
         "bundle_sha256": "7a05e373b9bf8c89745292903b3a9df208ed8fbfcca6bfc53719bfa49d99a381",
         "animation": "stand"
       },
-      "rank": 71
+      "rank": 74
     },
     {
       "id": 10000112,
@@ -1517,7 +1583,7 @@
         "bundle_sha256": "d5d5f8d8f5cb33cb5784a8cd29945dd4e431b430e4ead8ff30899559487f7881",
         "animation": "stand"
       },
-      "rank": 72
+      "rank": 75
     },
     {
       "id": 10000110,
@@ -1538,7 +1604,7 @@
         "bundle_sha256": "c82aa56e89e03343ccb907b212fd8e53f298e468b78b4e30e091532468c8db40",
         "animation": "stand"
       },
-      "rank": 73
+      "rank": 76
     },
     {
       "id": 10000101,
@@ -1559,7 +1625,7 @@
         "bundle_sha256": "708141684b16e063ceff4b921d8bd764f59cdff0009baef293177117b031aae2",
         "animation": "stand"
       },
-      "rank": 74
+      "rank": 77
     },
     {
       "id": 10000071,
@@ -1580,7 +1646,7 @@
         "bundle_sha256": "4a3ff3a39ba1b4cf6b06ec0f3755cca240f1ea72a63dc76f5b7a09de2051decb",
         "animation": "stand"
       },
-      "rank": 75
+      "rank": 78
     },
     {
       "id": 10000068,
@@ -1601,7 +1667,7 @@
         "bundle_sha256": "0fe0fb614718d9c80eef5f42586912bc978a846a985f8eb50f37b14e1027a712",
         "animation": "stand"
       },
-      "rank": 76
+      "rank": 79
     },
     {
       "id": 10000064,
@@ -1622,7 +1688,7 @@
         "bundle_sha256": "7b9a6e81147853a5dde9f94d9f224f9ee19e6f6b76ff80d6c1d1eb786249f6ef",
         "animation": "stand"
       },
-      "rank": 77
+      "rank": 80
     },
     {
       "id": 10000063,
@@ -1643,7 +1709,7 @@
         "bundle_sha256": "92a0dd1aa84551d07d96ae3793bd8eaa4e82ec8fea66087fa599eb78166e41f2",
         "animation": "stand"
       },
-      "rank": 78
+      "rank": 81
     },
     {
       "id": 10000055,
@@ -1664,7 +1730,7 @@
         "bundle_sha256": "77ff90df93556c71c50d4ae65712c1828440dbde1a43181b070df12582bc3160",
         "animation": "stand"
       },
-      "rank": 79
+      "rank": 82
     },
     {
       "id": 10000053,
@@ -1685,7 +1751,7 @@
         "bundle_sha256": "6107165eb5e8c67280735f69b16b05779cd4f1d1d2c2719ab8ab8751100e6846",
         "animation": "stand"
       },
-      "rank": 80
+      "rank": 83
     },
     {
       "id": 10000052,
@@ -1706,7 +1772,7 @@
         "bundle_sha256": "ea0802cb92ed524a44d32197cdd03af2878397e39214b0d7113a537653a5f0d1",
         "animation": "stand"
       },
-      "rank": 81
+      "rank": 84
     },
     {
       "id": 10000047,
@@ -1727,7 +1793,7 @@
         "bundle_sha256": "2fbd55a794d2887904ef7b08bf5a0a9efdaabee52b03dab7c6fe8e3a0d4d7dad",
         "animation": "stand"
       },
-      "rank": 82
+      "rank": 85
     },
     {
       "id": 10000623,
@@ -1748,7 +1814,7 @@
         "bundle_sha256": "4869ece272d34dbfaa950f275605492c56d44a2e488274c07c078ec8c7d5dc71",
         "animation": "stand"
       },
-      "rank": 83
+      "rank": 86
     },
     {
       "id": 10000414,
@@ -1769,7 +1835,7 @@
         "bundle_sha256": "c6660eb9e62bfe904e30ffdb6746fb2c175ba9a78346ea554a734d32c56aba98",
         "animation": "stand"
       },
-      "rank": 84
+      "rank": 87
     },
     {
       "id": 10000409,
@@ -1790,7 +1856,7 @@
         "bundle_sha256": "87ee97a6a84b5cb4f2c3a6c285381b3e20eb7b43c161a96c99bbd791f21bcbe0",
         "animation": "stand"
       },
-      "rank": 85
+      "rank": 88
     },
     {
       "id": 10000299,
@@ -1811,7 +1877,7 @@
         "bundle_sha256": "8edf98c7a73a6352678b8171e64482bbb7a5b929606165e7c293eecae13c4088",
         "animation": "stand"
       },
-      "rank": 86
+      "rank": 89
     },
     {
       "id": 10000170,
@@ -1832,7 +1898,7 @@
         "bundle_sha256": "a85d2aa02830e1521ff303142d0318da2eacd616a0e7d0f1bb2d12da9538f496",
         "animation": "stand"
       },
-      "rank": 87
+      "rank": 90
     },
     {
       "id": 10000160,
@@ -1853,7 +1919,7 @@
         "bundle_sha256": "24bba6745f9dd2a760c4dbb4aad4b3c377c8d2fd8b32a2b975b1c4c6aa19456e",
         "animation": "stand"
       },
-      "rank": 88
+      "rank": 91
     },
     {
       "id": 10000159,
@@ -1874,7 +1940,7 @@
         "bundle_sha256": "e81339cbaeed37d9274e3f2efc64c2f1d02e7f1e0ee21426568d8e1766c4c545",
         "animation": "stand"
       },
-      "rank": 89
+      "rank": 92
     },
     {
       "id": 10000157,
@@ -1895,7 +1961,7 @@
         "bundle_sha256": "0bf722f626d0ea8a24710d3c26f317ca5c8a05fc54fbae28038809fb93df886d",
         "animation": "stand"
       },
-      "rank": 90
+      "rank": 93
     },
     {
       "id": 10000156,
@@ -1916,7 +1982,7 @@
         "bundle_sha256": "344d22189c6c31b0d7f080e742b773b52667dd7b4382f7303a257c4afd57bcb3",
         "animation": "stand"
       },
-      "rank": 91
+      "rank": 94
     },
     {
       "id": 10000134,
@@ -1937,7 +2003,7 @@
         "bundle_sha256": "d81c6d60d09446b8f6cd6af76fdb05cbc23dac7c295b178665c4057e6c47efee",
         "animation": "stand"
       },
-      "rank": 92
+      "rank": 95
     },
     {
       "id": 10000111,
@@ -1958,7 +2024,7 @@
         "bundle_sha256": "7df2c51e53cf77fc11c734c075e432f8ff3bdc229053afd8bf6ee2f18753b0d2",
         "animation": "stand"
       },
-      "rank": 93
+      "rank": 96
     },
     {
       "id": 10000065,
@@ -1979,7 +2045,7 @@
         "bundle_sha256": "2c998ca1abc0e574508b664de758e152eb5f6520b7c701a8357f0a597b747b48",
         "animation": "stand"
       },
-      "rank": 94
+      "rank": 97
     },
     {
       "id": 10000062,
@@ -2000,7 +2066,7 @@
         "bundle_sha256": "e7aa105756d1e7969def9a76368b1a54a5250eba70812b88579a0760bf7e3f19",
         "animation": "stand"
       },
-      "rank": 95
+      "rank": 98
     },
     {
       "id": 10000060,
@@ -2021,7 +2087,7 @@
         "bundle_sha256": "60ef5aa16afe232151c0cddc8d4fc0ce86766eb8f7a6c6622c9641fcc8e3bdad",
         "animation": "stand"
       },
-      "rank": 96
+      "rank": 99
     },
     {
       "id": 10000027,
@@ -2042,7 +2108,7 @@
         "bundle_sha256": "25d6eef22bf65ddd3c526c7b86de914aeea7adf24fdd4285f8bfb8240c6945f4",
         "animation": "stand"
       },
-      "rank": 97
+      "rank": 100
     },
     {
       "id": 10000025,
@@ -2063,7 +2129,7 @@
         "bundle_sha256": "e81a2ea0052f22a097cbfeb552c8d61a03827a7691d74800dcee12a7a084cced",
         "animation": "stand"
       },
-      "rank": 98
+      "rank": 101
     },
     {
       "id": 10000408,
@@ -2084,10 +2150,61 @@
         "bundle_sha256": "b6f3addbca2c50d897426d49cc3e52da5ea81820602a57580b1220ecaa5e2659",
         "animation": "stand"
       },
-      "rank": 99
+      "rank": 102
     }
   ],
   "equipment": [
+    {
+      "id": 11800319,
+      "name": "绯霆之律",
+      "rarity": "UR",
+      "slot_type": "attack",
+      "release_date": null,
+      "release_date_source_url": null,
+      "source": {
+        "factory": "EquipmentFactory",
+        "factory_sha256": "7a9028d9493addd777d1f509e71a1a823f6c63138b59d788bff77f401c7524ea",
+        "icon_path": "Item\\weapon\\Xuehui\\Small\\36",
+        "tips_path": "Item\\weapon\\Xuehui\\Big\\36",
+        "candidate_pool_ids": [
+          80307504,
+          80307505,
+          80307506
+        ],
+        "large": {
+          "bundle_sha256": "7a80983ca7237d7cce9412a1dcc028a115cf8bb35911bbc71b47a577eb7d97f5",
+          "sprite": "36",
+          "canvas_size": [
+            500,
+            500
+          ]
+        },
+        "small_icon": {
+          "bundle_sha256": "142b51832a20ed3b76719d9bf8e775502286f9c02e7b347a67f7a44274b08207",
+          "sprite": "36",
+          "canvas_size": [
+            180,
+            180
+          ]
+        },
+        "small_tips": {
+          "bundle_sha256": "7a80983ca7237d7cce9412a1dcc028a115cf8bb35911bbc71b47a577eb7d97f5",
+          "sprite": "36",
+          "canvas_size": [
+            500,
+            500
+          ]
+        }
+      },
+      "template": "templates/inventory/equipment/art/11800319/detail_200.png",
+      "mask": "templates/inventory/equipment/art/11800319/detail_200_mask.png",
+      "small_icon_template": "templates/inventory/equipment/art/11800319/icon_88.png",
+      "small_icon_mask": "templates/inventory/equipment/art/11800319/icon_88_mask.png",
+      "small_tips_template": "templates/inventory/equipment/art/11800319/tips_88.png",
+      "small_tips_mask": "templates/inventory/equipment/art/11800319/tips_88_mask.png",
+      "name_template": "templates/inventory/equipment/art/11800319/name.png",
+      "rank": 1
+    },
     {
       "id": 11800318,
       "name": "玄铁朱契",
@@ -2143,7 +2260,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800318/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800318/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800318/tips_88_mask.png",
-      "rank": 1,
+      "rank": 2,
       "name_template": "templates/inventory/equipment/art/11800318/name.png"
     },
     {
@@ -2201,7 +2318,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800317/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800317/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800317/tips_88_mask.png",
-      "rank": 2,
+      "rank": 3,
       "name_template": "templates/inventory/equipment/art/11800317/name.png"
     },
     {
@@ -2259,7 +2376,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800316/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800316/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800316/tips_88_mask.png",
-      "rank": 3,
+      "rank": 4,
       "name_template": "templates/inventory/equipment/art/11800316/name.png"
     },
     {
@@ -2317,7 +2434,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800310/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800310/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800310/tips_88_mask.png",
-      "rank": 4,
+      "rank": 5,
       "name_template": "templates/inventory/equipment/art/11800310/name.png"
     },
     {
@@ -2375,7 +2492,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800296/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800296/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800296/tips_88_mask.png",
-      "rank": 5,
+      "rank": 6,
       "name_template": "templates/inventory/equipment/art/11800296/name.png"
     },
     {
@@ -2433,7 +2550,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800295/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800295/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800295/tips_88_mask.png",
-      "rank": 6,
+      "rank": 7,
       "name_template": "templates/inventory/equipment/art/11800295/name.png"
     },
     {
@@ -2491,7 +2608,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800294/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800294/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800294/tips_88_mask.png",
-      "rank": 7,
+      "rank": 8,
       "name_template": "templates/inventory/equipment/art/11800294/name.png"
     },
     {
@@ -2549,7 +2666,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800293/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800293/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800293/tips_88_mask.png",
-      "rank": 8,
+      "rank": 9,
       "name_template": "templates/inventory/equipment/art/11800293/name.png"
     },
     {
@@ -2607,7 +2724,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800292/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800292/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800292/tips_88_mask.png",
-      "rank": 9,
+      "rank": 10,
       "name_template": "templates/inventory/equipment/art/11800292/name.png"
     },
     {
@@ -2665,7 +2782,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800291/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800291/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800291/tips_88_mask.png",
-      "rank": 10,
+      "rank": 11,
       "name_template": "templates/inventory/equipment/art/11800291/name.png"
     },
     {
@@ -2723,7 +2840,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800279/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800279/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800279/tips_88_mask.png",
-      "rank": 11,
+      "rank": 12,
       "name_template": "templates/inventory/equipment/art/11800279/name.png"
     },
     {
@@ -2781,7 +2898,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800053/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800053/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800053/tips_88_mask.png",
-      "rank": 12,
+      "rank": 13,
       "name_template": "templates/inventory/equipment/art/11800278/name.png",
       "image_alias_ids": [
         11800053,
@@ -2843,7 +2960,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800277/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800277/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800277/tips_88_mask.png",
-      "rank": 13,
+      "rank": 14,
       "name_template": "templates/inventory/equipment/art/11800277/name.png"
     },
     {
@@ -2901,7 +3018,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800276/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800276/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800276/tips_88_mask.png",
-      "rank": 14,
+      "rank": 15,
       "name_template": "templates/inventory/equipment/art/11800276/name.png"
     },
     {
@@ -2959,7 +3076,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800264/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800264/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800264/tips_88_mask.png",
-      "rank": 15,
+      "rank": 16,
       "name_template": "templates/inventory/equipment/art/11800264/name.png"
     },
     {
@@ -3017,7 +3134,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800263/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800263/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800263/tips_88_mask.png",
-      "rank": 16,
+      "rank": 17,
       "name_template": "templates/inventory/equipment/art/11800263/name.png"
     },
     {
@@ -3075,7 +3192,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800262/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800262/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800262/tips_88_mask.png",
-      "rank": 17,
+      "rank": 18,
       "name_template": "templates/inventory/equipment/art/11800262/name.png"
     },
     {
@@ -3133,7 +3250,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800261/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800261/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800261/tips_88_mask.png",
-      "rank": 18,
+      "rank": 19,
       "name_template": "templates/inventory/equipment/art/11800261/name.png"
     },
     {
@@ -3191,7 +3308,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800249/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800249/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800249/tips_88_mask.png",
-      "rank": 19,
+      "rank": 20,
       "name_template": "templates/inventory/equipment/art/11800249/name.png"
     },
     {
@@ -3249,7 +3366,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800248/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800248/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800248/tips_88_mask.png",
-      "rank": 20,
+      "rank": 21,
       "name_template": "templates/inventory/equipment/art/11800248/name.png"
     },
     {
@@ -3307,7 +3424,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800247/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800247/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800247/tips_88_mask.png",
-      "rank": 21,
+      "rank": 22,
       "name_template": "templates/inventory/equipment/art/11800247/name.png"
     },
     {
@@ -3365,7 +3482,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800114/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800114/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800114/tips_88_mask.png",
-      "rank": 22,
+      "rank": 23,
       "name_template": "templates/inventory/equipment/art/11800114/name.png"
     },
     {
@@ -3423,7 +3540,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800113/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800113/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800113/tips_88_mask.png",
-      "rank": 23,
+      "rank": 24,
       "name_template": "templates/inventory/equipment/art/11800113/name.png"
     },
     {
@@ -3481,7 +3598,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800100/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800100/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800100/tips_88_mask.png",
-      "rank": 24,
+      "rank": 25,
       "name_template": "templates/inventory/equipment/art/11800100/name.png"
     },
     {
@@ -3539,7 +3656,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800097/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800097/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800097/tips_88_mask.png",
-      "rank": 25,
+      "rank": 26,
       "name_template": "templates/inventory/equipment/art/11800097/name.png"
     },
     {
@@ -3597,7 +3714,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800091/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800091/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800091/tips_88_mask.png",
-      "rank": 26,
+      "rank": 27,
       "name_template": "templates/inventory/equipment/art/11800091/name.png"
     },
     {
@@ -3656,7 +3773,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800086/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800086/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800086/tips_88_mask.png",
-      "rank": 27,
+      "rank": 28,
       "name_template": "templates/inventory/equipment/art/11800086/name.png"
     },
     {
@@ -3714,7 +3831,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800082/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800082/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800082/tips_88_mask.png",
-      "rank": 28,
+      "rank": 29,
       "name_template": "templates/inventory/equipment/art/11800082/name.png"
     },
     {
@@ -3772,7 +3889,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800080/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800080/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800080/tips_88_mask.png",
-      "rank": 29,
+      "rank": 30,
       "name_template": "templates/inventory/equipment/art/11800080/name.png"
     },
     {
@@ -3830,7 +3947,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800079/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800079/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800079/tips_88_mask.png",
-      "rank": 30,
+      "rank": 31,
       "name_template": "templates/inventory/equipment/art/11800079/name.png"
     },
     {
@@ -3888,7 +4005,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800069/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800069/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800069/tips_88_mask.png",
-      "rank": 31,
+      "rank": 32,
       "name_template": "templates/inventory/equipment/art/11800069/name.png"
     },
     {
@@ -3946,7 +4063,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800060/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800060/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800060/tips_88_mask.png",
-      "rank": 32,
+      "rank": 33,
       "name_template": "templates/inventory/equipment/art/11800060/name.png"
     },
     {
@@ -4004,7 +4121,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800053/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800053/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800053/tips_88_mask.png",
-      "rank": 33,
+      "rank": 34,
       "name_template": "templates/inventory/equipment/art/11800053/name.png",
       "image_alias_ids": [
         11800053,
@@ -4066,7 +4183,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800050/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800050/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800050/tips_88_mask.png",
-      "rank": 34,
+      "rank": 35,
       "name_template": "templates/inventory/equipment/art/11800050/name.png"
     },
     {
@@ -4124,7 +4241,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800049/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800049/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800049/tips_88_mask.png",
-      "rank": 35,
+      "rank": 36,
       "name_template": "templates/inventory/equipment/art/11800049/name.png"
     },
     {
@@ -4182,7 +4299,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800048/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800048/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800048/tips_88_mask.png",
-      "rank": 36,
+      "rank": 37,
       "name_template": "templates/inventory/equipment/art/11800048/name.png"
     },
     {
@@ -4240,7 +4357,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800045/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800045/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800045/tips_88_mask.png",
-      "rank": 37,
+      "rank": 38,
       "name_template": "templates/inventory/equipment/art/11800045/name.png"
     },
     {
@@ -4298,7 +4415,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800041/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800041/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800041/tips_88_mask.png",
-      "rank": 38,
+      "rank": 39,
       "name_template": "templates/inventory/equipment/art/11800041/name.png"
     },
     {
@@ -4356,7 +4473,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800040/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800040/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800040/tips_88_mask.png",
-      "rank": 39,
+      "rank": 40,
       "name_template": "templates/inventory/equipment/art/11800040/name.png"
     },
     {
@@ -4414,7 +4531,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800034/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800034/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800034/tips_88_mask.png",
-      "rank": 40,
+      "rank": 41,
       "name_template": "templates/inventory/equipment/art/11800034/name.png"
     },
     {
@@ -4472,7 +4589,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800032/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800032/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800032/tips_88_mask.png",
-      "rank": 41,
+      "rank": 42,
       "name_template": "templates/inventory/equipment/art/11800032/name.png"
     },
     {
@@ -4530,7 +4647,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800022/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800022/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800022/tips_88_mask.png",
-      "rank": 42,
+      "rank": 43,
       "name_template": "templates/inventory/equipment/art/11800022/name.png"
     },
     {
@@ -4588,7 +4705,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800021/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800021/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800021/tips_88_mask.png",
-      "rank": 43,
+      "rank": 44,
       "name_template": "templates/inventory/equipment/art/11800021/name.png"
     },
     {
@@ -4646,7 +4763,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800018/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800018/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800018/tips_88_mask.png",
-      "rank": 44,
+      "rank": 45,
       "name_template": "templates/inventory/equipment/art/11800018/name.png"
     },
     {
@@ -4704,7 +4821,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800013/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800013/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800013/tips_88_mask.png",
-      "rank": 45,
+      "rank": 46,
       "name_template": "templates/inventory/equipment/art/11800013/name.png"
     },
     {
@@ -4762,7 +4879,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800011/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800011/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800011/tips_88_mask.png",
-      "rank": 46,
+      "rank": 47,
       "name_template": "templates/inventory/equipment/art/11800011/name.png"
     },
     {
@@ -4820,7 +4937,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800009/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800009/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800009/tips_88_mask.png",
-      "rank": 47,
+      "rank": 48,
       "name_template": "templates/inventory/equipment/art/11800010/name.png",
       "image_alias_ids": [
         11800009,
@@ -4882,7 +4999,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800009/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800009/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800009/tips_88_mask.png",
-      "rank": 48,
+      "rank": 49,
       "name_template": "templates/inventory/equipment/art/11800009/name.png",
       "image_alias_ids": [
         11800009,
@@ -4944,7 +5061,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800008/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800008/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800008/tips_88_mask.png",
-      "rank": 49,
+      "rank": 50,
       "name_template": "templates/inventory/equipment/art/11800008/name.png"
     },
     {
@@ -5002,7 +5119,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800007/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800007/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800007/tips_88_mask.png",
-      "rank": 50,
+      "rank": 51,
       "name_template": "templates/inventory/equipment/art/11800007/name.png"
     },
     {
@@ -5060,7 +5177,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800006/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800006/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800006/tips_88_mask.png",
-      "rank": 51,
+      "rank": 52,
       "name_template": "templates/inventory/equipment/art/11800006/name.png"
     },
     {
@@ -5118,7 +5235,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800003/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800003/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800003/tips_88_mask.png",
-      "rank": 52,
+      "rank": 53,
       "name_template": "templates/inventory/equipment/art/11800003/name.png"
     },
     {
@@ -5176,7 +5293,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800001/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800001/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800001/tips_88_mask.png",
-      "rank": 53,
+      "rank": 54,
       "name_template": "templates/inventory/equipment/art/11800001/name.png"
     },
     {
@@ -5234,7 +5351,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800315/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800315/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800315/tips_88_mask.png",
-      "rank": 54,
+      "rank": 55,
       "name_template": "templates/inventory/equipment/art/11800315/name.png"
     },
     {
@@ -5292,7 +5409,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800313/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800313/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800313/tips_88_mask.png",
-      "rank": 55,
+      "rank": 56,
       "name_template": "templates/inventory/equipment/art/11800313/name.png"
     },
     {
@@ -5350,7 +5467,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800303/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800303/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800303/tips_88_mask.png",
-      "rank": 56,
+      "rank": 57,
       "name_template": "templates/inventory/equipment/art/11800303/name.png"
     },
     {
@@ -5408,7 +5525,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800302/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800302/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800302/tips_88_mask.png",
-      "rank": 57,
+      "rank": 58,
       "name_template": "templates/inventory/equipment/art/11800302/name.png"
     },
     {
@@ -5466,7 +5583,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800301/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800301/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800301/tips_88_mask.png",
-      "rank": 58,
+      "rank": 59,
       "name_template": "templates/inventory/equipment/art/11800301/name.png"
     },
     {
@@ -5524,7 +5641,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800300/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800300/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800300/tips_88_mask.png",
-      "rank": 59,
+      "rank": 60,
       "name_template": "templates/inventory/equipment/art/11800300/name.png"
     },
     {
@@ -5582,7 +5699,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800299/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800299/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800299/tips_88_mask.png",
-      "rank": 60,
+      "rank": 61,
       "name_template": "templates/inventory/equipment/art/11800299/name.png"
     },
     {
@@ -5640,7 +5757,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800298/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800298/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800298/tips_88_mask.png",
-      "rank": 61,
+      "rank": 62,
       "name_template": "templates/inventory/equipment/art/11800298/name.png"
     },
     {
@@ -5698,7 +5815,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800290/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800290/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800290/tips_88_mask.png",
-      "rank": 62,
+      "rank": 63,
       "name_template": "templates/inventory/equipment/art/11800290/name.png"
     },
     {
@@ -5756,7 +5873,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800289/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800289/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800289/tips_88_mask.png",
-      "rank": 63,
+      "rank": 64,
       "name_template": "templates/inventory/equipment/art/11800289/name.png"
     },
     {
@@ -5814,7 +5931,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800288/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800288/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800288/tips_88_mask.png",
-      "rank": 64,
+      "rank": 65,
       "name_template": "templates/inventory/equipment/art/11800288/name.png"
     },
     {
@@ -5872,7 +5989,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800287/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800287/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800287/tips_88_mask.png",
-      "rank": 65,
+      "rank": 66,
       "name_template": "templates/inventory/equipment/art/11800287/name.png"
     },
     {
@@ -5930,7 +6047,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800275/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800275/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800275/tips_88_mask.png",
-      "rank": 66,
+      "rank": 67,
       "name_template": "templates/inventory/equipment/art/11800275/name.png"
     },
     {
@@ -5988,7 +6105,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800274/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800274/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800274/tips_88_mask.png",
-      "rank": 67,
+      "rank": 68,
       "name_template": "templates/inventory/equipment/art/11800274/name.png"
     },
     {
@@ -6046,7 +6163,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800273/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800273/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800273/tips_88_mask.png",
-      "rank": 68,
+      "rank": 69,
       "name_template": "templates/inventory/equipment/art/11800273/name.png"
     },
     {
@@ -6104,7 +6221,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800272/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800272/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800272/tips_88_mask.png",
-      "rank": 69,
+      "rank": 70,
       "name_template": "templates/inventory/equipment/art/11800272/name.png"
     },
     {
@@ -6162,7 +6279,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800260/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800260/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800260/tips_88_mask.png",
-      "rank": 70,
+      "rank": 71,
       "name_template": "templates/inventory/equipment/art/11800260/name.png"
     },
     {
@@ -6220,7 +6337,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800259/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800259/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800259/tips_88_mask.png",
-      "rank": 71,
+      "rank": 72,
       "name_template": "templates/inventory/equipment/art/11800259/name.png"
     },
     {
@@ -6278,7 +6395,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800258/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800258/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800258/tips_88_mask.png",
-      "rank": 72,
+      "rank": 73,
       "name_template": "templates/inventory/equipment/art/11800258/name.png"
     },
     {
@@ -6336,7 +6453,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800257/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800257/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800257/tips_88_mask.png",
-      "rank": 73,
+      "rank": 74,
       "name_template": "templates/inventory/equipment/art/11800257/name.png"
     },
     {
@@ -6394,7 +6511,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800246/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800246/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800246/tips_88_mask.png",
-      "rank": 74,
+      "rank": 75,
       "name_template": "templates/inventory/equipment/art/11800246/name.png"
     },
     {
@@ -6452,7 +6569,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800245/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800245/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800245/tips_88_mask.png",
-      "rank": 75,
+      "rank": 76,
       "name_template": "templates/inventory/equipment/art/11800245/name.png"
     },
     {
@@ -6510,7 +6627,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800244/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800244/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800244/tips_88_mask.png",
-      "rank": 76,
+      "rank": 77,
       "name_template": "templates/inventory/equipment/art/11800244/name.png"
     },
     {
@@ -6568,7 +6685,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800243/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800243/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800243/tips_88_mask.png",
-      "rank": 77,
+      "rank": 78,
       "name_template": "templates/inventory/equipment/art/11800243/name.png"
     },
     {
@@ -6626,7 +6743,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800106/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800106/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800106/tips_88_mask.png",
-      "rank": 78,
+      "rank": 79,
       "name_template": "templates/inventory/equipment/art/11800106/name.png"
     },
     {
@@ -6684,7 +6801,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800105/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800105/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800105/tips_88_mask.png",
-      "rank": 79,
+      "rank": 80,
       "name_template": "templates/inventory/equipment/art/11800105/name.png"
     },
     {
@@ -6742,7 +6859,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800104/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800104/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800104/tips_88_mask.png",
-      "rank": 80,
+      "rank": 81,
       "name_template": "templates/inventory/equipment/art/11800104/name.png"
     },
     {
@@ -6800,7 +6917,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800057/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800057/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800057/tips_88_mask.png",
-      "rank": 81,
+      "rank": 82,
       "name_template": "templates/inventory/equipment/art/11800101/name.png",
       "image_alias_ids": [
         11800057,
@@ -6862,7 +6979,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800094/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800094/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800094/tips_88_mask.png",
-      "rank": 82,
+      "rank": 83,
       "name_template": "templates/inventory/equipment/art/11800094/name.png"
     },
     {
@@ -6920,7 +7037,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800093/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800093/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800093/tips_88_mask.png",
-      "rank": 83,
+      "rank": 84,
       "name_template": "templates/inventory/equipment/art/11800093/name.png"
     },
     {
@@ -6978,7 +7095,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800092/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800092/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800092/tips_88_mask.png",
-      "rank": 84,
+      "rank": 85,
       "name_template": "templates/inventory/equipment/art/11800092/name.png"
     },
     {
@@ -7036,7 +7153,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800090/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800090/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800090/tips_88_mask.png",
-      "rank": 85,
+      "rank": 86,
       "name_template": "templates/inventory/equipment/art/11800090/name.png"
     },
     {
@@ -7094,7 +7211,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800089/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800089/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800089/tips_88_mask.png",
-      "rank": 86,
+      "rank": 87,
       "name_template": "templates/inventory/equipment/art/11800089/name.png"
     },
     {
@@ -7152,7 +7269,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800084/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800084/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800084/tips_88_mask.png",
-      "rank": 87,
+      "rank": 88,
       "name_template": "templates/inventory/equipment/art/11800084/name.png"
     },
     {
@@ -7210,7 +7327,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800081/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800081/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800081/tips_88_mask.png",
-      "rank": 88,
+      "rank": 89,
       "name_template": "templates/inventory/equipment/art/11800081/name.png"
     },
     {
@@ -7268,7 +7385,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800078/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800078/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800078/tips_88_mask.png",
-      "rank": 89,
+      "rank": 90,
       "name_template": "templates/inventory/equipment/art/11800078/name.png"
     },
     {
@@ -7326,7 +7443,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800063/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800063/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800063/tips_88_mask.png",
-      "rank": 90,
+      "rank": 91,
       "name_template": "templates/inventory/equipment/art/11800063/name.png"
     },
     {
@@ -7384,7 +7501,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800058/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800058/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800058/tips_88_mask.png",
-      "rank": 91,
+      "rank": 92,
       "name_template": "templates/inventory/equipment/art/11800058/name.png"
     },
     {
@@ -7442,7 +7559,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800057/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800057/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800057/tips_88_mask.png",
-      "rank": 92,
+      "rank": 93,
       "name_template": "templates/inventory/equipment/art/11800057/name.png",
       "image_alias_ids": [
         11800057,
@@ -7504,7 +7621,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800055/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800055/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800055/tips_88_mask.png",
-      "rank": 93,
+      "rank": 94,
       "name_template": "templates/inventory/equipment/art/11800055/name.png"
     },
     {
@@ -7562,7 +7679,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800052/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800052/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800052/tips_88_mask.png",
-      "rank": 94,
+      "rank": 95,
       "name_template": "templates/inventory/equipment/art/11800052/name.png"
     },
     {
@@ -7620,7 +7737,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800051/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800051/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800051/tips_88_mask.png",
-      "rank": 95,
+      "rank": 96,
       "name_template": "templates/inventory/equipment/art/11800051/name.png"
     },
     {
@@ -7678,7 +7795,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800062/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800062/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800062/tips_88_mask.png",
-      "rank": 96,
+      "rank": 97,
       "name_template": "templates/inventory/equipment/art/11800062/name.png"
     },
     {
@@ -7736,7 +7853,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800068/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800068/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800068/tips_88_mask.png",
-      "rank": 97,
+      "rank": 98,
       "name_template": "templates/inventory/equipment/art/11800068/name.png"
     },
     {
@@ -7794,7 +7911,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800059/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800059/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800059/tips_88_mask.png",
-      "rank": 98,
+      "rank": 99,
       "name_template": "templates/inventory/equipment/art/11800059/name.png"
     },
     {
@@ -7852,7 +7969,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800067/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800067/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800067/tips_88_mask.png",
-      "rank": 99,
+      "rank": 100,
       "name_template": "templates/inventory/equipment/art/11800067/name.png"
     },
     {
@@ -7910,7 +8027,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800066/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800066/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800066/tips_88_mask.png",
-      "rank": 100,
+      "rank": 101,
       "name_template": "templates/inventory/equipment/art/11800066/name.png"
     },
     {
@@ -7968,7 +8085,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800056/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800056/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800056/tips_88_mask.png",
-      "rank": 101,
+      "rank": 102,
       "name_template": "templates/inventory/equipment/art/11800056/name.png"
     },
     {
@@ -8026,7 +8143,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800065/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800065/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800065/tips_88_mask.png",
-      "rank": 102,
+      "rank": 103,
       "name_template": "templates/inventory/equipment/art/11800065/name.png"
     },
     {
@@ -8084,7 +8201,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800064/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800064/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800064/tips_88_mask.png",
-      "rank": 103,
+      "rank": 104,
       "name_template": "templates/inventory/equipment/art/11800064/name.png"
     },
     {
@@ -8142,7 +8259,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800061/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800061/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800061/tips_88_mask.png",
-      "rank": 104,
+      "rank": 105,
       "name_template": "templates/inventory/equipment/art/11800061/name.png"
     },
     {
@@ -8200,7 +8317,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800054/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800054/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800054/tips_88_mask.png",
-      "rank": 105,
+      "rank": 106,
       "name_template": "templates/inventory/equipment/art/11800054/name.png"
     },
     {
@@ -8258,7 +8375,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800042/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800042/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800042/tips_88_mask.png",
-      "rank": 106,
+      "rank": 107,
       "name_template": "templates/inventory/equipment/art/11800042/name.png"
     },
     {
@@ -8316,7 +8433,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800033/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800033/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800033/tips_88_mask.png",
-      "rank": 107,
+      "rank": 108,
       "name_template": "templates/inventory/equipment/art/11800033/name.png"
     },
     {
@@ -8374,7 +8491,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800031/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800031/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800031/tips_88_mask.png",
-      "rank": 108,
+      "rank": 109,
       "name_template": "templates/inventory/equipment/art/11800031/name.png"
     },
     {
@@ -8432,7 +8549,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800030/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800030/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800030/tips_88_mask.png",
-      "rank": 109,
+      "rank": 110,
       "name_template": "templates/inventory/equipment/art/11800030/name.png"
     },
     {
@@ -8490,7 +8607,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800029/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800029/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800029/tips_88_mask.png",
-      "rank": 110,
+      "rank": 111,
       "name_template": "templates/inventory/equipment/art/11800029/name.png"
     },
     {
@@ -8548,7 +8665,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800027/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800027/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800027/tips_88_mask.png",
-      "rank": 111,
+      "rank": 112,
       "name_template": "templates/inventory/equipment/art/11800027/name.png"
     },
     {
@@ -8606,7 +8723,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800024/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800024/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800024/tips_88_mask.png",
-      "rank": 112,
+      "rank": 113,
       "name_template": "templates/inventory/equipment/art/11800024/name.png"
     },
     {
@@ -8664,7 +8781,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800020/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800020/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800020/tips_88_mask.png",
-      "rank": 113,
+      "rank": 114,
       "name_template": "templates/inventory/equipment/art/11800020/name.png"
     },
     {
@@ -8722,7 +8839,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800019/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800019/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800019/tips_88_mask.png",
-      "rank": 114,
+      "rank": 115,
       "name_template": "templates/inventory/equipment/art/11800019/name.png"
     },
     {
@@ -8780,7 +8897,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800017/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800017/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800017/tips_88_mask.png",
-      "rank": 115,
+      "rank": 116,
       "name_template": "templates/inventory/equipment/art/11800017/name.png"
     },
     {
@@ -8838,7 +8955,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800016/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800016/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800016/tips_88_mask.png",
-      "rank": 116,
+      "rank": 117,
       "name_template": "templates/inventory/equipment/art/11800016/name.png"
     },
     {
@@ -8896,7 +9013,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800015/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800015/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800015/tips_88_mask.png",
-      "rank": 117,
+      "rank": 118,
       "name_template": "templates/inventory/equipment/art/11800015/name.png"
     },
     {
@@ -8954,7 +9071,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800014/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800014/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800014/tips_88_mask.png",
-      "rank": 118,
+      "rank": 119,
       "name_template": "templates/inventory/equipment/art/11800014/name.png"
     },
     {
@@ -9012,7 +9129,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800012/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800012/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800012/tips_88_mask.png",
-      "rank": 119,
+      "rank": 120,
       "name_template": "templates/inventory/equipment/art/11800012/name.png"
     },
     {
@@ -9070,7 +9187,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800002/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800002/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800002/tips_88_mask.png",
-      "rank": 120,
+      "rank": 121,
       "name_template": "templates/inventory/equipment/art/11800002/name.png"
     },
     {
@@ -9128,7 +9245,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800314/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800314/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800314/tips_88_mask.png",
-      "rank": 121,
+      "rank": 122,
       "name_template": "templates/inventory/equipment/art/11800314/name.png"
     },
     {
@@ -9186,7 +9303,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800311/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800311/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800311/tips_88_mask.png",
-      "rank": 122,
+      "rank": 123,
       "name_template": "templates/inventory/equipment/art/11800311/name.png"
     },
     {
@@ -9244,7 +9361,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800309/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800309/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800309/tips_88_mask.png",
-      "rank": 123,
+      "rank": 124,
       "name_template": "templates/inventory/equipment/art/11800309/name.png"
     },
     {
@@ -9302,7 +9419,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800307/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800307/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800307/tips_88_mask.png",
-      "rank": 124,
+      "rank": 125,
       "name_template": "templates/inventory/equipment/art/11800307/name.png"
     },
     {
@@ -9360,7 +9477,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800297/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800297/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800297/tips_88_mask.png",
-      "rank": 125,
+      "rank": 126,
       "name_template": "templates/inventory/equipment/art/11800297/name.png"
     },
     {
@@ -9418,7 +9535,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800286/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800286/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800286/tips_88_mask.png",
-      "rank": 126,
+      "rank": 127,
       "name_template": "templates/inventory/equipment/art/11800286/name.png"
     },
     {
@@ -9476,7 +9593,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800285/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800285/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800285/tips_88_mask.png",
-      "rank": 127,
+      "rank": 128,
       "name_template": "templates/inventory/equipment/art/11800285/name.png"
     },
     {
@@ -9534,7 +9651,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800284/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800284/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800284/tips_88_mask.png",
-      "rank": 128,
+      "rank": 129,
       "name_template": "templates/inventory/equipment/art/11800284/name.png"
     },
     {
@@ -9592,7 +9709,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800283/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800283/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800283/tips_88_mask.png",
-      "rank": 129,
+      "rank": 130,
       "name_template": "templates/inventory/equipment/art/11800283/name.png"
     },
     {
@@ -9650,7 +9767,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800271/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800271/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800271/tips_88_mask.png",
-      "rank": 130,
+      "rank": 131,
       "name_template": "templates/inventory/equipment/art/11800271/name.png"
     },
     {
@@ -9708,7 +9825,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800270/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800270/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800270/tips_88_mask.png",
-      "rank": 131,
+      "rank": 132,
       "name_template": "templates/inventory/equipment/art/11800270/name.png"
     },
     {
@@ -9766,7 +9883,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800269/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800269/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800269/tips_88_mask.png",
-      "rank": 132,
+      "rank": 133,
       "name_template": "templates/inventory/equipment/art/11800269/name.png"
     },
     {
@@ -9824,7 +9941,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800268/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800268/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800268/tips_88_mask.png",
-      "rank": 133,
+      "rank": 134,
       "name_template": "templates/inventory/equipment/art/11800268/name.png"
     },
     {
@@ -9882,7 +9999,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800256/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800256/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800256/tips_88_mask.png",
-      "rank": 134,
+      "rank": 135,
       "name_template": "templates/inventory/equipment/art/11800256/name.png"
     },
     {
@@ -9940,7 +10057,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800255/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800255/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800255/tips_88_mask.png",
-      "rank": 135,
+      "rank": 136,
       "name_template": "templates/inventory/equipment/art/11800255/name.png"
     },
     {
@@ -9998,7 +10115,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800254/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800254/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800254/tips_88_mask.png",
-      "rank": 136,
+      "rank": 137,
       "name_template": "templates/inventory/equipment/art/11800254/name.png"
     },
     {
@@ -10056,7 +10173,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800253/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800253/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800253/tips_88_mask.png",
-      "rank": 137,
+      "rank": 138,
       "name_template": "templates/inventory/equipment/art/11800253/name.png"
     },
     {
@@ -10114,7 +10231,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800242/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800242/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800242/tips_88_mask.png",
-      "rank": 138,
+      "rank": 139,
       "name_template": "templates/inventory/equipment/art/11800242/name.png"
     },
     {
@@ -10172,7 +10289,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800241/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800241/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800241/tips_88_mask.png",
-      "rank": 139,
+      "rank": 140,
       "name_template": "templates/inventory/equipment/art/11800241/name.png"
     },
     {
@@ -10230,7 +10347,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800240/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800240/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800240/tips_88_mask.png",
-      "rank": 140,
+      "rank": 141,
       "name_template": "templates/inventory/equipment/art/11800240/name.png"
     },
     {
@@ -10288,7 +10405,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800239/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800239/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800239/tips_88_mask.png",
-      "rank": 141,
+      "rank": 142,
       "name_template": "templates/inventory/equipment/art/11800239/name.png"
     },
     {
@@ -10346,7 +10463,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800108/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800108/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800108/tips_88_mask.png",
-      "rank": 142,
+      "rank": 143,
       "name_template": "templates/inventory/equipment/art/11800108/name.png"
     },
     {
@@ -10404,7 +10521,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800103/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800103/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800103/tips_88_mask.png",
-      "rank": 143,
+      "rank": 144,
       "name_template": "templates/inventory/equipment/art/11800103/name.png"
     },
     {
@@ -10462,7 +10579,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800102/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800102/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800102/tips_88_mask.png",
-      "rank": 144,
+      "rank": 145,
       "name_template": "templates/inventory/equipment/art/11800102/name.png"
     },
     {
@@ -10520,7 +10637,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800099/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800099/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800099/tips_88_mask.png",
-      "rank": 145,
+      "rank": 146,
       "name_template": "templates/inventory/equipment/art/11800099/name.png"
     },
     {
@@ -10578,7 +10695,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800098/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800098/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800098/tips_88_mask.png",
-      "rank": 146,
+      "rank": 147,
       "name_template": "templates/inventory/equipment/art/11800098/name.png"
     },
     {
@@ -10636,7 +10753,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800096/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800096/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800096/tips_88_mask.png",
-      "rank": 147,
+      "rank": 148,
       "name_template": "templates/inventory/equipment/art/11800096/name.png"
     },
     {
@@ -10694,7 +10811,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800095/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800095/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800095/tips_88_mask.png",
-      "rank": 148,
+      "rank": 149,
       "name_template": "templates/inventory/equipment/art/11800095/name.png"
     },
     {
@@ -10752,7 +10869,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800312/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800312/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800312/tips_88_mask.png",
-      "rank": 149,
+      "rank": 150,
       "name_template": "templates/inventory/equipment/art/11800312/name.png"
     },
     {
@@ -10810,7 +10927,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800308/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800308/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800308/tips_88_mask.png",
-      "rank": 150,
+      "rank": 151,
       "name_template": "templates/inventory/equipment/art/11800308/name.png"
     },
     {
@@ -10868,7 +10985,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800306/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800306/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800306/tips_88_mask.png",
-      "rank": 151,
+      "rank": 152,
       "name_template": "templates/inventory/equipment/art/11800306/name.png"
     },
     {
@@ -10926,7 +11043,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800305/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800305/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800305/tips_88_mask.png",
-      "rank": 152,
+      "rank": 153,
       "name_template": "templates/inventory/equipment/art/11800305/name.png"
     },
     {
@@ -10984,7 +11101,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800304/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800304/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800304/tips_88_mask.png",
-      "rank": 153,
+      "rank": 154,
       "name_template": "templates/inventory/equipment/art/11800304/name.png"
     },
     {
@@ -11042,7 +11159,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800282/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800282/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800282/tips_88_mask.png",
-      "rank": 154,
+      "rank": 155,
       "name_template": "templates/inventory/equipment/art/11800282/name.png"
     },
     {
@@ -11100,7 +11217,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800281/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800281/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800281/tips_88_mask.png",
-      "rank": 155,
+      "rank": 156,
       "name_template": "templates/inventory/equipment/art/11800281/name.png"
     },
     {
@@ -11158,7 +11275,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800280/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800280/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800280/tips_88_mask.png",
-      "rank": 156,
+      "rank": 157,
       "name_template": "templates/inventory/equipment/art/11800280/name.png"
     },
     {
@@ -11216,7 +11333,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800267/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800267/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800267/tips_88_mask.png",
-      "rank": 157,
+      "rank": 158,
       "name_template": "templates/inventory/equipment/art/11800267/name.png"
     },
     {
@@ -11274,7 +11391,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800266/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800266/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800266/tips_88_mask.png",
-      "rank": 158,
+      "rank": 159,
       "name_template": "templates/inventory/equipment/art/11800266/name.png"
     },
     {
@@ -11332,7 +11449,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800265/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800265/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800265/tips_88_mask.png",
-      "rank": 159,
+      "rank": 160,
       "name_template": "templates/inventory/equipment/art/11800265/name.png"
     },
     {
@@ -11390,7 +11507,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800252/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800252/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800252/tips_88_mask.png",
-      "rank": 160,
+      "rank": 161,
       "name_template": "templates/inventory/equipment/art/11800252/name.png"
     },
     {
@@ -11448,7 +11565,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800251/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800251/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800251/tips_88_mask.png",
-      "rank": 161,
+      "rank": 162,
       "name_template": "templates/inventory/equipment/art/11800251/name.png"
     },
     {
@@ -11506,7 +11623,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800250/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800250/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800250/tips_88_mask.png",
-      "rank": 162,
+      "rank": 163,
       "name_template": "templates/inventory/equipment/art/11800250/name.png"
     },
     {
@@ -11564,7 +11681,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800238/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800238/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800238/tips_88_mask.png",
-      "rank": 163,
+      "rank": 164,
       "name_template": "templates/inventory/equipment/art/11800238/name.png"
     },
     {
@@ -11622,7 +11739,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800237/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800237/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800237/tips_88_mask.png",
-      "rank": 164,
+      "rank": 165,
       "name_template": "templates/inventory/equipment/art/11800237/name.png"
     },
     {
@@ -11680,7 +11797,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800109/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800109/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800109/tips_88_mask.png",
-      "rank": 165,
+      "rank": 166,
       "name_template": "templates/inventory/equipment/art/11800109/name.png"
     },
     {
@@ -11738,7 +11855,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800107/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800107/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800107/tips_88_mask.png",
-      "rank": 166,
+      "rank": 167,
       "name_template": "templates/inventory/equipment/art/11800107/name.png"
     },
     {
@@ -11796,7 +11913,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800047/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800047/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800047/tips_88_mask.png",
-      "rank": 167,
+      "rank": 168,
       "name_template": "templates/inventory/equipment/art/11800047/name.png"
     },
     {
@@ -11854,7 +11971,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800046/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800046/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800046/tips_88_mask.png",
-      "rank": 168,
+      "rank": 169,
       "name_template": "templates/inventory/equipment/art/11800046/name.png"
     },
     {
@@ -11912,7 +12029,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800044/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800044/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800044/tips_88_mask.png",
-      "rank": 169,
+      "rank": 170,
       "name_template": "templates/inventory/equipment/art/11800044/name.png"
     },
     {
@@ -11970,7 +12087,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800043/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800043/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800043/tips_88_mask.png",
-      "rank": 170,
+      "rank": 171,
       "name_template": "templates/inventory/equipment/art/11800043/name.png"
     },
     {
@@ -12028,7 +12145,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800039/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800039/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800039/tips_88_mask.png",
-      "rank": 171,
+      "rank": 172,
       "name_template": "templates/inventory/equipment/art/11800039/name.png"
     },
     {
@@ -12086,7 +12203,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800038/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800038/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800038/tips_88_mask.png",
-      "rank": 172,
+      "rank": 173,
       "name_template": "templates/inventory/equipment/art/11800038/name.png"
     },
     {
@@ -12144,7 +12261,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800037/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800037/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800037/tips_88_mask.png",
-      "rank": 173,
+      "rank": 174,
       "name_template": "templates/inventory/equipment/art/11800037/name.png"
     },
     {
@@ -12202,7 +12319,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800036/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800036/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800036/tips_88_mask.png",
-      "rank": 174,
+      "rank": 175,
       "name_template": "templates/inventory/equipment/art/11800036/name.png"
     },
     {
@@ -12260,7 +12377,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800035/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800035/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800035/tips_88_mask.png",
-      "rank": 175,
+      "rank": 176,
       "name_template": "templates/inventory/equipment/art/11800035/name.png"
     },
     {
@@ -12318,7 +12435,7 @@
       "small_icon_mask": "templates/inventory/equipment/art/11800028/icon_88_mask.png",
       "small_tips_template": "templates/inventory/equipment/art/11800028/tips_88.png",
       "small_tips_mask": "templates/inventory/equipment/art/11800028/tips_88_mask.png",
-      "rank": 176,
+      "rank": 177,
       "name_template": "templates/inventory/equipment/art/11800028/name.png"
     }
   ],
@@ -25443,6 +25560,127 @@
       ],
       "mode": "L",
       "source_sha256": "2db98687e9af11f46d33faecbeb3cfa16321db462d4d412833faaf946a8cc606"
+    },
+    "templates/characters/nameplates/scuffle/10001478.png": {
+      "sha256": "6b602447ae131455500775ae3f62d95487675fb53f0c6b3643d0ba4ba75e0ee0",
+      "size": [
+        138,
+        23
+      ],
+      "mode": "L",
+      "source_font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+    },
+    "templates/characters/nameplates/scuffle/10001491.png": {
+      "sha256": "8190203042637b42195a3fe53e2f9e44d59a767d8854a5a6bca7837318f99249",
+      "size": [
+        138,
+        23
+      ],
+      "mode": "L",
+      "source_font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+    },
+    "templates/characters/nameplates/scuffle/10001531.png": {
+      "sha256": "c6d8f8085e7c2c87a43031fd765bedc486d59df3abf2c8450026c99114e19813",
+      "size": [
+        138,
+        23
+      ],
+      "mode": "L",
+      "source_font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+    },
+    "templates/inventory/equipment/art/11800319/detail_200.png": {
+      "sha256": "2903a35296fb66272c42b8e28928db0a51253c479084802f20176662659ac418",
+      "size": [
+        200,
+        200
+      ],
+      "mode": "RGBA",
+      "source_sha256": "6a4dff6e85c77c0a86d5c0ecd380791e3eb9afa235736619e4b83a01b8aea23a"
+    },
+    "templates/inventory/equipment/art/11800319/detail_200_mask.png": {
+      "sha256": "4805a1029dc6a2a5be6c92c871bd2601acdbfafec30ac54dc97e29ea1adf5838",
+      "size": [
+        200,
+        200
+      ],
+      "mode": "L",
+      "source_sha256": "6a4dff6e85c77c0a86d5c0ecd380791e3eb9afa235736619e4b83a01b8aea23a"
+    },
+    "templates/inventory/equipment/art/11800319/icon_88.png": {
+      "sha256": "3c1dc13631df7f6ca13c94916d303ea2eb23ae2179f3a81d3ff2bc3216eac5ce",
+      "size": [
+        88,
+        88
+      ],
+      "mode": "RGBA",
+      "source_sha256": "086364039094ed18c4117d5498f6035806865d1a92b8aa1f136f9a1d6955575b"
+    },
+    "templates/inventory/equipment/art/11800319/icon_88_mask.png": {
+      "sha256": "0113c8eb6deb2ca434403347c9cdcb68621fcb79a7be2073fcba4e0b430636d7",
+      "size": [
+        88,
+        88
+      ],
+      "mode": "L",
+      "source_sha256": "086364039094ed18c4117d5498f6035806865d1a92b8aa1f136f9a1d6955575b"
+    },
+    "templates/inventory/equipment/art/11800319/tips_88.png": {
+      "sha256": "7095256e255da216924faae7ea72a3a1aa283d6e4e4e7e94b9d61e0c2c1ba117",
+      "size": [
+        88,
+        88
+      ],
+      "mode": "RGBA",
+      "source_sha256": "6a4dff6e85c77c0a86d5c0ecd380791e3eb9afa235736619e4b83a01b8aea23a"
+    },
+    "templates/inventory/equipment/art/11800319/tips_88_mask.png": {
+      "sha256": "64cc4d40c7ed43afd75343d7a3ed59fa8597e4624660e65000f8ba72bc2a7d66",
+      "size": [
+        88,
+        88
+      ],
+      "mode": "L",
+      "source_sha256": "6a4dff6e85c77c0a86d5c0ecd380791e3eb9afa235736619e4b83a01b8aea23a"
+    },
+    "templates/inventory/equipment/art/11800319/name.png": {
+      "sha256": "a1df3fa7f7298f0178cf98fbea12285d9863fce1d533ae8b10bce5d839161f44",
+      "size": [
+        138,
+        23
+      ],
+      "mode": "L",
+      "source_font_sha256": "97e5eff6dd208ccb814726458c8c7ab4b59327c62b9ee8df3440e7e835209ab9"
+    }
+  },
+  "candidate_pool_refresh": {
+    "source_version": "local-game-export-2026-11-21",
+    "mode_id": 89000016,
+    "mode_name": "乱斗/11学会新",
+    "added_character_ids": [
+      10001478,
+      10001491,
+      10001531
+    ],
+    "added_equipment_ids": [
+      11800319
+    ],
+    "sources": {
+      "RandomBattleFactory.bin": {
+        "sha256": "c1bad7b15e8c8f4afd23460245cefde49fa00b7ee6060f65992846e01ca9fee8",
+        "content_hash": "535348526802967078D26B5D5A2D1F183333CA9E27B2EC76C4379CE7D41A35E9"
+      },
+      "ListFactory.bin": {
+        "sha256": "87525d6244272d268a9f39e737a86812ded8e7f4753238e6a0f6a0898ec44c75",
+        "content_hash": "A88A49420BDB44E3C729E593DF9424CF2BE059D111A077F1FF46699D20E64FC3"
+      },
+      "UnitFactory.bin": {
+        "sha256": "588b7e73b9bafdfd1eac71eda5c49b8aa33d570532bbbbb064ca0e43b4f6c890",
+        "content_hash": "3EE70CB59653ABA7AE748C4C560F297C7B43852483144112688DD54DBF346636"
+      },
+      "EquipmentFactory.bin": {
+        "sha256": "7a9028d9493addd777d1f509e71a1a823f6c63138b59d788bff77f401c7524ea",
+        "content_hash": "873CC5FCBAAF0D84724A1D57604891EF0EEF9B511BBCA549F1DFDE5997E5C220"
+      }
     }
   }
 }

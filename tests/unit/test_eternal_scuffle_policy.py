@@ -125,8 +125,8 @@ def test_uncertain_or_invalid_team_does_not_become_an_empty_slot(catalog, change
 
 def test_production_catalog_counts_dates_and_internal_rarities():
     cat = policy.load_catalog(PLAN)
-    assert len(cat["characters"]) == 99
-    assert len(cat["equipment"]) == 176
+    assert len(cat["characters"]) == 102
+    assert len(cat["equipment"]) == 177
     assert {row["rarity"] for row in cat["characters"]} == {"SSR", "SR", "R", "N"}
     for kind, order in (("characters", policy.CHARACTER_RARITIES), ("equipment", policy.EQUIPMENT_RARITIES)):
         assert policy.rank_entries(cat[kind], order) == cat[kind]
@@ -142,7 +142,8 @@ def test_runtime_and_development_assets_are_local_and_separate_with_matching_mas
     cat = policy.load_catalog()
     development = json.loads((PLAN / "development/template_sources/characters/stand/scuffle/manifest.json").read_text(encoding="utf-8"))
     stand_rows = {row["id"]: row for row in development["characters"]}
-    assert list(stand_rows) == [row["id"] for row in cat["characters"]]
+    name_only_ids = set(cat["candidate_pool_refresh"]["added_character_ids"])
+    assert list(stand_rows) == [row["id"] for row in cat["characters"] if row["id"] not in name_only_ids]
     assert all(relative.startswith("templates/") for relative in cat["assets"])
     assert all(relative.startswith("development/template_sources/characters/stand/scuffle/") for relative in development["assets"])
     for relative, metadata in {**cat["assets"], **development["assets"]}.items():
@@ -161,13 +162,17 @@ def test_runtime_and_development_assets_are_local_and_separate_with_matching_mas
                 assert mask.getbbox() is not None
     pairs = [(row["template"], row["mask"]) for row in cat["controls"].values() if row.get("mask")]
     for row in cat["characters"]:
-        source = stand_rows[row["id"]]
         assert not {"stand_templates", "stand_masks", "stand_sources"} & row.keys()
+        name_asset = cat["assets"][row["name_template"]]
+        assert name_asset["size"] == [138, 23]
+        if row["id"] in name_only_ids:
+            assert name_asset["source_font_sha256"] == cat["profiles"]["equipment_name"]["source_font_sha256"]
+            continue
+        source = stand_rows[row["id"]]
         assert len(source["stand_templates"]) == len(source["stand_masks"]) == 8
         assert len(source["stand_sources"]) == 8
         assert source["source"] == row["source"]
         pairs.extend(zip(source["stand_templates"], source["stand_masks"], strict=True))
-        assert cat["assets"][row["name_template"]]["size"] == [138, 23]
     for row in cat["equipment"]:
         assert cat["assets"][row["template"]]["size"] == [200, 200]
         name_asset = cat["assets"][row["name_template"]]
@@ -217,7 +222,7 @@ def test_identical_equipment_images_have_explicit_name_disambiguation():
 def test_all_equipment_names_are_distinct_and_longest_keeps_full_font_size():
     cat = policy.load_catalog()
     hashes = {cat["assets"][row["name_template"]]["sha256"] for row in cat["equipment"]}
-    assert len(hashes) == len(cat["equipment"]) == 176
+    assert len(hashes) == len(cat["equipment"]) == 177
     long_name = next(row for row in cat["equipment"] if row["id"] == 11800242)
     with Image.open(PLAN / long_name["name_template"]) as image:
         bounds = image.point(lambda value: 255 if value > 20 else 0).getbbox()

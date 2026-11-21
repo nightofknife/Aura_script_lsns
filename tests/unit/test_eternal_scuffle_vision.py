@@ -234,16 +234,21 @@ def test_unreadable_role_and_missing_select_are_not_random_choices():
     asyncio.run(run())
 
 
-def test_live_unknown_role_is_skipped_without_blocking_known_roles():
+def test_live_role_is_recognized_when_its_template_is_available():
     async def run():
         image = np.array(Image.open(FIXTURES / "live_20261004_unknown_role.png").convert("RGB"))
-        helper = probe(image)
-        assert not any(row["name"] == "亚莉奈·危情" for row in helper.catalog["characters"])
-        observation = await asyncio.to_thread(helper.observe)
-        assert observation["scene"] == "role_select"
-        rows = await asyncio.to_thread(helper.read_candidates, observation, "role")
-        assert [(row["index"], row["id"]) for row in rows] == [(1, 10001222), (2, 10000854)]
-        assert all(row["select_point"][0] > 600 for row in rows)
+        arina_id = 10001491
+        other_roles = [(1, 10001222), (2, 10000854)]
+        for include_arina in (True, False):
+            helper = probe(image)
+            if not include_arina:
+                helper.catalog["characters"] = [row for row in helper.catalog["characters"] if row["id"] != arina_id]
+            observation = await asyncio.to_thread(helper.observe)
+            assert observation["scene"] == "role_select"
+            rows = await asyncio.to_thread(helper.read_candidates, observation, "role")
+            expected = [(0, arina_id), *other_roles] if include_arina else other_roles
+            assert [(row["index"], row["id"]) for row in rows] == expected
+            assert all(row["select_point"][0] > 600 for row in rows if row["index"] > 0)
     asyncio.run(run())
 
 

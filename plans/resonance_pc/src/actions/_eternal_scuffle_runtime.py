@@ -275,15 +275,17 @@ class ScuffleRuntime:
             })
         return result
 
-    async def scene(self, *scenes, timeout=CONTROL_TIMEOUT, interval=POLL_INTERVAL):
+    async def scene(self, *scenes, timeout=CONTROL_TIMEOUT, interval=POLL_INTERVAL, stable=2):
         return await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene") in scenes,
-                               signature=lambda f: f["scene"], timeout=timeout, interval=interval,
+                               signature=lambda f: f["scene"], timeout=timeout, interval=interval, stable=stable,
                                label="或".join(_SCENE_LABELS.get(scene, "目标界面") for scene in scenes))
 
-    async def candidates(self, kind: str):
+    async def candidates(self, scene: str, kind: str):
+        started_at = time.monotonic()
+
         def probe():
             f = self.probe()
-            if not f.get("valid"):
+            if not f.get("valid") or f.get("scene") != scene:
                 return []
             rows = self.observer.read_candidates(f, kind)
             return rows
@@ -293,6 +295,7 @@ class ScuffleRuntime:
                                timeout=TRANSITION_TIMEOUT, label="可可靠识别的候选身份")
         recognized_indices = {row["index"] for row in rows}
         await self.record("candidates", candidate_kind=kind, scene=self.last_observation.get("scene"), candidates=rows,
+                          elapsed_ms=round((time.monotonic() - started_at) * 1000),
                           skipped_indices=[index for index in range(3) if index not in recognized_indices],
                           diagnostics=self.last_observation.get("diagnostics", {}).get("candidates", []))
         return rows
@@ -374,8 +377,10 @@ class ScuffleRuntime:
 
     async def click_transition(self, source: str, control: str, targets: tuple[str, ...], *,
                                point_for: Callable | None = None, guard: Callable | None = None,
-                               allow_departure=False):
-        frame = await self.scene(source)
+                               allow_departure=False, source_confirmed=False, frame: dict | None = None):
+        if frame is None:
+            # Prior confirmation saves a wait, but still requires a fresh pre-click frame.
+            frame = await self.scene(source, stable=1 if source_confirmed else 2)
         start = time.monotonic()
         attempts = 0
         departed = False
@@ -468,7 +473,8 @@ class ScuffleRuntime:
 
         await self.click_transition(source, "select", (target,),
                                     guard=lambda f: current(f) is not None,
-                                    point_for=lambda f: (current(f) or {}).get("select_point"))
+                                    point_for=lambda f: (current(f) or {}).get("select_point"),
+                                    source_confirmed=True)
 
     async def begin_round(self, run_index: int):
         if self.state["status"] != "running" or run_index != self.state["completed_runs"] + 1:
@@ -485,11 +491,12 @@ class ScuffleRuntime:
 
     async def coin(self):
         self.require_phase("coin")
-        await self.click_transition("home", "play", ("coin",))
+        frame = await self.click_transition("home", "play", ("coin",), source_confirmed=True)
         sequence = ["max"] if self.state["coins_per_run"] == 5 else ["min"] + ["plus"] * (self.state["coins_per_run"] - 1)
-        for control in sequence:
-            f = await self.scene("coin")
-            point = f.get("controls", {}).get(control, {}).get("center")
+        for index, control in enumerate(sequence):
+            if index or control not in frame.get("controls", {}):
+                frame = await self.scene("coin")
+            point = frame.get("controls", {}).get(control, {}).get("center")
             if point is None:
                 raise ScuffleError("scuffle_coin_control_missing", f"投币控件不可用：{control}。")
             await self.send_click(point, control)
@@ -508,8 +515,7 @@ class ScuffleRuntime:
         if len(self.round["team"]) >= 5 or self.round["pending_role"] is not None:
             raise ScuffleError("scuffle_draft_invalid", "本局选人记录异常。")
         await self.commit("choose_role")
-        await self.scene("role_select")
-        candidates = await self.candidates("role")
+        candidates = await self.candidates("role_select", "role")
         selected = choose_character(candidates, self.catalog)
         if any(int(r["id"]) == int(selected["id"]) for r in self.round["team"]):
             raise ScuffleError("scuffle_duplicate_character", "出现本局已选角色，无法唯一分配装备。")
@@ -522,7 +528,7 @@ class ScuffleRuntime:
 
     async def choose_initial_equipment(self):
         self.require_phase("draft_equipment")
-        candidates = await self.candidates("equipment")
+        candidates = await self.candidates("initial_equipment", "equipment")
         selected = choose_equipment(candidates, self.catalog)
         target = "captain" if len(self.round["team"]) == 4 else "role_select"
         await self.record("initial_equipment_intent", character_id=self.round["pending_role"], selected=selected)
@@ -537,8 +543,7 @@ class ScuffleRuntime:
 
     async def captain(self):
         self.require_phase("captain")
-        await self.scene("captain")
-        await self.click_transition("captain", "confirm", ("stage",))
+        await self.click_transition("captain", "confirm", ("stage",), source_confirmed=True)
         self.round["phase"] = "stage"
         await self.commit("stage")
 
@@ -547,7 +552,8 @@ class ScuffleRuntime:
         phase = self.round["phase"]
         if phase == "stage":
             await self.commit("stage")
-            frame = await self.click_transition("stage", "start", ("victory", "defeat"), allow_departure=True)
+            frame = await self.click_transition("stage", "start", ("victory", "defeat"),
+                                                allow_departure=True, source_confirmed=True)
             self.round["phase"] = frame["scene"] if frame["scene"] in {"victory", "defeat"} else "battle"
             await self.commit("battle")
         elif phase == "battle":
@@ -556,7 +562,7 @@ class ScuffleRuntime:
             await self.record("battle_result", outcome=frame["scene"])
             await self.commit("battle")
         elif phase == "victory":
-            frame = await self.click_transition("victory", "next", ("loot_select", "settlement"))
+            frame = await self.click_transition("victory", "next", ("loot_select", "settlement"), source_confirmed=True)
             if frame["scene"] == "settlement":
                 self.round.update(phase="ready_settlement", outcome="cleared")
                 await self.commit("settlement")
@@ -564,19 +570,18 @@ class ScuffleRuntime:
                 self.round["phase"] = "loot"
                 await self.commit("loot")
         elif phase == "defeat":
-            await self.click_transition("defeat", "next", ("stage",))
+            await self.click_transition("defeat", "next", ("stage",), source_confirmed=True)
             self.round["phase"] = "abandon"
             await self.commit("abandon")
         else:
-            await self.click_transition("stage", "abandon", ("abandon_confirm",))
-            await self.click_transition("abandon_confirm", "confirm", ("settlement",))
+            await self.click_transition("stage", "abandon", ("abandon_confirm",), source_confirmed=True)
+            await self.click_transition("abandon_confirm", "confirm", ("settlement",), source_confirmed=True)
             self.round.update(phase="ready_settlement", outcome="abandoned")
             await self.commit("settlement")
 
     async def choose_loot(self):
         self.require_phase("loot")
-        await self.scene("loot_select")
-        candidates = await self.candidates("equipment")
+        candidates = await self.candidates("loot_select", "equipment")
         selected = choose_equipment(candidates, self.catalog)
         equipment_id = int(selected["id"])
         decision = {"equipment_id": equipment_id, "slot_type": self.equipment[equipment_id]["slot_type"]}
@@ -593,7 +598,7 @@ class ScuffleRuntime:
         slot_type = self.equipment[equipment_id]["slot_type"]
         if pending.get("slot_type") != slot_type:
             raise ScuffleError("scuffle_loot_decision_changed", "待分配装备的类型不一致。")
-        frame = await self.scene("assign")
+        frame = await self.scene("assign", stable=1)
         slots = await _run_blocking(self.observer.read_empty_slots, frame, slot_type)
         if not slots or slots.get("slot_type") != slot_type:
             raise ScuffleError("scuffle_assignment_slots_invalid", "无法检查当前分配页的固定空槽。")
@@ -623,7 +628,8 @@ class ScuffleRuntime:
                     and int(selected["screen_index"]) == target_index)
 
         await self.record("assignment_intent", decision=decision)
-        frame = await self.click_transition("assign", "confirm", ("stage", "settlement"), guard=still_selected)
+        frame = await self.click_transition("assign", "confirm", ("stage", "settlement"),
+                                            guard=still_selected, source_confirmed=True)
         # Draft identities are not inferred from screen order. The assignment
         # is recorded by its fixed position only after the page transition.
         self.round["last_assignment"] = decision
@@ -636,25 +642,24 @@ class ScuffleRuntime:
 
     async def open_box(self):
         self.require_phase("ready_settlement")
-        frame = await self.scene("settlement")
+        def reward_ready(f):
+            return (f.get("valid") and f.get("scene") == "settlement"
+                    and (bool(f.get("boxes")) or bool(f.get("controls", {}).get("back"))))
+
+        frame = await self.wait(self.probe, reward_ready, stable=3,
+                                signature=lambda f: bool(f.get("boxes")), label="可打开的宝箱或结算返回按钮")
         boxes = frame.get("boxes", [])
         if not boxes:
-            await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene") == "settlement" and not f.get("boxes") and bool(f.get("controls", {}).get("back")),
-                            stable=3, label="全部奖励已打开及返回按钮")
             self.round["phase"] = "return_home"
             await self.commit("return_home")
             return
-        target = min(boxes, key=lambda b: (b["center"][1], b["center"][0]))
-        x,y=target["center"]
+        current = min(boxes, key=lambda box: (box["center"][1], box["center"][0]))
+        x, y = current["center"]
+
         def present(f):
             return next((b for b in f.get("boxes", []) if abs(b["center"][0]-x)<30 and abs(b["center"][1]-y)<30), None)
-        for attempt in range(1, MAX_CLICKS+1):
-            frame = await self.scene("settlement")
-            current = present(frame)
-            if current is None:
-                # Never increment from a single missed match.
-                await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene")=="settlement" and present(f) is None, stable=3, timeout=10, label="宝箱已揭开")
-                break
+
+        for attempt in range(1, MAX_CLICKS + 1):
             await self.send_click(current["center"], "box", attempt)
             try:
                 await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene")=="settlement" and present(f) is None, stable=3, timeout=RETRY_WINDOW, label="宝箱已揭开")
@@ -663,15 +668,23 @@ class ScuffleRuntime:
                 if exc.code != "scuffle_observation_timeout" or attempt==MAX_CLICKS:
                     raise
                 # A retry needs fresh, valid evidence of the same unopened box.
-                await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene")=="settlement" and present(f) is not None, stable=2, timeout=10, label="原宝箱仍未打开")
+                frame = await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene")=="settlement" and present(f) is not None, stable=2, timeout=10, label="原宝箱仍未打开")
+                current = present(frame)
         self.round["opened_boxes"] += 1
         await self.record("box_opened", position=[x,y], opened_boxes=self.round["opened_boxes"])
         await self.commit("settlement")
 
     async def return_home(self):
         self.require_phase("return_home")
-        await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene")=="settlement" and not f.get("boxes") and bool(f.get("controls",{}).get("back")), stable=3, label="结算可返回")
-        await self.click_transition("settlement", "back", ("home",), guard=lambda f: not f.get("boxes"))
+
+        def boxes_done(f):
+            return not f.get("boxes")
+
+        # This phase is committed after three box-free frames. Get one fresh frame before clicking.
+        frame = await self.wait(self.probe, lambda f: f.get("valid") and f.get("scene") == "settlement"
+                                and boxes_done(f) and bool(f.get("controls", {}).get("back")),
+                                stable=1, label="结算可返回")
+        await self.click_transition("settlement", "back", ("home",), guard=boxes_done, frame=frame)
         self.round.update(returned_home=True, phase="home")
         await self.commit("return_home")
 
@@ -681,7 +694,7 @@ class ScuffleRuntime:
             raise ScuffleError("scuffle_round_not_complete", "本局没有完成结算返回，不能计数。")
         if self.state["completed_runs"] != self.state["run_index"]-1:
             raise ScuffleError("scuffle_duplicate_round_commit", "本局已计数或局次不一致。")
-        await self.scene("home")
+        await self.scene("home", stable=1)
         result={"run_index":self.state["run_index"],"outcome":self.round["outcome"],"elapsed_ms":max(0,int((time.time()-self.round["started_at"])*1000))}
         await self.record("round_completed", result=result, team=self.round["team"])
         self.state["completed_runs"] += 1
