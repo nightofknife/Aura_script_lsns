@@ -24,11 +24,13 @@
 
 ## 识别素材与策略
 
-目录：`plans/resonance_pc/data/meta/eternal_scuffle.json`；控件位于 `templates/battle/scuffle/controls/`，运行角色姓名模板位于 `templates/characters/nameplates/scuffle/`，装备图片及卡框位于 `templates/inventory/equipment/`。未接入当前角色识别的立绘与 mask 位于 `development/template_sources/characters/stand/scuffle/`，由独立开发 manifest 保存逐帧来源，运行目录不再声明三个 `stand_*` 字段。保留 99 名角色、176 件装备和原控件身份；相同像素由显式目录引用共享物理资源，运行与开发文件集合分别以各自 `assets` 为准。装备包含可达专用条目 `11800086` 乱斗变量模块，其他测试装备不在候选库。
+目录 `plans/resonance_pc/data/meta/eternal_scuffle.json` 包含 102 名角色和 177 件装备。控件位于 `templates/battle/scuffle/controls/`，角色姓名模板位于 `templates/characters/nameplates/scuffle/`，装备图片及卡框位于 `templates/inventory/equipment/`。开发立绘与蒙版的历史快照位于 `development/template_sources/characters/stand/scuffle/`，由独立开发 manifest 保存逐帧来源。装备目录包含乱斗专用条目 `11800086` 乱斗变量模块。
+
+2026-11-21 根据本地客户端的「乱斗/11学会新」候选池补入菲妮娅·烁梦、亚莉奈·危情、朱月和绯霆之律。三名角色分别添加姓名模板，绯霆之律添加名称、装备图和蒙版。目录的 `candidate_pool_refresh` 记录本次客户端数据来源，新增条目的 `source.candidate_pool_ids` 对应实际分发列表。
 
 - **角色**：只匹配完整居中姓名模板，保留空白上下文；取全目录最高得分，达到 0.80 即接受，不要求领先第二名，不使用动态人物立绘兜底。候选页、队伍页、选中角色复核共用此规则。
 - **战败标题**：YOU LOSE 原图配合按水平、垂直笔画边界重建的几何蒙版匹配，保留阶梯拐角和字洞，排除场景背景与外围发光；保持灰度匹配和 0.90 门槛。素材构建工具用固定矩形精确复现蒙版，不依赖颜色阈值分割。
-- **装备候选**：全部 176 个完整名称模板共同竞争，不调用 OCR，不以装备大图兜底。普通模板为 138×23；最长的 `“极坐标”指挥无人机` 为 164×23。原字体 23 号、比例 0.66，固定字号、单行溢出。两种宽度分别按卡片中心采样，再合并排名，避免短名匹配混入卡框边缘。
+- **装备候选**：全部 177 个完整名称模板共同竞争，不调用 OCR，不以装备大图兜底。普通模板为 138×23；最长的 `“极坐标”指挥无人机` 为 164×23。原字体 23 号、比例 0.66，固定字号、单行溢出。两种宽度分别按卡片中心采样，再合并排名，避免短名匹配混入卡框边缘。
 - **装备槽**：开局小槽使用 `iconPath`，分配小槽使用 `tipsPath`。空槽由空槽标识确认，非空槽由品质边框及可确认的图案核对，不能把未识别到图案当成空槽。
 - **角色选中**：只匹配中央 SELECT 文字和绿底，不匹配动态四角。D07 蒙版排除外围 3 像素人物背景。轻量探测只扫描五个 SELECT 标志和唯一选中卡的姓名；零个、多个或姓名不确定均拒绝。
 
@@ -71,7 +73,7 @@
 
 ## 开发验证
 
-正常运行仅依赖随包资源。`tools/build_eternal_scuffle_assets.py` 是离线构建工具，需要明确提供研究素材、原字体和原图来源，不作为生产启动步骤；每个正式资源有哈希，名称还保留字体来源哈希。
+正常运行仅依赖随包资源。`tools/build_eternal_scuffle_assets.py` 用于重建 2026-09-06 的历史素材快照，需要明确提供研究素材、原字体和原图来源。后续从客户端增量生成的模板由运行目录的 `candidate_pool_refresh` 和 `assets` 记录。
 
 所有命令从当前仓库根运行。使用独立 pytest 临时目录，不清理 `.pytest_tmp` 根，避免删除研究源文件。
 

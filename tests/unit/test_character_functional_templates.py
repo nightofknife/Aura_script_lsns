@@ -33,16 +33,19 @@ def test_scuffle_functional_art_has_complete_logical_coverage_and_source_records
     catalog = json.loads((PLAN / "data/meta/eternal_scuffle.json").read_text(encoding="utf-8"))
     development = json.loads((PLAN / "development/template_sources/characters/stand/scuffle/manifest.json").read_text(encoding="utf-8"))
     sources = {row["id"]: row for row in development["characters"]}
-    assert len(catalog["characters"]) == 99
-    assert len(catalog["equipment"]) == 176
+    assert len(catalog["characters"]) == 102
+    assert len(catalog["equipment"]) == 177
     by_id = {row["id"]: row for row in catalog["equipment"]}
-    assert list(sources) == [row["id"] for row in catalog["characters"]]
+    name_only_ids = set(catalog["candidate_pool_refresh"]["added_character_ids"])
+    assert list(sources) == [row["id"] for row in catalog["characters"] if row["id"] not in name_only_ids]
     for row in catalog["characters"]:
-        source = sources[row["id"]]
         assert not {"stand_templates", "stand_masks", "stand_sources"} & row.keys()
+        assert row["name_template"].startswith("templates/characters/nameplates/scuffle/")
+        if row["id"] in name_only_ids:
+            continue
+        source = sources[row["id"]]
         assert len(source["stand_templates"]) == len(source["stand_masks"]) == len(source["stand_sources"]) == 8
         assert source["source"] == row["source"]
-        assert row["name_template"].startswith("templates/characters/nameplates/scuffle/")
         assert all(ref.startswith("development/template_sources/characters/stand/scuffle/") for ref in source["stand_templates"])
     for left, right in ((11800009, 11800010), (11800053, 11800278), (11800057, 11800101)):
         assert by_id[left]["template"] == by_id[right]["template"]
