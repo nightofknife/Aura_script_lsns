@@ -36,7 +36,7 @@ ADDED = {"affix_refresh_pc", "affix_refresh_read_pc", "withdraw_product_warehous
          "auto_battle_enter_terminal_pc", "auto_battle_enter_category_pc",
          "collect_and_withdraw_products_pc", "read_visible_prison_products_pc",
          "trade_start_preflight_pc", "collect_daily_mission_rewards_pc", "collect_battle_pass_rewards_pc",
-         "collect_rewards_pc", "consciousness_deep_dive_read_board_pc"}
+         "collect_rewards_pc", "consciousness_deep_dive_read_board_pc", "calculation_recording_pc"}
 
 
 def definitions():
@@ -61,11 +61,11 @@ def test_all_source_definitions_accounted_without_retired_aliases():
     current = definitions()
     assert len(inventory) == len(original) == 62
     assert set(current) == (original - REMOVED.keys() - RETIRED - RENAMED.keys()) | set(RENAMED.values()) | ADDED
-    assert len(current) == 63
+    assert len(current) == 64
     assert all(replacement in current for replacement in (*REMOVED.values(), *RENAMED.values()))
     assert all(spec["meta"]["domain"] for spec in current.values())
     assert Counter(task_role(spec["meta"]) for spec in current.values()) == {
-        "lifecycle": 2, "orchestration": 1, "user_task": 14, "user_tool": 3,
+        "lifecycle": 2, "orchestration": 1, "user_task": 15, "user_tool": 3,
         "developer": 4, "internal": 39,
     }
 
@@ -101,7 +101,7 @@ def test_user_discovery_uses_roles_and_keeps_internal_tasks_resolvable():
     rows = [{"plan_name": "resonance_pc", "full_task_id": key, "task_ref": key, "meta": spec["meta"]}
             for key, spec in definitions().items()]
     selected = select_tasks(rows)
-    assert len(selected) == 20
+    assert len(selected) == 21
     assert all(task_role(row["meta"]) in PUBLIC_TASK_ROLES for row in selected)
     assert {row["task_ref"] for row in select_tasks(rows, roles=("developer",))} == {
         key for key, spec in definitions().items() if spec["meta"]["role"] == "developer"}

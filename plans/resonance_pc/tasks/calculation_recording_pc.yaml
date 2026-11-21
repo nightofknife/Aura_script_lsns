@@ -1,0 +1,26 @@
+calculation_recording_pc:
+  meta:
+    role: user_task
+    domain: 活动玩法
+    title: 虚演刻录
+    description: 从虚演刻录关卡选择页逐张扫描，推进所有可挑战关卡至目标进度。
+    entry_point: true
+    concurrency: exclusive
+    inputs:
+      - name: target_progress
+        type: number
+        strict_integer: true
+        min: 20
+        max: 100
+        default: 100
+  steps:
+    require_resolution:
+      action: resonance_pc.require_client_resolution
+    run:
+      action: resonance_pc.run_calculation_recording
+      depends_on: require_resolution
+      timeout: -1
+      params:
+        target_progress: "{{ inputs.target_progress }}"
+  returns:
+    calculation_recording: "{{ nodes.run.output }}"

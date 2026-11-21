@@ -36,6 +36,7 @@ from .logic import (
     PC_AFFIX_REFRESH_TASK_REF,
     PC_AFFIX_REFRESH_READ_TASK_REF,
     PC_BATTLE_TASK_REF,
+    PC_CALCULATION_RECORDING_TASK_REF,
     PC_DAILY_MISSION_REWARDS_TASK_REF,
     PC_BATTLE_PASS_REWARDS_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
@@ -349,6 +350,7 @@ class ResonanceMainWindow(QMainWindow):
             self._run_deep_dive_planned_run
         )
         self.small_tasks_page.cancelRequested.connect(self.requestCancelCurrent.emit)
+        self.small_tasks_page.runCalculationRecordingRequested.connect(self._run_small_task_calculation_recording)
         self.small_tasks_page.runEternalScuffleRequested.connect(self._run_small_task_eternal_scuffle)
         self.small_tasks_page.readAffixRefreshRequested.connect(self._read_small_task_affix_refresh)
         self.small_tasks_page.runAffixRefreshRequested.connect(self._run_small_task_affix_refresh)
@@ -487,6 +489,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.taskDispatched.connect(self._on_task_dispatched)
         self._bridge.runUpdated.connect(self._on_run_updated)
         self._bridge.tradeProgress.connect(self._on_trade_progress)
+        self._bridge.calculationRecordingProgress.connect(self.small_tasks_page.calculation_recording_panel.apply_progress)
         self._bridge.eternalScuffleProgress.connect(self.small_tasks_page.eternal_scuffle_panel.apply_progress)
         self._bridge.affixRefreshProgress.connect(self.small_tasks_page.affix_refresh_panel.apply_progress)
         self._bridge.deepDiveLoopProgress.connect(self.small_tasks_page.consciousness_deep_dive_panel.apply_loop_progress)
@@ -499,6 +502,7 @@ class ResonanceMainWindow(QMainWindow):
         self._bridge.cancelRequested.connect(self.battle_page.cancel_requested)
         self._bridge.cancelRequested.connect(self._on_workflow_cancel_requested)
         self._bridge.cancelRequested.connect(self._on_affix_refresh_cancel_requested)
+        self._bridge.cancelRequested.connect(self._on_calculation_recording_cancel_requested)
         self._bridge.cancelRequested.connect(self._on_daily_rewards_cancel_requested)
         self._bridge.taskFinished.connect(self._on_task_finished)
         self._bridge.taskFailed.connect(self._on_task_failed)
@@ -899,6 +903,18 @@ class ResonanceMainWindow(QMainWindow):
         if self._small_task_active_ref in {PC_AFFIX_REFRESH_TASK_REF, PC_AFFIX_REFRESH_READ_TASK_REF}:
             self.small_tasks_page.affix_refresh_panel.mark_stopping()
 
+    def _run_small_task_calculation_recording(self, inputs: dict[str, Any]) -> None:
+        if self._busy or self._workflow_active or self._small_task_active_ref:
+            self.statusBar().showMessage("当前有任务正在运行，请稍后再开始虚演刻录。")
+            return
+        self._small_task_active_ref = PC_CALCULATION_RECORDING_TASK_REF
+        self.small_tasks_page.begin_calculation_recording_run(inputs)
+        self.requestRunPcTask.emit(PC_CALCULATION_RECORDING_TASK_REF, dict(inputs), "虚演刻录", 0.0)
+
+    def _on_calculation_recording_cancel_requested(self, _payload: dict[str, Any]) -> None:
+        if self._small_task_active_ref == PC_CALCULATION_RECORDING_TASK_REF:
+            self.small_tasks_page.calculation_recording_panel.mark_stopping()
+
     def _run_small_task_eternal_scuffle(self, inputs: dict[str, Any]) -> None:
         if self._busy or self._workflow_active or self._small_task_active_ref:
             self.small_tasks_page.show_eternal_scuffle_error("当前有任务正在运行，请稍后再试。")
@@ -1008,6 +1024,7 @@ class ResonanceMainWindow(QMainWindow):
             PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF: page.show_consciousness_deep_dive_scan_error,
             PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF: page.show_consciousness_deep_dive_plan_error,
             PC_TEAM_RECOMMENDATION_TASK_REF: page.show_team_recommendation_error,
+            PC_CALCULATION_RECORDING_TASK_REF: page.show_calculation_recording_error,
             PC_ETERNAL_SCUFFLE_TASK_REF: page.show_eternal_scuffle_error,
             PC_DAILY_MISSION_REWARDS_TASK_REF: page.show_daily_rewards_error,
             PC_BATTLE_PASS_REWARDS_TASK_REF: page.show_daily_rewards_error,
@@ -1297,6 +1314,14 @@ class ResonanceMainWindow(QMainWindow):
                     self.small_tasks_page.show_affix_refresh_error(
                         failure_message,
                         cancelled=runner_status == "cancelled")
+            if task_ref == PC_CALCULATION_RECORDING_TASK_REF and small_task_owns_result:
+                recording_result = player_data_result.get("calculation_recording")
+                status = extract_status(payload)
+                if status == "success" and isinstance(recording_result, dict):
+                    self.small_tasks_page.apply_calculation_recording_result(recording_result)
+                else:
+                    message = failure_message if failure else "任务已停止，但没有返回虚演刻录结果。"
+                    self.small_tasks_page.show_calculation_recording_error(message, cancelled=status == "cancelled")
             if task_ref == PC_ETERNAL_SCUFFLE_TASK_REF and small_task_owns_result:
                 scuffle_result = player_data_result.get("eternal_scuffle")
                 status = extract_status(payload)
@@ -1492,6 +1517,9 @@ class ResonanceMainWindow(QMainWindow):
         if not self._workflow_active:
             self.independent_failure_details.set_report(failure.text, payload)
         self._show_run_result(payload, failure)
+        if stage == "cancel_task" and self._small_task_active_ref == PC_CALCULATION_RECORDING_TASK_REF:
+            self.small_tasks_page.calculation_recording_panel.cancel_failed(failure.text)
+            return
         if stage == "cancel_task" and self._small_task_active_ref in {
                 PC_DAILY_MISSION_REWARDS_TASK_REF, PC_BATTLE_PASS_REWARDS_TASK_REF}:
             self.small_tasks_page.daily_rewards_panel.cancel_failed(failure.text)

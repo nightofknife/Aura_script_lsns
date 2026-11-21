@@ -10,7 +10,14 @@ from typing import Any, Mapping
 from PySide6.QtCore import QSettings
 
 from .paths import resolve_application_root
-from .logic import validate_trade_goods_investment_level, validate_pickup_click_interval, validate_trailer_options, validate_city_tax_rates_bps, validate_allow_stale_market
+from .logic import (
+    CALCULATION_RECORDING_TARGETS,
+    validate_allow_stale_market,
+    validate_city_tax_rates_bps,
+    validate_pickup_click_interval,
+    validate_trade_goods_investment_level,
+    validate_trailer_options,
+)
 from .black_moon_catalog import normalize_black_moon_settings
 from .affix_catalog import normalize_affix_inputs
 from .battle_plan import normalize_battle_editor_inputs
@@ -466,6 +473,17 @@ class ResonanceConfigRepository:
                 raise ValueError(f"{key} 必须是 1～{maximum} 的整数")
         for key in ("coins_per_run", "run_count"):
             self.settings.setValue(f"eternal_scuffle/{key}", inputs.get(key, 1))
+        self.settings.sync()
+
+    def load_calculation_recording_target(self) -> int:
+        try:
+            target = int(str(self.settings.value("calculation_recording/target_progress", 100)))
+        except (ValueError, TypeError):
+            return 100
+        return target if target in CALCULATION_RECORDING_TARGETS else 100
+
+    def save_calculation_recording_target(self, target: int) -> None:
+        self.settings.setValue("calculation_recording/target_progress", target)
         self.settings.sync()
 
     def load_battle_inputs(self) -> dict[str, Any]:

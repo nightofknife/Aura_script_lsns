@@ -22,6 +22,9 @@ from .logic import (
     AFFIX_REFRESH_PROGRESS_SCHEMA,
     PC_AFFIX_REFRESH_TASK_REF,
     PC_AFFIX_REFRESH_READ_TASK_REF,
+    CALCULATION_RECORDING_PROGRESS_EVENT,
+    CALCULATION_RECORDING_PROGRESS_SCHEMA,
+    PC_CALCULATION_RECORDING_TASK_REF,
     ETERNAL_SCUFFLE_PROGRESS_EVENT,
     DEEP_DIVE_LOOP_PROGRESS_EVENT,
     PC_CONSCIOUSNESS_DEEP_DIVE_LOOP_TASK_REF,
@@ -58,6 +61,7 @@ class RunnerBridge(QObject):
     taskFinished = Signal(dict)
     taskFailed = Signal(dict)
     tradeProgress = Signal(dict)
+    calculationRecordingProgress = Signal(dict)
     eternalScuffleProgress = Signal(dict)
     affixRefreshProgress = Signal(dict)
     deepDiveLoopProgress = Signal(dict)
@@ -84,6 +88,7 @@ class RunnerBridge(QObject):
         self._closed = False
         self._busy = False
         self._current_cid = ""
+        self._recording_sequence = -1
         self._scuffle_sequence = -1
         self._affix_sequence = -1
         self._current_item: dict[str, Any] | None = None
@@ -401,6 +406,7 @@ class RunnerBridge(QObject):
         self._set_busy(True)
         self._current_cid = ""
         self._current_item = item
+        self._recording_sequence = -1
         self._scuffle_sequence = -1
         self._affix_sequence = -1
         self._cancel_sent = False
@@ -466,6 +472,20 @@ class RunnerBridge(QObject):
     def _consume_events(self, events: list[dict[str, Any]]) -> None:
         for event in events:
             name = str(event.get("name") or "")
+            if name == CALCULATION_RECORDING_PROGRESS_EVENT:
+                payload = event.get("payload")
+                if not isinstance(payload, dict):
+                    continue
+                sequence = payload.get("sequence")
+                if (not self._current_cid
+                        or (self._current_item or {}).get("task_ref") != PC_CALCULATION_RECORDING_TASK_REF
+                        or payload.get("schema") != CALCULATION_RECORDING_PROGRESS_SCHEMA
+                        or payload.get("cid") != self._current_cid
+                        or type(sequence) is not int or sequence <= self._recording_sequence):
+                    continue
+                self._recording_sequence = sequence
+                self.calculationRecordingProgress.emit(dict(event))
+                continue
             if name == AFFIX_REFRESH_PROGRESS_EVENT:
                 payload = event.get("payload")
                 if not isinstance(payload, dict):
@@ -649,6 +669,7 @@ class RunnerBridge(QObject):
 
     def _reset_current(self) -> None:
         self._stop_polling()
+        self._recording_sequence = -1
         self._scuffle_sequence = -1
         self._affix_sequence = -1
         self._current_cid = ""
