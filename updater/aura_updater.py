@@ -47,6 +47,7 @@ MAX_INDEX_BYTES = 4096
 MAX_ARCHIVE_ENTRIES = 200_000
 MAX_EXTRACTED_BYTES = 16 * 1024 * 1024 * 1024
 MAX_DOWNLOAD_BYTES = 2 * 1024 * 1024 * 1024
+MIRROR_DOWNLOAD_ATTEMPTS = 3
 WINDOWS_DIRECTORY_PATH_LIMIT = 248
 LOG = logging.getLogger("AuraUpdater")
 
@@ -778,7 +779,23 @@ def _download_and_verify(
     return destination
 
 
-def _download_from_mirror(client: MirrorClient, release: MirrorRelease, destination: Path) -> Path:
+def _mirror_partial_path(root: Path, channel: UpdateChannel, release: MirrorRelease) -> Path:
+    partial = _filesystem_path(_confined_child(
+        root, ".update-work", "mirror-downloads", channel, f"{release.tag}-{release.sha256}.zip.part",
+    ))
+    partial.parent.mkdir(parents=True, exist_ok=True)
+    for old_partial in partial.parent.glob("*.zip.part"):
+        if old_partial != partial:
+            try:
+                old_partial.unlink(missing_ok=True)
+            except OSError:
+                LOG.warning("phase=mirror_partial_cleanup_deferred path=%s", old_partial)
+    return partial
+
+
+def _download_from_mirror(
+    client: MirrorClient, release: MirrorRelease, destination: Path, partial: Path,
+) -> Path:
     def waiting(ahead: int | None) -> None:
         if ahead is None:
             _write_console_line("VPS 下载队列已满，正在等待入队。", "The VPS queue is full. Waiting to join.")
@@ -786,26 +803,53 @@ def _download_from_mirror(client: MirrorClient, release: MirrorRelease, destinat
             _write_console_line(f"下载排队中，前面还有 {ahead} 位。按 Ctrl+C 取消。",
                                 f"Waiting to download. {ahead} ahead. Press Ctrl+C to cancel.")
 
-    def started() -> None:
-        _write_console_line(f"正在从 VPS 下载 {release.tag}……", f"Downloading {release.tag} from the VPS...")
+    LOG.info("phase=download asset=%s", release.filename)
+    for attempt in range(MIRROR_DOWNLOAD_ATTEMPTS):
+        offset = partial.stat().st_size if partial.exists() else 0
+        if offset > release.size:
+            partial.unlink()
+            offset = 0
+        if offset == release.size:
+            break
+        downloaded = offset
+        try:
+            with client.stream(release, offset=offset, on_wait=waiting, timeout=60) as (response, start):
+                downloaded = start
+                displayed = start * 100 // release.size
+                if start:
+                    _write_console_line(f"正在从 VPS 续传 {release.tag}（{displayed}%）……",
+                                        f"Resuming {release.tag} from the VPS at {displayed}%...")
+                else:
+                    _write_console_line(f"正在从 VPS 下载 {release.tag}……",
+                                        f"Downloading {release.tag} from the VPS...")
+                with partial.open("ab" if start else "wb") as handle:
+                    while downloaded < release.size:
+                        chunk = response.read(min(1024 * 1024, release.size - downloaded))
+                        if not chunk:
+                            raise ConnectionError(f"VPS download ended at {downloaded}/{release.size} bytes")
+                        downloaded += handle.write(chunk)
+                        percent = downloaded * 100 // release.size
+                        if percent >= displayed + 10 or percent == 100:
+                            displayed = percent
+                            _write_console_line(f"已下载 {percent}%", f"Downloaded {percent}%")
+        except NETWORK_ERRORS as exc:
+            LOG.warning("phase=mirror_download_interrupted tag=%s attempt=%s received=%s size=%s reason=%s",
+                        release.tag, attempt + 1, downloaded, release.size, type(exc).__name__)
+            if attempt + 1 == MIRROR_DOWNLOAD_ATTEMPTS:
+                raise
+            time.sleep(0.5 * (attempt + 1))
+        else:
+            break
 
-    displayed = 0
-
-    def progress(size: int) -> None:
-        nonlocal displayed
-        percent = size * 100 // release.size
-        if percent >= displayed + 10 or percent == 100:
-            displayed = percent
-            _write_console_line(f"已下载 {percent}%", f"Downloaded {percent}%")
-
-    def open_stream(_request, *, timeout):
-        return client.stream(release, on_wait=waiting, on_start=started, timeout=timeout)
-
-    asset = ReleaseAsset(release.filename, client.base_url)
-    return _download_and_verify(
-        asset, destination, {asset.name.casefold(): release.sha256},
-        opener=open_stream, max_bytes=release.size, progress=progress,
-    )
+    with partial.open("rb") as handle:
+        digest = hashlib.file_digest(handle, "sha256").hexdigest()
+    if digest != release.sha256:
+        partial.unlink()
+        raise AssetVerificationError(f"SHA-256 verification failed for {release.filename}")
+    filesystem_destination = _filesystem_path(destination)
+    filesystem_destination.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(partial, filesystem_destination)
+    return destination
 
 
 def _report_mirror_fallback(error: Exception) -> None:
@@ -916,10 +960,14 @@ def _perform_update_locked(
 
     work_root = _confined_child(root, ".update-work", "downloads", uuid.uuid4().hex)
     main_archive = None
+    partial = None
     if mirrored_release is not None:
         assert mirror is not None
+        partial = _mirror_partial_path(root, channel, mirrored_release)
         try:
-            main_archive = _download_from_mirror(mirror, mirrored_release, work_root / mirrored_release.filename)
+            main_archive = _download_from_mirror(
+                mirror, mirrored_release, work_root / mirrored_release.filename, partial,
+            )
         except (MirrorError, AssetVerificationError, *NETWORK_ERRORS) as exc:
             _report_mirror_fallback(exc)
             release = fetch_latest_release(channel=channel, opener=opener, pinned_tag=selected_tag)
@@ -936,6 +984,11 @@ def _perform_update_locked(
     LOG.info("phase=staged tag=%s", selected_tag)
     terminate_installed_processes(root)
     install_staged_release(staged_root, root)
+    if partial is not None:
+        try:
+            partial.unlink(missing_ok=True)
+        except OSError:
+            LOG.warning("phase=mirror_partial_cleanup_deferred path=%s", partial)
     shutil.rmtree(_filesystem_path(work_root, recursive=True), ignore_errors=True)
     return True
 

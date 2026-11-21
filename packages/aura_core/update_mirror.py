@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 from dataclasses import dataclass
 import http.client
+from http import HTTPStatus
 import json
 import re
 import ssl
@@ -35,6 +36,10 @@ class MirrorRelease:
     @property
     def filename(self) -> str:
         return f"AuraResonance-{self.tag}-win-x64-cpu.zip"
+
+    @property
+    def etag(self) -> str:
+        return f'"{self.sha256}"'
 
 
 def parse_mirror_release(payload: object, channel: str) -> MirrorRelease:
@@ -83,8 +88,8 @@ class MirrorClient:
         self.open = opener
         self.poll_interval = poll_interval
 
-    def _request(self, path, *, method="GET", payload=None, timeout=8.0, attempts=3):
-        headers = {"User-Agent": "AuraResonanceUpdater/1"}
+    def _request(self, path, *, method="GET", payload=None, headers=None, timeout=8.0, attempts=3):
+        headers = {"User-Agent": "AuraResonanceUpdater/1", **(headers or {})}
         body = None
         if payload is not None:
             headers["Content-Type"] = "application/json"
@@ -147,23 +152,35 @@ class MirrorClient:
             time.sleep(self.poll_interval)
 
     @contextmanager
-    def stream(self, release: MirrorRelease, *, on_wait, on_start, timeout):
+    def stream(self, release: MirrorRelease, *, offset: int, on_wait, timeout):
+        headers = {"Range": f"bytes={offset}-", "If-Range": release.etag} if offset else None
         for attempt in range(2):
             token = uuid.uuid4().hex
             queue_path = f"/queue/{token}"
             try:
                 try:
                     self._join_and_wait(release.tag, queue_path, on_wait)
-                    response = self._request(f"/download/{token}", timeout=timeout)
+                    response = self._request(f"/download/{token}", headers=headers, timeout=timeout)
                 except MirrorError as exc:
                     if exc.status in (404, 409) and attempt == 0:
                         continue
                     raise
                 with response:
-                    if response.headers.get("Content-Length") != str(release.size):
+                    start = 0
+                    status = getattr(response, "status", HTTPStatus.OK)
+                    etag = response.headers.get("ETag")
+                    if status == HTTPStatus.PARTIAL_CONTENT and offset:
+                        expected = f"bytes {offset}-{release.size - 1}/{release.size}"
+                        if response.headers.get("Content-Range") != expected or etag != release.etag:
+                            raise MirrorError("VPS 返回的续传范围或文件标识不符")
+                        start = offset
+                    elif status != HTTPStatus.OK:
+                        raise MirrorError(f"VPS 返回了意外的下载状态 HTTP {status}")
+                    elif etag is not None and etag != release.etag:
+                        raise MirrorError("VPS 返回的文件标识与索引不符")
+                    if response.headers.get("Content-Length") != str(release.size - start):
                         raise MirrorError("VPS 安装包大小与索引不符")
-                    on_start()
-                    yield response
+                    yield response, start
                 return
             finally:
                 try:

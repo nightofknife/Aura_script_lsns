@@ -5,6 +5,7 @@ from dataclasses import asdict, dataclass
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import json
+import logging
 from pathlib import Path
 import re
 import ssl
@@ -19,6 +20,7 @@ CHANNELS = {"stable", "experimental"}
 QUEUE_CAPACITY = 512
 WAITING_TTL = 60
 CLAIM_TTL = 45
+LOG = logging.getLogger(__name__)
 
 
 @dataclass
@@ -213,7 +215,21 @@ class MirrorHandler(BaseHTTPRequestHandler):
         if release is None:
             self.send_error(HTTPStatus.CONFLICT)
             return
+        start = 0
+        remaining = release.size
         try:
+            byte_range = re.fullmatch(r"bytes=([0-9]{1,10})-", self.headers.get("Range", ""))
+            if self.headers.get("If-Range", release.etag) != release.etag:
+                byte_range = None
+            if byte_range:
+                start = int(byte_range[1])
+                if start >= release.size:
+                    self.send_response(HTTPStatus.REQUESTED_RANGE_NOT_SATISFIABLE)
+                    self.send_header("Content-Range", f"bytes */{release.size}")
+                    self.send_header("Content-Length", "0")
+                    self.end_headers()
+                    return
+            remaining = release.size - start
             asset = self.server.asset(release)
             try:
                 package = asset.open("rb")
@@ -221,21 +237,27 @@ class MirrorHandler(BaseHTTPRequestHandler):
                 self.send_error(HTTPStatus.SERVICE_UNAVAILABLE)
                 return
             with package:
-                self.send_response(HTTPStatus.OK)
+                package.seek(start)
+                self.send_response(HTTPStatus.PARTIAL_CONTENT if byte_range else HTTPStatus.OK)
                 self.send_header("Content-Type", "application/zip")
                 self.send_header("Cache-Control", "no-store")
-                self.send_header("Content-Length", str(release.size))
+                self.send_header("Accept-Ranges", "bytes")
+                self.send_header("ETag", release.etag)
+                self.send_header("Content-Length", str(remaining))
+                if byte_range:
+                    self.send_header("Content-Range", f"bytes {start}-{release.size - 1}/{release.size}")
                 self.end_headers()
                 # Pin the declared length if the mirror is updated during a transfer.
-                remaining = release.size
                 while remaining:
                     data = package.read(min(64 * 1024, remaining))
                     if not data:
-                        break
+                        raise EOFError("Mirror package ended before its declared length")
                     self.wfile.write(data)
                     remaining -= len(data)
-        except (ConnectionError, TimeoutError, ssl.SSLError):
-            pass
+        except (ConnectionError, TimeoutError, ssl.SSLError, EOFError) as exc:
+            LOG.warning("download_interrupted tag=%s offset=%s sent=%s size=%s reason=%s",
+                        release.tag, start, release.size - start - remaining, release.size,
+                        type(exc).__name__)
         finally:
             self.server.queue.finish(token)
 
