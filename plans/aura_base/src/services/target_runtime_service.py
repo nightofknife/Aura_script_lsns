@@ -366,13 +366,7 @@ class TargetRuntimeService:
         return str(exc.code or "") in set(resolved.rebind.error_codes)
 
     def _resolve_runtime_config(self) -> ResolvedRuntimeConfig:
-        resolved = resolve_runtime_config(self.config)
-        for message in resolved.warnings:
-            if message in self._emitted_runtime_warnings:
-                continue
-            self._emitted_runtime_warnings.add(message)
-            logger.warning(message)
-        return resolved
+        return resolve_runtime_config(self.config)
 
     def _get_or_create_session(self, *, resolved: ResolvedRuntimeConfig | None = None, force_rebuild: bool = False):
         with target_operation_guard(self):
@@ -387,6 +381,10 @@ class TargetRuntimeService:
                 self._session = self._build_session(resolved)
                 self._session_key = session_key
                 self._trace_cids.clear()
+                for message in resolved.warnings:
+                    if message not in self._emitted_runtime_warnings:
+                        self._emitted_runtime_warnings.add(message)
+                        logger.warning(message)
             owners = {cid for cid in (current_cid(), current_root_cid()) if cid and cid != "-"}
             if len(self._trace_cids | owners) > 64:
                 self._trace_cids.clear()
