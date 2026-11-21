@@ -36,7 +36,7 @@ class BattleSweepError(RuntimeError):
 
 
 class BattleSweepRuntime:
-    def __init__(self, ui, *, capture_count=None, formation_index=None, control_cid=None):
+    def __init__(self, ui, *, capture_count=None, formation_index=None, control_cid=None, route_id=None):
         if capture_count is not None and (isinstance(capture_count, bool)
                 or not isinstance(capture_count, int) or capture_count < 1):
             raise ValueError("capture_count must be a positive integer")
@@ -45,6 +45,8 @@ class BattleSweepRuntime:
         self.ui, self.capture_count = ui, capture_count
         self.formation_index, self.control_cid = formation_index, control_cid
         self.catalog = json.loads((PLAN / "data/meta/battle_sweep_pc.json").read_text(encoding="utf-8"))
+        route_group = (route_id or "").rpartition(".")[0]
+        self.gp_calibration = self.catalog.get("gp_route_calibrations", {}).get(route_group, {})
         structural = json.loads((PLAN / "data/meta/structural_exploration_pc.json").read_text(encoding="utf-8"))
         self.energy_pages = structural["native_auto"]["energy_pages"]
         self.templates = {}
@@ -73,15 +75,16 @@ class BattleSweepRuntime:
         await self.budget.sleep_async(duration)
 
     @staticmethod
-    def _text(items, record, *, exact=False):
+    def _text(items, record, *, exact=False, alias=None):
         # An OCR line's center remains meaningful even when native UI Text uses
         # horizontal overflow outside its nominal RectTransform width.
         roi = record.get("roi")
         if roi is not None and (roi[2] <= 0 or roi[3] <= 0):
             roi = None
-        return find_text(items, record["text"], exact=exact, region=roi)
+        targets = record["text"] if alias is None else (record["text"], alias)
+        return find_text(items, targets, exact=exact, region=roi)
 
-    def _button_score(self, frame, record):
+    def _button_score(self, frame, record, *, overlay_rect=None):
         relative = record["template"]
         if relative not in self.templates:
             raw = np.frombuffer((PLAN / relative).read_bytes(), dtype=np.uint8)
@@ -95,6 +98,9 @@ class BattleSweepRuntime:
         if actual.shape[:2] != native.shape[:2]:
             raise BattleSweepError("sweep_native_template_size_mismatch", template=relative)
         mask = native[:, :, 3] >= 240
+        if overlay_rect is not None:
+            left, top, overlay_width, overlay_height = overlay_rect
+            mask[top:top+overlay_height, left:left+overlay_width] = False
         if np.count_nonzero(mask) < 100:
             raise BattleSweepError("sweep_native_template_mask_unusable", template=relative)
         expected = cv2.cvtColor(native, cv2.COLOR_BGRA2RGB)
@@ -116,9 +122,14 @@ class BattleSweepRuntime:
                 and self._text(items, page["confirm_label"])
                 and self._text(items, page["cancel_label"]))
 
+    def _arrest_minimum(self, items):
+        arrest = self.catalog["arrest"]
+        return self._text(items, {"text": arrest["minimum_text"], "roi": arrest["minimum_region"]},
+                          exact=True, alias=arrest.get("minimum_text_alias"))
+
     def _arrest_page(self, items):
         arrest = self.catalog["arrest"]
-        return (find_text(items, arrest["minimum_text"], exact=True, region=arrest["minimum_region"])
+        return (self._arrest_minimum(items)
                 and find_text(items, arrest["plus_text"], exact=True, region=arrest["plus_region"])
                 and find_text(items, ("确定", "确认"), exact=True, region=(600, 450, 680, 200))
                 and find_text(items, "取消", exact=True))
@@ -145,12 +156,16 @@ class BattleSweepRuntime:
             return None
         if find_text(items, self.catalog["reward"]["identity_text"], exact=True):
             return None
+        aliases = self.gp_calibration.get("anchor_aliases", {})
         for profile in self.catalog["gp_profiles"]:
-            if not all(self._text(items, anchor) for anchor in profile["anchors"]):
+            if not all(self._text(items, anchor, alias=aliases.get(anchor["text"]))
+                       for anchor in profile["anchors"]):
                 continue
             sweep = self._text(items, profile["sweep_label"], exact=True)
             group_start = self._text(items, profile["group_start_label"], exact=True)
-            if sweep and group_start and self._button_score(frame, profile["sweep"]) >= .94:
+            if sweep and group_start and self._button_score(
+                frame, profile["sweep"], overlay_rect=self.gp_calibration.get("sweep_overlay_rect"),
+            ) >= .94:
                 return "available", profile
             # Root-wide start and the two-button sweep group are mutually
             # exclusive in SelectDifficulty. Both label position and native
@@ -277,7 +292,7 @@ class BattleSweepRuntime:
             await self._click(frame, arrest["cancel"]["point"])
             self.capture["reason"] = "not_requested"
             return
-        minimum = find_text(items, arrest["minimum_text"], exact=True, region=arrest["minimum_region"])
+        minimum = self._arrest_minimum(items)
         await self._click(frame, minimum["center"])
         deadline, last_count, adjustments, unchanged = time.monotonic()+18., None, 0, 0
         while time.monotonic() < deadline:
@@ -336,7 +351,11 @@ class BattleSweepRuntime:
         # never convert an uncertain response into normal combat fallback.
         self.submitted = True
         await self._click(frame, self.catalog["skip"]["confirm"]["point"])
-        deadline, previous, stable = time.monotonic()+35., None, 0
+        return await self._settle_submitted()
+
+    async def _settle_submitted(self):
+        deadline = time.monotonic()+35.
+        previous_rewards = []
         capture_handled, arrest_result_closed = False, False
         while time.monotonic() < deadline:
             frame, items = await self._read()
@@ -351,7 +370,7 @@ class BattleSweepRuntime:
                 self.last_page = "arrest"
                 await self._capture(frame, items)
                 capture_handled = True
-                previous, stable = None, 0
+                previous_rewards = []
                 await self._pause(.35)
                 continue
             arrest_success = next((row for row in items
@@ -365,16 +384,21 @@ class BattleSweepRuntime:
             rewards = self._reward_page(items)
             if rewards:
                 self.last_page = "sweep_rewards"
-                signature = tuple(sorted((compact(row["text"]), tuple(row["center"])) for row in rewards))
-                stable = stable+1 if signature == previous else 1
-                previous = signature
-                if stable >= 2:
-                    self.reward_evidence = rewards
+                # Reward cards animate into view independently. Compare quantities
+                # at the same card position, allowing OCR bounding boxes to drift.
+                confirmed = [row for row in rewards if any(
+                    compact(row["text"]) == compact(prior["text"])
+                    and max(abs(x-y) for x, y in zip(row["center"], prior["center"])) <= 8
+                    for prior in previous_rewards
+                )]
+                if confirmed:
+                    self.reward_evidence = confirmed
                     await self._click(frame, self.catalog["reward"]["close"]["point"])
                     await self._stable_entry(original=True)
                     return self._result("swept", "sweep")
+                previous_rewards = rewards
             else:
-                previous, stable = None, 0
+                previous_rewards = []
                 if self._skip_page(items):
                     self.last_page = "skip_confirmation"
                     invalid = find_text(items, ("至少上阵1名队员", "出战人数不得低于", "未设置队长"))
@@ -406,9 +430,9 @@ class BattleSweepRuntime:
 
 
 async def try_battle_sweep(*, app, ocr, interaction, engine, context, capture_count=None,
-                           formation_index=None, control_cid=None):
+                           formation_index=None, control_cid=None, route_id=None):
     if engine is None or context is None:
         raise ValueError("sweep requires the current execution context")
     ui = BattleUi(app, ocr, interaction=interaction)
     return await BattleSweepRuntime(ui, capture_count=capture_count, formation_index=formation_index,
-                                    control_cid=control_cid).run()
+                                    control_cid=control_cid, route_id=route_id).run()

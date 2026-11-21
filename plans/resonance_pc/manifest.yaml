@@ -479,6 +479,15 @@ exports:
       type: Any
       required: false
       default: contains
+  - name: resonance_pc.open_battle_terminal
+    module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
+    function: resonance_pc_open_battle_terminal
+    public: true
+    read_only: false
+    timeout: null
+    description: Open the battle terminal and confirm its category screen before navigation
+      continues.
+    parameters: []
   - name: resonance_pc.wait_and_click_back_button
     module: plans.resonance_pc.src.actions.battle_dispatch_pc_actions
     function: resonance_pc_wait_and_click_back_button
@@ -771,6 +780,10 @@ exports:
       required: false
       default: null
     - name: control_cid
+      type: Any
+      required: false
+      default: null
+    - name: route_id
       type: Any
       required: false
       default: null

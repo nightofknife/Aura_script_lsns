@@ -63,12 +63,13 @@ def build(game_root: Path, devtools_src: Path, pythonlibs: Path | None = None) -
             record = save(obj, f"event_type_{index}", (35, 35), relative)
             icons.append({"index": index, "type": TYPES[index], **record})
         if obj.path_id == 2592199744137304732:
-            controls["event_list_open"] = save(obj, "event_list_open", (40, 20), relative)
-            original = Image.open(target / "event_list_open.png")
-            path = target / "event_list_closed.png"
+            # The native sprite points down when the event list is collapsed.
+            controls["event_list_closed"] = save(obj, "event_list_closed", (40, 20), relative)
+            original = Image.open(target / "event_list_closed.png")
+            path = target / "event_list_open.png"
             original.transpose(Image.Transpose.FLIP_TOP_BOTTOM).save(path)
-            controls["event_list_closed"] = {
-                **controls["event_list_open"], "template": path.relative_to(PLAN).as_posix(),
+            controls["event_list_open"] = {
+                **controls["event_list_closed"], "template": path.relative_to(PLAN).as_posix(),
                 "sha256": hashlib.sha256(path.read_bytes()).hexdigest(), "transform": "flip_vertical",
             }
 
@@ -200,6 +201,7 @@ def build(game_root: Path, devtools_src: Path, pythonlibs: Path | None = None) -
             "click_roi": click["rect"], "point": click["point"],
             "label_roi": label_node["rect_client"], "priority_roi": priority_node["rect_client"],
             "background_roi": bg["rect_client"],
+            "icon_roi": [bg["rect_client"][0] + 59, bg["rect_client"][1] + 2, 47, 49],
             "state_roi": [bg["rect_client"][0] + state_crop[0],
                           bg["rect_client"][1] + state_crop[1],
                           state_crop[2] - state_crop[0], state_crop[3] - state_crop[1]],
@@ -219,7 +221,8 @@ def build(game_root: Path, devtools_src: Path, pythonlibs: Path | None = None) -
         "point": [(left + right) // 2, (top + bottom) // 2],
         "rect_source": [card["rect_source"]["background"] for card in cards.values()],
         "prefab": world_prefab, "rect_derivation": "union_of_four_native_card_backgrounds",
-        "identity_rule": "all_four_labels_in_their_native_row_regions",
+        "identity_rule": "three_of_four_type_silhouettes_in_their_native_row_regions",
+        "icon_match_threshold": 0.60,
     }
     buy_prefab, energy_prefab = "ui/energy/energybuytips.asset", "ui/energy/energy.asset"
     buy_text = nodes(buy_prefab)["/EnergyBuyTips/Txt_Tips"]

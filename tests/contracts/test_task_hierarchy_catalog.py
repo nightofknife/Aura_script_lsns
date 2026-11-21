@@ -205,7 +205,7 @@ def test_sweep_and_native_structural_are_reusable_actions_with_explicit_paramete
     actions = {row["name"]: row for row in ManifestGenerator(PLAN).generate()["exports"]["actions"]}
     stored = {row["name"]: row for row in yaml.safe_load((PLAN / "manifest.yaml").read_text(encoding="utf-8"))["exports"]["actions"]}
     for name, parameters in (
-        ("resonance_pc.try_battle_sweep", {"capture_count", "formation_index", "control_cid"}),
+        ("resonance_pc.try_battle_sweep", {"capture_count", "formation_index", "control_cid", "route_id"}),
         ("resonance_pc.run_structural_exploration", {"types", "control_cid"}),
     ):
         assert actions[name] == stored[name]

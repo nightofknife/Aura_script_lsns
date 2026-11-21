@@ -651,7 +651,10 @@ def test_dispatch_category_clicks_require_the_requested_terminal_category():
         "timeout": 8.0, "interval": .2, "region": [20, 180, 200, 160],
         "threshold": .95, "use_grayscale": True, "required": True,
     }
-    assert step["depends_on"] == "settle_terminal"
+    assert step["depends_on"] == "open_terminal"
+    assert steps["open_terminal"] == {
+        "action": "resonance_pc.open_battle_terminal", "depends_on": "require_resolution",
+    }
     assert steps["settle_category"]["depends_on"] == "select_main_category"
     play_steps = tasks["auto_battle_enter_category_pc"]["steps"]
     assert play_steps["select_sub_category"]["depends_on"] == "require_category_pair"

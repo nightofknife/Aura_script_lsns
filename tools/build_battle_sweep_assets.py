@@ -153,13 +153,17 @@ def build(game_root, devtools_src, pythonlibs):
          ["/FastBattle/Group_Safa/Group_XS/Group_Information/Group_Top/Txt_"],
          "UIFastBattleXSController.ClickBattle:174-205"),
         ("ct_regional", "/FastBattle/Group_Battle/Group_Battle/Group_1/Group_Information/Group_TZ/Btn_QW",
-         ["/FastBattle/Group_Battle/Group_Battle/Group_1/Group_Information/Group_Difficult/Btn_Difficult/Txt_"],
+         [],
          "UIFastBattleBattleController.TryBattle:345-383"),
     ):
+        anchors = [text(ct_prefab, path) for path in anchor_paths]
+        if name == "ct_regional":
+            anchors = [{"text": "威胁等级", "roi": [540, 170, 710, 145],
+                        "source": "Live regional threat card labels at 1280x720"}]
         ct_profiles.append({"name": name, "page_after": "mission_preparation",
                             "manual_only": control(ct_prefab, button),
                             "manual_only_label": text(ct_prefab, button + "/Txt_"),
-                            "anchors": [text(ct_prefab, path) for path in anchor_paths],
+                            "anchors": anchors,
                             "availability_source": source + "; native controllers expose squad entry only, no sweep control"})
     skip = "ui/common/battleskiptips.asset"
     reward = "ui/common/showitem.asset"
@@ -182,6 +186,14 @@ def build(game_root, devtools_src, pythonlibs):
     catalog = {
         "schema_version": 1, "status": "native_generated_not_live_verified",
         "reference_client": [1280, 720], "sources": sources,
+        "gp_route_calibrations": {
+            f"gp.action_summary.{group}": {
+                "anchor_aliases": {"掉落预览": "奖励预览"},
+                "sweep_overlay_rect": [45, 8, 100, 60],
+                "source": "Live Special Order I at 1280x720; overlay rect is relative to the sweep button",
+            }
+            for group in ("blade_encirclement", "global_supply", "smuggler_crackdown")
+        },
         "gp_profiles": gp_profiles, "unsupported_profiles": ct_profiles,
         "skip": {"title": text(skip, "/BattleSkipTips/Img_Bg/Txt_T"),
                  "confirm": control(skip, "/BattleSkipTips/Btn_Confirm"),
@@ -197,7 +209,7 @@ def build(game_root, devtools_src, pythonlibs):
                    "source": "UIBattleSkipTipsController.TryArrest:326-359; GoBack + CommonTips.OpenShowItem(reward)"},
         "arrest": {"cancel": control(arrest, "/ArrestTips/Btn_Cancel"),
                    "source": "UIArrestTipsViewFunction:30-33; GoBack + Cancel callback",
-                   "minimum_text": "最小", "plus_text": "+1",
+                   "minimum_text": "最小", "minimum_text_alias": "最少", "plus_text": "+1",
                    "count_region": [460, 315, 350, 100], "minimum_region": [330, 340, 110, 80],
                    "plus_region": [770, 340, 115, 80],
                    "result_title": text(arrest_result, "/SkipArrestSettlement/Txt_"),

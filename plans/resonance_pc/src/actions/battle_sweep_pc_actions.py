@@ -13,8 +13,8 @@ from ._battle_sweep_runtime import try_battle_sweep
 async def resonance_pc_try_battle_sweep(
     app: Any = None, ocr: Any = None, interaction: Any = None,
     engine: Any = None, context: Any = None, capture_count: int | None = None,
-    formation_index: int | None = None, control_cid: str | None = None,
+    formation_index: int | None = None, control_cid: str | None = None, route_id: str | None = None,
 ) -> dict:
     return await try_battle_sweep(app=app, ocr=ocr, interaction=interaction,
                                   engine=engine, context=context, capture_count=capture_count,
-                                  formation_index=formation_index, control_cid=control_cid)
+                                  formation_index=formation_index, control_cid=control_cid, route_id=route_id)

@@ -106,8 +106,8 @@
     }
   ],
   "controls": {
-    "event_list_open": {
-      "template": "templates/battle/structural/event_list_open.png",
+    "event_list_closed": {
+      "template": "templates/battle/structural/event_list_closed.png",
       "sprite": "WorldScan_btn_event2",
       "path_id": 2592199744137304732,
       "bundle": "ui/activity/activityglobalbattle/images.asset",
@@ -117,8 +117,8 @@
       ],
       "sha256": "9e81fae624e29dd6fda7bf3f33a5ec4d914ab3caaa80e1d7827dc6aa8b9a8e1c"
     },
-    "event_list_closed": {
-      "template": "templates/battle/structural/event_list_closed.png",
+    "event_list_open": {
+      "template": "templates/battle/structural/event_list_open.png",
       "sprite": "WorldScan_btn_event2",
       "path_id": 2592199744137304732,
       "bundle": "ui/activity/activityglobalbattle/images.asset",
@@ -248,6 +248,7 @@
           426,
           54
         ],
+        "icon_roi": [82, 352, 47, 49],
         "state_roi": [
           29,
           355,
@@ -377,6 +378,7 @@
           426,
           54
         ],
+        "icon_roi": [82, 412, 47, 49],
         "state_roi": [
           29,
           415,
@@ -506,6 +508,7 @@
           426,
           54
         ],
+        "icon_roi": [82, 472, 47, 49],
         "state_roi": [
           29,
           475,
@@ -635,6 +638,7 @@
           426,
           54
         ],
+        "icon_roi": [82, 532, 47, 49],
         "state_roi": [
           29,
           535,
@@ -867,7 +871,8 @@
         ],
         "prefab": "ui/activity/activityglobalbattle/worldscan.asset",
         "rect_derivation": "union_of_four_native_card_backgrounds",
-        "identity_rule": "all_four_labels_in_their_native_row_regions"
+        "identity_rule": "three_of_four_type_silhouettes_in_their_native_row_regions",
+        "icon_match_threshold": 0.6
       }
     },
     "energy_pages": {
