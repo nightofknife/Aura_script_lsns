@@ -92,7 +92,7 @@ def test_consecutive_sweeps_reuse_stage_and_forward_root_control_and_formation(m
     assert len(initial) == 1 and initial[0][2]["control_cid"] == "isolated-battle"
     repeats = names(execution, "resonance_pc.try_battle_sweep")
     assert len(repeats) == 2
-    assert all(row[2] == {"capture_count": None, "formation_index": 2,
+    assert all(row[2] == {"route_id": "ordinary-test", "capture_count": None, "formation_index": 2,
                           "control_cid": "isolated-battle"} for row in repeats)
     assert len(names(execution, "resonance_pc.wait_and_click_back_button")) == 1
 

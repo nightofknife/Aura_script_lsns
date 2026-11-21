@@ -113,6 +113,7 @@ async def _enter_route(execution: Any, category: str, subcategory: str) -> None:
 async def _run_ordinary(execution: Any, job: dict, *, reuse_sweep_page=False, control_cid=None) -> dict:
     if reuse_sweep_page:
         sweep = await execution.call_action("resonance_pc.try_battle_sweep", {
+            "route_id": job["route_id"],
             "capture_count": job.get("capture_count"),
             "formation_index": job.get("formation_index"),
             "control_cid": control_cid,

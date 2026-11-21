@@ -6,7 +6,6 @@ startup are reserved for stopping it. Observed settlements are not a census.
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import json
 import time
 from copy import deepcopy
@@ -29,6 +28,7 @@ DETAIL_START_ROI = (833, 550, 300, 150)
 # displayed for all four types; the latter is hidden for manual hidden/resident.
 DETAIL_RECOMMENDED_ROI = (930, 545, 285, 55)
 DETAIL_AUTO_TEXT_ROI = (720, 575, 125, 35)
+EVENT_LIST_ROW_HEIGHT = 60
 
 
 class StructuralExplorationError(RuntimeError):
@@ -111,13 +111,19 @@ class StructuralRuntime:
         values = self._scores(frame, self.catalog["controls"][key], region)
         return float(np.max(values))
 
-    def _rows(self, frame, items):
+    def _rows(self, frame):
         region = self.catalog["list_icon_roi"]
-        x, y, _, _ = region
+        x, y, width, height = region
+        image = frame.rgb_image()[y:y+height, x:x+width]
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        foreground = np.where(gray >= 135, gray, 0).astype(np.float32)
         candidates = []
         threshold = float(self.catalog["icon_match_threshold"])
         for icon in self.catalog["icons"]:
-            scores = self._scores(frame, icon, region)
+            # White list glyph interiors tolerate antialiasing and the translucent map backdrop.
+            alpha = self.images[icon["template"]][:, :, 3]
+            glyph = np.where(alpha >= 65, alpha, 0).astype(np.float32)
+            scores = cv2.matchTemplate(foreground, glyph, cv2.TM_CCORR_NORMED)
             # Suppress each local peak before collecting the next occurrence.
             while True:
                 _, score, _, point = cv2.minMaxLoc(scores)
@@ -125,11 +131,8 @@ class StructuralRuntime:
                     break
                 cx, cy = x+point[0]+17, y+point[1]+17
                 if 180 <= cy <= 558:
-                    title = [i for i in items if 135 <= i["center"][0] <= 322
-                             and abs(i["center"][1]-cy) <= 23]
-                    text = " ".join(i["text"] for i in sorted(title, key=lambda i: i["center"][0]))
                     candidates.append({"type": icon["type"], "point": (cx, cy),
-                                       "score": float(score), "title": text})
+                                       "score": float(score)})
                 px, py = point
                 scores[max(0, py-18):py+19, max(0, px-18):px+19] = -1.
         rows = []
@@ -138,12 +141,34 @@ class StructuralRuntime:
                 rows.append(candidate)
         return sorted(rows, key=lambda item: item["point"][1])
 
-    def _signature(self, frame):
-        x, y, w, h = self.catalog["list_roi"]
-        # Capture includes the entire list viewport, rather than names only:
-        # duplicate names must not make different scroll positions equivalent.
-        image = cv2.cvtColor(frame.rgb_image()[y:y+h, x:x+w], cv2.COLOR_RGB2GRAY)
-        return hashlib.sha256(image.tobytes()).hexdigest()
+    def _confirm_list_rows(self, frame, rows):
+        x, y, width, height = self.catalog["list_roi"]
+        rgb = frame.rgb_image()[y:y+height+10, x+10:x+width-10]
+        gray = cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY).astype(np.int16)
+        # The expanded list shows every event. Its bottom border follows the final card.
+        border = (gray[:-1] >= 85) & (gray[:-1]-gray[1:] >= 35)
+        candidates = np.flatnonzero(np.mean(border, axis=1) >= .8)
+        for offset in candidates:
+            row_count = (int(offset)+EVENT_LIST_ROW_HEIGHT//2)//EVENT_LIST_ROW_HEIGHT
+            if row_count < 1 or abs(offset-row_count*EVENT_LIST_ROW_HEIGHT) > 5:
+                continue
+            expected_centers = [y+28+index*EVENT_LIST_ROW_HEIGHT for index in range(row_count)]
+            centers = [row["point"][1] for row in rows]
+            if len(centers) != row_count or any(abs(actual-expected) > 9
+                                                for actual, expected in zip(centers, expected_centers)):
+                raise StructuralExplorationError("structural_event_rows_unrecognized", {
+                    "expected_rows": row_count, "recognized_centers": centers,
+                })
+            return
+        raise StructuralExplorationError("structural_event_list_boundary_unconfirmed")
+
+    def _stopped_list_rows(self, frame, items):
+        if callback_page(items) != 'world_scan' or find_text(items, '关闭自动讨伐', region=MAP_AUTO_ROI):
+            raise StructuralExplorationError('structural_termination_page_changed')
+        rows = self._rows(frame)
+        if not rows:
+            raise StructuralExplorationError('structural_event_rows_unrecognized')
+        return rows
 
     async def _read(self):
         self.ui.scope.checkpoint()
@@ -167,14 +192,6 @@ class StructuralRuntime:
             await self.ui.sleep(.25)
         raise StructuralExplorationError("structural_page_unconfirmed", {"expected": list(accepted)})
 
-    async def _scroll(self, *, down):
-        await self.execution.call_action("plans/aura_base/drag", {
-            "start_x": 240, "start_y": 520 if down else 220,
-            "end_x": 240, "end_y": 220 if down else 520,
-            "duration": .5, "hold_before_release_sec": .3,
-        })
-        await self.ui.sleep(.5)
-
     async def _open_list(self):
         frame, items = await self._read()
         if callback_page(items) != "world_scan":
@@ -190,7 +207,7 @@ class StructuralRuntime:
                 for item in items
             ):
                 raise StructuralExplorationError("structural_event_header_unrecognized")
-            if self._rows(frame, items):
+            if self._rows(frame):
                 raise StructuralExplorationError("structural_event_header_unrecognized")
             # refreshEventBtn hides Group_Btn only for an empty eventList.
             # Require a complete ready map twice: both native controls, no
@@ -200,7 +217,7 @@ class StructuralRuntime:
             if (callback_page(second) == "world_scan"
                     and max(self._control_score(again, key, roi)
                             for key in ("event_list_open", "event_list_closed")) < .5
-                    and not self._rows(again, second)
+                    and not self._rows(again)
                     and not any(title_roi[0] <= item["center"][0] < title_roi[0]+title_roi[2]
                                 and title_roi[1] <= item["center"][1] < title_roi[1]+title_roi[3]
                                 for item in second)):
@@ -210,26 +227,22 @@ class StructuralRuntime:
             raise StructuralExplorationError("structural_event_list_state_ambiguous")
         if closed > opened:
             await self.ui.click(frame, (180, 120))
-            await self.ui.sleep(.35)
-        return True
-
-    async def _reset_list(self):
-        previous = None
-        for _ in range(64):
-            if self._requested_stop():
-                return
+        deadline, stable = time.monotonic()+4., 0
+        while time.monotonic() < deadline:
             frame, items = await self._read()
-            rows = self._rows(frame, items)
-            if not rows:
-                raise StructuralExplorationError("structural_event_rows_unrecognized")
-            signature = self._signature(frame)
-            if previous == signature:
-                if len(rows) >= 6 and len({(r["type"], r["title"]) for r in rows}) < 2:
-                    raise StructuralExplorationError("structural_list_top_ambiguous")
-                return
-            previous = signature
-            await self._scroll(down=False)
-        raise StructuralExplorationError("structural_event_list_top_unconfirmed")
+            opened = self._control_score(frame, "event_list_open", roi)
+            closed = self._control_score(frame, "event_list_closed", roi)
+            if (callback_page(items) == "world_scan" and opened >= .78
+                    and opened-closed >= .03 and self._rows(frame)):
+                stable += 1
+                if stable >= 2:
+                    return True
+            else:
+                stable = 0
+            await self.ui.sleep(.18)
+        raise StructuralExplorationError("structural_event_list_expand_unconfirmed", {
+            "open_score": round(opened, 3), "closed_score": round(closed, 3),
+        })
 
     def _requested_stop(self):
         return bool(self.control_cid and stop_requested(self.control_cid))
@@ -274,17 +287,23 @@ class StructuralRuntime:
         difference = np.maximum(np.maximum(lower-actual, actual-upper), 0.)
         return 1.-float(difference[mask].mean())
 
-    def _cards_visible(self, items):
-        return all(find_text(items, card['label'], exact=True, region=card['label_roi'])
-                   for card in self.native['cards'].values())
+    def _panel_visibility(self, frame):
+        panel = self.native['controls']['list_panel']
+        matches = sum(any(
+            float(np.max(self._scores(frame, icon, card['icon_roi']))) >= panel['icon_match_threshold']
+            for icon in self.catalog['icons'] if icon['type'] == card['type']
+        ) for card in self.native['cards'].values())
+        if matches >= 3:
+            return True
+        if matches <= 1:
+            return False
+        return None
 
     def _card_selection(self, frame, card):
         on = self._colour_score(frame, card['state_selected'], card['state_roi'])
         off = self._colour_score(frame, card['state_unselected'], card['state_roi'])
         # SetBtnAutoItemGridElelment uses #282F2E for selected type text and
-        # #FFFFFF for unselected text. The caller separately requires the OCR
-        # type identity in this exact region; these are foreground-colour checks,
-        # not a replacement for reading the label.
+        # #FFFFFF for unselected text. Row identities come from the panel icons.
         x, y, width, height = map(int, card['label_roi'])
         label = frame.rgb_image()[y:y+height, x:x+width].astype(np.float32)
         if label.shape[:2] != (height, width):
@@ -307,14 +326,19 @@ class StructuralRuntime:
             'white_pixels': white_pixels, 'white_contrast': white_contrast,
         })
 
-    def _selection(self, frame, items):
-        if not self._cards_visible(items):
+    async def _selection(self, frame, items):
+        if self._panel_visibility(frame) is not True:
             raise StructuralExplorationError('structural_type_panel_unconfirmed')
         selected = {}
         for card in self.native['cards'].values():
             if not self._card_selection(frame, card):
                 continue
-            badge = find_text(items, ('1', '2', '3', '4'), exact=True, region=card['priority_roi'])
+            region = card['priority_roi']
+            ranks = ('1', '2', '3', '4')
+            badge = find_text(items, ranks, exact=True, region=region)
+            if badge is None:
+                cropped = await self.ui.recognize(frame, region=region)
+                badge = find_text(cropped, ranks, exact=True, region=region)
             if badge is None:
                 raise StructuralExplorationError('structural_type_priority_unreadable', {'type': card['type']})
             rank = int(badge['text'].strip())
@@ -335,15 +359,16 @@ class StructuralRuntime:
             frame, items = await self._read()
             if callback_page(items) != 'world_scan' or find_text(items, '关闭自动讨伐', region=MAP_AUTO_ROI):
                 raise StructuralExplorationError('structural_type_setup_source_unknown')
-            visible = self._cards_visible(items)
-            if visible == opened:
+            visible = self._panel_visibility(frame)
+            if visible is opened:
                 stable += 1
                 if stable >= 2:
                     return frame, items
-            elif not clicked:
-                await self._control_click(frame, 'setup')
-                clicked = True
+            else:
                 stable = 0
+                if visible is not None and not clicked:
+                    await self._control_click(frame, 'setup')
+                    clicked = True
             await self.ui.sleep(.15)
         raise StructuralExplorationError('structural_type_panel_transition_failed')
 
@@ -352,7 +377,7 @@ class StructuralRuntime:
         while time.monotonic() < deadline:
             frame, items = await self._read()
             try:
-                observed = self._selection(frame, items)
+                observed = await self._selection(frame, items)
             except StructuralExplorationError as exc:
                 if exc.code not in {
                     'structural_type_selection_unconfirmed', 'structural_type_priority_unreadable',
@@ -364,7 +389,7 @@ class StructuralRuntime:
             if observed is not None and (expected is None or observed == expected):
                 stable = stable+1 if observed == previous else 1
                 if stable >= 2:
-                    return frame, items
+                    return frame, observed
             else:
                 stable = 0
             previous = observed
@@ -373,27 +398,21 @@ class StructuralRuntime:
 
     async def _configure(self):
         await self._panel(True)
-        # Clear by freshly observed identities; removal renumbers remaining cards.
-        for _ in range(4):
-            frame, items = await self._wait_selection(None)
-            current = self._selection(frame, items)
-            if not current:
-                break
-            frame, items = await self._wait_selection(current)
-            card = next(c for c in self.native['cards'].values() if c['type'] == current[0])
-            await self.ui.click(frame, card['point'])
-            await self._wait_selection(current[1:])
-        await self._wait_selection([])
-        configured = []
-        for key in self.types:
-            if self._requested_stop():
-                return False
-            frame, items = await self._wait_selection(configured)
-            card = next(c for c in self.native['cards'].values() if c['type'] == key)
-            await self.ui.click(frame, card['point'])
-            configured.append(key)
-            await self._wait_selection(configured)
-        self.result['configured_types'] = list(configured)
+        frame, configured = await self._wait_selection(None)
+        if configured != self.types:
+            cards = {card['type']: card for card in self.native['cards'].values()}
+            # Removing a card renumbers the others. Every click uses a newly confirmed frame.
+            while configured:
+                if self._requested_stop():
+                    return False
+                await self.ui.click(frame, cards[configured[0]]['point'])
+                frame, configured = await self._wait_selection(configured[1:])
+            for key in self.types:
+                if self._requested_stop():
+                    return False
+                await self.ui.click(frame, cards[key]['point'])
+                frame, configured = await self._wait_selection([*configured, key])
+        self.result['configured_types'] = configured
         await self._panel(False)
         return True
 
@@ -481,15 +500,18 @@ class StructuralRuntime:
                         await self._control_click(frame, 'end')
                         stable, waiting_page, last_input = 0, page, time.monotonic()
                 elif find_text(items, '开启自动讨伐', region=MAP_AUTO_ROI):
-                    if self._cards_visible(items):
+                    visible = self._panel_visibility(frame)
+                    if visible is True:
                         await self._control_click(frame, 'setup')
                         stable = 0
-                    else:
+                    elif visible is False:
                         stable += 1
                         if stable >= 2:
                             self.native_armed = False
                             self.result.update(native_stopped=True, page_after='world_scan', ready_for_next=True)
                             return
+                    else:
+                        stable = 0
             elif page.startswith('energy:'):
                 if page != waiting_page or time.monotonic()-last_input > .7:
                     target = self.native['energy_pages'][page.split(':', 1)[1]]['close']
@@ -526,27 +548,10 @@ class StructuralRuntime:
             return False
         if self._requested_stop():
             return None
-        await self._reset_list()
-        previous = None
-        for _ in range(64):
-            if self._requested_stop():
-                return None
-            frame, items = await self._read()
-            if callback_page(items) != 'world_scan' or find_text(items, '关闭自动讨伐', region=MAP_AUTO_ROI):
-                raise StructuralExplorationError('structural_termination_page_changed')
-            rows = self._rows(frame, items)
-            if not rows:
-                raise StructuralExplorationError('structural_event_rows_unrecognized')
-            if any(row['type'] in self.types for row in rows):
-                return True
-            signature = self._signature(frame)
-            if signature == previous:
-                if len(rows) >= 6 and len({(r['type'], r['title']) for r in rows}) < 2:
-                    raise StructuralExplorationError('structural_list_boundary_ambiguous')
-                return False
-            previous = signature
-            await self._scroll(down=True)
-        raise StructuralExplorationError('structural_event_list_end_unconfirmed')
+        frame, items = await self._read()
+        rows = self._stopped_list_rows(frame, items)
+        self._confirm_list_rows(frame, rows)
+        return any(row['type'] in self.types for row in rows)
 
     async def _monitor(self):
         previous, page_since, idle_since = None, time.monotonic(), None

@@ -23,6 +23,44 @@
     "ui/prison/arrestprisoner/arresttips.asset": "cb38c79ef912c4d905a5924d49bde13a31b40e0122599d6311c5a4d8840708e6",
     "ui/prison/arrestprisoner/skiparrestsettlement.asset": "2d05ee01d461e623af3d3f9195314050798d28c512a8184dcab81952412a10d8"
   },
+  "gp_route_calibrations": {
+    "gp.action_summary.blade_encirclement": {
+      "anchor_aliases": {
+        "掉落预览": "奖励预览"
+      },
+      "sweep_overlay_rect": [
+        45,
+        8,
+        100,
+        60
+      ],
+      "source": "Live Special Order I at 1280x720; overlay rect is relative to the sweep button"
+    },
+    "gp.action_summary.global_supply": {
+      "anchor_aliases": {
+        "掉落预览": "奖励预览"
+      },
+      "sweep_overlay_rect": [
+        45,
+        8,
+        100,
+        60
+      ],
+      "source": "Live Special Order I at 1280x720; overlay rect is relative to the sweep button"
+    },
+    "gp.action_summary.smuggler_crackdown": {
+      "anchor_aliases": {
+        "掉落预览": "奖励预览"
+      },
+      "sweep_overlay_rect": [
+        45,
+        8,
+        100,
+        60
+      ],
+      "source": "Live Special Order I at 1280x720; overlay rect is relative to the sweep button"
+    }
+  },
   "gp_profiles": [
     {
       "name": "material",
@@ -523,15 +561,14 @@
       },
       "anchors": [
         {
-          "text": "点击变更难度",
+          "text": "威胁等级",
           "roi": [
-            1044,
-            435,
-            55,
-            21
+            540,
+            170,
+            710,
+            145
           ],
-          "rect_source": "/FastBattle/Group_Battle/Group_Battle/Group_1/Group_Information/Group_Difficult/Btn_Difficult/Txt_",
-          "prefab": "ui/activity/activitysafe/fastbattle.asset"
+          "source": "Live regional threat card labels at 1280x720"
         }
       ],
       "availability_source": "UIFastBattleBattleController.TryBattle:345-383; native controllers expose squad entry only, no sweep control"
@@ -794,6 +831,7 @@
     },
     "source": "UIArrestTipsViewFunction:30-33; GoBack + Cancel callback",
     "minimum_text": "最小",
+    "minimum_text_alias": "最少",
     "plus_text": "+1",
     "count_region": [
       460,
