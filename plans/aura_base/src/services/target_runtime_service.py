@@ -381,7 +381,7 @@ class TargetRuntimeService:
                 self._session = self._build_session(resolved)
                 self._session_key = session_key
                 self._trace_cids.clear()
-                for message in resolved.warnings:
+                for message in getattr(resolved, "warnings", ()):
                     if message not in self._emitted_runtime_warnings:
                         self._emitted_runtime_warnings.add(message)
                         logger.warning(message)
