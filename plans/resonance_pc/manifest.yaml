@@ -988,6 +988,19 @@ exports:
       type: Any
       required: true
       default: null
+  - name: resonance_pc.run_calculation_recording
+    module: plans.resonance_pc.src.actions.calculation_recording_pc_actions
+    function: run_calculation_recording
+    public: true
+    read_only: false
+    timeout: null
+    description: Scan solo Calculation Recording bosses, persist observed progress,
+      and advance to the target.
+    parameters:
+    - name: target_progress
+      type: Any
+      required: false
+      default: 100
   - name: resonance_pc.execute_cape_island_investment_from_city_panel
     module: plans.resonance_pc.src.actions.cape_island_investment_pc_actions
     function: resonance_pc_execute_cape_island_investment_from_city_panel
@@ -3539,6 +3552,12 @@ exports:
       and exits to rest menu or main.
     role: internal
     domain: 商贸运输
+  - id: calculation_recording_pc/calculation_recording_pc
+    title: 虚演刻录
+    source: tasks/calculation_recording_pc.yaml
+    description: 从虚演刻录关卡选择页逐张扫描，推进所有可挑战关卡至目标进度。
+    role: user_task
+    domain: 活动玩法
   - id: cape_island_investment_pc/cape_island_investment_pc
     title: Cape Island Investment (PC)
     source: tasks/cape_island_investment_pc.yaml

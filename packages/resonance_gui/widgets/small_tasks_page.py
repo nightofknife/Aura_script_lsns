@@ -23,6 +23,7 @@ from ..logic import (
     PC_CONSCIOUSNESS_DEEP_DIVE_SCAN_TASK_REF,
     PC_CONSCIOUSNESS_DEEP_DIVE_PLAN_TASK_REF,
 )
+from .calculation_recording_panel import CalculationRecordingPanel
 from .consciousness_deep_dive_panel import ConsciousnessDeepDivePanel
 from .eternal_scuffle_panel import EternalScufflePanel
 from .affix_refresh_panel import AffixRefreshPanel
@@ -35,6 +36,7 @@ from .trade_page import TradePage
 USER_DATA_TASK_ID = "player_data_refresh"
 TEAM_RECOMMENDATION_TASK_ID = "team_recommendation"
 CONSCIOUSNESS_DEEP_DIVE_TASK_ID = "consciousness_deep_dive"
+CALCULATION_RECORDING_TASK_ID = "calculation_recording"
 ETERNAL_SCUFFLE_TASK_ID = "eternal_scuffle"
 AFFIX_REFRESH_TASK_ID = "affix_refresh"
 DAILY_REWARDS_TASK_ID = "daily_rewards"
@@ -44,6 +46,7 @@ SMALL_TASKS: tuple[tuple[str, str], ...] = (
     (TRADE_PREVIEW_TASK_ID, "货运试算"),
     (TEAM_RECOMMENDATION_TASK_ID, "配队推荐"),
     (CONSCIOUSNESS_DEEP_DIVE_TASK_ID, "识海深潜"),
+    (CALCULATION_RECORDING_TASK_ID, "虚演刻录"),
     (ETERNAL_SCUFFLE_TASK_ID, "无垠乱斗"),
     (AFFIX_REFRESH_TASK_ID, "刷新词缀"),
     (DAILY_REWARDS_TASK_ID, "日常奖励收集"),
@@ -53,6 +56,7 @@ TASK_TOOLTIPS = {
     TRADE_PREVIEW_TASK_ID: "使用所选城市和货运参数计算交易方案，不执行游戏中的买卖。",
     TEAM_RECOMMENDATION_TASK_ID: "根据最新角色与仓库装备数据匹配固定配队，不自动配置队伍。",
     CONSCIOUSNESS_DEEP_DIVE_TASK_ID: "从活动首页完整下潜，或从当前关卡开始自动运行。",
+    CALCULATION_RECORDING_TASK_ID: "扫描虚演刻录关卡，按目标进度挑战并保存进度。",
     ETERNAL_SCUFFLE_TASK_ID: "按每局投入和运行次数执行无垠乱斗。",
     AFFIX_REFRESH_TASK_ID: "按目标和胶卷上限自动刷新词缀，命中后停止，由你手动替换。",
     DAILY_REWARDS_TASK_ID: "从站场主界面分别启动每日任务奖励或通行证奖励收集。",
@@ -97,6 +101,7 @@ class SmallTasksPage(QWidget):
     runConsciousnessDeepDivePlanRequested = Signal(object)
     runConsciousnessDeepDivePlannedRunRequested = Signal(object)
     runConsciousnessDeepDiveLoopRequested = Signal(object)
+    runCalculationRecordingRequested = Signal(object)
     runEternalScuffleRequested = Signal(object)
     readAffixRefreshRequested = Signal()
     runAffixRefreshRequested = Signal(object)
@@ -185,6 +190,12 @@ class SmallTasksPage(QWidget):
         self._task_pages[CONSCIOUSNESS_DEEP_DIVE_TASK_ID] = (
             self.consciousness_deep_dive_panel
         )
+
+        self.calculation_recording_panel = CalculationRecordingPanel(settings, self.detail_stack)
+        self.calculation_recording_panel.runRequested.connect(self.runCalculationRecordingRequested.emit)
+        self.calculation_recording_panel.cancelRequested.connect(self.cancelRequested.emit)
+        self.detail_stack.addWidget(self.calculation_recording_panel)
+        self._task_pages[CALCULATION_RECORDING_TASK_ID] = self.calculation_recording_panel
 
         self.eternal_scuffle_panel = EternalScufflePanel(settings, self.detail_stack)
         self.eternal_scuffle_panel.runRequested.connect(self.runEternalScuffleRequested.emit)
@@ -367,6 +378,21 @@ class SmallTasksPage(QWidget):
         self.affix_refresh_panel.show_error(message, cancelled=cancelled)
         self._sync_controls()
 
+    def begin_calculation_recording_run(self, inputs: Mapping[str, Any]) -> None:
+        self._active_task_id = CALCULATION_RECORDING_TASK_ID
+        self.calculation_recording_panel.begin_run(inputs)
+        self._sync_controls()
+
+    def apply_calculation_recording_result(self, payload: Mapping[str, Any]) -> None:
+        self._active_task_id = ""
+        self.calculation_recording_panel.apply_result(payload)
+        self._sync_controls()
+
+    def show_calculation_recording_error(self, message: str, *, cancelled: bool = False) -> None:
+        self._active_task_id = ""
+        self.calculation_recording_panel.show_error(message, cancelled=cancelled)
+        self._sync_controls()
+
     def begin_eternal_scuffle_run(self, inputs: Mapping[str, Any]) -> None:
         self._active_task_id = ETERNAL_SCUFFLE_TASK_ID
         self.eternal_scuffle_panel.begin_run(inputs)
@@ -448,6 +474,7 @@ class SmallTasksPage(QWidget):
         self.player_data_panel.set_runner_busy(busy)
         self.team_recommendation_panel.set_runner_busy(busy)
         self.consciousness_deep_dive_panel.set_runner_busy(busy)
+        self.calculation_recording_panel.set_runner_busy(busy)
         self.eternal_scuffle_panel.set_runner_busy(busy)
         self.affix_refresh_panel.set_runner_busy(busy)
         self.daily_rewards_panel.set_runner_busy(busy)

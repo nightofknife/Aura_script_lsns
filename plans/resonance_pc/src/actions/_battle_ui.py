@@ -68,13 +68,14 @@ class BattleUi:
         scope.checkpoint()
         return frame
 
-    async def recognize(self, frame, region=None):
+    async def recognize(self, frame, region=None, *, recognition_only=False):
         if self.ocr is None:
             raise ValueError("Battle text observation requires OCR service")
         x, y, w, h = region or (0, 0, 1280, 720)
         image = frame.rgb_image()[y:y+h, x:x+w]
         scope = self.operation()
-        result = await scope.run_async(self.ocr.recognize_all, image)
+        options = {"recognition_only": True, "use_textline_orientation": False} if recognition_only else {}
+        result = await scope.run_async(self.ocr.recognize_all, image, **options)
         scope.checkpoint()
         return [
             {"text": str(row.text or ""), "normalized": compact(row.text),

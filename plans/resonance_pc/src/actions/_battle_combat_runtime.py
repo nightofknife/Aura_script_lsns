@@ -140,7 +140,9 @@ async def _capture_prisoners(ui, frame, arrest_hit, requested, *, config, timeou
 
 async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interval_sec=.5,
                         confirm_timeout_sec=30., exit_hint_timeout_sec=30., short_interval_sec=.5,
-                        callback_ready=None):
+                        callback_ready=None, callback_from_frame=None,
+                        allow_early_callback=False, stop_on_defeat=False, dismiss_overlay_at=None,
+                        next_button_from_frame=None, next_max_clicks=1):
     config = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
     titles = config["titles"]
     if capture_count is not None and (isinstance(capture_count, bool) or int(capture_count) < 1):
@@ -149,16 +151,45 @@ async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interv
     short = max(.1, float(short_interval_sec))
     budget = ui.operation().child(float(timeout_sec))
     previous, stable, outcome = None, 0, None
+    early_page, early_stable = None, 0
+    overlay_clicked = False
     events = []
+
+    def read_callback(frame, items):
+        if callback_from_frame is not None:
+            return callback_from_frame(frame, items)
+        return (callback_ready or callback_page)(items)
+
+    def read_next(frame, items):
+        if next_button_from_frame is not None:
+            return next_button_from_frame(frame.rgb_image())
+        hit = find_text(items, titles["next"], exact=True)
+        return hit["center"] if hit else None
+
+    async def dismiss_overlay(frame, items, scope):
+        nonlocal overlay_clicked
+        point = dismiss_overlay_at(items) if dismiss_overlay_at is not None and not overlay_clicked else None
+        if point is None:
+            return False
+        with scope.activate():
+            await ui.click(frame, point)
+        overlay_clicked = True
+        events.append({"event": "dismiss_settlement_overlay"})
+        await scope.sleep_async(short)
+        return True
+
     try:
         while True:
             budget.checkpoint()
             with budget.activate():
                 frame, items = await ui.read()
+            if await dismiss_overlay(frame, items, budget):
+                previous, stable = None, 0
+                continue
             observed = _outcome(items, titles)
-            next_hit = find_text(items, titles["next"], exact=True)
+            next_point = read_next(frame, items)
             arrest_hit = find_text(items, titles["arrest"], exact=True)
-            key = observed if observed and (next_hit or arrest_hit) else None
+            key = observed if observed and (next_point or arrest_hit or (stop_on_defeat and observed == "defeat")) else None
             stable = stable + 1 if key and key == previous else 1 if key else 0
             previous = key
             budget.checkpoint()
@@ -166,6 +197,14 @@ async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interv
                 outcome = observed
                 logger.info("[BattleSettlement] outcome_observed=%s frame=%s", outcome, frame.id)
                 break
+            if allow_early_callback:
+                page = read_callback(frame, items) if not (observed or next_point or arrest_hit) else None
+                early_stable = early_stable + 1 if page and early_page == page else int(bool(page))
+                early_page = page
+                if early_stable >= 2:
+                    return {"success": True, "ok": True, "outcome": None, "battle_started": None,
+                            "page_after": page, "ready_for_next": True, "branch": "returned_before_outcome",
+                            "capture": {"requested": capture_count, "selected": 0, "available": False}, "events": []}
             await budget.sleep_async(poll)
     except OperationTimeout as exc:
         ui.scope.checkpoint()
@@ -178,6 +217,10 @@ async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interv
         ) from exc
 
     capture = {"requested": capture_count, "selected": 0, "available": bool(arrest_hit)}
+    if outcome == "defeat" and stop_on_defeat:
+        return {"success": True, "ok": True, "outcome": outcome, "battle_started": True,
+                "page_after": "battle_settlement", "ready_for_next": False, "branch": "defeat_observed",
+                "capture": capture, "events": events}
     branch = "next_step"
     if outcome == "victory" and capture_count is not None and arrest_hit:
         capture = await _capture_prisoners(ui, frame, arrest_hit, int(capture_count), config=config,
@@ -188,29 +231,40 @@ async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interv
         branch = "capture_unavailable" if outcome == "victory" else "defeat_next"
 
     transition = ui.operation().child(float(exit_hint_timeout_sec))
-    next_clicked, reward_clicked = False, False
+    next_clicks, next_stable, reward_clicked = 0, 0, False
+    last_next_click = 0.0
     previous, stable = None, 0
     try:
         while True:
             transition.checkpoint()
             with transition.activate():
                 frame, items = await ui.read()
+            if await dismiss_overlay(frame, items, transition):
+                next_stable = 0
+                continue
             current_outcome = _outcome(items, titles)
-            next_hit = find_text(items, titles["next"], exact=True)
+            next_point = read_next(frame, items)
+            next_present = next_point is not None and current_outcome == outcome
+            next_stable = next_stable + 1 if next_present else 0
+            next_ready = next_present and next_clicks < next_max_clicks and (
+                next_max_clicks == 1 or (next_stable >= 2 and time.monotonic() - last_next_click >= 1.25)
+            )
             exit_hit = find_text(items, ("触碰空白区域退出", "点击空白区域退出"))
             if exit_hit and not reward_clicked:
                 with transition.activate():
                     await ui.click(frame, exit_hit["center"])
                 reward_clicked = True
                 events.append({"event": "dismiss_arrest_result"})
-            elif next_hit and current_outcome == outcome and not next_clicked:
+            elif next_ready:
                 with transition.activate():
-                    await ui.click(frame, next_hit["center"])
-                next_clicked = True
+                    await ui.click(frame, next_point)
+                next_clicks += 1
+                next_stable = 0
+                last_next_click = time.monotonic()
                 events.append({"event": "next_step", "outcome": outcome})
             elif current_outcome is not None and current_outcome != outcome:
                 raise BattleResolutionError("battle_outcome_changed", expected=outcome, observed=current_outcome)
-            page = None if current_outcome or next_hit or exit_hit else (callback_ready or callback_page)(items)
+            page = None if current_outcome or next_point or exit_hit else read_callback(frame, items)
             stable = stable + 1 if page and previous == page else 1 if page else 0
             previous = page
             transition.checkpoint()
@@ -222,7 +276,7 @@ async def settle_battle(ui, *, capture_count=None, timeout_sec=600., poll_interv
     except OperationTimeout as exc:
         ui.scope.checkpoint()
         raise BattleResolutionError("battle_settlement_return_unconfirmed", outcome=outcome,
-                                    next_clicked=next_clicked, reward_clicked=reward_clicked, events=events) from exc
+                                    next_clicked=bool(next_clicks), reward_clicked=reward_clicked, events=events) from exc
 
 
 async def detect_stamina(ui, vision, *, dialog_region, dialog_template, dialog_threshold,

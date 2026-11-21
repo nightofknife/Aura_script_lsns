@@ -23,6 +23,7 @@ _TASKS = {
     "collect_battle_pass_rewards_pc": "通行证奖励",
     "affix_refresh_pc": "装备词缀刷新",
     "affix_refresh_read_pc": "读取装备词缀",
+    "calculation_recording_pc": "虚演刻录",
     "eternal_scuffle_pc": "无垠乱斗",
     "consciousness_deep_dive_plan_pc": "识海深潜移动规划",
     "consciousness_deep_dive_scan_pc": "识海深潜布局扫描",
@@ -160,7 +161,7 @@ def present_run_failure(
     task = task_label or run_task_label(payload)
     envelopes = list(_envelopes(payload))
     public = extract_final_result(payload) if result is None else result
-    for key in ("player_data", "affix_refresh", "eternal_scuffle", "team_recommendations",
+    for key in ("player_data", "affix_refresh", "calculation_recording", "eternal_scuffle", "team_recommendations",
                 "deep_dive_scan", "deep_dive_plan", "deep_dive_planned_run", "deep_dive_loop"):
         child = _mapping(public.get(key))
         if child.get("success") is False or str(child.get("status") or "").lower() in _INCOMPLETE:
