@@ -19,7 +19,8 @@ runtime:
       recovery_timeout_ms: 3000
       poll_interval_ms: 100
   capture:
-    backend: wgc
+    # Windows build 18362 起使用 WGC，更早的版本使用 GDI。
+    backend: auto
     max_stale_ms: 250
     crop_to_client: true
     capture_cursor: false

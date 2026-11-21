@@ -2119,12 +2119,17 @@ class TradePage(QWidget):
             self.target_value.setText(title or "已连接")
             self.target_value.setProperty("status", "success")
             capture = data.get("capture") if isinstance(data.get("capture"), Mapping) else {}
-            profile = self._find_capture_profile(capture)
-            profile_label = {
-                "performance": "高性能",
-                "compatible": "兼容",
-            }.get(profile, "自动")
-            self.ready_hint.setText(f"PC / WGC {profile_label}模式 / SendInput")
+            backend = str(capture.get("backend") or "").strip().lower()
+            if backend == "wgc":
+                profile_label = {
+                    "performance": "高性能",
+                    "compatible": "兼容",
+                }.get(self._find_capture_profile(capture), "自动")
+                self.ready_hint.setText(f"PC / WGC {profile_label}模式 / SendInput")
+            elif backend == "gdi":
+                self.ready_hint.setText("PC / GDI · 游戏窗口需保持无遮挡")
+            else:
+                self.ready_hint.setText(f"PC / {backend.upper()}" if backend else "游戏窗口已连接")
         else:
             self.target_value.setText("未连接")
             self.target_value.setProperty("status", "error")

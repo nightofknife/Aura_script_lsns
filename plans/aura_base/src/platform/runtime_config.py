@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+import sys
 from dataclasses import asdict, dataclass, field
+from functools import cache
 from typing import Any, Mapping
 
 from .contracts import TargetRuntimeError
@@ -14,6 +16,7 @@ FAMILY_BY_PROVIDER = {
 PROVIDER_BY_FAMILY = {value: key for key, value in FAMILY_BY_PROVIDER.items()}
 
 WINDOWS_CAPTURE_BACKENDS = ("wgc", "dxgi", "gdi", "printwindow")
+WGC_MIN_WINDOWS_BUILD = 18362  # CreateForWindow requires Windows 10 version 1903.
 WINDOWS_INPUT_BACKENDS = ("sendinput", "window_message")
 WINDOWS_TARGET_MODES = ("hwnd", "process", "title")
 
@@ -224,6 +227,14 @@ class ResolvedRuntimeConfig:
         }
 
 
+@cache
+def windows_build_number() -> int | None:
+    try:
+        return int(sys.getwindowsversion().build)
+    except (AttributeError, TypeError, ValueError):
+        return None
+
+
 def resolve_runtime_config(config: Any) -> ResolvedRuntimeConfig:
     runtime = _coerce_dict(_config_get(config, "runtime", {}))
     warnings: list[str] = []
@@ -256,7 +267,7 @@ def resolve_runtime_config(config: Any) -> ResolvedRuntimeConfig:
     debug_data = _coerce_dict(runtime.get("debug", {}))
 
     target = _resolve_target_config(provider, target_data)
-    capture = _resolve_capture_config(provider, capture_data)
+    capture = _resolve_capture_config(provider, capture_data, warnings)
     input_config = _resolve_input_config(provider, input_data)
     rebind = _resolve_rebind_config(rebind_data)
     coordinates = _resolve_coordinate_config(coordinates_data)
@@ -365,16 +376,28 @@ def _resolve_visibility_recovery_config(
     )
 
 
-def _resolve_capture_config(provider: str, capture_data: Mapping[str, Any]) -> RuntimeCaptureConfig:
-    default_backend = "gdi"
-    backend = _normalized(capture_data.get("backend"), default=default_backend)
+def _resolve_capture_config(
+    provider: str, capture_data: Mapping[str, Any], warnings: list[str]
+) -> RuntimeCaptureConfig:
+    backend = _normalized(capture_data.get("backend"), default="gdi")
     valid_backends = supported_capture_backends(provider)
+    if provider == WINDOWS_PROVIDER:
+        valid_backends.append("auto")
     if backend not in valid_backends:
         raise TargetRuntimeError(
             "capture_backend_invalid_for_provider",
             f"Provider '{provider}' does not support capture.backend='{backend}'.",
             {"provider": provider, "backend": backend, "supported": valid_backends},
         )
+
+    if backend == "auto":
+        build = windows_build_number()
+        if build is not None and build >= WGC_MIN_WINDOWS_BUILD:
+            backend = "wgc"
+        else:
+            backend = "gdi"
+            if build is not None:
+                warnings.append("系统版本较低自动回退到gdi运行，请不要遮挡")
 
     return RuntimeCaptureConfig(
         backend=backend,

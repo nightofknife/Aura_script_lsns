@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import ctypes
 import importlib
-import sys
 import threading
 from typing import Any
 
@@ -17,19 +16,13 @@ import win32ui
 from packages.aura_core.observability.logging.core_logger import logger
 
 from ..contracts import CaptureResult, TargetRuntimeError
+from ..runtime_config import windows_build_number
 from .window_target import WindowTarget
 from .wgc_session import PersistentWgcSession
 
 
 WGC_CAPTURE_PROFILES = ("performance", "compatible")
 WGC_PERFORMANCE_MIN_WINDOWS_BUILD = 26100
-
-
-def _windows_build_number() -> int | None:
-    try:
-        return int(sys.getwindowsversion().build)
-    except (AttributeError, TypeError, ValueError):
-        return None
 
 
 def _normalize_wgc_profile(value: Any, *, field: str, default: str) -> str:
@@ -181,7 +174,7 @@ class WindowsWgcCaptureBackend(BaseWindowsCaptureBackend):
                     "supported": ["compatible"],
                 },
             )
-        self.windows_build = _windows_build_number()
+        self.windows_build = windows_build_number()
         self.effective_profile = self.requested_profile
         self.compatibility_fallback_used = False
         self.compatibility_fallback_reason: str | None = None
